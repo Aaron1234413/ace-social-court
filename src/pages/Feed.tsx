@@ -1,9 +1,10 @@
-
 import React from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageSquare, Share } from 'lucide-react';
+import { Share } from 'lucide-react';
+import LikeButton from '@/components/social/LikeButton';
+import CommentButton from '@/components/social/CommentButton';
 
 const Feed = () => {
   const { user } = useAuth();
@@ -38,14 +39,6 @@ const Feed = () => {
       comments: 12,
     }
   ];
-
-  const handleLike = (itemId: string) => {
-    console.log(`Liked item ${itemId}`);
-  };
-
-  const handleComment = (itemId: string) => {
-    console.log(`Comment on item ${itemId}`);
-  };
 
   const handleShare = (itemId: string) => {
     console.log(`Shared item ${itemId}`);
@@ -85,22 +78,8 @@ const Feed = () => {
                     <p className="py-2">{item.content}</p>
                   </CardContent>
                   <CardFooter className="border-t pt-4 flex justify-between">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleLike(item.id)}
-                      className="flex items-center gap-1"
-                    >
-                      <Heart className="h-4 w-4" /> {item.likes}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleComment(item.id)}
-                      className="flex items-center gap-1"
-                    >
-                      <MessageSquare className="h-4 w-4" /> {item.comments}
-                    </Button>
+                    <LikeButton itemId={item.id} initialLikes={item.likes} />
+                    <CommentButton itemId={item.id} commentCount={item.comments} />
                     <Button 
                       variant="ghost" 
                       size="sm" 
