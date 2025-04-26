@@ -8,6 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Database } from '@/integrations/supabase/types';
+
+// Define a type for the user_type field
+type UserType = Database['public']['Enums']['user_type'];
 
 const Profile = () => {
   const { user } = useAuth();
@@ -15,7 +19,7 @@ const Profile = () => {
   const [profile, setProfile] = useState({
     username: '',
     full_name: '',
-    user_type: 'player',
+    user_type: 'player' as UserType, // Use type assertion here
     bio: '',
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +43,8 @@ const Profile = () => {
         setProfile({
           username: data.username || '',
           full_name: data.full_name || '',
-          user_type: data.user_type || 'player',
+          // Ensure that user_type is always one of the allowed types
+          user_type: (data.user_type as UserType) || 'player',
           bio: data.bio || '',
         });
       } catch (error) {
@@ -110,7 +115,7 @@ const Profile = () => {
           <Label htmlFor="user_type">Account Type</Label>
           <Select 
             value={profile.user_type} 
-            onValueChange={(value) => setProfile(prev => ({ ...prev, user_type: value }))}
+            onValueChange={(value: UserType) => setProfile(prev => ({ ...prev, user_type: value }))}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select account type" />
