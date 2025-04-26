@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, X, Image, FileVideo } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
@@ -41,34 +41,44 @@ const MediaUploader = ({
       return;
     }
 
-    // Create preview
-    const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
-    setMediaType(fileType);
-
     try {
       setIsUploading(true);
       
+      // Create object URL for preview
+      const objectUrl = URL.createObjectURL(file);
+      setPreview(objectUrl);
+      setMediaType(fileType);
+
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      
       // Upload file to Supabase Storage
-      const filePath = `public/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
       const { data, error } = await supabase.storage
         .from('media')
-        .upload(filePath, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          contentType: file.type
+        });
 
       if (error) throw error;
 
       // Get public URL
-      const { data: publicUrlData } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('media')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       // Pass URL to parent component
-      onMediaUpload(publicUrlData.publicUrl, fileType);
+      onMediaUpload(publicUrl, fileType);
+      console.log('File uploaded successfully:', publicUrl);
       toast.success('File uploaded successfully!');
       
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error(`Upload failed: ${error.message}`);
+      // Clear preview on error
+      setPreview(null);
+      setMediaType(null);
     } finally {
       setIsUploading(false);
     }
