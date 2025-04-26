@@ -1,5 +1,6 @@
 
 import { Button } from "@/components/ui/button";
+import FeatureCard from "@/components/FeatureCard";
 
 const Index = () => {
   return (
@@ -35,17 +36,17 @@ const Index = () => {
           <FeatureCard
             title="Connect"
             description="Find and connect with tennis players and coaches in your area."
-            icon="users"
+            icon="Users"
           />
           <FeatureCard
             title="Share & Learn"
             description="Share your progress and learn from others in the community."
-            icon="video"
+            icon="Video"
           />
           <FeatureCard
             title="Improve"
             description="Get AI-powered feedback on your technique and personalized drills."
-            icon="star"
+            icon="Star"
           />
         </div>
       </main>
@@ -54,4 +55,3 @@ const Index = () => {
 };
 
 export default Index;
-
