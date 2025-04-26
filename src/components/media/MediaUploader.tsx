@@ -111,9 +111,16 @@ const MediaUploader = ({
               disabled={isUploading}
             />
             <Button 
+              type="button" 
               variant="outline" 
               size="sm" 
               className="mt-2"
+              onClick={(e) => {
+                e.preventDefault();
+                // Trigger the hidden file input
+                const fileInput = e.currentTarget.previousElementSibling as HTMLInputElement;
+                fileInput.click();
+              }}
               disabled={isUploading}
             >
               {isUploading ? 'Uploading...' : 'Select File'}
