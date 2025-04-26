@@ -29,16 +29,48 @@ const Feed = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const { data, error } = await supabase
+        // First fetch just the posts
+        const { data: postsData, error: postsError } = await supabase
           .from('posts')
-          .select(`
-            *,
-            author:profiles(full_name, user_type)
-          `)
+          .select('*')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setPosts(data || []);
+        if (postsError) throw postsError;
+        
+        if (!postsData || postsData.length === 0) {
+          setPosts([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Then fetch profile information for each post
+        const postsWithAuthors = await Promise.all(
+          postsData.map(async (post) => {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('full_name, user_type')
+              .eq('id', post.user_id)
+              .single();
+
+            if (profileError) {
+              console.error('Error fetching profile for post:', profileError);
+              return {
+                ...post,
+                author: {
+                  full_name: 'Unknown User',
+                  user_type: null
+                }
+              };
+            }
+
+            return {
+              ...post,
+              author: profileData
+            };
+          })
+        );
+
+        setPosts(postsWithAuthors);
       } catch (error) {
         console.error('Error fetching posts:', error);
         toast.error("Failed to load posts");
