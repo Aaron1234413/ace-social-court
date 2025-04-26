@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/AuthProvider";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +20,10 @@ const Index = () => {
           <h1 className="text-2xl font-bold text-primary">AceSocial</h1>
           <div className="flex gap-4">
             {user ? (
-              <Button onClick={handleSignOut}>Sign out</Button>
+              <>
+                <Button onClick={() => navigate("/profile")}>Profile</Button>
+                <Button onClick={handleSignOut}>Sign out</Button>
+              </>
             ) : (
               <>
                 <Button variant="outline" onClick={() => navigate("/auth")}>
