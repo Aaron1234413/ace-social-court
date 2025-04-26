@@ -1,10 +1,22 @@
 
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import FeatureCard from "@/components/FeatureCard";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/feed');
+    }
+  }, [user, navigate]);
+
+  // If user is authenticated, don't render anything while redirecting
+  if (user) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -47,3 +59,4 @@ const Index = () => {
 };
 
 export default Index;
+
