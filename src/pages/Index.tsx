@@ -1,41 +1,13 @@
+
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/components/AuthProvider";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import FeatureCard from "@/components/FeatureCard";
 
 const Index = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">AceSocial</h1>
-          <div className="flex gap-4">
-            {user ? (
-              <>
-                <Button onClick={() => navigate("/profile")}>Profile</Button>
-                <Button onClick={handleSignOut}>Sign out</Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => navigate("/auth")}>
-                  Log in
-                </Button>
-                <Button onClick={() => navigate("/auth")}>Sign up</Button>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 py-16">
         <div className="text-center space-y-6">
@@ -46,7 +18,7 @@ const Index = () => {
             Join the community where tennis players and coaches meet, share, and improve together.
           </p>
           <div className="flex gap-4 justify-center">
-            <Button size="lg">Get Started</Button>
+            <Button size="lg" onClick={() => navigate("/auth")}>Get Started</Button>
             <Button size="lg" variant="secondary">Learn More</Button>
           </div>
         </div>
