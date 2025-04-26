@@ -9,12 +9,15 @@ import CommentButton from '@/components/social/CommentButton';
 import FollowButton from '@/components/social/FollowButton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import CreatePostForm from '@/components/social/CreatePostForm';
 
 interface Post {
   id: string;
   content: string;
   created_at: string;
   user_id: string;
+  media_url?: string | null;
+  media_type?: 'image' | 'video' | null;
   author?: {
     full_name: string | null;
     user_type: string | null;
@@ -26,59 +29,60 @@ const Feed = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        // First fetch just the posts
-        const { data: postsData, error: postsError } = await supabase
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false });
+  const fetchPosts = async () => {
+    try {
+      setIsLoading(true);
+      // First fetch just the posts
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        if (postsError) throw postsError;
-        
-        if (!postsData || postsData.length === 0) {
-          setPosts([]);
-          setIsLoading(false);
-          return;
-        }
+      if (postsError) throw postsError;
+      
+      if (!postsData || postsData.length === 0) {
+        setPosts([]);
+        setIsLoading(false);
+        return;
+      }
 
-        // Then fetch profile information for each post
-        const postsWithAuthors = await Promise.all(
-          postsData.map(async (post) => {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('full_name, user_type')
-              .eq('id', post.user_id)
-              .single();
+      // Then fetch profile information for each post
+      const postsWithAuthors = await Promise.all(
+        postsData.map(async (post) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name, user_type')
+            .eq('id', post.user_id)
+            .single();
 
-            if (profileError) {
-              console.error('Error fetching profile for post:', profileError);
-              return {
-                ...post,
-                author: {
-                  full_name: 'Unknown User',
-                  user_type: null
-                }
-              };
-            }
-
+          if (profileError) {
+            console.error('Error fetching profile for post:', profileError);
             return {
               ...post,
-              author: profileData
+              author: {
+                full_name: 'Unknown User',
+                user_type: null
+              }
             };
-          })
-        );
+          }
 
-        setPosts(postsWithAuthors);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-        toast.error("Failed to load posts");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+          return {
+            ...post,
+            author: profileData
+          };
+        })
+      );
 
+      setPosts(postsWithAuthors);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      toast.error("Failed to load posts");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPosts();
   }, []);
 
@@ -94,11 +98,8 @@ const Feed = () => {
       
       {user ? (
         <>
-          <div className="bg-white shadow rounded-lg p-4 md:p-6 mb-4 md:mb-6">
-            <p className="text-base md:text-lg">Welcome, {user.email}!</p>
-            <p className="text-sm md:text-base text-muted-foreground">
-              This is your personalized feed. Connect with other players and coaches.
-            </p>
+          <div className="mb-6">
+            <CreatePostForm onPostCreated={fetchPosts} />
           </div>
           
           <div className="space-y-4 md:space-y-6">
@@ -135,7 +136,27 @@ const Feed = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 md:p-6">
-                    <p className="text-sm md:text-base break-words">{post.content}</p>
+                    {post.content && (
+                      <p className="text-sm md:text-base break-words mb-4">{post.content}</p>
+                    )}
+                    
+                    {post.media_url && (
+                      <div className="rounded-lg overflow-hidden mt-2 border border-gray-100">
+                        {post.media_type === 'image' ? (
+                          <img 
+                            src={post.media_url} 
+                            alt="Post media" 
+                            className="w-full object-contain max-h-80"
+                          />
+                        ) : post.media_type === 'video' ? (
+                          <video 
+                            src={post.media_url} 
+                            controls 
+                            className="w-full max-h-80"
+                          />
+                        ) : null}
+                      </div>
+                    )}
                   </CardContent>
                   <CardFooter className="border-t p-2 md:p-4 flex justify-between">
                     <LikeButton postId={post.id} />
