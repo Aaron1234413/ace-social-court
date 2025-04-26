@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,43 +7,53 @@ import { Share } from 'lucide-react';
 import LikeButton from '@/components/social/LikeButton';
 import CommentButton from '@/components/social/CommentButton';
 import FollowButton from '@/components/social/FollowButton';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface Post {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  author?: {
+    full_name: string | null;
+    user_type: string | null;
+  };
+}
 
 const Feed = () => {
   const { user } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock content data for the feed
-  const feedItems = [
-    {
-      id: '1',
-      author: 'Sarah Williams',
-      authorType: 'coach',
-      content: 'Just finished an amazing training session with my students! Working on backhand technique today.',
-      timestamp: '2 hours ago',
-      likes: 24,
-      comments: 5,
-    },
-    {
-      id: '2',
-      author: 'Mike Johnson',
-      authorType: 'player',
-      content: 'Excited to share my progress after 3 months of training! Check out my serve improvement.',
-      timestamp: '5 hours ago',
-      likes: 42,
-      comments: 8,
-    },
-    {
-      id: '3',
-      author: 'Tennis Academy NYC',
-      authorType: 'coach',
-      content: 'New summer camp dates announced! Join us for intensive training with pro coaches.',
-      timestamp: '1 day ago',
-      likes: 31,
-      comments: 12,
-    }
-  ];
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select(`
+            *,
+            author:profiles(full_name, user_type)
+          `)
+          .order('created_at', { ascending: false });
 
-  const handleShare = (itemId: string) => {
-    console.log(`Shared item ${itemId}`);
+        if (error) throw error;
+        setPosts(data || []);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        toast.error("Failed to load posts");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  const handleShare = (postId: string) => {
+    // For now, just log the share action
+    console.log(`Shared post ${postId}`);
+    toast.info("Share feature coming soon!");
   };
 
   return (
@@ -60,35 +70,41 @@ const Feed = () => {
           </div>
           
           <div className="space-y-6">
-            {feedItems.length > 0 ? (
-              feedItems.map(item => (
-                <Card key={item.id} className="overflow-hidden">
+            {isLoading ? (
+              <div className="text-center py-8">Loading posts...</div>
+            ) : posts.length > 0 ? (
+              posts.map(post => (
+                <Card key={post.id} className="overflow-hidden">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                          {item.author.charAt(0)}
+                          {post.author?.full_name?.charAt(0) || '?'}
                         </div>
                         <div className="ml-3">
-                          <h3 className="font-semibold">{item.author}</h3>
+                          <h3 className="font-semibold">{post.author?.full_name || 'Anonymous'}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {item.authorType === 'coach' ? 'Coach' : 'Player'} · {item.timestamp}
+                            {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
+                              new Date(post.created_at).toLocaleDateString()
+                            }
                           </p>
                         </div>
                       </div>
-                      <FollowButton userId={item.id} isFollowing={false} />
+                      {user.id !== post.user_id && (
+                        <FollowButton userId={post.user_id} />
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="py-2">{item.content}</p>
+                    <p className="py-2">{post.content}</p>
                   </CardContent>
                   <CardFooter className="border-t pt-4 flex justify-between">
-                    <LikeButton itemId={item.id} initialLikes={item.likes} />
-                    <CommentButton itemId={item.id} commentCount={item.comments} />
+                    <LikeButton postId={post.id} />
+                    <CommentButton postId={post.id} />
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => handleShare(item.id)}
+                      onClick={() => handleShare(post.id)}
                       className="flex items-center gap-1"
                     >
                       <Share className="h-4 w-4" /> Share

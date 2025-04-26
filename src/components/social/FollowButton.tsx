@@ -1,26 +1,77 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/AuthProvider";
 
 interface FollowButtonProps {
   userId: string;
-  isFollowing: boolean;
+  isFollowing?: boolean;
 }
 
-const FollowButton = ({ userId, isFollowing: initialIsFollowing }: FollowButtonProps) => {
-  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+const FollowButton = ({ userId }: FollowButtonProps) => {
+  const { user } = useAuth();
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleFollow = () => {
-    if (isFollowing) {
-      setIsFollowing(false);
-      toast.success("User unfollowed");
-    } else {
-      setIsFollowing(true);
-      toast.success("User followed!");
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .rpc('is_following', {
+          follower_id: user.id,
+          following_id: userId
+        });
+      
+      if (error) {
+        console.error('Error checking follow status:', error);
+        return;
+      }
+      
+      setIsFollowing(data || false);
+      setIsLoading(false);
+    };
+
+    checkFollowStatus();
+  }, [userId, user]);
+
+  const handleFollow = async () => {
+    if (!user) {
+      toast.error("Please login to follow users");
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        const { error } = await supabase
+          .from('followers')
+          .delete()
+          .match({ follower_id: user.id, following_id: userId });
+
+        if (error) throw error;
+        setIsFollowing(false);
+        toast.success("User unfollowed");
+      } else {
+        const { error } = await supabase
+          .from('followers')
+          .insert({ follower_id: user.id, following_id: userId });
+
+        if (error) throw error;
+        setIsFollowing(true);
+        toast.success("User followed!");
+      }
+    } catch (error) {
+      console.error('Error following/unfollowing:', error);
+      toast.error("Failed to update follow status");
     }
   };
+
+  if (isLoading) {
+    return <Button variant="ghost" size="sm" disabled>Loading...</Button>;
+  }
 
   return (
     <Button
@@ -28,6 +79,7 @@ const FollowButton = ({ userId, isFollowing: initialIsFollowing }: FollowButtonP
       size="sm"
       onClick={handleFollow}
       className="flex items-center gap-1"
+      disabled={userId === user?.id}
     >
       {isFollowing ? (
         <UserCheck className="h-4 w-4 text-green-500" />
