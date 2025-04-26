@@ -89,33 +89,40 @@ const Feed = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Home Feed</h1>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Home Feed</h1>
       
       {user ? (
         <>
-          <div className="bg-white shadow rounded-lg p-6 mb-6">
-            <p className="text-lg">Welcome, {user.email}!</p>
-            <p className="text-muted-foreground">
+          <div className="bg-white shadow rounded-lg p-4 md:p-6 mb-4 md:mb-6">
+            <p className="text-base md:text-lg">Welcome, {user.email}!</p>
+            <p className="text-sm md:text-base text-muted-foreground">
               This is your personalized feed. Connect with other players and coaches.
             </p>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {isLoading ? (
-              <div className="text-center py-8">Loading posts...</div>
+              <div className="text-center py-8">
+                <div className="animate-pulse flex flex-col items-center">
+                  <div className="h-4 bg-slate-200 rounded w-3/4 mb-2.5"></div>
+                  <div className="h-10 bg-slate-200 rounded w-full mb-2.5"></div>
+                  <div className="h-10 bg-slate-200 rounded w-full"></div>
+                </div>
+                <p className="mt-4 text-muted-foreground">Loading posts...</p>
+              </div>
             ) : posts.length > 0 ? (
               posts.map(post => (
                 <Card key={post.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 p-4 md:p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                        <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
                           {post.author?.full_name?.charAt(0) || '?'}
                         </div>
                         <div className="ml-3">
-                          <h3 className="font-semibold">{post.author?.full_name || 'Anonymous'}</h3>
-                          <p className="text-sm text-muted-foreground">
+                          <h3 className="font-semibold text-sm md:text-base">{post.author?.full_name || 'Anonymous'}</h3>
+                          <p className="text-xs md:text-sm text-muted-foreground">
                             {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
                               new Date(post.created_at).toLocaleDateString()
                             }
@@ -127,33 +134,34 @@ const Feed = () => {
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="py-2">{post.content}</p>
+                  <CardContent className="p-4 md:p-6">
+                    <p className="text-sm md:text-base break-words">{post.content}</p>
                   </CardContent>
-                  <CardFooter className="border-t pt-4 flex justify-between">
+                  <CardFooter className="border-t p-2 md:p-4 flex justify-between">
                     <LikeButton postId={post.id} />
                     <CommentButton postId={post.id} />
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={() => handleShare(post.id)}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 text-xs md:text-sm"
+                      aria-label="Share post"
                     >
-                      <Share className="h-4 w-4" /> Share
+                      <Share className="h-3 w-3 md:h-4 md:w-4" /> <span className="hidden sm:inline">Share</span>
                     </Button>
                   </CardFooter>
                 </Card>
               ))
             ) : (
               <div className="bg-gray-100 rounded-lg p-4 text-center">
-                <p>No feed items yet. Start connecting with other players!</p>
+                <p className="text-sm md:text-base">No feed items yet. Start connecting with other players!</p>
               </div>
             )}
           </div>
         </>
       ) : (
-        <div className="bg-gray-100 rounded-lg p-8 text-center">
-          <p className="text-lg mb-4">Please log in to view your personalized feed</p>
+        <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
+          <p className="text-base md:text-lg mb-4">Please log in to view your personalized feed</p>
           <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
         </div>
       )}
