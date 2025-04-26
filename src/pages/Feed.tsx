@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Share } from 'lucide-react';
 import LikeButton from '@/components/social/LikeButton';
 import CommentButton from '@/components/social/CommentButton';
+import FollowButton from '@/components/social/FollowButton';
 
 const Feed = () => {
   const { user } = useAuth();
@@ -62,16 +64,19 @@ const Feed = () => {
               feedItems.map(item => (
                 <Card key={item.id} className="overflow-hidden">
                   <CardHeader className="pb-2">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {item.author.charAt(0)}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                          {item.author.charAt(0)}
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="font-semibold">{item.author}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {item.authorType === 'coach' ? 'Coach' : 'Player'} · {item.timestamp}
+                          </p>
+                        </div>
                       </div>
-                      <div className="ml-3">
-                        <h3 className="font-semibold">{item.author}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {item.authorType === 'coach' ? 'Coach' : 'Player'} · {item.timestamp}
-                        </p>
-                      </div>
+                      <FollowButton userId={item.id} isFollowing={false} />
                     </div>
                   </CardHeader>
                   <CardContent>
