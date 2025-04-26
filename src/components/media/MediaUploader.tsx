@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, X } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
@@ -14,6 +15,7 @@ const MediaUploader = ({
   onMediaUpload, 
   allowedTypes = ['image', 'video'] 
 }: MediaUploaderProps) => {
+  const { user } = useAuth(); // Get the authenticated user
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
@@ -21,6 +23,12 @@ const MediaUploader = ({
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Check if user is authenticated
+    if (!user) {
+      toast.error('You must be logged in to upload files');
+      return;
+    }
 
     // Check file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
@@ -58,10 +66,14 @@ const MediaUploader = ({
         .from('media')
         .upload(fileName, file, {
           cacheControl: '3600',
-          contentType: file.type
+          contentType: file.type,
+          upsert: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
@@ -151,6 +163,7 @@ const MediaUploader = ({
             size="icon"
             className="absolute top-2 right-2 rounded-full w-6 h-6 bg-gray-800/60 hover:bg-gray-800"
             onClick={clearPreview}
+            type="button"
           >
             <X className="h-3 w-3 text-white" />
           </Button>
