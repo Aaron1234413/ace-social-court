@@ -1,8 +1,7 @@
-
 # AceSocial: Development To-Do List
 
 ## Phase 1: Foundation Setup
-1. Create project structure and base components
+1. ✅ Create project structure and base components
 2. Set up authentication (player/coach registration and login)
 3. Design and implement user profile components
 4. Create the home feed layout
