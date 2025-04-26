@@ -1,8 +1,18 @@
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/AuthProvider";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import FeatureCard from "@/components/FeatureCard";
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -10,8 +20,16 @@ const Index = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary">AceSocial</h1>
           <div className="flex gap-4">
-            <Button variant="outline">Log in</Button>
-            <Button>Sign up</Button>
+            {user ? (
+              <Button onClick={handleSignOut}>Sign out</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => navigate("/auth")}>
+                  Log in
+                </Button>
+                <Button onClick={() => navigate("/auth")}>Sign up</Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
