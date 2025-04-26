@@ -17,7 +17,7 @@ interface Post {
   created_at: string;
   user_id: string;
   media_url?: string | null;
-  media_type?: 'image' | 'video' | null;
+  media_type?: string | null; // Changed from 'image' | 'video' | null to string | null to match the database
   author?: {
     full_name: string | null;
     user_type: string | null;
