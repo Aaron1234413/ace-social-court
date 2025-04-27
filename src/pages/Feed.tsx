@@ -43,9 +43,9 @@ const Feed = () => {
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
-          *,
-          author:profiles(full_name, user_type),
-          tags:post_tags(
+          id, content, created_at, user_id, media_url, media_type, updated_at,
+          profiles(full_name, user_type),
+          post_tags(
             tag:tags(
               id,
               name,
@@ -57,13 +57,33 @@ const Feed = () => {
 
       if (postsError) throw postsError;
       
-      // Transform the nested tags data structure
-      const postsWithFormattedTags = postsData?.map(post => ({
-        ...post,
-        tags: post.tags?.map(t => t.tag).filter(Boolean) || []
-      }));
+      // Transform the nested data structure and handle potential errors
+      const postsWithFormattedData = postsData?.map(post => {
+        // Extract author data, handling potential errors by providing default values
+        const authorData = typeof post.profiles === 'object' ? post.profiles : null;
+        
+        // Extract and format tags, ensuring we filter out any null values
+        const tagsData = Array.isArray(post.post_tags) 
+          ? post.post_tags
+              .map(tagObj => tagObj.tag)
+              .filter(Boolean) 
+          : [];
+        
+        // Construct a properly typed post object
+        return {
+          id: post.id,
+          content: post.content,
+          created_at: post.created_at,
+          user_id: post.user_id,
+          media_url: post.media_url,
+          media_type: post.media_type,
+          updated_at: post.updated_at,
+          author: authorData,
+          tags: tagsData
+        } as Post;
+      });
 
-      setPosts(postsWithFormattedTags || []);
+      setPosts(postsWithFormattedData || []);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error("Failed to load posts");

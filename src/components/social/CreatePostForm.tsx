@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -31,7 +31,7 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   
   // Fetch available tags
-  useState(() => {
+  useEffect(() => {
     const fetchTags = async () => {
       const { data, error } = await supabase
         .from('tags')
@@ -48,7 +48,7 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
     };
     
     fetchTags();
-  });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
