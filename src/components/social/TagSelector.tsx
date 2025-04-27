@@ -83,33 +83,39 @@ export const TagSelector = ({
           <Command>
             <CommandInput placeholder="Search tags..." />
             <CommandEmpty>No tags found.</CommandEmpty>
-            <CommandGroup>
-              {safeAvailableTags.map(tag => {
-                const isSelected = safeSelectedTags.some(
-                  selectedTag => selectedTag.id === tag.id
-                );
-                return (
-                  <CommandItem
-                    key={tag.id}
-                    onSelect={() => {
-                      if (isSelected) {
-                        removeTag(tag);
-                      } else {
-                        addTag(tag);
-                      }
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={`mr-2 h-4 w-4 ${
-                        isSelected ? "opacity-100" : "opacity-0"
-                      }`}
-                    />
-                    {tag.name}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+            {safeAvailableTags.length > 0 ? (
+              <CommandGroup>
+                {safeAvailableTags.map(tag => {
+                  const isSelected = safeSelectedTags.some(
+                    selectedTag => selectedTag.id === tag.id
+                  );
+                  return (
+                    <CommandItem
+                      key={tag.id}
+                      onSelect={() => {
+                        if (isSelected) {
+                          removeTag(tag);
+                        } else {
+                          addTag(tag);
+                        }
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={`mr-2 h-4 w-4 ${
+                          isSelected ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                      {tag.name}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            ) : (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                No tags available
+              </div>
+            )}
           </Command>
         </PopoverContent>
       </Popover>
