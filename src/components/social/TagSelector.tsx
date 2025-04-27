@@ -28,7 +28,11 @@ interface TagSelectorProps {
   availableTags: Tag[];
 }
 
-export const TagSelector = ({ selectedTags, onTagsChange, availableTags }: TagSelectorProps) => {
+export const TagSelector = ({ 
+  selectedTags = [], 
+  onTagsChange, 
+  availableTags = [] 
+}: TagSelectorProps) => {
   const [open, setOpen] = useState(false);
 
   const removeTag = (tagToRemove: Tag) => {
@@ -44,7 +48,7 @@ export const TagSelector = ({ selectedTags, onTagsChange, availableTags }: TagSe
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        {selectedTags.map(tag => (
+        {selectedTags && selectedTags.map(tag => (
           <Badge
             key={tag.id}
             variant="secondary"
@@ -76,8 +80,8 @@ export const TagSelector = ({ selectedTags, onTagsChange, availableTags }: TagSe
             <CommandInput placeholder="Search tags..." />
             <CommandEmpty>No tags found.</CommandEmpty>
             <CommandGroup>
-              {availableTags.map(tag => {
-                const isSelected = selectedTags.some(
+              {availableTags && availableTags.map(tag => {
+                const isSelected = selectedTags && selectedTags.some(
                   selectedTag => selectedTag.id === tag.id
                 );
                 return (

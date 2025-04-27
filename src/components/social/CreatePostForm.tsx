@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,18 +32,23 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
   // Fetch available tags
   useEffect(() => {
     const fetchTags = async () => {
-      const { data, error } = await supabase
-        .from('tags')
-        .select('id, name, category')
-        .order('name');
-      
-      if (error) {
-        console.error('Error fetching tags:', error);
-        toast.error('Failed to load tags');
-        return;
+      try {
+        const { data, error } = await supabase
+          .from('tags')
+          .select('id, name, category')
+          .order('name');
+        
+        if (error) {
+          console.error('Error fetching tags:', error);
+          toast.error('Failed to load tags');
+          return;
+        }
+        
+        setAvailableTags(data || []);
+      } catch (error) {
+        console.error('Error in fetchTags:', error);
+        setAvailableTags([]);
       }
-      
-      setAvailableTags(data || []);
     };
     
     fetchTags();
@@ -81,7 +85,7 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
       if (postError) throw postError;
       
       // Then add tags if any
-      if (selectedTags.length > 0 && newPost) {
+      if (selectedTags && selectedTags.length > 0 && newPost) {
         const tagInserts = selectedTags.map(tag => ({
           post_id: newPost.id,
           tag_id: tag.id
@@ -126,7 +130,7 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
     setMediaUrl(null);
     setMediaType(null);
   };
-  
+
   return (
     <Card className="p-4">
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -170,9 +174,9 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
         )}
         
         <TagSelector 
-          selectedTags={selectedTags}
+          selectedTags={selectedTags || []}
           onTagsChange={setSelectedTags}
-          availableTags={availableTags}
+          availableTags={availableTags || []}
         />
         
         {showMediaUploader && !mediaUrl && (
