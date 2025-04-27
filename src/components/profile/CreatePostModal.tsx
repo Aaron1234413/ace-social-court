@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { Image, Video, Loader2, Upload } from 'lucide-react';
-import { v4 as uuidv4 } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
 
 interface CreatePostModalProps {
   open: boolean;
