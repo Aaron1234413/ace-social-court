@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,14 @@ import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { Image, Video, Loader2, Upload } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { TagSelector } from '@/components/social/TagSelector';
+import { useQuery } from '@tanstack/react-query';
+
+interface Tag {
+  id: string;
+  name: string;
+  category: string;
+}
 
 interface CreatePostModalProps {
   open: boolean;
@@ -23,12 +30,27 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+
+  const { data: availableTags = [] } = useQuery({
+    queryKey: ['tags'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tags')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
   const resetState = () => {
     setCaption('');
     setMediaFile(null);
     setMediaPreview(null);
     setMediaType(null);
+    setSelectedTags([]);
   };
 
   const handleClose = () => {
@@ -116,27 +138,44 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       const mediaUrl = publicUrlData.publicUrl;
 
       // Create post in database
-      const { error: postError } = await supabase
+      const { error: postError, data: newPost } = await supabase
         .from('posts')
         .insert({
           user_id: user.id,
           content: caption,
           media_url: mediaUrl,
           media_type: mediaType,
-        });
+        })
+        .select()
+        .single();
 
       if (postError) {
         throw postError;
       }
 
-      // Success
+      // Add tags to the post
+      if (selectedTags.length > 0) {
+        const { error: tagError } = await supabase
+          .from('post_tags')
+          .insert(
+            selectedTags.map(tag => ({
+              post_id: newPost.id,
+              tag_id: tag.id
+            }))
+          );
+
+        if (tagError) {
+          throw tagError;
+        }
+      }
+
       toast({
         title: "Post created",
         description: "Your post has been published successfully",
       });
       
       onPostCreated();
-      resetState();
+      handleClose();
     } catch (error) {
       console.error('Error creating post:', error);
       toast({
@@ -150,7 +189,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Create New Post</DialogTitle>
@@ -226,6 +265,12 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
               rows={4}
             />
           </div>
+
+          <TagSelector
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            availableTags={availableTags}
+          />
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose}>

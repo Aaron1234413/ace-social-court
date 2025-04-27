@@ -151,6 +151,42 @@ export type Database = {
           },
         ]
       }
+      post_tags: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string | null
+          tag_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          tag_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          tag_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_tags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           content: string
@@ -226,6 +262,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tags: {
+        Row: {
+          category: Database["public"]["Enums"]["tag_category"] | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["tag_category"] | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["tag_category"] | null
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -262,6 +319,13 @@ export type Database = {
         | "intermediate"
         | "advanced"
         | "professional"
+      tag_category:
+        | "technique"
+        | "match"
+        | "training"
+        | "equipment"
+        | "coaching"
+        | "tournament"
       user_type: "player" | "coach"
     }
     CompositeTypes: {
@@ -383,6 +447,14 @@ export const Constants = {
         "intermediate",
         "advanced",
         "professional",
+      ],
+      tag_category: [
+        "technique",
+        "match",
+        "training",
+        "equipment",
+        "coaching",
+        "tournament",
       ],
       user_type: ["player", "coach"],
     },

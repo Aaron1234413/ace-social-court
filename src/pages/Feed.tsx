@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import FollowButton from '@/components/social/FollowButton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import CreatePostForm from '@/components/social/CreatePostForm';
+import { Badge } from '@/components/ui/badge';
 
 interface Post {
   id: string;
@@ -17,11 +17,16 @@ interface Post {
   created_at: string;
   user_id: string;
   media_url?: string | null;
-  media_type?: string | null; // Changed from 'image' | 'video' | null to string | null to match the database
+  media_type?: string | null;
   author?: {
     full_name: string | null;
     user_type: string | null;
   };
+  tags?: {
+    id: string;
+    name: string;
+    category: string;
+  }[];
 }
 
 const Feed = () => {
@@ -32,48 +37,30 @@ const Feed = () => {
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      // First fetch just the posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select('*')
+        .select(`
+          *,
+          author:profiles(full_name, user_type),
+          tags:post_tags(
+            tag:tags(
+              id,
+              name,
+              category
+            )
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (postsError) throw postsError;
       
-      if (!postsData || postsData.length === 0) {
-        setPosts([]);
-        setIsLoading(false);
-        return;
-      }
+      // Transform the nested tags data structure
+      const postsWithFormattedTags = postsData?.map(post => ({
+        ...post,
+        tags: post.tags?.map(t => t.tag)
+      }));
 
-      // Then fetch profile information for each post
-      const postsWithAuthors = await Promise.all(
-        postsData.map(async (post) => {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('full_name, user_type')
-            .eq('id', post.user_id)
-            .single();
-
-          if (profileError) {
-            console.error('Error fetching profile for post:', profileError);
-            return {
-              ...post,
-              author: {
-                full_name: 'Unknown User',
-                user_type: null
-              }
-            };
-          }
-
-          return {
-            ...post,
-            author: profileData
-          };
-        })
-      );
-
-      setPosts(postsWithAuthors);
+      setPosts(postsWithFormattedTags || []);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error("Failed to load posts");
@@ -140,6 +127,16 @@ const Feed = () => {
                       <p className="text-sm md:text-base break-words mb-4">{post.content}</p>
                     )}
                     
+                    {post.tags && post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {post.tags.map(tag => (
+                          <Badge key={tag.id} variant="secondary">
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+
                     {post.media_url && (
                       <div className="rounded-lg overflow-hidden mt-2 border border-gray-100">
                         {post.media_type === 'image' ? (
