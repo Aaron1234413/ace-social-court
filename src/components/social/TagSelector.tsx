@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Command,
@@ -35,19 +35,20 @@ export const TagSelector = ({
 }: TagSelectorProps) => {
   const [open, setOpen] = useState(false);
 
-  const removeTag = (tagToRemove: Tag) => {
-    onTagsChange(selectedTags.filter(tag => tag.id !== tagToRemove.id));
-  };
-
-  const addTag = (tagToAdd: Tag) => {
-    if (!selectedTags.find(tag => tag.id === tagToAdd.id)) {
-      onTagsChange([...selectedTags, tagToAdd]);
-    }
-  };
-
   // Ensure we have valid arrays for both selectedTags and availableTags
   const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags : [];
   const safeAvailableTags = Array.isArray(availableTags) ? availableTags : [];
+  
+  const removeTag = (tagToRemove: Tag) => {
+    if (safeSelectedTags.length === 0) return;
+    onTagsChange(safeSelectedTags.filter(tag => tag.id !== tagToRemove.id));
+  };
+
+  const addTag = (tagToAdd: Tag) => {
+    if (!safeSelectedTags.find(tag => tag.id === tagToAdd.id)) {
+      onTagsChange([...safeSelectedTags, tagToAdd]);
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -76,47 +77,54 @@ export const TagSelector = ({
             size="sm"
             className="h-8 border-dashed"
           >
+            <Tag className="mr-1 h-3 w-3" />
             Add tags
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[200px] p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Search tags..." />
-            <CommandEmpty>No tags found.</CommandEmpty>
-            {safeAvailableTags.length > 0 ? (
-              <CommandGroup>
-                {safeAvailableTags.map(tag => {
-                  const isSelected = safeSelectedTags.some(
-                    selectedTag => selectedTag.id === tag.id
-                  );
-                  return (
-                    <CommandItem
-                      key={tag.id}
-                      onSelect={() => {
-                        if (isSelected) {
-                          removeTag(tag);
-                        } else {
-                          addTag(tag);
-                        }
-                        setOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={`mr-2 h-4 w-4 ${
-                          isSelected ? "opacity-100" : "opacity-0"
-                        }`}
-                      />
-                      {tag.name}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            ) : (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No tags available
-              </div>
-            )}
-          </Command>
+          {/* Wrap Command component with error handling */}
+          <div className="w-full">
+            <Command>
+              <CommandInput placeholder="Search tags..." />
+              <CommandEmpty>No tags found.</CommandEmpty>
+              {safeAvailableTags && safeAvailableTags.length > 0 ? (
+                <CommandGroup>
+                  {safeAvailableTags.map(tag => {
+                    if (!tag || !tag.id) return null;
+                    
+                    const isSelected = safeSelectedTags.some(
+                      selectedTag => selectedTag.id === tag.id
+                    );
+                    
+                    return (
+                      <CommandItem
+                        key={tag.id}
+                        onSelect={() => {
+                          if (isSelected) {
+                            removeTag(tag);
+                          } else {
+                            addTag(tag);
+                          }
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${
+                            isSelected ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                        {tag.name}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              ) : (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  No tags available
+                </div>
+              )}
+            </Command>
+          </div>
         </PopoverContent>
       </Popover>
     </div>
