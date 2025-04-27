@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { AchievementsList } from '@/components/profile/AchievementsList';
 import { CertificationsList } from '@/components/profile/CertificationsList';
+import { ProfileMediaGallery } from '@/components/profile/ProfileMediaGallery';
 import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,6 +60,8 @@ const Profile = () => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
       <ProfileHeader userId={userId!} isOwnProfile={isOwnProfile} />
+      <Separator />
+      <ProfileMediaGallery userId={userId!} />
       <Separator />
       <AchievementsList userId={userId!} />
       {profile.user_type === 'coach' && (
