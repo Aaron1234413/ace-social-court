@@ -34,6 +34,7 @@ export const TagSelector = ({
   availableTags = [] 
 }: TagSelectorProps) => {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   // Ensure we have valid arrays for both selectedTags and availableTags
   const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags : [];
@@ -50,6 +51,22 @@ export const TagSelector = ({
     }
   };
 
+  // Handle tag selection with a simple string value instead of using onSelect
+  const handleTagSelect = (value: string) => {
+    const selectedTag = safeAvailableTags.find(tag => tag.id === value);
+    if (!selectedTag) return;
+    
+    const isSelected = safeSelectedTags.some(tag => tag.id === selectedTag.id);
+    
+    if (isSelected) {
+      removeTag(selectedTag);
+    } else {
+      addTag(selectedTag);
+    }
+    
+    setOpen(false);
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
@@ -63,6 +80,7 @@ export const TagSelector = ({
             <button
               onClick={() => removeTag(tag)}
               className="rounded-full hover:bg-muted p-0.5"
+              type="button"
             >
               <X className="h-3 w-3" />
             </button>
@@ -76,55 +94,45 @@ export const TagSelector = ({
             variant="outline"
             size="sm"
             className="h-8 border-dashed"
+            type="button"
           >
             <Tag className="mr-1 h-3 w-3" />
             Add tags
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[200px] p-0" align="start">
-          {/* Wrap Command component with error handling */}
-          <div className="w-full">
+          {safeAvailableTags.length > 0 ? (
             <Command>
-              <CommandInput placeholder="Search tags..." />
+              <CommandInput 
+                placeholder="Search tags..." 
+                value={search}
+                onValueChange={setSearch}
+              />
               <CommandEmpty>No tags found.</CommandEmpty>
-              {safeAvailableTags && safeAvailableTags.length > 0 ? (
-                <CommandGroup>
-                  {safeAvailableTags.map(tag => {
-                    if (!tag || !tag.id) return null;
-                    
-                    const isSelected = safeSelectedTags.some(
-                      selectedTag => selectedTag.id === tag.id
-                    );
-                    
-                    return (
-                      <CommandItem
-                        key={tag.id}
-                        onSelect={() => {
-                          if (isSelected) {
-                            removeTag(tag);
-                          } else {
-                            addTag(tag);
-                          }
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={`mr-2 h-4 w-4 ${
-                            isSelected ? "opacity-100" : "opacity-0"
-                          }`}
-                        />
-                        {tag.name}
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              ) : (
-                <div className="py-6 text-center text-sm text-muted-foreground">
-                  No tags available
-                </div>
-              )}
+              <CommandGroup>
+                {safeAvailableTags
+                  .filter(tag => tag && tag.id && tag.name)
+                  .map(tag => (
+                    <CommandItem
+                      key={tag.id}
+                      value={tag.id}
+                      onSelect={handleTagSelect}
+                    >
+                      <Check
+                        className={`mr-2 h-4 w-4 ${
+                          safeSelectedTags.some(t => t.id === tag.id) ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                      {tag.name}
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
             </Command>
-          </div>
+          ) : (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No tags available
+            </div>
+          )}
         </PopoverContent>
       </Popover>
     </div>
