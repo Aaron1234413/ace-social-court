@@ -1,10 +1,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Video } from "lucide-react";
+import { Video, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useAuth } from "@/components/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { CreatePostModal } from "@/components/profile/CreatePostModal";
 
 interface Post {
   id: string;
@@ -19,9 +22,12 @@ interface ProfileMediaGalleryProps {
 }
 
 export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
+  const { user } = useAuth();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [createPostModalOpen, setCreatePostModalOpen] = useState(false);
+  const isOwnProfile = user?.id === userId;
 
-  const { data: posts, isLoading } = useQuery({
+  const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['profile-media', userId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -35,6 +41,11 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
     }
   });
 
+  const handlePostCreated = () => {
+    refetch();
+    setCreatePostModalOpen(false);
+  };
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-3 gap-1 md:gap-2">
@@ -45,40 +56,53 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
     );
   }
 
-  if (!posts?.length) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        No posts yet
-      </div>
-    );
-  }
-
-  const mediaPosts = posts.filter(post => post.media_url);
+  const mediaPosts = posts?.filter(post => post.media_url) || [];
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-1 md:gap-2">
-        {mediaPosts.map((post) => (
-          <button
-            key={post.id}
-            className="relative aspect-square group"
-            onClick={() => setSelectedPost(post)}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Posts</h2>
+        {isOwnProfile && (
+          <Button 
+            onClick={() => setCreatePostModalOpen(true)} 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1"
           >
-            {post.media_type === 'image' ? (
-              <img
-                src={post.media_url!}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            ) : post.media_type === 'video' ? (
-              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                <Video className="w-6 h-6 text-muted-foreground" />
-              </div>
-            ) : null}
-            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-        ))}
+            <Plus className="h-4 w-4" />
+            New Post
+          </Button>
+        )}
       </div>
+
+      {mediaPosts.length > 0 ? (
+        <div className="grid grid-cols-3 gap-1 md:gap-2">
+          {mediaPosts.map((post) => (
+            <button
+              key={post.id}
+              className="relative aspect-square group"
+              onClick={() => setSelectedPost(post)}
+            >
+              {post.media_type === 'image' ? (
+                <img
+                  src={post.media_url!}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : post.media_type === 'video' ? (
+                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <Video className="w-6 h-6 text-muted-foreground" />
+                </div>
+              ) : null}
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          {isOwnProfile ? "You haven't created any posts yet" : "No posts yet"}
+        </div>
+      )}
 
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
@@ -104,6 +128,12 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CreatePostModal 
+        open={createPostModalOpen} 
+        onOpenChange={setCreatePostModalOpen} 
+        onPostCreated={handlePostCreated}
+      />
     </>
   );
 };

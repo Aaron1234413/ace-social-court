@@ -10,6 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { initializeStorage } from '@/integrations/supabase/storage';
+import { toast } from 'sonner';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -22,6 +24,14 @@ const Profile = () => {
     if (!user && !id) {
       navigate('/auth');
       return;
+    }
+
+    // Initialize storage buckets if needed
+    if (user) {
+      initializeStorage().catch(err => {
+        console.error('Failed to initialize storage:', err);
+        toast.error('Error initializing media storage');
+      });
     }
   }, [user, navigate, id]);
 
