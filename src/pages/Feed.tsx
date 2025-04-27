@@ -45,45 +45,31 @@ const Feed = () => {
         .select(`
           id, content, created_at, user_id, media_url, media_type, updated_at,
           profiles(full_name, user_type),
-          post_tags(
-            tag:tags(
-              id,
-              name,
-              category
-            )
-          )
+          post_tags(tag:tags(id, name, category))
         `)
         .order('created_at', { ascending: false });
 
       if (postsError) throw postsError;
       
-      // Transform the nested data structure and handle potential errors
-      const postsWithFormattedData = postsData?.map(post => {
-        // Extract author data, handling potential errors by providing default values
-        const authorData = typeof post.profiles === 'object' ? post.profiles : null;
-        
-        // Extract and format tags, ensuring we filter out any null values
-        const tagsData = Array.isArray(post.post_tags) 
-          ? post.post_tags
-              .map(tagObj => tagObj.tag)
-              .filter(Boolean) 
-          : [];
-        
-        // Construct a properly typed post object
-        return {
-          id: post.id,
-          content: post.content,
-          created_at: post.created_at,
-          user_id: post.user_id,
-          media_url: post.media_url,
-          media_type: post.media_type,
-          updated_at: post.updated_at,
-          author: authorData,
-          tags: tagsData
-        } as Post;
-      });
+      // Transform the nested data structure and handle potential null values
+      const formattedPosts: Post[] = [];
+      
+      if (postsData) {
+        for (const post of postsData) {
+          formattedPosts.push({
+            id: post.id,
+            content: post.content,
+            created_at: post.created_at,
+            user_id: post.user_id,
+            media_url: post.media_url,
+            media_type: post.media_type,
+            author: post.profiles,
+            tags: post.post_tags?.map(tagObj => tagObj.tag).filter(Boolean) || []
+          });
+        }
+      }
 
-      setPosts(postsWithFormattedData || []);
+      setPosts(formattedPosts);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error("Failed to load posts");
