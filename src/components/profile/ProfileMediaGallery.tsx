@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Image, Video } from "lucide-react";
+import { Video } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -82,19 +82,26 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
 
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
-          {selectedPost?.media_type === 'image' ? (
-            <img
-              src={selectedPost.media_url!}
-              alt=""
-              className="w-full h-auto max-h-[80vh] object-contain"
-            />
-          ) : selectedPost?.media_type === 'video' ? (
-            <video
-              src={selectedPost.media_url!}
-              controls
-              className="w-full h-auto max-h-[80vh]"
-            />
-          ) : null}
+          <div className="flex flex-col">
+            {selectedPost?.media_type === 'image' ? (
+              <img
+                src={selectedPost.media_url!}
+                alt=""
+                className="w-full h-auto max-h-[80vh] object-contain"
+              />
+            ) : selectedPost?.media_type === 'video' ? (
+              <video
+                src={selectedPost.media_url!}
+                controls
+                className="w-full h-auto max-h-[80vh]"
+              />
+            ) : null}
+            {selectedPost?.content && (
+              <div className="p-4 bg-background">
+                <p className="text-sm text-foreground whitespace-pre-wrap">{selectedPost.content}</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>
