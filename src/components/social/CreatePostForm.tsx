@@ -8,9 +8,16 @@ import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
 import MediaUploader from '@/components/media/MediaUploader';
 import { Image, FileVideo, X } from 'lucide-react';
+import { TagSelector } from './TagSelector';
 
 interface CreatePostFormProps {
   onPostCreated: () => void;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  category: string;
 }
 
 const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
@@ -20,6 +27,28 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [showMediaUploader, setShowMediaUploader] = useState(false);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  
+  // Fetch available tags
+  useState(() => {
+    const fetchTags = async () => {
+      const { data, error } = await supabase
+        .from('tags')
+        .select('id, name, category')
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching tags:', error);
+        toast.error('Failed to load tags');
+        return;
+      }
+      
+      setAvailableTags(data || []);
+    };
+    
+    fetchTags();
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,24 +66,43 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
     try {
       setIsPosting(true);
       
-      const newPost = {
-        content: content.trim(),
-        user_id: user.id,
-        media_url: mediaUrl,
-        media_type: mediaType
-      };
-      
-      const { error } = await supabase
+      // First create the post
+      const { data: newPost, error: postError } = await supabase
         .from('posts')
-        .insert([newPost]);
+        .insert([{
+          content: content.trim(),
+          user_id: user.id,
+          media_url: mediaUrl,
+          media_type: mediaType
+        }])
+        .select()
+        .single();
       
-      if (error) throw error;
+      if (postError) throw postError;
+      
+      // Then add tags if any
+      if (selectedTags.length > 0 && newPost) {
+        const tagInserts = selectedTags.map(tag => ({
+          post_id: newPost.id,
+          tag_id: tag.id
+        }));
+        
+        const { error: tagError } = await supabase
+          .from('post_tags')
+          .insert(tagInserts);
+          
+        if (tagError) {
+          console.error('Error adding tags:', tagError);
+          toast.error('Post created but tags could not be added');
+        }
+      }
       
       // Reset form
       setContent('');
       setMediaUrl(null);
       setMediaType(null);
       setShowMediaUploader(false);
+      setSelectedTags([]);
       
       // Notify parent component
       onPostCreated();
@@ -120,6 +168,12 @@ const CreatePostForm = ({ onPostCreated }: CreatePostFormProps) => {
             </Button>
           </div>
         )}
+        
+        <TagSelector 
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
+          availableTags={availableTags}
+        />
         
         {showMediaUploader && !mediaUrl && (
           <div className="mb-3">

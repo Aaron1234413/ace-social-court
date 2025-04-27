@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -11,6 +12,12 @@ import { toast } from 'sonner';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import { Badge } from '@/components/ui/badge';
 
+interface Tag {
+  id: string;
+  name: string;
+  category: string;
+}
+
 interface Post {
   id: string;
   content: string;
@@ -21,12 +28,8 @@ interface Post {
   author?: {
     full_name: string | null;
     user_type: string | null;
-  };
-  tags?: {
-    id: string;
-    name: string;
-    category: string;
-  }[];
+  } | null;
+  tags?: Tag[];
 }
 
 const Feed = () => {
@@ -57,7 +60,7 @@ const Feed = () => {
       // Transform the nested tags data structure
       const postsWithFormattedTags = postsData?.map(post => ({
         ...post,
-        tags: post.tags?.map(t => t.tag)
+        tags: post.tags?.map(t => t.tag).filter(Boolean) || []
       }));
 
       setPosts(postsWithFormattedTags || []);
