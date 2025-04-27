@@ -45,10 +45,14 @@ export const TagSelector = ({
     }
   };
 
+  // Ensure we have valid arrays for both selectedTags and availableTags
+  const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags : [];
+  const safeAvailableTags = Array.isArray(availableTags) ? availableTags : [];
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        {selectedTags && selectedTags.map(tag => (
+        {safeSelectedTags.map(tag => (
           <Badge
             key={tag.id}
             variant="secondary"
@@ -80,8 +84,8 @@ export const TagSelector = ({
             <CommandInput placeholder="Search tags..." />
             <CommandEmpty>No tags found.</CommandEmpty>
             <CommandGroup>
-              {availableTags && availableTags.map(tag => {
-                const isSelected = selectedTags && selectedTags.some(
+              {safeAvailableTags.map(tag => {
+                const isSelected = safeSelectedTags.some(
                   selectedTag => selectedTag.id === tag.id
                 );
                 return (

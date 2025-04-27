@@ -41,7 +41,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         .order('name');
       
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
@@ -153,12 +153,13 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         throw postError;
       }
 
-      // Add tags to the post
-      if (selectedTags.length > 0) {
+      // Add tags to the post - ensure selectedTags is an array
+      const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags : [];
+      if (safeSelectedTags.length > 0) {
         const { error: tagError } = await supabase
           .from('post_tags')
           .insert(
-            selectedTags.map(tag => ({
+            safeSelectedTags.map(tag => ({
               post_id: newPost.id,
               tag_id: tag.id
             }))
@@ -187,6 +188,9 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       setIsUploading(false);
     }
   };
+
+  // Ensure we have a valid array for availableTags
+  const safeAvailableTags = Array.isArray(availableTags) ? availableTags : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -269,7 +273,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
           <TagSelector
             selectedTags={selectedTags}
             onTagsChange={setSelectedTags}
-            availableTags={availableTags}
+            availableTags={safeAvailableTags}
           />
 
           <div className="flex justify-end gap-2">
