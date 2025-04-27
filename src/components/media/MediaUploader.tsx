@@ -61,10 +61,10 @@ const MediaUploader = ({
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       
-      // Upload file to Supabase Storage
+      // Upload file to Supabase Storage with explicit owner
       const { data, error } = await supabase.storage
         .from('media')
-        .upload(fileName, file, {
+        .upload(`${user.id}/${fileName}`, file, {
           cacheControl: '3600',
           contentType: file.type,
           upsert: false
@@ -78,7 +78,7 @@ const MediaUploader = ({
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('media')
-        .getPublicUrl(fileName);
+        .getPublicUrl(`${user.id}/${fileName}`);
 
       // Pass URL to parent component
       onMediaUpload(publicUrl, fileType);
