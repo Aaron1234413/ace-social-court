@@ -9,6 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          created_at: string | null
+          date_achieved: string | null
+          description: string | null
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date_achieved?: string | null
+          description?: string | null
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date_achieved?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      certifications: {
+        Row: {
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          issue_date: string | null
+          issuing_organization: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          issue_date?: string | null
+          issuing_organization?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           content: string
@@ -129,8 +186,12 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          experience_level:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           full_name: string | null
           id: string
+          playing_style: string | null
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
           username: string | null
@@ -139,8 +200,12 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           full_name?: string | null
           id: string
+          playing_style?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
           username?: string | null
@@ -149,8 +214,12 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          experience_level?:
+            | Database["public"]["Enums"]["experience_level"]
+            | null
           full_name?: string | null
           id?: string
+          playing_style?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
           username?: string | null
@@ -188,6 +257,11 @@ export type Database = {
       }
     }
     Enums: {
+      experience_level:
+        | "beginner"
+        | "intermediate"
+        | "advanced"
+        | "professional"
       user_type: "player" | "coach"
     }
     CompositeTypes: {
@@ -304,6 +378,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      experience_level: [
+        "beginner",
+        "intermediate",
+        "advanced",
+        "professional",
+      ],
       user_type: ["player", "coach"],
     },
   },

@@ -1,145 +1,72 @@
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Database } from '@/integrations/supabase/types';
-
-// Define a type for the user_type field
-type UserType = Database['public']['Enums']['user_type'];
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { AchievementsList } from '@/components/profile/AchievementsList';
+import { CertificationsList } from '@/components/profile/CertificationsList';
+import { Separator } from '@/components/ui/separator';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState({
-    username: '',
-    full_name: '',
-    user_type: 'player' as UserType, // Use type assertion here
-    bio: '',
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const { id } = useParams();
+  const userId = id || user?.id;
+  const isOwnProfile = userId === user?.id;
 
   useEffect(() => {
-    if (!user) {
+    if (!user && !id) {
       navigate('/auth');
       return;
     }
+  }, [user, navigate, id]);
 
-    const fetchProfile = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-
-        setProfile({
-          username: data.username || '',
-          full_name: data.full_name || '',
-          // Ensure that user_type is always one of the allowed types
-          user_type: (data.user_type as UserType) || 'player',
-          bio: data.bio || '',
-        });
-      } catch (error) {
-        toast.error('Failed to fetch profile');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [user, navigate]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setProfile(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const { error } = await supabase
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
         .from('profiles')
-        .update({
-          username: profile.username,
-          full_name: profile.full_name,
-          user_type: profile.user_type,
-          bio: profile.bio,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user?.id);
-
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
       if (error) throw error;
+      return data;
+    },
+    enabled: !!userId
+  });
 
-      toast.success('Profile updated successfully');
-    } catch (error) {
-      toast.error('Failed to update profile');
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-[200px]" />
+          <Skeleton className="h-4 w-[150px]" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
+    );
+  }
 
-  if (isLoading) return <div>Loading...</div>;
+  if (!profile) {
+    return <div className="container mx-auto px-4 py-8">Profile not found</div>;
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Edit Profile</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="username">Username</Label>
-          <Input
-            id="username"
-            name="username"
-            value={profile.username}
-            onChange={handleInputChange}
-            placeholder="Choose a username"
-          />
-        </div>
-        <div>
-          <Label htmlFor="full_name">Full Name</Label>
-          <Input
-            id="full_name"
-            name="full_name"
-            value={profile.full_name}
-            onChange={handleInputChange}
-            placeholder="Your full name"
-          />
-        </div>
-        <div>
-          <Label htmlFor="user_type">Account Type</Label>
-          <Select 
-            value={profile.user_type} 
-            onValueChange={(value: UserType) => setProfile(prev => ({ ...prev, user_type: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select account type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="player">Player</SelectItem>
-              <SelectItem value="coach">Coach</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="bio">Bio</Label>
-          <textarea
-            id="bio"
-            name="bio"
-            value={profile.bio}
-            onChange={handleInputChange}
-            className="w-full border rounded p-2"
-            placeholder="Tell us about yourself"
-            rows={4}
-          />
-        </div>
-        <Button type="submit" className="w-full">Save Profile</Button>
-      </form>
+    <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
+      <ProfileHeader userId={userId!} isOwnProfile={isOwnProfile} />
+      <Separator />
+      <AchievementsList userId={userId!} />
+      {profile.user_type === 'coach' && (
+        <>
+          <Separator />
+          <CertificationsList userId={userId!} />
+        </>
+      )}
     </div>
   );
 };
