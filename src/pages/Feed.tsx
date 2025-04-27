@@ -40,32 +40,85 @@ const Feed = () => {
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
+      
+      // First, fetch posts data
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select(`
-          id, content, created_at, user_id, media_url, media_type, updated_at,
-          profiles(full_name, user_type),
-          post_tags(tag:tags(id, name, category))
-        `)
+        .select('id, content, created_at, user_id, media_url, media_type, updated_at')
         .order('created_at', { ascending: false });
 
       if (postsError) throw postsError;
       
-      // Transform the nested data structure and handle potential null values
-      const formattedPosts: Post[] = [];
+      if (!postsData) {
+        setPosts([]);
+        return;
+      }
       
-      if (postsData) {
-        for (const post of postsData) {
-          formattedPosts.push({
-            id: post.id,
-            content: post.content,
-            created_at: post.created_at,
-            user_id: post.user_id,
-            media_url: post.media_url,
-            media_type: post.media_type,
-            author: post.profiles,
-            tags: post.post_tags?.map(tagObj => tagObj.tag).filter(Boolean) || []
+      // Transform to Post objects with empty author/tags initially
+      const formattedPosts: Post[] = postsData.map(post => ({
+        id: post.id,
+        content: post.content,
+        created_at: post.created_at,
+        user_id: post.user_id,
+        media_url: post.media_url,
+        media_type: post.media_type,
+        author: null,
+        tags: []
+      }));
+
+      // Fetch profile data for authors in a separate query
+      if (formattedPosts.length > 0) {
+        const userIds = formattedPosts.map(post => post.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, user_type')
+          .in('id', userIds);
+
+        if (!profilesError && profilesData) {
+          // Create a map for quick lookup
+          const profileMap = new Map();
+          profilesData.forEach(profile => {
+            profileMap.set(profile.id, {
+              full_name: profile.full_name,
+              user_type: profile.user_type
+            });
           });
+          
+          // Associate profiles with posts
+          formattedPosts.forEach(post => {
+            post.author = profileMap.get(post.user_id) || null;
+          });
+        } else {
+          console.error('Error fetching profiles:', profilesError);
+        }
+      }
+
+      // Fetch tags for posts
+      if (formattedPosts.length > 0) {
+        const postIds = formattedPosts.map(post => post.id);
+        const { data: tagData, error: tagError } = await supabase
+          .from('post_tags')
+          .select('post_id, tag:tags(id, name, category)')
+          .in('post_id', postIds);
+
+        if (!tagError && tagData) {
+          // Group tags by post_id
+          const tagsByPost = new Map<string, Tag[]>();
+          tagData.forEach(item => {
+            if (item.tag) {
+              if (!tagsByPost.has(item.post_id)) {
+                tagsByPost.set(item.post_id, []);
+              }
+              tagsByPost.get(item.post_id)?.push(item.tag as Tag);
+            }
+          });
+
+          // Associate tags with posts
+          formattedPosts.forEach(post => {
+            post.tags = tagsByPost.get(post.id) || [];
+          });
+        } else {
+          console.error('Error fetching tags:', tagError);
         }
       }
 
