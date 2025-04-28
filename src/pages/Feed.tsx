@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -9,7 +10,6 @@ import FollowButton from '@/components/social/FollowButton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import CreatePostForm from '@/components/social/CreatePostForm';
-import { Badge } from '@/components/ui/badge';
 
 interface Post {
   id: string;
@@ -22,7 +22,6 @@ interface Post {
     full_name: string | null;
     user_type: string | null;
   } | null;
-  tags?: Tag[];
 }
 
 const Feed = () => {
@@ -47,7 +46,7 @@ const Feed = () => {
         return;
       }
       
-      // Transform to Post objects with empty author/tags initially
+      // Transform to Post objects with empty author initially
       const formattedPosts: Post[] = postsData.map(post => ({
         id: post.id,
         content: post.content,
@@ -55,8 +54,7 @@ const Feed = () => {
         user_id: post.user_id,
         media_url: post.media_url,
         media_type: post.media_type,
-        author: null,
-        tags: []
+        author: null
       }));
 
       // Fetch profile data for authors in a separate query
@@ -83,35 +81,6 @@ const Feed = () => {
           });
         } else {
           console.error('Error fetching profiles:', profilesError);
-        }
-      }
-
-      // Fetch tags for posts
-      if (formattedPosts.length > 0) {
-        const postIds = formattedPosts.map(post => post.id);
-        const { data: tagData, error: tagError } = await supabase
-          .from('post_tags')
-          .select('post_id, tag:tags(id, name, category)')
-          .in('post_id', postIds);
-
-        if (!tagError && tagData) {
-          // Group tags by post_id
-          const tagsByPost = new Map<string, Tag[]>();
-          tagData.forEach(item => {
-            if (item.tag) {
-              if (!tagsByPost.has(item.post_id)) {
-                tagsByPost.set(item.post_id, []);
-              }
-              tagsByPost.get(item.post_id)?.push(item.tag as Tag);
-            }
-          });
-
-          // Associate tags with posts
-          formattedPosts.forEach(post => {
-            post.tags = tagsByPost.get(post.id) || [];
-          });
-        } else {
-          console.error('Error fetching tags:', tagError);
         }
       }
 
@@ -180,16 +149,6 @@ const Feed = () => {
                   <CardContent className="p-4 md:p-6">
                     {post.content && (
                       <p className="text-sm md:text-base break-words mb-4">{post.content}</p>
-                    )}
-                    
-                    {post.tags && post.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {post.tags.map(tag => (
-                          <Badge key={tag.id} variant="secondary">
-                            {tag.name}
-                          </Badge>
-                        ))}
-                      </div>
                     )}
 
                     {post.media_url && (
