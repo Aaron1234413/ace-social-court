@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -11,12 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import { Badge } from '@/components/ui/badge';
-
-interface Tag {
-  id: string;
-  name: string;
-  category: string;
-}
 
 interface Post {
   id: string;

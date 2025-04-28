@@ -7,14 +7,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { Image, Video, Loader2, Upload } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { TagSelector } from '@/components/social/TagSelector';
 import { useQuery } from '@tanstack/react-query';
-
-interface Tag {
-  id: string;
-  name: string;
-  category: string;
-}
 
 interface CreatePostModalProps {
   open: boolean;
@@ -30,27 +23,12 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
-
-  const { data: availableTags = [] } = useQuery({
-    queryKey: ['tags'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tags')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    }
-  });
 
   const resetState = () => {
     setCaption('');
     setMediaFile(null);
     setMediaPreview(null);
     setMediaType(null);
-    setSelectedTags([]);
   };
 
   const handleClose = () => {
@@ -138,7 +116,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       const mediaUrl = publicUrlData.publicUrl;
 
       // Create post in database
-      const { error: postError, data: newPost } = await supabase
+      const { error: postError } = await supabase
         .from('posts')
         .insert({
           user_id: user.id,
@@ -151,23 +129,6 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
 
       if (postError) {
         throw postError;
-      }
-
-      // Add tags to the post - ensure selectedTags is an array
-      const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags : [];
-      if (safeSelectedTags.length > 0) {
-        const { error: tagError } = await supabase
-          .from('post_tags')
-          .insert(
-            safeSelectedTags.map(tag => ({
-              post_id: newPost.id,
-              tag_id: tag.id
-            }))
-          );
-
-        if (tagError) {
-          throw tagError;
-        }
       }
 
       toast({
@@ -188,9 +149,6 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       setIsUploading(false);
     }
   };
-
-  // Ensure we have a valid array for availableTags
-  const safeAvailableTags = Array.isArray(availableTags) ? availableTags : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -269,12 +227,6 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
               rows={4}
             />
           </div>
-
-          <TagSelector
-            selectedTags={selectedTags}
-            onTagsChange={setSelectedTags}
-            availableTags={safeAvailableTags}
-          />
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose}>
