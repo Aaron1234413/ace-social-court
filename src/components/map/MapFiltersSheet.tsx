@@ -1,183 +1,153 @@
-
 import React from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Filter, Users, MapPin, User, CalendarClock, Home } from 'lucide-react';
-import LocationPrivacyControl from '@/components/map/LocationPrivacyControl';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-
-interface LocationPrivacySettings {
-  shareExactLocation: boolean;
-  showOnMap: boolean;
-  locationHistory: boolean;
-}
-
-interface FilterSettings {
-  showCourts: boolean;
-  showPlayers: boolean;
-  showCoaches: boolean;
-  showEvents: boolean;
-  showStaticLocations: boolean;
-  showOwnLocation: boolean;
-  distance: number; // in miles
-}
+import { Switch } from "@/components/ui/switch"
+import { Slider } from "@/components/ui/slider"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
+import { MapPin, Settings } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface MapFiltersSheetProps {
-  filters: FilterSettings;
-  onFilterChange: (key: keyof FilterSettings, value: any) => void;
-  locationPrivacy: LocationPrivacySettings;
-  onPrivacyChange: (key: keyof LocationPrivacySettings) => void;
+  filters: {
+    showCourts: boolean;
+    showPlayers: boolean;
+    showCoaches: boolean;
+    showEvents: boolean;
+    showStaticLocations: boolean;
+    showOwnLocation: boolean;
+    distance: number;
+    state: string | null; // Add state filter
+  };
+  onFilterChange: (key: string, value: any) => void;
+  locationPrivacy: {
+    shareExactLocation: boolean;
+    showOnMap: boolean;
+    locationHistory: boolean;
+  };
+  onPrivacyChange: (key: string) => void;
   userLocationEnabled: boolean;
   isUserLoggedIn: boolean;
+  availableStates?: string[]; // Add available states
 }
 
-const MapFiltersSheet = ({
-  filters,
-  onFilterChange,
-  locationPrivacy,
-  onPrivacyChange,
-  userLocationEnabled,
-  isUserLoggedIn
-}: MapFiltersSheetProps) => {
-  // Custom tennis court icon component
-  const TennisCourtIcon = () => (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="16" 
-      height="16" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className="text-green-500"
-    >
-      <rect x="4" y="4" width="16" height="16" rx="2" />
-      <rect x="9" y="4" width="6" height="16" />
-      <line x1="4" y1="12" x2="20" y2="12" />
-    </svg>
-  );
-
+const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({ 
+  filters, 
+  onFilterChange, 
+  locationPrivacy, 
+  onPrivacyChange, 
+  userLocationEnabled, 
+  isUserLoggedIn,
+  availableStates = []
+}) => {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="flex gap-1">
-          <Filter className="h-4 w-4" />
-          <span className="hidden sm:inline">Filters</span>
+        <Button variant="outline" size="sm">
+          <Settings className="mr-2 h-4 w-4" />
+          Filters
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md">
+      <SheetContent className="sm:max-w-sm">
         <SheetHeader>
-          <SheetTitle>Map Settings</SheetTitle>
+          <SheetTitle>Map Filters</SheetTitle>
+          <SheetDescription>
+            Adjust map settings to find exactly what you're looking for.
+          </SheetDescription>
         </SheetHeader>
-        
-        <div className="py-6">
-          <h3 className="text-sm font-medium mb-4">Show on Map</h3>
-          <div className="space-y-4">
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <h4 className="font-medium">Visibility</h4>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TennisCourtIcon />
-                <Label htmlFor="show-courts">Tennis Courts</Label>
-              </div>
-              <Switch 
-                id="show-courts" 
-                checked={filters.showCourts} 
-                onCheckedChange={(checked) => onFilterChange('showCourts', checked)} 
-              />
+              <Label htmlFor="showCourts">Tennis Courts</Label>
+              <Switch id="showCourts" checked={filters.showCourts} onCheckedChange={(checked) => onFilterChange('showCourts', checked)} />
             </div>
-            
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-blue-500" />
-                <Label htmlFor="show-players">Players</Label>
-              </div>
-              <Switch 
-                id="show-players" 
-                checked={filters.showPlayers} 
-                onCheckedChange={(checked) => onFilterChange('showPlayers', checked)} 
-              />
+              <Label htmlFor="showPlayers">Players</Label>
+              <Switch id="showPlayers" checked={filters.showPlayers} onCheckedChange={(checked) => onFilterChange('showPlayers', checked)} />
             </div>
-            
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-purple-500" />
-                <Label htmlFor="show-coaches">Coaches</Label>
-              </div>
-              <Switch 
-                id="show-coaches" 
-                checked={filters.showCoaches} 
-                onCheckedChange={(checked) => onFilterChange('showCoaches', checked)} 
-              />
+              <Label htmlFor="showCoaches">Coaches</Label>
+              <Switch id="showCoaches" checked={filters.showCoaches} onCheckedChange={(checked) => onFilterChange('showCoaches', checked)} />
             </div>
-            
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-red-500" />
-                <Label htmlFor="show-events">Events</Label>
-              </div>
-              <Switch 
-                id="show-events" 
-                checked={filters.showEvents} 
-                onCheckedChange={(checked) => onFilterChange('showEvents', checked)} 
-              />
+              <Label htmlFor="showStaticLocations">Static Locations</Label>
+              <Switch id="showStaticLocations" checked={filters.showStaticLocations} onCheckedChange={(checked) => onFilterChange('showStaticLocations', checked)} />
             </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-500" />
-                <Label htmlFor="show-static-locations">Home Locations</Label>
-              </div>
-              <Switch 
-                id="show-static-locations" 
-                checked={filters.showStaticLocations} 
-                onCheckedChange={(checked) => onFilterChange('showStaticLocations', checked)} 
-              />
-            </div>
-
-            {/* Add option for own location */}
             {isUserLoggedIn && (
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Home className="h-4 w-4 text-cyan-600" />
-                  <Label htmlFor="show-own-location">Your Profile Location</Label>
-                </div>
-                <Switch 
-                  id="show-own-location" 
-                  checked={filters.showOwnLocation} 
-                  onCheckedChange={(checked) => onFilterChange('showOwnLocation', checked)} 
-                />
+                <Label htmlFor="showOwnLocation">My Profile Location</Label>
+                <Switch id="showOwnLocation" checked={filters.showOwnLocation} onCheckedChange={(checked) => onFilterChange('showOwnLocation', checked)} />
               </div>
             )}
           </div>
           
-          <div className="mt-6 space-y-4">
-            <div>
-              <Label htmlFor="distance-filter">Search Distance: {filters.distance} miles</Label>
-              <Slider
-                id="distance-filter"
-                min={1}
-                max={100}
-                step={1}
-                value={[filters.distance]}
-                onValueChange={(value) => onFilterChange('distance', value[0])}
-                className="mt-2"
-              />
+          {/* State Filter */}
+          {availableStates && availableStates.length > 0 && (
+            <div className="space-y-2">
+              <Label>State Filter</Label>
+              <Select 
+                value={filters.state || ''} 
+                onValueChange={(value) => onFilterChange('state', value || null)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All States" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All States</SelectItem>
+                  {availableStates.map((state) => (
+                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Distance (miles)</Label>
+            <Slider
+              defaultValue={[filters.distance]}
+              max={100}
+              step={1}
+              onValueChange={(value) => onFilterChange('distance', value[0])}
+            />
+            <p className="text-sm text-muted-foreground">
+              Current distance: {filters.distance} miles
+            </p>
           </div>
           
-          <Separator className="my-6" />
-          
-          <h3 className="text-sm font-medium mb-4">Your Location Privacy</h3>
-          <LocationPrivacyControl
-            locationPrivacy={locationPrivacy}
-            onToggle={onPrivacyChange}
-            userLocationEnabled={userLocationEnabled}
-            isUserLoggedIn={isUserLoggedIn}
-          />
+          {isUserLoggedIn && (
+            <div className="space-y-2">
+              <h4 className="font-medium">Location Privacy</h4>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="shareExactLocation">Share Exact Location</Label>
+                <Switch 
+                  id="shareExactLocation" 
+                  checked={locationPrivacy.shareExactLocation} 
+                  onCheckedChange={() => onPrivacyChange('shareExactLocation')} 
+                  disabled={!userLocationEnabled}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="showOnMap">Show on Map</Label>
+                <Switch 
+                  id="showOnMap" 
+                  checked={locationPrivacy.showOnMap} 
+                  onCheckedChange={() => onPrivacyChange('showOnMap')}
+                  disabled={!userLocationEnabled}
+                />
+              </div>
+              {/*<div className="flex items-center justify-between">
+                <Label htmlFor="locationHistory">Location History</Label>
+                <Switch id="locationHistory" checked={locationPrivacy.locationHistory} onCheckedChange={() => onPrivacyChange('locationHistory')} />
+              </div>*/}
+              {!userLocationEnabled && (
+                <p className="text-sm text-muted-foreground">
+                  <MapPin className="inline-block h-3 w-3 mr-1" />
+                  Location services are disabled. Please enable them to share your location.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

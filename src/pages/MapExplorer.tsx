@@ -32,6 +32,7 @@ interface FilterSettings {
   showStaticLocations: boolean;
   showOwnLocation: boolean;
   distance: number; // in miles
+  state: string | null; // New filter for state
 }
 
 interface StaticLocationUser {
@@ -57,6 +58,7 @@ const MapExplorer = () => {
     showStaticLocations: true,
     showOwnLocation: true,
     distance: 25, // in miles
+    state: null, // Default to no state filter
   });
   
   const [isReady, setIsReady] = useState(false);
@@ -74,6 +76,8 @@ const MapExplorer = () => {
   
   const [locationError, setLocationError] = useState<string | null>(null);
   const [shouldFallbackToAllCourts, setShouldFallbackToAllCourts] = useState(false);
+  const [courtsPage, setCourtsPage] = useState(1);
+  const courtsPerPage = 50;
   
   // Query for nearby users using our Supabase function
   const { data: nearbyActiveUsers, isLoading: isLoadingNearbyUsers } = useQuery({
@@ -107,7 +111,7 @@ const MapExplorer = () => {
 
   // Query for nearby tennis courts
   const { data: nearbyCourts, isLoading: isLoadingCourts, refetch: refetchCourts } = useQuery({
-    queryKey: ['nearby-tennis-courts', userPosition, filters.distance, filters.showCourts, shouldFallbackToAllCourts],
+    queryKey: ['nearby-tennis-courts', userPosition, filters.distance, filters.showCourts, shouldFallbackToAllCourts, filters.state, courtsPage],
     queryFn: async () => {
       if (!filters.showCourts) return [];
       
@@ -130,10 +134,19 @@ const MapExplorer = () => {
         } 
         // Fallback: If user position is not available but fallback is enabled, fetch all courts
         else if (shouldFallbackToAllCourts) {
-          const { data, error } = await supabase
+          let query = supabase
             .from('tennis_courts')
-            .select('*')
-            .limit(50);
+            .select('*');
+          
+          // Apply state filter if specified
+          if (filters.state) {
+            query = query.ilike('state', filters.state);
+          }
+          
+          // Add pagination
+          const { data, error } = await query
+            .range((courtsPage - 1) * courtsPerPage, courtsPage * courtsPerPage - 1)
+            .order('name');
           
           if (error) {
             console.error('Error fetching all courts:', error);
@@ -155,6 +168,57 @@ const MapExplorer = () => {
       }
     },
     enabled: filters.showCourts && (!!userPosition || shouldFallbackToAllCourts),
+  });
+
+  // Query for total number of courts (for pagination)
+  const { data: totalCourts } = useQuery({
+    queryKey: ['total-courts', filters.state],
+    queryFn: async () => {
+      if (shouldFallbackToAllCourts) {
+        let query = supabase
+          .from('tennis_courts')
+          .select('id', { count: 'exact' });
+        
+        // Apply state filter if specified
+        if (filters.state) {
+          query = query.ilike('state', filters.state);
+        }
+        
+        const { count, error } = await query;
+        
+        if (error) {
+          console.error('Error counting courts:', error);
+          return 0;
+        }
+        
+        return count || 0;
+      }
+      return 0;
+    },
+    enabled: shouldFallbackToAllCourts,
+  });
+
+  const totalPages = Math.ceil((totalCourts || 0) / courtsPerPage);
+
+  // Query for available states to filter by
+  const { data: availableStates } = useQuery({
+    queryKey: ['available-states'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tennis_courts')
+        .select('state')
+        .not('state', 'is', null)
+        .order('state');
+      
+      if (error) {
+        console.error('Error fetching states:', error);
+        return [];
+      }
+      
+      // Extract unique states
+      const states = Array.from(new Set(data.map(item => item.state)));
+      return states.filter(state => !!state);
+    },
   });
 
   // Query for the user's own profile location
@@ -367,6 +431,11 @@ const MapExplorer = () => {
       [key]: value
     }));
     
+    // Reset to page 1 when changing filters
+    if (key === 'state') {
+      setCourtsPage(1);
+    }
+    
     // If we're changing the court visibility and turning it on, switch to courts tab
     if (key === 'showCourts' && value === true) {
       setActiveTab('courts');
@@ -376,7 +445,7 @@ const MapExplorer = () => {
       setActiveTab('people');
     }
   };
-
+  
   const togglePrivacySetting = async (key: keyof LocationPrivacySettings) => {
     if (!user) {
       toast.error('You must be logged in to change privacy settings');
@@ -464,7 +533,7 @@ const MapExplorer = () => {
     if (!userPosition && !shouldFallbackToAllCourts && filters.showCourts) {
       const timeoutId = setTimeout(() => {
         setShouldFallbackToAllCourts(true);
-        toast.info("Using all courts instead of nearby courts due to location timeout.");
+        toast.info("Using all courts across the USA.");
       }, 15000); // 15 seconds timeout
       
       return () => clearTimeout(timeoutId);
@@ -552,12 +621,24 @@ const MapExplorer = () => {
   // Function to manually switch to fallback mode
   const showAllCourts = () => {
     setShouldFallbackToAllCourts(true);
-    toast.info("Showing all tennis courts instead of nearby courts.");
+    toast.info("Showing all tennis courts across the USA.");
+  };
+
+  // Pagination handlers
+  const handleNextPage = () => {
+    if (courtsPage < totalPages) {
+      setCourtsPage(courtsPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (courtsPage > 1) {
+      setCourtsPage(courtsPage - 1);
+    }
   };
 
   return (
     <div className="container py-4 px-4 md:px-6">
-      {/* Keep existing code (header and filters) */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Tennis Map</h1>
@@ -571,6 +652,7 @@ const MapExplorer = () => {
           onPrivacyChange={togglePrivacySetting}
           userLocationEnabled={userLocationEnabled}
           isUserLoggedIn={!!user}
+          availableStates={availableStates || []}
         />
       </div>
       
@@ -672,6 +754,13 @@ const MapExplorer = () => {
                 isLoading={isLoadingCourts && !shouldFallbackToAllCourts}
                 onCourtSelect={handleCourtSelect}
                 onRetry={handleRetryCourts}
+                currentPage={courtsPage}
+                totalPages={totalPages}
+                onNextPage={handleNextPage}
+                onPrevPage={handlePrevPage}
+                stateFilter={filters.state}
+                onChangeStateFilter={(state) => handleFilterChange('state', state)}
+                availableStates={availableStates || []}
               />
               
               {selectedCourt && (

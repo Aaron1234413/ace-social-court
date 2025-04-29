@@ -3,19 +3,39 @@ import React, { useState, useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, MapPin, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TennisCourt } from './TennisCourtsLayer';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface NearbyCourtsListProps {
   courts: TennisCourt[];
   isLoading: boolean;
   onCourtSelect: (court: TennisCourt) => void;
   onRetry?: () => void;
+  currentPage?: number;
+  totalPages?: number;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
+  stateFilter?: string | null;
+  onChangeStateFilter?: (state: string | null) => void;
+  availableStates?: string[];
 }
 
-const NearbyCourtsPanel = ({ courts, isLoading, onCourtSelect, onRetry }: NearbyCourtsListProps) => {
+const NearbyCourtsPanel = ({ 
+  courts, 
+  isLoading, 
+  onCourtSelect, 
+  onRetry,
+  currentPage = 1,
+  totalPages = 1,
+  onNextPage,
+  onPrevPage,
+  stateFilter,
+  onChangeStateFilter,
+  availableStates = []
+}: NearbyCourtsListProps) => {
   const [filter, setFilter] = useState<'all' | 'public' | 'private'>('all');
   const [surfaceFilter, setSurfaceFilter] = useState<string | null>(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -56,7 +76,7 @@ const NearbyCourtsPanel = ({ courts, isLoading, onCourtSelect, onRetry }: Nearby
   return (
     <div className="bg-background rounded-lg border shadow-sm p-4 w-full">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold">Nearby Tennis Courts</h3>
+        <h3 className="font-semibold">Tennis Courts</h3>
         <div className="flex gap-2">
           <Badge 
             variant={filter === 'all' ? "default" : "outline"}
@@ -81,6 +101,26 @@ const NearbyCourtsPanel = ({ courts, isLoading, onCourtSelect, onRetry }: Nearby
           </Badge>
         </div>
       </div>
+      
+      {/* State Filter */}
+      {availableStates && availableStates.length > 0 && onChangeStateFilter && (
+        <div className="mb-3">
+          <Select 
+            value={stateFilter || ''} 
+            onValueChange={(value) => onChangeStateFilter(value || null)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter by state" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All States</SelectItem>
+              {availableStates.map((state) => (
+                <SelectItem key={state} value={state}>{state}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       
       {surfaceTypes.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2">
@@ -111,7 +151,7 @@ const NearbyCourtsPanel = ({ courts, isLoading, onCourtSelect, onRetry }: Nearby
         {isLoading ? (
           <div className="py-8 text-center text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-            Finding nearby tennis courts...
+            Finding tennis courts...
             
             {loadingTimeout && (
               <div className="mt-4">
@@ -138,7 +178,7 @@ const NearbyCourtsPanel = ({ courts, isLoading, onCourtSelect, onRetry }: Nearby
         ) : filteredCourts.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
             {courts.length === 0 
-              ? "No tennis courts found nearby" 
+              ? "No tennis courts found" 
               : "No courts match your filters"
             }
           </div>
@@ -164,9 +204,14 @@ const NearbyCourtsPanel = ({ courts, isLoading, onCourtSelect, onRetry }: Nearby
                     <Badge variant={court.is_public ? "default" : "secondary"} className="text-xs">
                       {court.is_public ? 'Public' : 'Private'}
                     </Badge>
-                    {court.distance !== undefined && (
+                    {court.distance !== undefined && court.distance > 0 && (
                       <span className="text-xs flex items-center gap-1 text-muted-foreground">
                         <MapPin className="h-3 w-3" /> {formatDistance(court.distance)}
+                      </span>
+                    )}
+                    {court.state && (
+                      <span className="text-xs text-muted-foreground">
+                        {court.city}, {court.state}
                       </span>
                     )}
                   </div>
@@ -176,6 +221,35 @@ const NearbyCourtsPanel = ({ courts, isLoading, onCourtSelect, onRetry }: Nearby
           </div>
         )}
       </ScrollArea>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t mt-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onPrevPage} 
+            disabled={currentPage <= 1}
+            className="flex items-center gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" /> Previous
+          </Button>
+          
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </span>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onNextPage} 
+            disabled={currentPage >= totalPages}
+            className="flex items-center gap-1"
+          >
+            Next <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
