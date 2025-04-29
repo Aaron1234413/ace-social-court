@@ -12,11 +12,11 @@ import Profile from "./pages/Profile";
 import Feed from "./pages/Feed";
 import NotFound from "./pages/NotFound";
 import ProfileEdit from "./pages/ProfileEdit";
+import { useState } from "react";
 
-// Create a new QueryClient instance as a component variable, not as a global variable
 const App = () => {
-  // Initialize the QueryClient inside the component
-  const queryClient = new QueryClient();
+  // Use useState to initialize the QueryClient inside the component
+  const [queryClient] = useState(() => new QueryClient());
   
   return (
     <QueryClientProvider client={queryClient}>
