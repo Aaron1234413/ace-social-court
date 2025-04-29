@@ -2,6 +2,7 @@
 import React from 'react';
 import { useMapExplorer } from '@/contexts/MapExplorerContext';
 import MapFiltersSheet from './MapFiltersSheet';
+import AddTennisCourtDialog from './AddTennisCourtDialog';
 
 const MapHeader: React.FC = () => {
   const { filters, locationPrivacy, togglePrivacySetting, handleFilterChange, userLocationEnabled, user, locationError } = useMapExplorer();
@@ -13,14 +14,17 @@ const MapHeader: React.FC = () => {
         <p className="text-sm text-muted-foreground">Find courts, players, and coaches near you</p>
       </div>
       
-      <MapFiltersSheet 
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        locationPrivacy={locationPrivacy}
-        onPrivacyChange={togglePrivacySetting}
-        userLocationEnabled={userLocationEnabled}
-        isUserLoggedIn={!!user}
-      />
+      <div className="flex flex-col xs:flex-row gap-2">
+        <AddTennisCourtDialog />
+        <MapFiltersSheet 
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          locationPrivacy={locationPrivacy}
+          onPrivacyChange={togglePrivacySetting}
+          userLocationEnabled={userLocationEnabled}
+          isUserLoggedIn={!!user}
+        />
+      </div>
     </div>
   );
 };

@@ -340,9 +340,9 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Set Your Location</DialogTitle>
+          <DialogTitle>Set Court Location</DialogTitle>
           <DialogDescription>
-            Search for a location or click on the map to set your position
+            Search for a location or click on the map to set the court position
           </DialogDescription>
         </DialogHeader>
 

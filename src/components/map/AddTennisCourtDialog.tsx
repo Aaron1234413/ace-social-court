@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/components/AuthProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import LocationPickerDialog from '@/components/profile/LocationPickerDialog';
 
 const surfaceTypes = [
   { value: 'hard', label: 'Hard Court' },
@@ -61,7 +63,7 @@ const initialFormData: CourtFormData = {
 
 const AddTennisCourtDialog = () => {
   const { user } = useAuth();
-  const { mapInstance, userPosition } = useMapExplorer();
+  const { userPosition } = useMapExplorer();
   const [formData, setFormData] = useState<CourtFormData>({
     ...initialFormData,
     latitude: userPosition?.lat || 0,
@@ -69,7 +71,7 @@ const AddTennisCourtDialog = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [isLocationSelectMode, setIsLocationSelectMode] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -90,37 +92,46 @@ const AddTennisCourtDialog = () => {
   };
 
   const handleLocationSelect = () => {
-    setIsLocationSelectMode(true);
-    toast.info(
-      "Click on the map to select the court location. The dialog will minimize to let you see the map.",
-      { duration: 5000 }
-    );
+    setShowLocationPicker(true);
+  };
+
+  const handleLocationPickerClose = () => {
+    setShowLocationPicker(false);
+  };
+
+  const handleLocationPickerSelect = (lat: number, lng: number, address: string) => {
+    // Parse the address to extract city, state, country if possible
+    let city = '';
+    let state = '';
+    let country = 'USA'; // Default
     
-    // Add a click event listener to the map
-    if (mapInstance) {
-      const clickHandler = (e: mapboxgl.MapMouseEvent) => {
-        // Get coordinates from the click event
-        const { lng, lat } = e.lngLat;
-        
-        // Update form data with the selected coordinates
-        setFormData((prev) => ({
-          ...prev,
-          latitude: lat,
-          longitude: lng,
-        }));
-        
-        // Show a confirmation toast
-        toast.success("Location selected!", { duration: 2000 });
-        
-        // Remove the click event listener
-        mapInstance.off('click', clickHandler);
-        
-        // Exit location select mode
-        setIsLocationSelectMode(false);
-      };
+    // Simple parsing of the address string
+    const parts = address.split(', ');
+    if (parts.length >= 3) {
+      // Assuming format like "Street, City, State ZIP, Country"
+      city = parts[1] || '';
       
-      mapInstance.on('click', clickHandler);
+      // Try to extract state from the third part (which might have ZIP code)
+      const stateZip = parts[2] || '';
+      const stateMatch = stateZip.match(/([A-Z]{2})/);
+      state = stateMatch ? stateMatch[0] : '';
+      
+      // Last part is usually country
+      country = parts[parts.length - 1] || 'USA';
     }
+
+    setFormData((prev) => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+      address: address.split(',')[0] || '', // First part is typically street address
+      city,
+      state,
+      country
+    }));
+    
+    setShowLocationPicker(false);
+    toast.success("Location selected successfully!");
   };
 
   const resetForm = () => {
@@ -129,7 +140,6 @@ const AddTennisCourtDialog = () => {
       latitude: userPosition?.lat || 0,
       longitude: userPosition?.lng || 0,
     });
-    setIsLocationSelectMode(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -179,248 +189,204 @@ const AddTennisCourtDialog = () => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (!open) {
-        resetForm();
-      }
-    }}>
-      <DialogTrigger asChild>
-        <Button variant="secondary" className="gap-2">
-          <PlusCircle className="h-4 w-4" />
-          Add Tennis Court
-        </Button>
-      </DialogTrigger>
-      <DialogContent className={`${isLocationSelectMode ? "opacity-70 pointer-events-none" : ""} max-h-[85vh] p-0 md:max-w-xl`}>
-        <DialogHeader className="px-6 pt-6 pb-2 sticky top-0 z-10 bg-background">
-          <DialogTitle>Add a Tennis Court</DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
-            Share your favorite tennis courts with the community.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) {
+          resetForm();
+        }
+      }}>
+        <DialogTrigger asChild>
+          <Button variant="secondary" className="gap-2">
+            <PlusCircle className="h-4 w-4" />
+            Add Tennis Court
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[85vh] p-0 md:max-w-xl">
+          <DialogHeader className="px-6 pt-6 pb-2 sticky top-0 z-10 bg-background">
+            <DialogTitle>Add a Tennis Court</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              Share your favorite tennis courts with the community.
+            </DialogDescription>
+          </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] px-6 py-2">
-          <form id="court-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Court Name *</Label>
-              <Input 
-                id="name" 
-                name="name" 
-                value={formData.name} 
-                onChange={handleInputChange}
-                placeholder="Enter the court name"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea 
-                id="description" 
-                name="description" 
-                value={formData.description || ''} 
-                onChange={handleInputChange}
-                placeholder="Describe the court (conditions, accessibility, etc.)"
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ScrollArea className="max-h-[60vh] px-6 py-2">
+            <form id="court-form" onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="name">Court Name *</Label>
                 <Input 
-                  id="address" 
-                  name="address" 
-                  value={formData.address || ''} 
+                  id="name" 
+                  name="name" 
+                  value={formData.name} 
                   onChange={handleInputChange}
-                  placeholder="Street address"
+                  placeholder="Enter the court name"
+                  required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input 
-                  id="city" 
-                  name="city" 
-                  value={formData.city || ''} 
+                <Label htmlFor="description">Description</Label>
+                <Textarea 
+                  id="description" 
+                  name="description" 
+                  value={formData.description || ''} 
                   onChange={handleInputChange}
-                  placeholder="City"
+                  placeholder="Describe the court (conditions, accessibility, etc.)"
+                  rows={3}
                 />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="location" className="font-medium">Court Location *</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleLocationSelect}
+                    className="gap-1"
+                  >
+                    <MapPin className="h-4 w-4" /> Select Location
+                  </Button>
+                </div>
+
+                {(formData.latitude !== 0 || formData.longitude !== 0) && (
+                  <div className="bg-muted p-3 rounded-md">
+                    <p className="text-sm font-medium">Selected Location:</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formData.address ? (
+                        <>
+                          {formData.address}, {formData.city}, {formData.state}, {formData.country}
+                        </>
+                      ) : (
+                        <>Lat: {formData.latitude.toFixed(6)}, Lng: {formData.longitude.toFixed(6)}</>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input 
-                  id="state" 
-                  name="state" 
-                  value={formData.state || ''} 
-                  onChange={handleInputChange}
-                  placeholder="State"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input 
-                  id="country" 
-                  name="country" 
-                  value={formData.country} 
-                  onChange={handleInputChange}
-                  placeholder="Country"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="location">Court Location *</Label>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleLocationSelect}
+                <Label htmlFor="surface_type">Surface Type</Label>
+                <Select 
+                  value={formData.surface_type} 
+                  onValueChange={(value) => handleSelectChange('surface_type', value)}
                 >
-                  <MapPin className="h-4 w-4 mr-1" /> Select on Map
-                </Button>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select surface type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {surfaceTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="latitude" className="text-xs">Latitude</Label>
-                  <Input 
-                    id="latitude" 
-                    name="latitude" 
-                    value={formData.latitude} 
-                    onChange={handleNumberInputChange}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="longitude" className="text-xs">Longitude</Label>
-                  <Input 
-                    id="longitude" 
-                    name="longitude" 
-                    value={formData.longitude} 
-                    onChange={handleNumberInputChange}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="number_of_courts">Number of Courts</Label>
+                <Input 
+                  id="number_of_courts" 
+                  name="number_of_courts" 
+                  type="number"
+                  min={1}
+                  value={formData.number_of_courts} 
+                  onChange={handleNumberInputChange}
+                />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="surface_type">Surface Type</Label>
-              <Select 
-                value={formData.surface_type} 
-                onValueChange={(value) => handleSelectChange('surface_type', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select surface type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {surfaceTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="number_of_courts">Number of Courts</Label>
-              <Input 
-                id="number_of_courts" 
-                name="number_of_courts" 
-                type="number"
-                min={1}
-                value={formData.number_of_courts} 
-                onChange={handleNumberInputChange}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Court Features</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center justify-between space-x-2">
-                  <Label htmlFor="is_public" className="text-sm">Public Access</Label>
-                  <Switch 
-                    id="is_public" 
-                    checked={formData.is_public}
-                    onCheckedChange={(checked) => handleSwitchChange('is_public', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between space-x-2">
-                  <Label htmlFor="is_indoor" className="text-sm">Indoor Court</Label>
-                  <Switch 
-                    id="is_indoor" 
-                    checked={formData.is_indoor}
-                    onCheckedChange={(checked) => handleSwitchChange('is_indoor', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between space-x-2">
-                  <Label htmlFor="has_lighting" className="text-sm">Has Lighting</Label>
-                  <Switch 
-                    id="has_lighting" 
-                    checked={formData.has_lighting}
-                    onCheckedChange={(checked) => handleSwitchChange('has_lighting', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between space-x-2">
-                  <Label htmlFor="has_restrooms" className="text-sm">Restrooms</Label>
-                  <Switch 
-                    id="has_restrooms" 
-                    checked={formData.has_restrooms}
-                    onCheckedChange={(checked) => handleSwitchChange('has_restrooms', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between space-x-2">
-                  <Label htmlFor="has_pro_shop" className="text-sm">Pro Shop</Label>
-                  <Switch 
-                    id="has_pro_shop" 
-                    checked={formData.has_pro_shop}
-                    onCheckedChange={(checked) => handleSwitchChange('has_pro_shop', checked)}
-                  />
+              <div className="space-y-4">
+                <Label className="text-sm font-medium">Court Features</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="is_public" className="text-sm">Public Access</Label>
+                    <Switch 
+                      id="is_public" 
+                      checked={formData.is_public}
+                      onCheckedChange={(checked) => handleSwitchChange('is_public', checked)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="is_indoor" className="text-sm">Indoor Court</Label>
+                    <Switch 
+                      id="is_indoor" 
+                      checked={formData.is_indoor}
+                      onCheckedChange={(checked) => handleSwitchChange('is_indoor', checked)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="has_lighting" className="text-sm">Has Lighting</Label>
+                    <Switch 
+                      id="has_lighting" 
+                      checked={formData.has_lighting}
+                      onCheckedChange={(checked) => handleSwitchChange('has_lighting', checked)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="has_restrooms" className="text-sm">Restrooms</Label>
+                    <Switch 
+                      id="has_restrooms" 
+                      checked={formData.has_restrooms}
+                      onCheckedChange={(checked) => handleSwitchChange('has_restrooms', checked)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="has_pro_shop" className="text-sm">Pro Shop</Label>
+                    <Switch 
+                      id="has_pro_shop" 
+                      checked={formData.has_pro_shop}
+                      onCheckedChange={(checked) => handleSwitchChange('has_pro_shop', checked)}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          </form>
-        </ScrollArea>
-        
-        <DialogFooter className="px-6 pb-6 pt-2 sticky bottom-0 bg-background border-t">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => {
-              resetForm();
-              setIsOpen(false);
-            }}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button 
-            form="court-form"
-            type="submit" 
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Add Court'
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            </form>
+          </ScrollArea>
+          
+          <DialogFooter className="px-6 pb-6 pt-2 sticky bottom-0 bg-background border-t">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                resetForm();
+                setIsOpen(false);
+              }}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              form="court-form"
+              type="submit" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Add Court'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <LocationPickerDialog 
+        isOpen={showLocationPicker}
+        onClose={handleLocationPickerClose}
+        onSelectLocation={handleLocationPickerSelect}
+        initialLatitude={formData.latitude !== 0 ? formData.latitude : undefined}
+        initialLongitude={formData.longitude !== 0 ? formData.longitude : undefined}
+      />
+    </>
   );
 };
 

@@ -13,7 +13,6 @@ import TabNavigator from '@/components/map/TabNavigator';
 import PeopleTab from '@/components/map/PeopleTab';
 import CourtsTab from '@/components/map/CourtsTab';
 import { useMapData } from '@/hooks/useMapData';
-import AddTennisCourtDialog from '@/components/map/AddTennisCourtDialog';
 
 const MapExplorerContent = () => {
   const {
@@ -52,9 +51,6 @@ const MapExplorerContent = () => {
     <div className="container max-w-full px-2 py-2 sm:px-4 md:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-2 md:mb-4">
         <MapHeader />
-        <div className="flex-shrink-0">
-          <AddTennisCourtDialog />
-        </div>
       </div>
       
       <LocationErrorAlert />
