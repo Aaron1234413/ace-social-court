@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import ConversationsList from '@/components/messages/ConversationsList';
 import ChatInterface from '@/components/messages/ChatInterface';
+import { MessageSquare } from 'lucide-react';
 
 const Messages = () => {
   const { user } = useAuth();
@@ -40,11 +41,19 @@ const Messages = () => {
           </div>
         </div>
         
-        {/* Chat Interface */}
+        {/* Chat Interface or Empty State */}
         <div className={`border rounded-md overflow-hidden ${
           selectedUserId ? 'block md:col-span-2' : 'hidden md:block md:col-span-2'
         }`}>
-          <ChatInterface />
+          {selectedUserId ? (
+            <ChatInterface />
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
+              <MessageSquare className="h-16 w-16 mb-4 opacity-20" />
+              <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
+              <p>Select a conversation from the list or start a new one.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
