@@ -409,6 +409,75 @@ export type Database = {
         }
         Relationships: []
       }
+      tennis_courts: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          has_lighting: boolean | null
+          has_pro_shop: boolean | null
+          has_restrooms: boolean | null
+          id: string
+          is_indoor: boolean | null
+          is_public: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+          number_of_courts: number | null
+          rating: number | null
+          state: string | null
+          surface_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          has_lighting?: boolean | null
+          has_pro_shop?: boolean | null
+          has_restrooms?: boolean | null
+          id?: string
+          is_indoor?: boolean | null
+          is_public?: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+          number_of_courts?: number | null
+          rating?: number | null
+          state?: string | null
+          surface_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          has_lighting?: boolean | null
+          has_pro_shop?: boolean | null
+          has_restrooms?: boolean | null
+          id?: string
+          is_indoor?: boolean | null
+          is_public?: boolean | null
+          latitude?: number
+          longitude?: number
+          name?: string
+          number_of_courts?: number | null
+          rating?: number | null
+          state?: string | null
+          surface_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -417,6 +486,23 @@ export type Database = {
       calculate_distance_miles: {
         Args: { lat1: number; long1: number; lat2: number; long2: number }
         Returns: number
+      }
+      find_nearby_courts: {
+        Args: { user_lat: number; user_lng: number; distance_miles?: number }
+        Returns: {
+          id: string
+          name: string
+          description: string
+          latitude: number
+          longitude: number
+          address: string
+          city: string
+          state: string
+          country: string
+          surface_type: string
+          distance: number
+          is_public: boolean
+        }[]
       }
       find_nearby_users: {
         Args: {

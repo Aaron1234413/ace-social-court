@@ -10,6 +10,9 @@ import MapFiltersSheet from '@/components/map/MapFiltersSheet';
 import NearbyUsersList from '@/components/map/NearbyUsersList';
 import LocationStatusCard from '@/components/map/LocationStatusCard';
 import { NearbyUser } from '@/components/map/NearbyUsersLayer';
+import NearbyCourtsPanel from '@/components/map/NearbyCourtsPanel';
+import TennisCourtCard from '@/components/map/TennisCourtCard';
+import { TennisCourt } from '@/components/map/TennisCourtsLayer';
 
 // Define types
 interface LocationPrivacySettings {
@@ -24,7 +27,7 @@ interface FilterSettings {
   showCoaches: boolean;
   showEvents: boolean;
   showStaticLocations: boolean;
-  showOwnLocation: boolean; // Added this filter
+  showOwnLocation: boolean;
   distance: number; // in miles
 }
 
@@ -49,7 +52,7 @@ const MapExplorer = () => {
     showCoaches: true,
     showEvents: true,
     showStaticLocations: true,
-    showOwnLocation: true, // New filter, default to true
+    showOwnLocation: true,
     distance: 25, // in miles
   });
   
@@ -63,6 +66,8 @@ const MapExplorer = () => {
   const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
   const [userPosition, setUserPosition] = useState<{lng: number, lat: number} | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedCourt, setSelectedCourt] = useState<TennisCourt | null>(null);
+  const [activeTab, setActiveTab] = useState<'people' | 'courts'>('people');
   
   // Query for nearby users using our Supabase function
   const { data: nearbyActiveUsers, isLoading: isLoadingNearbyUsers } = useQuery({
@@ -92,6 +97,34 @@ const MapExplorer = () => {
       }
     },
     enabled: !!userPosition,
+  });
+
+  // Query for nearby tennis courts
+  const { data: nearbyCourts, isLoading: isLoadingCourts } = useQuery({
+    queryKey: ['nearby-tennis-courts', userPosition, filters.distance, filters.showCourts],
+    queryFn: async () => {
+      if (!userPosition || !filters.showCourts) return [];
+      
+      try {
+        const { data, error } = await supabase.rpc('find_nearby_courts', {
+          user_lat: userPosition.lat,
+          user_lng: userPosition.lng,
+          distance_miles: filters.distance
+        });
+        
+        if (error) {
+          console.error('Error fetching nearby courts:', error);
+          toast.error('Failed to find nearby tennis courts');
+          return [];
+        }
+        
+        return data || [];
+      } catch (err) {
+        console.error('Exception fetching nearby courts:', err);
+        return [];
+      }
+    },
+    enabled: !!userPosition && filters.showCourts,
   });
 
   // Query for the user's own profile location
@@ -303,6 +336,15 @@ const MapExplorer = () => {
       ...prev,
       [key]: value
     }));
+    
+    // If we're changing the court visibility and turning it on, switch to courts tab
+    if (key === 'showCourts' && value === true) {
+      setActiveTab('courts');
+    }
+    // If we're turning off court visibility, switch to people tab
+    else if (key === 'showCourts' && value === false) {
+      setActiveTab('people');
+    }
   };
 
   const togglePrivacySetting = async (key: keyof LocationPrivacySettings) => {
@@ -397,12 +439,29 @@ const MapExplorer = () => {
 
   const handleUserSelect = (user: any) => {
     setSelectedUser(user);
+    setSelectedCourt(null); // Clear selected court
+    setActiveTab('people');
     
     // If map instance exists, fly to the user's location
     if (mapInstance && user.latitude && user.longitude) {
       mapInstance.flyTo({
         center: [user.longitude, user.latitude],
         zoom: 14,
+        essential: true
+      });
+    }
+  };
+  
+  const handleCourtSelect = (court: TennisCourt) => {
+    setSelectedCourt(court);
+    setSelectedUser(null); // Clear selected user
+    setActiveTab('courts');
+    
+    // If map instance exists, fly to the court's location
+    if (mapInstance && court.latitude && court.longitude) {
+      mapInstance.flyTo({
+        center: [court.longitude, court.latitude],
+        zoom: 16, // Zoom in closer for courts
         essential: true
       });
     }
@@ -452,31 +511,91 @@ const MapExplorer = () => {
             onUserPositionUpdate={handleUserPositionUpdate}
             mapInstance={mapInstance}
             nearbyUsers={nearbyUsers}
+            nearbyCourts={nearbyCourts}
             filters={{
               showPlayers: filters.showPlayers,
               showCoaches: filters.showCoaches,
+              showCourts: filters.showCourts,
               showOwnLocation: filters.showOwnLocation
             }}
             onSelectUser={handleUserSelect}
+            onSelectCourt={handleCourtSelect}
           />
         </div>
         
         <div className="space-y-4">
-          <NearbyUsersList 
-            users={nearbyUsers || []}
-            isLoading={isLoadingNearbyUsers || !userPosition}
-            onUserSelect={handleUserSelect}
-          />
+          <div className="border-b border-gray-200 flex mb-4">
+            <button
+              onClick={() => setActiveTab('people')}
+              className={`px-4 py-2 font-medium text-sm ${activeTab === 'people' 
+                ? 'border-b-2 border-primary text-primary' 
+                : 'text-muted-foreground'
+              }`}
+            >
+              People
+            </button>
+            <button
+              onClick={() => setActiveTab('courts')}
+              className={`px-4 py-2 font-medium text-sm ${activeTab === 'courts' 
+                ? 'border-b-2 border-primary text-primary' 
+                : 'text-muted-foreground'
+              }`}
+            >
+              Courts
+            </button>
+          </div>
           
-          <LocationStatusCard 
-            isLoggedIn={!!user}
-            userLocationEnabled={userLocationEnabled}
-            locationPrivacy={locationPrivacy}
-            userPosition={userPosition}
-            mapInstance={mapInstance}
-            profileLocation={userProfileLocation}
-            onViewProfileLocation={() => userProfileLocation && handleUserSelect(userProfileLocation)}
-          />
+          {activeTab === 'people' ? (
+            <>
+              <NearbyUsersList 
+                users={nearbyUsers || []}
+                isLoading={isLoadingNearbyUsers || !userPosition}
+                onUserSelect={handleUserSelect}
+              />
+              
+              <LocationStatusCard 
+                isLoggedIn={!!user}
+                userLocationEnabled={userLocationEnabled}
+                locationPrivacy={locationPrivacy}
+                userPosition={userPosition}
+                mapInstance={mapInstance}
+                profileLocation={userProfileLocation}
+                onViewProfileLocation={() => userProfileLocation && handleUserSelect(userProfileLocation)}
+              />
+              
+              {selectedUser && (
+                <div className="bg-background rounded-lg border shadow-sm p-4">
+                  <h3 className="font-semibold mb-2">{selectedUser.full_name || selectedUser.username}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedUser.user_type === 'coach' ? 'Tennis Coach' : 'Tennis Player'}
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <NearbyCourtsPanel
+                courts={nearbyCourts || []}
+                isLoading={isLoadingCourts || !userPosition}
+                onCourtSelect={handleCourtSelect}
+              />
+              
+              {selectedCourt && (
+                <TennisCourtCard
+                  court={selectedCourt}
+                  onViewOnMap={() => {
+                    if (mapInstance && selectedCourt.latitude && selectedCourt.longitude) {
+                      mapInstance.flyTo({
+                        center: [selectedCourt.longitude, selectedCourt.latitude],
+                        zoom: 16,
+                        essential: true
+                      });
+                    }
+                  }}
+                />
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

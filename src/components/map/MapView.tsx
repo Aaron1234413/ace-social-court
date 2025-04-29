@@ -2,7 +2,9 @@
 import React, { useState } from 'react';
 import MapContainer from '@/components/map/MapContainer';
 import NearbyUsersLayer from '@/components/map/NearbyUsersLayer';
+import TennisCourtsLayer from '@/components/map/TennisCourtsLayer';
 import { Loader2 } from 'lucide-react';
+import { TennisCourt } from './TennisCourtsLayer';
 
 interface MapViewProps {
   isReady: boolean;
@@ -15,12 +17,15 @@ interface MapViewProps {
   onUserPositionUpdate: (position: {lng: number, lat: number}) => void;
   mapInstance: mapboxgl.Map | null;
   nearbyUsers: any[] | null;
+  nearbyCourts: TennisCourt[] | null;
   filters: {
     showPlayers: boolean;
     showCoaches: boolean;
+    showCourts: boolean;
     showOwnLocation?: boolean; // Defined as optional to match with NearbyUsersLayer interface
   };
   onSelectUser: (user: any) => void;
+  onSelectCourt: (court: TennisCourt) => void;
 }
 
 const MapView: React.FC<MapViewProps> = ({
@@ -30,8 +35,10 @@ const MapView: React.FC<MapViewProps> = ({
   onUserPositionUpdate,
   mapInstance,
   nearbyUsers,
+  nearbyCourts,
   filters,
-  onSelectUser
+  onSelectUser,
+  onSelectCourt
 }) => {
   return (
     <>
@@ -53,6 +60,14 @@ const MapView: React.FC<MapViewProps> = ({
                 showOwnLocation: filters.showOwnLocation || false
               }}
               onSelectUser={onSelectUser}
+            />
+          )}
+          
+          {mapInstance && nearbyCourts && filters.showCourts && (
+            <TennisCourtsLayer
+              courts={nearbyCourts}
+              map={mapInstance}
+              onSelectCourt={onSelectCourt}
             />
           )}
         </MapContainer>
