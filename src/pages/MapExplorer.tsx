@@ -8,7 +8,8 @@ import {
   UserCog,
   Calendar,
   SlidersHorizontal,
-  Loader2
+  Loader2,
+  MapPinCheck
 } from 'lucide-react';
 import {
   Sheet,
@@ -33,6 +34,7 @@ const MapExplorer = () => {
   });
   
   const [isReady, setIsReady] = useState(false);
+  const [userLocationEnabled, setUserLocationEnabled] = useState(false);
   
   useEffect(() => {
     // Ensure the component is fully mounted
@@ -59,6 +61,21 @@ const MapExplorer = () => {
       distance: value[0]
     }));
   };
+
+  useEffect(() => {
+    // Request user location permission
+    if (navigator.geolocation) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'granted') {
+          setUserLocationEnabled(true);
+        }
+        
+        result.addEventListener('change', function() {
+          setUserLocationEnabled(result.state === 'granted');
+        });
+      });
+    }
+  }, []);
 
   return (
     <div className="container py-4 px-4 md:px-6">
@@ -135,6 +152,24 @@ const MapExplorer = () => {
                     </div>
                   </div>
                 </div>
+                
+                <Separator />
+                
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Location Settings</h3>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {userLocationEnabled 
+                      ? "Location access is enabled" 
+                      : "Enable location access for better results"}
+                  </p>
+                  
+                  {userLocationEnabled && (
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <MapPinCheck className="h-4 w-4" />
+                      <span>Location services active</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </SheetContent>
@@ -153,7 +188,7 @@ const MapExplorer = () => {
         <h2 className="text-lg font-semibold mb-3">Nearby Tennis Locations</h2>
         <p className="text-muted-foreground">
           Explore tennis courts and connect with players in your area. 
-          Allow location access for the best experience.
+          {!userLocationEnabled && " Allow location access for the best experience."}
         </p>
       </div>
     </div>

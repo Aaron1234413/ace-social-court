@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from '@/components/ui/card';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, Locate } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +23,7 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
   const [mapError, setMapError] = useState<string | null>(null);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const mapInitializedRef = useRef(false);
+  const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
 
   const initializeMap = (token: string) => {
     if (!mapContainerRef.current) {
@@ -67,14 +68,16 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
         
         // Add geolocation control after map has loaded
         try {
+          geolocateControlRef.current = new mapboxgl.GeolocateControl({
+            positionOptions: {
+              enableHighAccuracy: true
+            },
+            trackUserLocation: true,
+            showUserHeading: true
+          });
+          
           mapInstanceRef.current?.addControl(
-            new mapboxgl.GeolocateControl({
-              positionOptions: {
-                enableHighAccuracy: true
-              },
-              trackUserLocation: true,
-              showUserHeading: true
-            }),
+            geolocateControlRef.current,
             'top-right'
           );
         } catch (error) {
@@ -98,6 +101,22 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
       setMapError(`Failed to initialize map: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setLoading(false);
       return false;
+    }
+  };
+
+  const findUserLocation = () => {
+    if (!mapInstanceRef.current || !geolocateControlRef.current) {
+      toast.error("Map is not ready yet");
+      return;
+    }
+    
+    try {
+      // Trigger the geolocate control
+      geolocateControlRef.current.trigger();
+      toast.success("Finding your location...");
+    } catch (error) {
+      console.error("Error finding location:", error);
+      toast.error("Could not access your location");
     }
   };
 
@@ -175,6 +194,19 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
       )}
       
       <div ref={mapContainerRef} className="absolute inset-0" id="map-container" />
+      
+      {!loading && !mapError && (
+        <div className="absolute bottom-4 left-4 z-10">
+          <Button 
+            onClick={findUserLocation}
+            variant="default"
+            className="flex items-center gap-2 shadow-lg"
+          >
+            <Locate className="h-4 w-4" />
+            Find my location
+          </Button>
+        </div>
+      )}
     </Card>
   );
 };
