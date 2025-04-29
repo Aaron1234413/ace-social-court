@@ -106,14 +106,14 @@ const NearbyCourtsPanel = ({
       {availableStates && availableStates.length > 0 && onChangeStateFilter && (
         <div className="mb-3">
           <Select 
-            value={stateFilter || ''} 
-            onValueChange={(value) => onChangeStateFilter(value || null)}
+            value={stateFilter || 'all'} 
+            onValueChange={(value) => onChangeStateFilter(value === 'all' ? null : value)}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Filter by state" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All States</SelectItem>
+              <SelectItem value="all">All States</SelectItem>
               {availableStates.map((state) => (
                 <SelectItem key={state} value={state}>{state}</SelectItem>
               ))}

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
@@ -86,14 +87,14 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
             <div className="space-y-2">
               <Label>State Filter</Label>
               <Select 
-                value={filters.state || ''} 
-                onValueChange={(value) => onFilterChange('state', value || null)}
+                value={filters.state || 'all'} 
+                onValueChange={(value) => onFilterChange('state', value === 'all' ? null : value)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All States" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All States</SelectItem>
+                  <SelectItem value="all">All States</SelectItem>
                   {availableStates.map((state) => (
                     <SelectItem key={state} value={state}>{state}</SelectItem>
                   ))}
