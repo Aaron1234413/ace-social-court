@@ -196,3 +196,49 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
     userProfile
   };
 };
+
+// Add the missing useCreatePost hook
+export const useCreatePost = () => {
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+
+  const createPost = async (postData: {
+    content: string;
+    media_url: string | null;
+    media_type: string | null;
+  }) => {
+    try {
+      setIsCreatingPost(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You must be logged in to create a post");
+        return null;
+      }
+      
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          content: postData.content,
+          user_id: user.id,
+          media_url: postData.media_url,
+          media_type: postData.media_type
+        })
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      toast.success("Post created successfully!");
+      return data;
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast.error("Failed to create post");
+      return null;
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
+
+  return { createPost, isCreatingPost };
+};

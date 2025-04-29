@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useCreatePost } from '@/hooks/use-posts';
@@ -8,9 +9,10 @@ import MentionInput from './MentionInput';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
+  onPostCreated?: () => void; // Added to support existing code
 }
 
-const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
+const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
   const { user } = useAuth();
   const [content, setContent] = useState('');
   const { createPost, isCreatingPost } = useCreatePost();
@@ -34,6 +36,7 @@ const CreatePostForm = ({ onSuccess }: CreatePostFormProps) => {
     
     setContent('');
     onSuccess?.();
+    onPostCreated?.(); // Call both callbacks for backward compatibility
   };
 
   return (
