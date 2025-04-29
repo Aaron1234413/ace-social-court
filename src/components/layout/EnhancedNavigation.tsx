@@ -4,7 +4,16 @@ import Navigation from './Navigation';
 import { useLocation } from 'react-router-dom';
 import { Map } from 'lucide-react';
 
-const EnhancedNavigation = () => {
+interface NavigationProps {
+  additionalNavItems?: Array<{
+    label: string;
+    icon: React.ReactNode;
+    href: string;
+    active: boolean;
+  }>;
+}
+
+const EnhancedNavigation: React.FC = () => {
   const location = useLocation();
   
   // Define an additional navigation item for the Map

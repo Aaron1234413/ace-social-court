@@ -11,7 +11,7 @@ interface Location {
 
 interface MapLocationPinProps {
   location: Location;
-  map: mapboxgl.Map;
+  map: mapboxgl.Map | null;
   onClick?: (location: Location) => void;
 }
 
@@ -19,6 +19,8 @@ interface MapLocationPinProps {
 // It adds a marker to the map and manages its lifecycle
 const MapLocationPin = ({ location, map, onClick }: MapLocationPinProps) => {
   React.useEffect(() => {
+    if (!map) return;
+    
     // Create a custom element for the marker
     const el = document.createElement('div');
     el.className = 'marker';

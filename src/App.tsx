@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import {
   BrowserRouter,
@@ -6,7 +7,7 @@ import {
   Navigate
 } from 'react-router-dom';
 import { useAuth } from './components/AuthProvider';
-import Index from './pages';
+import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
 import PostDetail from './pages/PostDetail';
@@ -19,7 +20,8 @@ import NotFound from './pages/NotFound';
 import MapExplorer from './pages/MapExplorer';
 
 function App() {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { user, session } = useAuth();
+  const isLoading = session === null && user === null;
 
   // Show loading indicator while checking auth status
   if (isLoading) {

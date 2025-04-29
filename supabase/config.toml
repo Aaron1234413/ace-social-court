@@ -1,1 +1,5 @@
+
 project_id = "sdrndqcaskaitzcwgnaw"
+
+[functions.map_settings]
+verify_jwt = true

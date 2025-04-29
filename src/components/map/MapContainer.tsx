@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface MapContainerProps {
   className?: string;
@@ -24,14 +25,18 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
   useEffect(() => {
     const fetchMapboxToken = async () => {
       try {
-        const { data } = await supabase
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'mapbox_token')
-          .single();
+        // We need to use raw query here since app_settings isn't in the TypeScript types yet
+        const { data, error } = await supabase.rpc('get_setting', { setting_key: 'mapbox_token' });
         
-        if (data?.value) {
-          setMapboxToken(data.value);
+        if (error) {
+          console.error('Error fetching Mapbox token:', error);
+          setShowTokenInput(true);
+          setLoading(false);
+          return;
+        }
+        
+        if (data) {
+          setMapboxToken(data);
         } else {
           setShowTokenInput(true);
         }
@@ -87,6 +92,7 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
       };
     } catch (error) {
       console.error('Error initializing Mapbox:', error);
+      toast.error("There was an error initializing the map");
     }
   }, [mapboxToken]);
 
@@ -94,17 +100,26 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
     if (!tokenInput.trim()) return;
     
     try {
+      setLoading(true);
+      
       // First save to local state to initialize the map
       setMapboxToken(tokenInput);
       
-      // Then save to Supabase for persistence
-      await supabase
-        .from('app_settings')
-        .upsert({ key: 'mapbox_token', value: tokenInput }, { onConflict: 'key' });
+      // Then save to Supabase for persistence using raw query
+      const { error } = await supabase.rpc(
+        'set_setting',
+        { setting_key: 'mapbox_token', setting_value: tokenInput }
+      );
+      
+      if (error) throw error;
       
       setShowTokenInput(false);
+      toast.success("Mapbox token saved successfully");
     } catch (error) {
       console.error('Error saving Mapbox token:', error);
+      toast.error("There was an error saving your Mapbox token");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,7 +147,10 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
             placeholder="Enter Mapbox public token"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
-          <Button type="button" onClick={saveMapboxToken}>Save</Button>
+          <Button type="button" onClick={saveMapboxToken} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save
+          </Button>
         </div>
       </Card>
     );
