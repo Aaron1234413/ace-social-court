@@ -339,6 +339,7 @@ export type Database = {
           full_name: string | null
           id: string
           latitude: number | null
+          location_name: string | null
           location_privacy: Json | null
           location_updated_at: string | null
           longitude: number | null
@@ -357,6 +358,7 @@ export type Database = {
           full_name?: string | null
           id: string
           latitude?: number | null
+          location_name?: string | null
           location_privacy?: Json | null
           location_updated_at?: string | null
           longitude?: number | null
@@ -375,6 +377,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           latitude?: number | null
+          location_name?: string | null
           location_privacy?: Json | null
           location_updated_at?: string | null
           longitude?: number | null

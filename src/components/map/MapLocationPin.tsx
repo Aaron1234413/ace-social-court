@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Marker } from 'mapbox-gl';
+import mapboxgl from 'mapbox-gl';
 
 interface Location {
   id: string;
@@ -59,7 +59,7 @@ const MapLocationPin = ({ location, map, onClick }: MapLocationPinProps) => {
     }
     
     // Create and add the marker
-    const marker = new Marker({ element: el })
+    const marker = new mapboxgl.Marker({ element: el })
       .setLngLat(location.coordinates)
       .addTo(map);
     

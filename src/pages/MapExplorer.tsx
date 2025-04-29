@@ -28,6 +28,19 @@ interface FilterSettings {
   distance: number; // in miles
 }
 
+interface StaticLocationUser {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  user_type: string;
+  latitude: number | null;
+  longitude: number | null;
+  location_name: string | null;
+  distance?: number;
+  is_static_location?: boolean;
+}
+
 const MapExplorer = () => {
   const { user } = useAuth();
   const [filters, setFilters] = useState<FilterSettings>({
@@ -104,7 +117,7 @@ const MapExplorer = () => {
         }
         
         // Filter by user type
-        const filteredUsers = data.filter(user => 
+        const filteredUsers = (data || []).filter(user => 
           (user.user_type === 'player' && filters.showPlayers) || 
           (user.user_type === 'coach' && filters.showCoaches)
         );
@@ -160,7 +173,7 @@ const MapExplorer = () => {
     // Then add static users, but only if they don't already exist
     staticUsers.forEach(user => {
       if (!uniqueUsers.has(user.id)) {
-        uniqueUsers.set(user.id, user);
+        uniqueUsers.set(user.id, user as NearbyUser);
       }
     });
     

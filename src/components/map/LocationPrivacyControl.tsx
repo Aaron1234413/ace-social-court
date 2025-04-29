@@ -11,13 +11,17 @@ interface LocationPrivacySettings {
 }
 
 interface LocationPrivacyControlProps {
-  settings: LocationPrivacySettings;
-  onChange: (key: keyof LocationPrivacySettings) => void;
+  locationPrivacy: LocationPrivacySettings;
+  onToggle: (key: keyof LocationPrivacySettings) => void;
+  userLocationEnabled: boolean;
+  isUserLoggedIn: boolean;
 }
 
 const LocationPrivacyControl: React.FC<LocationPrivacyControlProps> = ({ 
-  settings, 
-  onChange 
+  locationPrivacy, 
+  onToggle,
+  userLocationEnabled,
+  isUserLoggedIn
 }) => {
   return (
     <div className="space-y-4">
@@ -28,23 +32,23 @@ const LocationPrivacyControl: React.FC<LocationPrivacyControlProps> = ({
         </div>
         <Switch 
           id="show-on-map" 
-          checked={settings.showOnMap} 
-          onCheckedChange={() => onChange('showOnMap')} 
+          checked={locationPrivacy.showOnMap} 
+          onCheckedChange={() => onToggle('showOnMap')} 
         />
       </div>
       
       <div className="flex items-center justify-between space-x-2 pl-6">
         <Label 
           htmlFor="share-exact-location" 
-          className={`text-sm ${!settings.showOnMap ? 'text-muted-foreground' : ''}`}
+          className={`text-sm ${!locationPrivacy.showOnMap ? 'text-muted-foreground' : ''}`}
         >
           Share exact location
         </Label>
         <Switch 
           id="share-exact-location" 
-          checked={settings.shareExactLocation} 
-          disabled={!settings.showOnMap}
-          onCheckedChange={() => onChange('shareExactLocation')} 
+          checked={locationPrivacy.shareExactLocation} 
+          disabled={!locationPrivacy.showOnMap}
+          onCheckedChange={() => onToggle('shareExactLocation')} 
         />
       </div>
       
@@ -55,8 +59,8 @@ const LocationPrivacyControl: React.FC<LocationPrivacyControlProps> = ({
         </div>
         <Switch 
           id="location-history" 
-          checked={settings.locationHistory} 
-          onCheckedChange={() => onChange('locationHistory')} 
+          checked={locationPrivacy.locationHistory} 
+          onCheckedChange={() => onToggle('locationHistory')} 
         />
       </div>
       

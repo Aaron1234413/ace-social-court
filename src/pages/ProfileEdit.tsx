@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +14,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { MapPin } from 'lucide-react';
+import LocationPickerDialog from '@/components/profile/LocationPickerDialog';
 
 type UserType = Database['public']['Enums']['user_type'];
 type ExperienceLevel = Database['public']['Enums']['experience_level'];
@@ -318,18 +318,3 @@ const ProfileEdit = () => {
 };
 
 export default ProfileEdit;
-
-// For now, we'll add a placeholder for the LocationPickerDialog component
-// We'll implement this in a separate file next
-interface LocationPickerDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelectLocation: (lat: number, lng: number, address: string) => void;
-  initialLatitude?: number;
-  initialLongitude?: number;
-}
-
-const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({ isOpen, onClose, onSelectLocation, initialLatitude, initialLongitude }) => {
-  // This is just a placeholder - we'll implement this in a separate component
-  return null;
-};
