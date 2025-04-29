@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMessages } from '@/hooks/use-messages';
@@ -14,7 +15,7 @@ import { Send, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ChatInterface = () => {
-  const { id: otherUserId } = useParams<{ id: string }>();
+  const { chatId: otherUserId } = useParams<{ chatId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -31,11 +32,12 @@ const ChatInterface = () => {
     isSending
   } = useMessages(otherUserId);
   
-  // Focus input field when component mounts
+  // Focus input field when component mounts or otherUserId changes
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
+    console.log("Chat interface loaded for user:", otherUserId);
   }, [otherUserId]);
 
   const { data: otherUser, isLoading: isLoadingUser } = useQuery({
@@ -49,7 +51,11 @@ const ChatInterface = () => {
         .eq('id', otherUserId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching user:", error);
+        toast.error("Failed to load user information");
+        throw error;
+      }
       return data;
     },
     enabled: !!otherUserId
@@ -68,31 +74,29 @@ const ChatInterface = () => {
         schema: 'public',
         table: 'direct_messages',
         filter: `recipient_id=eq.${user.id}`
-      }, () => {
-        console.log("Realtime message received, invalidating queries");
+      }, (payload) => {
+        console.log("Realtime message received:", payload);
         queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       })
       .subscribe();
     
-    console.log("Realtime subscription status:", channel.state);
-    
     return () => {
-      console.log("Realtime subscription status:", channel.state);
       supabase.removeChannel(channel);
     };
   }, [otherUserId, user, queryClient]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   }, [messages]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim()) {
       sendMessage();
-      toast.success("Message sent successfully");
     }
   }, [newMessage, sendMessage]);
 
@@ -107,7 +111,6 @@ const ChatInterface = () => {
   
   const handleMessageClick = useCallback((messageId: string) => {
     setSelectedMessage(messageId === selectedMessage ? null : messageId);
-    console.log("Message clicked:", messageId);
   }, [selectedMessage]);
 
   // Helper to navigate back to messages list on mobile
@@ -173,6 +176,14 @@ const ChatInterface = () => {
                     message.sender_id === user?.id ? 'flex-row-reverse' : 'flex-row'
                   } cursor-pointer hover:opacity-90 transition-opacity`}
                   onClick={() => handleMessageClick(message.id)}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedMessage === message.id}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleMessageClick(message.id);
+                    }
+                  }}
                 >
                   <Avatar className="h-8 w-8">
                     {message.sender?.avatar_url && (
@@ -229,6 +240,7 @@ const ChatInterface = () => {
           onClick={handleBackClick}
         >
           <ArrowLeft className="h-5 w-5" />
+          <span className="sr-only">Back</span>
         </Button>
         
         {isLoadingUser ? (
@@ -280,6 +292,7 @@ const ChatInterface = () => {
             disabled={!newMessage.trim() || isSending}
           >
             <Send className="h-4 w-4" />
+            <span className="sr-only">Send message</span>
           </Button>
         </form>
       </div>

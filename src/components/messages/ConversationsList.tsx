@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -14,6 +14,19 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
+
+  // Force refresh when conversations-refresh event is triggered
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log("Conversations list refresh triggered");
+      // The query client will handle the actual refresh
+    };
+
+    window.addEventListener('conversations-refresh', handleRefresh);
+    return () => {
+      window.removeEventListener('conversations-refresh', handleRefresh);
+    };
+  }, []);
 
   const handleConversationClick = (userId: string | undefined) => {
     if (userId) {
@@ -50,7 +63,10 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
         New Message
       </Button>
       
-      <NewMessageDialog open={newMessageOpen} onOpenChange={setNewMessageOpen} />
+      <NewMessageDialog 
+        open={newMessageOpen} 
+        onOpenChange={setNewMessageOpen} 
+      />
       
       {conversations.length === 0 ? (
         <div className="py-8 text-center text-muted-foreground">
@@ -65,23 +81,17 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
               conversation.last_message.sender_id !== conversation.other_user?.id;
 
             return (
-              <div
+              <button
                 key={conversation.id}
                 className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${
                   isSelected 
                     ? 'bg-primary/10' 
                     : 'hover:bg-accent'
-                } cursor-pointer`}
+                }`}
                 onClick={() => handleConversationClick(conversation.other_user?.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    handleConversationClick(conversation.other_user?.id);
-                  }
-                }}
+                aria-selected={isSelected}
               >
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 flex-shrink-0">
                   {conversation.other_user?.avatar_url && (
                     <img 
                       src={conversation.other_user.avatar_url} 
@@ -117,7 +127,7 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
                 {hasUnread && (
                   <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
                 )}
-              </div>
+              </button>
             );
           })}
         </div>

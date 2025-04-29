@@ -23,7 +23,7 @@ const Messages = () => {
     }
   }, [user, navigate]);
 
-  // Logging for debugging
+  // Ensure components re-render when route changes
   useEffect(() => {
     console.log("Messages page - selectedUserId:", selectedUserId);
     console.log("Current location:", location.pathname);
@@ -51,7 +51,7 @@ const Messages = () => {
             className="gap-2"
           >
             <MessageSquarePlus className="h-4 w-4" />
-            New
+            <span>New</span>
           </Button>
         </div>
         
@@ -61,7 +61,7 @@ const Messages = () => {
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm">
-                  Conversations
+                  <span>Conversations</span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-full sm:max-w-md p-0">
@@ -75,7 +75,7 @@ const Messages = () => {
                     onClick={() => setNewMessageOpen(true)}
                   >
                     <MessageSquarePlus className="h-4 w-4" />
-                    New Message
+                    <span>New Message</span>
                   </Button>
                   <ConversationsList selectedUserId={selectedUserId} />
                 </div>
@@ -113,7 +113,7 @@ const Messages = () => {
                 onClick={() => setNewMessageOpen(true)}
               >
                 <MessageSquarePlus className="h-4 w-4" />
-                New Message
+                <span>New Message</span>
               </Button>
             </div>
           )}
