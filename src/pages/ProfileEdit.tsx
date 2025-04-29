@@ -102,6 +102,7 @@ const ProfileEdit = () => {
     form.setValue('longitude', lng);
     form.setValue('location_name', address);
     setLocationName(address);
+    setIsLocationPickerOpen(false); // Close the dialog after location is set
     toast.success('Location set successfully');
   };
 
