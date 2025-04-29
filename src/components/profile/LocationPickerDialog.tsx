@@ -370,6 +370,14 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
                     key={result.id}
                     className="p-2 hover:bg-muted cursor-pointer border-b last:border-0"
                     onClick={() => selectSearchResult(result)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectSearchResult(result);
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />

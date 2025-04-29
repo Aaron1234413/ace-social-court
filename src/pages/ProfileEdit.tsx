@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,7 +40,6 @@ const ProfileEdit = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
-  const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
   const [locationName, setLocationName] = useState('');
 
   const form = useForm<ProfileFormValues>({
@@ -97,21 +97,21 @@ const ProfileEdit = () => {
   }, [user, navigate, form]);
 
   const handleSetLocation = (lat: number, lng: number, address: string) => {
+    console.log('Setting location:', { lat, lng, address });
     form.setValue('latitude', lat);
     form.setValue('longitude', lng);
     form.setValue('location_name', address);
     setLocationName(address);
-    setIsLocationPickerOpen(false);
     toast.success('Location set successfully');
   };
 
   const openLocationPicker = () => {
     setIsLocationPickerOpen(true);
-    // Initialize map in a modal or side panel here
   };
 
   const onSubmit = async (values: ProfileFormValues) => {
     try {
+      console.log('Submitting profile with values:', values);
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -133,6 +133,7 @@ const ProfileEdit = () => {
       toast.success('Profile updated successfully');
       navigate('/profile');
     } catch (error) {
+      console.error('Error updating profile:', error);
       toast.error('Failed to update profile');
     }
   };
@@ -303,7 +304,6 @@ const ProfileEdit = () => {
         </form>
       </Form>
 
-      {/* We'll implement the location picker component next */}
       {isLocationPickerOpen && (
         <LocationPickerDialog 
           isOpen={isLocationPickerOpen}
