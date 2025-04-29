@@ -1,58 +1,50 @@
+import { useState, useEffect } from 'react';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate
+} from 'react-router-dom';
+import { useAuth } from './components/AuthProvider';
+import Index from './pages';
+import Auth from './pages/Auth';
+import Feed from './pages/Feed';
+import PostDetail from './pages/PostDetail';
+import Profile from './pages/Profile';
+import ProfileEdit from './pages/ProfileEdit';
+import Notifications from './pages/Notifications';
+import Messages from './pages/Messages';
+import Search from './pages/Search';
+import NotFound from './pages/NotFound';
+import MapExplorer from './pages/MapExplorer';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/components/AuthProvider";
-import Navigation from "@/components/layout/Navigation";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
-import Feed from "./pages/Feed";
-import Search from "./pages/Search";
-import NotFound from "./pages/NotFound";
-import ProfileEdit from "./pages/ProfileEdit";
-import Notifications from "./pages/Notifications";
-import Messages from "./pages/Messages";
-import PostDetail from "./pages/PostDetail";
-import { useState } from "react";
+function App() {
+  const { isLoggedIn, isLoading } = useAuth();
 
-const App = () => {
-  // Use useState to initialize the QueryClient inside the component
-  const [queryClient] = useState(() => new QueryClient());
-  
+  // Show loading indicator while checking auth status
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <div className="min-h-screen flex flex-col">
-              <Navigation />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/profile/:id" element={<Profile />} />
-                  <Route path="/profile/edit" element={<ProfileEdit />} />
-                  <Route path="/feed" element={<Feed />} />
-                  <Route path="/search" element={<Search />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/messages" element={<Messages />} />
-                  <Route path="/messages/:id" element={<Messages />} />
-                  <Route path="/post/:id" element={<PostDetail />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-            </div>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <div className="app">
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/feed" element={<Feed />} />
+          <Route path="/post/:id" element={<PostDetail />} />
+          <Route path="/profile/:id?" element={<Profile />} />
+          <Route path="/profile/edit" element={<ProfileEdit />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/messages/:chatId?" element={<Messages />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/map" element={<MapExplorer />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </div>
   );
-};
+}
 
 export default App;
