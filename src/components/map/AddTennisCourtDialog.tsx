@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/AuthProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const surfaceTypes = [
   { value: 'hard', label: 'Hard Court' },
@@ -191,228 +191,234 @@ const AddTennisCourtDialog = () => {
           Add Tennis Court
         </Button>
       </DialogTrigger>
-      <DialogContent className={isLocationSelectMode ? "opacity-70 pointer-events-none" : ""}>
-        <DialogHeader>
+      <DialogContent className={`${isLocationSelectMode ? "opacity-70 pointer-events-none" : ""} max-h-[85vh] p-0 md:max-w-xl`}>
+        <DialogHeader className="px-6 pt-6 pb-2 sticky top-0 z-10 bg-background">
           <DialogTitle>Add a Tennis Court</DialogTitle>
-          <DialogDescription>
-            Share your favorite tennis courts with the community. Your contribution helps other players find great places to play.
+          <DialogDescription className="text-xs sm:text-sm">
+            Share your favorite tennis courts with the community.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Court Name *</Label>
-            <Input 
-              id="name" 
-              name="name" 
-              value={formData.name} 
-              onChange={handleInputChange}
-              placeholder="Enter the court name"
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea 
-              id="description" 
-              name="description" 
-              value={formData.description || ''} 
-              onChange={handleInputChange}
-              placeholder="Describe the court (conditions, accessibility, etc.)"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ScrollArea className="max-h-[60vh] px-6 py-2">
+          <form id="court-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="name">Court Name *</Label>
               <Input 
-                id="address" 
-                name="address" 
-                value={formData.address || ''} 
+                id="name" 
+                name="name" 
+                value={formData.name} 
                 onChange={handleInputChange}
-                placeholder="Street address"
+                placeholder="Enter the court name"
+                required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input 
-                id="city" 
-                name="city" 
-                value={formData.city || ''} 
+              <Label htmlFor="description">Description</Label>
+              <Textarea 
+                id="description" 
+                name="description" 
+                value={formData.description || ''} 
                 onChange={handleInputChange}
-                placeholder="City"
+                placeholder="Describe the court (conditions, accessibility, etc.)"
+                rows={3}
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input 
+                  id="address" 
+                  name="address" 
+                  value={formData.address || ''} 
+                  onChange={handleInputChange}
+                  placeholder="Street address"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input 
+                  id="city" 
+                  name="city" 
+                  value={formData.city || ''} 
+                  onChange={handleInputChange}
+                  placeholder="City"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input 
+                  id="state" 
+                  name="state" 
+                  value={formData.state || ''} 
+                  onChange={handleInputChange}
+                  placeholder="State"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input 
+                  id="country" 
+                  name="country" 
+                  value={formData.country} 
+                  onChange={handleInputChange}
+                  placeholder="Country"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input 
-                id="state" 
-                name="state" 
-                value={formData.state || ''} 
-                onChange={handleInputChange}
-                placeholder="State"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="location">Court Location *</Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleLocationSelect}
+                >
+                  <MapPin className="h-4 w-4 mr-1" /> Select on Map
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="latitude" className="text-xs">Latitude</Label>
+                  <Input 
+                    id="latitude" 
+                    name="latitude" 
+                    value={formData.latitude} 
+                    onChange={handleNumberInputChange}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="longitude" className="text-xs">Longitude</Label>
+                  <Input 
+                    id="longitude" 
+                    name="longitude" 
+                    value={formData.longitude} 
+                    onChange={handleNumberInputChange}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Input 
-                id="country" 
-                name="country" 
-                value={formData.country} 
-                onChange={handleInputChange}
-                placeholder="Country"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="location">Court Location *</Label>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={handleLocationSelect}
+              <Label htmlFor="surface_type">Surface Type</Label>
+              <Select 
+                value={formData.surface_type} 
+                onValueChange={(value) => handleSelectChange('surface_type', value)}
               >
-                <MapPin className="h-4 w-4 mr-1" /> Select on Map
-              </Button>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select surface type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {surfaceTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label htmlFor="latitude" className="text-xs">Latitude</Label>
-                <Input 
-                  id="latitude" 
-                  name="latitude" 
-                  value={formData.latitude} 
-                  onChange={handleNumberInputChange}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div>
-                <Label htmlFor="longitude" className="text-xs">Longitude</Label>
-                <Input 
-                  id="longitude" 
-                  name="longitude" 
-                  value={formData.longitude} 
-                  onChange={handleNumberInputChange}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="number_of_courts">Number of Courts</Label>
+              <Input 
+                id="number_of_courts" 
+                name="number_of_courts" 
+                type="number"
+                min={1}
+                value={formData.number_of_courts} 
+                onChange={handleNumberInputChange}
+              />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="surface_type">Surface Type</Label>
-            <Select 
-              value={formData.surface_type} 
-              onValueChange={(value) => handleSelectChange('surface_type', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select surface type" />
-              </SelectTrigger>
-              <SelectContent>
-                {surfaceTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="number_of_courts">Number of Courts</Label>
-            <Input 
-              id="number_of_courts" 
-              name="number_of_courts" 
-              type="number"
-              min={1}
-              value={formData.number_of_courts} 
-              onChange={handleNumberInputChange}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Court Features</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="is_public" className="text-sm">Public Access</Label>
-                <Switch 
-                  id="is_public" 
-                  checked={formData.is_public}
-                  onCheckedChange={(checked) => handleSwitchChange('is_public', checked)}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="is_indoor" className="text-sm">Indoor Court</Label>
-                <Switch 
-                  id="is_indoor" 
-                  checked={formData.is_indoor}
-                  onCheckedChange={(checked) => handleSwitchChange('is_indoor', checked)}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="has_lighting" className="text-sm">Has Lighting</Label>
-                <Switch 
-                  id="has_lighting" 
-                  checked={formData.has_lighting}
-                  onCheckedChange={(checked) => handleSwitchChange('has_lighting', checked)}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="has_restrooms" className="text-sm">Restrooms</Label>
-                <Switch 
-                  id="has_restrooms" 
-                  checked={formData.has_restrooms}
-                  onCheckedChange={(checked) => handleSwitchChange('has_restrooms', checked)}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="has_pro_shop" className="text-sm">Pro Shop</Label>
-                <Switch 
-                  id="has_pro_shop" 
-                  checked={formData.has_pro_shop}
-                  onCheckedChange={(checked) => handleSwitchChange('has_pro_shop', checked)}
-                />
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Court Features</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between space-x-2">
+                  <Label htmlFor="is_public" className="text-sm">Public Access</Label>
+                  <Switch 
+                    id="is_public" 
+                    checked={formData.is_public}
+                    onCheckedChange={(checked) => handleSwitchChange('is_public', checked)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between space-x-2">
+                  <Label htmlFor="is_indoor" className="text-sm">Indoor Court</Label>
+                  <Switch 
+                    id="is_indoor" 
+                    checked={formData.is_indoor}
+                    onCheckedChange={(checked) => handleSwitchChange('is_indoor', checked)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between space-x-2">
+                  <Label htmlFor="has_lighting" className="text-sm">Has Lighting</Label>
+                  <Switch 
+                    id="has_lighting" 
+                    checked={formData.has_lighting}
+                    onCheckedChange={(checked) => handleSwitchChange('has_lighting', checked)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between space-x-2">
+                  <Label htmlFor="has_restrooms" className="text-sm">Restrooms</Label>
+                  <Switch 
+                    id="has_restrooms" 
+                    checked={formData.has_restrooms}
+                    onCheckedChange={(checked) => handleSwitchChange('has_restrooms', checked)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between space-x-2">
+                  <Label htmlFor="has_pro_shop" className="text-sm">Pro Shop</Label>
+                  <Switch 
+                    id="has_pro_shop" 
+                    checked={formData.has_pro_shop}
+                    onCheckedChange={(checked) => handleSwitchChange('has_pro_shop', checked)}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => {
-                resetForm();
-                setIsOpen(false);
-              }}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Add Court'
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+          </form>
+        </ScrollArea>
+        
+        <DialogFooter className="px-6 pb-6 pt-2 sticky bottom-0 bg-background border-t">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => {
+              resetForm();
+              setIsOpen(false);
+            }}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            form="court-form"
+            type="submit" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Add Court'
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
