@@ -154,6 +154,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     if (!map.current) return;
     
     const { lng, lat } = e.lngLat;
+    console.log('Map clicked at:', { lat, lng });
     
     // Remove existing marker if any
     if (marker.current) {
@@ -172,6 +173,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       // Get address for the location
       const address = await reverseGeocode(lat, lng);
       setSelectedPosition({ lat, lng, address });
+      console.log('Location selected:', { lat, lng, address });
     } catch (error) {
       console.error('Error getting address:', error);
       // Even if we fail to get the address, set the position with coordinates
@@ -188,9 +190,16 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     if (!marker.current) return;
     
     const position = marker.current.getLngLat();
+    console.log('Marker dragged to:', position);
+    
     try {
       const address = await reverseGeocode(position.lat, position.lng);
       setSelectedPosition({
+        lat: position.lat,
+        lng: position.lng,
+        address
+      });
+      console.log('New position after drag:', { 
         lat: position.lat,
         lng: position.lng,
         address
@@ -230,6 +239,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       const data = await response.json();
       if (data.features && data.features.length > 0) {
         setSearchResults(data.features);
+        console.log('Search results:', data.features);
       } else {
         setSearchError('No locations found. Please try a different search term.');
       }
@@ -308,6 +318,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   // Handle form submission
   const handleSubmit = () => {
     if (selectedPosition) {
+      console.log('Submitting location:', selectedPosition);
       onSelectLocation(
         selectedPosition.lat, 
         selectedPosition.lng, 
