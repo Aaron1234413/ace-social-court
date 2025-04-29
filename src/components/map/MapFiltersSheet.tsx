@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { MapPin, Settings } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
 
 interface MapFiltersSheetProps {
   filters: {
@@ -16,8 +17,9 @@ interface MapFiltersSheetProps {
     showEvents: boolean;
     showStaticLocations: boolean;
     showOwnLocation: boolean;
+    showFollowing?: boolean; // Added for showing users being followed
     distance: number;
-    state: string | null; // Add state filter
+    state: string | null;
   };
   onFilterChange: (key: string, value: any) => void;
   locationPrivacy: {
@@ -28,7 +30,7 @@ interface MapFiltersSheetProps {
   onPrivacyChange: (key: string) => void;
   userLocationEnabled: boolean;
   isUserLoggedIn: boolean;
-  availableStates?: string[]; // Add available states
+  availableStates?: string[];
 }
 
 const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({ 
@@ -75,10 +77,20 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
               <Switch id="showStaticLocations" checked={filters.showStaticLocations} onCheckedChange={(checked) => onFilterChange('showStaticLocations', checked)} />
             </div>
             {isUserLoggedIn && (
-              <div className="flex items-center justify-between">
-                <Label htmlFor="showOwnLocation">My Profile Location</Label>
-                <Switch id="showOwnLocation" checked={filters.showOwnLocation} onCheckedChange={(checked) => onFilterChange('showOwnLocation', checked)} />
-              </div>
+              <>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="showOwnLocation">My Profile Location</Label>
+                  <Switch id="showOwnLocation" checked={filters.showOwnLocation} onCheckedChange={(checked) => onFilterChange('showOwnLocation', checked)} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="showFollowing">Only People I Follow</Label>
+                  <Switch 
+                    id="showFollowing" 
+                    checked={filters.showFollowing} 
+                    onCheckedChange={(checked) => onFilterChange('showFollowing', checked)} 
+                  />
+                </div>
+              </>
             )}
           </div>
           
@@ -137,10 +149,6 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
                   disabled={!userLocationEnabled}
                 />
               </div>
-              {/*<div className="flex items-center justify-between">
-                <Label htmlFor="locationHistory">Location History</Label>
-                <Switch id="locationHistory" checked={locationPrivacy.locationHistory} onCheckedChange={() => onPrivacyChange('locationHistory')} />
-              </div>*/}
               {!userLocationEnabled && (
                 <p className="text-sm text-muted-foreground">
                   <MapPin className="inline-block h-3 w-3 mr-1" />
