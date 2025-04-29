@@ -19,6 +19,7 @@ import Search from './pages/Search';
 import NotFound from './pages/NotFound';
 import MapExplorer from './pages/MapExplorer';
 import { Loader2 } from 'lucide-react';
+import Navigation from './components/layout/Navigation';
 
 // Create a separate component for the routes to use the auth hook
 function AppRoutes() {
@@ -35,25 +36,30 @@ function AppRoutes() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/feed" element={<Feed />} />
-      <Route path="/post/:id" element={<PostDetail />} />
-      <Route path="/profile/:id?" element={<Profile />} />
-      <Route path="/profile/edit" element={<ProfileEdit />} />
-      <Route path="/notifications" element={<Notifications />} />
-      <Route path="/messages/:chatId?" element={<Messages />} />
-      <Route path="/search" element={<Search />} />
-      <Route path="/map" element={<MapExplorer />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      {/* Show navigation for all routes except auth */}
+      {location.pathname !== '/auth' && <Navigation />}
+      
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/feed" element={<Feed />} />
+        <Route path="/post/:id" element={<PostDetail />} />
+        <Route path="/profile/:id?" element={<Profile />} />
+        <Route path="/profile/edit" element={<ProfileEdit />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/messages/:chatId?" element={<Messages />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/map" element={<MapExplorer />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }
 
 function App() {
   return (
-    <div className="app">
+    <div className="app min-h-screen bg-background">
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />
