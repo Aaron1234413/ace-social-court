@@ -129,7 +129,7 @@ const MapExplorer = () => {
         </Sheet>
       </div>
       
-      <MapContainer className="rounded-lg shadow-md" />
+      <MapContainer className="rounded-lg shadow-md" height="h-[60vh]" />
       
       <div className="mt-6">
         <h2 className="text-lg font-semibold mb-3">Nearby Tennis Locations</h2>

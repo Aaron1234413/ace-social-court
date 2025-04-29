@@ -3,8 +3,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 // User-provided Mapbox token (primary)
 const USER_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW5rMmpxNmh5eGs5NmgyIn0.GyTAYck1VjlY0OWF8e6Y7w';
@@ -17,34 +18,35 @@ interface MapContainerProps {
 }
 
 const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   // Function to initialize map with given token
   const initializeMap = (token: string) => {
-    if (!mapContainer.current) {
-      console.error("Map container not found");
+    if (!mapContainerRef.current) {
+      console.log("Map container ref is null, cannot initialize map");
       return false;
     }
 
-    if (map.current) {
-      // If we already have a map instance, remove it first
-      map.current.remove();
-      map.current = null;
-    }
-    
     try {
       console.log("Initializing map with token:", token.substring(0, 10) + '...');
       mapboxgl.accessToken = token;
       
-      // Create map instance
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
+      // Clean up existing map instance if it exists
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      
+      // Create new map instance
+      mapInstanceRef.current = new mapboxgl.Map({
+        container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/streets-v12',
-        center: [0, 30], // Default center
-        zoom: 2,
+        center: [-74.5, 40], // Default to US East Coast
+        zoom: 4,
         failIfMajorPerformanceCaveat: false // More forgiving performance requirements
       });
 
@@ -53,17 +55,18 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
         if (loading && !mapError) {
           console.warn("Map load timeout - possible token issue");
           setMapError("Map is taking too long to load");
+          setLoading(false);
         }
       }, 10000);
 
       // Add navigation controls (zoom in/out)
-      map.current.addControl(
+      mapInstanceRef.current.addControl(
         new mapboxgl.NavigationControl(),
         'top-right'
       );
 
       // Listen for map load event to confirm success
-      map.current.on('load', () => {
+      mapInstanceRef.current.on('load', () => {
         console.log("Map loaded successfully");
         setLoading(false);
         setMapError(null);
@@ -71,7 +74,7 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
         
         // Add geolocate control after map has loaded
         try {
-          map.current?.addControl(
+          mapInstanceRef.current?.addControl(
             new mapboxgl.GeolocateControl({
               positionOptions: {
                 enableHighAccuracy: true
@@ -89,7 +92,7 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
       });
 
       // Listen for error events
-      map.current.on('error', (e) => {
+      mapInstanceRef.current.on('error', (e) => {
         console.error("Map error:", e);
         setMapError(`Map error: ${e.error?.message || 'Unknown error'}`);
         setLoading(false);
@@ -106,39 +109,53 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
     }
   };
 
-  // Initialize map on component mount
+  // Initialize map after component has mounted
   useEffect(() => {
-    console.log("MapContainer mounted, initializing map...");
-    
-    // Try with user token first
-    const userTokenSuccess = initializeMap(USER_MAPBOX_TOKEN);
-    
-    // If user token fails, try fallback after a short delay
-    if (!userTokenSuccess) {
-      console.log("User token failed, will try fallback token");
-      const fallbackTimer = setTimeout(() => {
-        console.log("Trying fallback token now");
-        initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
-      }, 2000);
-      
-      return () => {
-        clearTimeout(fallbackTimer);
-        if (map.current) {
-          map.current.remove();
-          map.current = null;
-        }
-      };
-    }
-
-    // Clean up on unmount
+    setMounted(true);
     return () => {
-      console.log("MapContainer unmounting, cleaning up map instance");
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
     };
   }, []);
+
+  // Initialize map once component is mounted and ref is available
+  useEffect(() => {
+    if (!mounted) return;
+    
+    console.log("Component mounted, attempting to initialize map");
+    console.log("Map container exists:", !!mapContainerRef.current);
+    
+    // Short delay to ensure DOM is fully rendered
+    const timer = setTimeout(() => {
+      // Try with user token first
+      const userTokenSuccess = initializeMap(USER_MAPBOX_TOKEN);
+      
+      // If user token fails, try fallback after a short delay
+      if (!userTokenSuccess) {
+        console.log("User token failed, will try fallback token");
+        const fallbackTimer = setTimeout(() => {
+          console.log("Trying fallback token now");
+          initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
+        }, 1000);
+        
+        return () => clearTimeout(fallbackTimer);
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [mounted]);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setMapError(null);
+    // Try user token first, then fallback
+    const success = initializeMap(USER_MAPBOX_TOKEN);
+    if (!success) {
+      setTimeout(() => initializeMap(ACE_SOCIAL_MAPBOX_TOKEN), 1000);
+    }
+  };
 
   if (loading) {
     return (
@@ -153,35 +170,20 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
     return (
       <Card className={`${className || ''} ${height} flex flex-col items-center justify-center p-4`}>
         <p className="text-red-500 mb-4">{mapError}</p>
-        <div className="flex gap-2">
-          <button 
-            className="px-4 py-2 bg-primary text-white rounded-md"
-            onClick={() => {
-              setLoading(true);
-              setMapError(null);
-              initializeMap(USER_MAPBOX_TOKEN);
-            }}
-          >
-            Try with your token
-          </button>
-          <button 
-            className="px-4 py-2 bg-secondary text-foreground rounded-md"
-            onClick={() => {
-              setLoading(true);
-              setMapError(null);
-              initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
-            }}
-          >
-            Try with fallback token
-          </button>
-        </div>
+        <Button 
+          onClick={handleRetry}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Retry Loading Map
+        </Button>
       </Card>
     );
   }
 
   return (
     <Card className={`${className || ''} ${height} relative overflow-hidden`}>
-      <div ref={mapContainer} className="absolute inset-0" />
+      <div ref={mapContainerRef} className="absolute inset-0" />
     </Card>
   );
 };
