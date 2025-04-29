@@ -35,8 +35,7 @@ const Notifications = () => {
             </TabsContent>
             
             <TabsContent value="unread" className="mt-0">
-              {/* We'll implement this filter in the backend query */}
-              <NotificationsList />
+              <NotificationsList filterUnread={true} />
             </TabsContent>
           </div>
         </Tabs>
