@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -137,7 +136,8 @@ const MapContainer = ({
     // Listen for geolocate events to update our user position
     const geolocateControl = geolocateControlRef.current;
     
-    mapInstanceRef.current.on('geolocate', (e) => {
+    // Fix: Properly type the geolocate event
+    mapInstanceRef.current.on('geolocate', (e: { coords: { longitude: number; latitude: number } }) => {
       // This event provides the user's location
       const { longitude, latitude } = e.coords;
       
@@ -156,10 +156,29 @@ const MapContainer = ({
       setLocationWarning(null);
     });
     
-    // Handle errors in geolocation
-    geolocateControl.on('error', (e) => {
-      console.error("Geolocation error:", e.error);
-      setLocationWarning(e.error?.message || "Could not determine your location");
+    // Fix: Properly type the error event
+    geolocateControl.on('error', (e: mapboxgl.EventData) => {
+      console.error("Geolocation error:", e);
+      
+      // Extract error message safely
+      let errorMessage = "Could not determine your location";
+      
+      // Check if error is a GeolocationPositionError (from browser API)
+      if (e && 'message' in e) {
+        errorMessage = (e as any).message || errorMessage;
+      } else if (e && 'code' in e) {
+        // Handle standard Geolocation API errors by code
+        const code = (e as any).code;
+        if (code === 1) {
+          errorMessage = "Location access denied";
+        } else if (code === 2) {
+          errorMessage = "Location unavailable";
+        } else if (code === 3) {
+          errorMessage = "Location request timed out";
+        }
+      }
+      
+      setLocationWarning(errorMessage);
       
       if (userMarkerRef.current && !locationPrivacySettings.showOnMap) {
         userMarkerRef.current.remove();
