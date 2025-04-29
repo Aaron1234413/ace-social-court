@@ -22,7 +22,8 @@ interface MapViewProps {
     showPlayers: boolean;
     showCoaches: boolean;
     showCourts: boolean;
-    showOwnLocation?: boolean; // Defined as optional to match with NearbyUsersLayer interface
+    showOwnLocation?: boolean;
+    showFollowing?: boolean; // Added this property to match with NearbyUsersLayer interface
   };
   onSelectUser: (user: any) => void;
   onSelectCourt: (court: TennisCourt) => void;
@@ -57,7 +58,8 @@ const MapView: React.FC<MapViewProps> = ({
               filters={{
                 showPlayers: filters.showPlayers,
                 showCoaches: filters.showCoaches,
-                showOwnLocation: filters.showOwnLocation || false
+                showOwnLocation: filters.showOwnLocation || false,
+                showFollowing: filters.showFollowing || false // Add the new filter option
               }}
               onSelectUser={onSelectUser}
             />

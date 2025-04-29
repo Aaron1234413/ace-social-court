@@ -9,7 +9,8 @@ interface Location {
   type: 'court' | 'player' | 'coach' | 'event';
   userData?: any;
   isStaticLocation?: boolean;
-  isOwnProfile?: boolean; // Add flag for own profile
+  isOwnProfile?: boolean;
+  isFollowing?: boolean; // Add flag for people you follow
 }
 
 interface MapLocationPinProps {
@@ -28,13 +29,26 @@ const MapLocationPin = ({ location, map, onClick }: MapLocationPinProps) => {
     const el = document.createElement('div');
     el.className = 'marker';
     
-    // Style based on location type, with special handling for own location
+    // Style based on location type, with special handling for own location and following
     if (location.isOwnProfile) {
       // Own profile location gets a special style
       el.innerHTML = `<div class="w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center text-white border-2 border-white relative">
                         <div class="absolute -inset-1 bg-cyan-500 rounded-full opacity-30"></div>
                         ${location.type === 'coach' ? 'T' : 'P'}
                       </div>`;
+    }
+    else if (location.isFollowing) {
+      // People you follow get a special highlighted style
+      switch (location.type) {
+        case 'player':
+          el.innerHTML = `<div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white border-2 border-yellow-400 animate-pulse">P</div>`;
+          break;
+        case 'coach':
+          el.innerHTML = `<div class="w-7 h-7 bg-purple-600 rounded-full flex items-center justify-center text-white border-2 border-yellow-400 animate-pulse">T</div>`;
+          break;
+        default:
+          el.innerHTML = `<div class="w-7 h-7 bg-gray-600 rounded-full flex items-center justify-center text-white border-2 border-yellow-400">?</div>`;
+      }
     }
     else if (location.isStaticLocation) {
       // Static locations (from profile) have a different style with a house icon
@@ -92,9 +106,11 @@ const MapLocationPin = ({ location, map, onClick }: MapLocationPinProps) => {
         .setHTML(`<div class="text-sm font-medium">${location.name}</div>
                   ${location.isOwnProfile 
                     ? '<div class="text-xs text-cyan-600 font-medium">Your profile location</div>' 
-                    : location.isStaticLocation 
-                      ? '<div class="text-xs text-muted-foreground">Home location</div>' 
-                      : ''}`)
+                    : location.isFollowing
+                      ? '<div class="text-xs text-yellow-600 font-medium">You follow this person</div>'
+                      : location.isStaticLocation 
+                        ? '<div class="text-xs text-muted-foreground">Home location</div>' 
+                        : ''}`)
         .addTo(map);
     });
 

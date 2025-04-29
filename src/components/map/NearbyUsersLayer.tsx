@@ -14,6 +14,7 @@ export type NearbyUser = {
   location_name?: string;
   is_static_location?: boolean;
   is_own_profile?: boolean;
+  is_following?: boolean; // Add flag to indicate if user is being followed
 };
 
 interface NearbyUsersLayerProps {
@@ -22,7 +23,8 @@ interface NearbyUsersLayerProps {
   filters: {
     showPlayers: boolean;
     showCoaches: boolean;
-    showOwnLocation?: boolean; // Added this property
+    showOwnLocation?: boolean;
+    showFollowing?: boolean; // Add this new filter option
   };
   onSelectUser: (user: NearbyUser) => void;
 }
@@ -33,6 +35,13 @@ const NearbyUsersLayer = ({ users, map, filters, onSelectUser }: NearbyUsersLaye
     // Handle user's own profile location separately
     if (user.is_own_profile && filters.showOwnLocation === false) {
       return false;
+    }
+    
+    // If showFollowing is active, only show users that are being followed
+    if (filters.showFollowing === true) {
+      if (!user.is_following && !user.is_own_profile) {
+        return false;
+      }
     }
     
     if (user.user_type === 'player') return filters.showPlayers;
@@ -48,7 +57,8 @@ const NearbyUsersLayer = ({ users, map, filters, onSelectUser }: NearbyUsersLaye
     type: user.user_type as 'player' | 'coach',
     userData: user,
     isStaticLocation: user.is_static_location || false,
-    isOwnProfile: user.is_own_profile || false
+    isOwnProfile: user.is_own_profile || false,
+    isFollowing: user.is_following || false, // Pass this property to the marker
   }));
   
   // Handle user selection on map
