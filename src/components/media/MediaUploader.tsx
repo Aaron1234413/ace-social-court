@@ -32,9 +32,9 @@ const MediaUploader = ({
       return;
     }
 
-    // Check file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File is too large. Maximum size is 10MB.');
+    // Check file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('File is too large. Maximum size is 50MB.');
       return;
     }
 
@@ -111,10 +111,10 @@ const MediaUploader = ({
             <Upload className="h-8 w-8 text-gray-400" />
             <span className="text-sm text-gray-500">
               {allowedTypes.length > 1 
-                ? 'Upload image or video' 
+                ? 'Upload image or video (up to 2 mins)' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: 10MB</span>
+            <span className="text-xs text-gray-400">Maximum size: 50MB</span>
             <input
               type="file"
               className="hidden"

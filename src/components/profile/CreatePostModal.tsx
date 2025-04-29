@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -51,11 +52,11 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       return;
     }
 
-    // Check file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
+    // Check file size (50MB max)
+    if (file.size > 50 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "File size should be less than 10MB",
+        description: "File size should be less than 50MB",
         variant: "destructive",
       });
       return;
@@ -156,7 +157,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         <DialogHeader>
           <DialogTitle>Create New Post</DialogTitle>
           <DialogDescription>
-            Share your tennis moments with images or videos
+            Share your tennis moments with images or videos (up to 2 minutes)
           </DialogDescription>
         </DialogHeader>
         
@@ -168,7 +169,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
                 <Video className="ml-2 h-6 w-6 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                Drag and drop an image or video, or click to browse
+                Drag and drop an image or video (max 50MB), or click to browse
               </p>
               <Button
                 variant="outline"
