@@ -4,9 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, Search, Loader2 } from 'lucide-react';
+import { MapPin, Search, Loader2, AlertCircle } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // User-provided Mapbox token (primary)
 const USER_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW5rMmpxNmh5eGs5NmgyIn0.GyTAYck1VjlY0OWF8e6Y7w';
@@ -40,6 +41,26 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     lng: number;
     address: string;
   } | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  
+  // Set Mapbox token before initializing
+  const setMapboxToken = () => {
+    try {
+      mapboxgl.accessToken = USER_MAPBOX_TOKEN;
+      return true;
+    } catch (error) {
+      console.error('Error setting primary Mapbox token:', error);
+      try {
+        mapboxgl.accessToken = ACE_SOCIAL_MAPBOX_TOKEN;
+        return true;
+      } catch (fallbackError) {
+        console.error('Error setting fallback Mapbox token:', fallbackError);
+        setMapError('Could not initialize map. Please try again later.');
+        return false;
+      }
+    }
+  };
 
   // Initialize map when dialog opens
   useEffect(() => {
@@ -47,9 +68,15 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
 
     const initMap = async () => {
       setLoading(true);
-      try {
-        mapboxgl.accessToken = USER_MAPBOX_TOKEN;
+      setMapError(null);
 
+      // Set the Mapbox token first
+      if (!setMapboxToken()) {
+        setLoading(false);
+        return;
+      }
+
+      try {
         // Create map instance
         map.current = new mapboxgl.Map({
           container: mapContainer.current,
@@ -91,58 +118,16 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           setLoading(false);
         });
 
+        // Handle map error events
+        map.current.on('error', (e) => {
+          console.error('Map error:', e);
+          setMapError('Map error occurred. Please try again.');
+        });
+
       } catch (error) {
         console.error('Error initializing map:', error);
-        
-        // Try with fallback token
-        try {
-          mapboxgl.accessToken = ACE_SOCIAL_MAPBOX_TOKEN;
-          
-          // Create map with fallback token
-          map.current = new mapboxgl.Map({
-            container: mapContainer.current!,
-            style: 'mapbox://styles/mapbox/streets-v12',
-            center: initialLatitude && initialLongitude ? 
-              [initialLongitude, initialLatitude] : 
-              [-98.5795, 39.8283],
-            zoom: initialLatitude && initialLongitude ? 13 : 3
-          });
-          
-          // Add navigation controls
-          map.current.addControl(
-            new mapboxgl.NavigationControl(),
-            'top-right'
-          );
-          
-          // Same marker initialization as above
-          if (initialLatitude && initialLongitude) {
-            marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
-              .setLngLat([initialLongitude, initialLatitude])
-              .addTo(map.current);
-              
-            // Get address for initial position
-            const address = await reverseGeocode(initialLatitude, initialLongitude);
-            setSelectedPosition({
-              lat: initialLatitude,
-              lng: initialLongitude,
-              address
-            });
-            
-            // Set up drag end event for marker
-            marker.current.on('dragend', handleMarkerDragEnd);
-          }
-          
-          // Handle map click to set marker
-          map.current.on('click', handleMapClick);
-          
-          map.current.on('load', () => {
-            setLoading(false);
-          });
-          
-        } catch (fallbackError) {
-          console.error('Error initializing map with fallback token:', fallbackError);
-          setLoading(false);
-        }
+        setMapError('Failed to initialize map. Please try again later.');
+        setLoading(false);
       }
     };
 
@@ -179,9 +164,19 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     // Set up drag end event for marker
     marker.current.on('dragend', handleMarkerDragEnd);
     
-    // Get address for the location
-    const address = await reverseGeocode(lat, lng);
-    setSelectedPosition({ lat, lng, address });
+    try {
+      // Get address for the location
+      const address = await reverseGeocode(lat, lng);
+      setSelectedPosition({ lat, lng, address });
+    } catch (error) {
+      console.error('Error getting address:', error);
+      // Even if we fail to get the address, set the position with coordinates
+      setSelectedPosition({
+        lat, 
+        lng, 
+        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      });
+    }
   };
 
   // Handle marker drag end
@@ -189,13 +184,21 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     if (!marker.current) return;
     
     const position = marker.current.getLngLat();
-    const address = await reverseGeocode(position.lat, position.lng);
-    
-    setSelectedPosition({
-      lat: position.lat,
-      lng: position.lng,
-      address
-    });
+    try {
+      const address = await reverseGeocode(position.lat, position.lng);
+      setSelectedPosition({
+        lat: position.lat,
+        lng: position.lng,
+        address
+      });
+    } catch (error) {
+      console.error('Error getting address after drag:', error);
+      setSelectedPosition({
+        lat: position.lat,
+        lng: position.lng,
+        address: `${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}`
+      });
+    }
   };
 
   // Search for locations using Mapbox Geocoding API
@@ -203,18 +206,31 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
+    setSearchError(null);
+    setSearchResults([]);
+    
     try {
+      if (!mapboxgl.accessToken) {
+        setMapboxToken();
+      }
+      
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxgl.accessToken}&limit=5`
       );
       
-      if (!response.ok) throw new Error('Search failed');
+      if (!response.ok) {
+        throw new Error(`Search failed with status: ${response.status}`);
+      }
       
       const data = await response.json();
-      setSearchResults(data.features || []);
+      if (data.features && data.features.length > 0) {
+        setSearchResults(data.features);
+      } else {
+        setSearchError('No locations found. Please try a different search term.');
+      }
     } catch (error) {
       console.error('Error searching locations:', error);
-      setSearchResults([]);
+      setSearchError('Location search failed. Please try again.');
     } finally {
       setIsSearching(false);
     }
@@ -261,11 +277,17 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   // Reverse geocode to get address from coordinates
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
+      if (!mapboxgl.accessToken) {
+        setMapboxToken();
+      }
+      
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`
       );
       
-      if (!response.ok) throw new Error('Reverse geocoding failed');
+      if (!response.ok) {
+        throw new Error(`Reverse geocoding failed with status: ${response.status}`);
+      }
       
       const data = await response.json();
       return data.features && data.features.length > 0 
@@ -288,6 +310,13 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     }
   };
 
+  // Handle key press for search input
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
@@ -303,6 +332,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
                 placeholder="Search for a location"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
                 className="w-full"
               />
             </div>
@@ -313,6 +343,13 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
               {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             </Button>
           </div>
+
+          {searchError && (
+            <Alert variant="destructive" className="py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{searchError}</AlertDescription>
+            </Alert>
+          )}
 
           {searchResults.length > 0 && (
             <div className="bg-background border rounded-md max-h-[200px] overflow-y-auto">
@@ -340,6 +377,15 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/80">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            )}
+            
+            {mapError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                <div className="text-center p-4">
+                  <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                  <p className="text-sm text-destructive">{mapError}</p>
+                </div>
               </div>
             )}
           </div>
