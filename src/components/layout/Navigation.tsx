@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -10,7 +9,7 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, Home, User, LayoutGrid, Search } from 'lucide-react';
+import { Menu, Home, User, LayoutGrid, Search, Bell } from 'lucide-react';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover';
 
 const Navigation = () => {
@@ -43,6 +42,12 @@ const Navigation = () => {
       path: '/profile',
       icon: <User className="h-4 w-4 md:h-5 md:w-5" />,
       requiresAuth: true
+    },
+    {
+      name: 'Notifications',
+      path: '/notifications',
+      icon: <Bell className="h-4 w-4 md:h-5 md:w-5" />,
+      requiresAuth: true
     }
   ];
 
@@ -50,49 +55,53 @@ const Navigation = () => {
     link => !link.requiresAuth || (link.requiresAuth && user)
   );
 
-  const NavLinks = () => (
-    <>
-      {filteredLinks.map((link) => (
-        <Link
-          key={link.path}
-          to={link.path}
-          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-            location.pathname === link.path
-              ? 'bg-primary/10 text-primary font-medium'
-              : 'hover:bg-accent hover:text-accent-foreground'
-          }`}
-          onClick={() => isMobile && setIsOpen(false)}
-        >
-          {link.icon}
-          <span>{link.name}</span>
-        </Link>
-      ))}
-    </>
-  );
+  function NavLinks() {
+    return (
+      <>
+        {filteredLinks.map((link) => (
+          <Link
+            key={link.path}
+            to={link.path}
+            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+              location.pathname === link.path
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            }`}
+            onClick={() => isMobile && setIsOpen(false)}
+          >
+            {link.icon}
+            <span>{link.name}</span>
+          </Link>
+        ))}
+      </>
+    );
+  }
 
-  const AuthButtons = () => (
-    <>
-      {user ? (
-        <div className="flex items-center gap-3">
-          <NotificationsPopover />
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>
-              {user.email?.charAt(0).toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/auth">Log In</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link to="/auth">Sign Up</Link>
-          </Button>
-        </div>
-      )}
-    </>
-  );
+  function AuthButtons() {
+    return (
+      <>
+        {user ? (
+          <div className="flex items-center gap-3">
+            <NotificationsPopover />
+            <Avatar className="h-8 w-8">
+              <AvatarFallback>
+                {user.email?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/auth">Log In</Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link to="/auth">Sign Up</Link>
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <>

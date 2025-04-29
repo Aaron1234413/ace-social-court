@@ -29,6 +29,8 @@ export const useNotifications = () => {
       const filteredUserIds = userIds.filter(id => id !== user?.id);
       if (!filteredUserIds.length) return;
       
+      console.log('Creating notifications for users:', filteredUserIds);
+      
       // Prepare notifications for each recipient
       const notifications = filteredUserIds.map(userId => ({
         user_id: userId,
@@ -39,14 +41,20 @@ export const useNotifications = () => {
         entity_type: entityType
       }));
       
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('notifications')
-        .insert(notifications);
+        .insert(notifications)
+        .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating notification:', error);
+        throw error;
+      }
+      
+      console.log('Notifications created:', data);
       
     } catch (error) {
-      console.error('Error creating notification:', error);
+      console.error('Error in createNotification:', error);
     }
   };
   

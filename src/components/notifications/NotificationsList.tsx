@@ -48,6 +48,8 @@ const NotificationsList = ({ onNotificationRead }: NotificationsListProps) => {
         
       if (error) throw error;
       
+      console.log('Fetched notifications:', data);
+      
       // Fetch sender profile information for each notification
       if (data && data.length > 0) {
         const senderIds = data
@@ -74,6 +76,7 @@ const NotificationsList = ({ onNotificationRead }: NotificationsListProps) => {
             }));
             
             setNotifications(notificationsWithSenders);
+            console.log('Notifications with senders:', notificationsWithSenders);
           }
         } else {
           setNotifications(data);
@@ -102,11 +105,14 @@ const NotificationsList = ({ onNotificationRead }: NotificationsListProps) => {
             table: 'notifications',
             filter: `user_id=eq.${user.id}`
           }, 
-          () => {
+          (payload) => {
+            console.log('Notification change detected in list:', payload);
             fetchNotifications();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Notifications list subscription status:', status);
+        });
         
       return () => {
         supabase.removeChannel(channel);
@@ -241,6 +247,37 @@ const NotificationsList = ({ onNotificationRead }: NotificationsListProps) => {
       </div>
     </ScrollArea>
   );
+  
+  function getNotificationIcon(type: string) {
+    switch (type) {
+      case 'follow':
+        return <UserPlus className="h-4 w-4 text-blue-500" />;
+      case 'like':
+        return <Heart className="h-4 w-4 text-red-500" />;
+      case 'comment':
+        return <MessageSquare className="h-4 w-4 text-green-500" />;
+      case 'mention':
+        return <AtSign className="h-4 w-4 text-purple-500" />;
+      default:
+        return null;
+    }
+  }
+  
+  function getNotificationLink(notification: Notification) {
+    const { type, entity_id, entity_type, sender_id } = notification;
+    
+    if (type === 'follow' && sender_id) {
+      return `/profile/${sender_id}`;
+    }
+    
+    if ((type === 'like' || type === 'comment' || type === 'mention') && entity_id) {
+      if (entity_type === 'post') {
+        return `/feed?post=${entity_id}`;
+      }
+    }
+    
+    return '#';
+  }
 };
 
 export default NotificationsList;

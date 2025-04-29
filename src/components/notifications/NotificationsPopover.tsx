@@ -30,7 +30,9 @@ const NotificationsPopover = () => {
         .eq('read', false);
         
       if (error) throw error;
+      
       setUnreadCount(count || 0);
+      console.log('Unread notifications count:', count);
     } catch (error) {
       console.error('Error fetching notification count:', error);
     }
@@ -38,11 +40,12 @@ const NotificationsPopover = () => {
   
   useEffect(() => {
     if (user) {
+      // Initial fetch
       fetchUnreadCount();
       
       // Subscribe to notifications in real-time
       const channel = supabase
-        .channel('notifications-changes')
+        .channel('notifications-badge')
         .on('postgres_changes', 
           { 
             event: '*', 
@@ -50,11 +53,14 @@ const NotificationsPopover = () => {
             table: 'notifications',
             filter: `user_id=eq.${user.id}`
           }, 
-          () => {
+          (payload) => {
+            console.log('Notification change detected:', payload);
             fetchUnreadCount();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+        });
         
       return () => {
         supabase.removeChannel(channel);

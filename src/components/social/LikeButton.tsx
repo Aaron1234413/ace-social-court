@@ -102,6 +102,8 @@ const LikeButton = ({ postId, postUserId, postContent }: LikeButtonProps) => {
         
         // Only send notification if the like is for someone else's post
         if (user.id !== postUserId) {
+          console.log('Creating like notification for user:', postUserId);
+          
           // Create notification for the post owner
           const contentPreview = postContent ? 
             (postContent.length > 30 ? postContent.substring(0, 30) + '...' : postContent) : 
