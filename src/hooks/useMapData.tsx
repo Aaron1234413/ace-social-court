@@ -286,25 +286,79 @@ export const useMapData = () => {
     enabled: !!user && !!filters.showFollowing,
   });
 
-  // Combine active and static users, removing duplicates
+  // NEW QUERY: Fetch location data for all users being followed
+  const { data: followedUsersLocations } = useQuery({
+    queryKey: ['followed-users-locations', followingData],
+    queryFn: async () => {
+      if (!followingData || followingData.length === 0) return [];
+      
+      try {
+        // Get the profile data for all followed users
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name')
+          .in('id', followingData)
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null);
+        
+        if (error) {
+          console.error('Error fetching followed users locations:', error);
+          return [];
+        }
+
+        console.log('Fetched locations for followed users:', data);
+        
+        // Add is_following flag and calculate distance if user position is available
+        return data.map(user => {
+          const distance = userPosition 
+            ? calculateDistance(userPosition.lat, userPosition.lng, user.latitude!, user.longitude!)
+            : 0;
+            
+          return {
+            ...user,
+            distance,
+            is_following: true
+          };
+        });
+      } catch (err) {
+        console.error('Exception fetching followed users locations:', err);
+        return [];
+      }
+    },
+    enabled: !!followingData && followingData.length > 0 && filters.showFollowing,
+  });
+  
+  // Combine active, static and followed users, removing duplicates
   const nearbyUsers: NearbyUser[] = React.useMemo(() => {
     const activeUsers = nearbyActiveUsers || [];
     const staticUsers = staticLocationUsers || [];
     const followingIds = new Set(followingData || []);
+    const followedUsers = followedUsersLocations || [];
     
     console.log('Following IDs:', Array.from(followingIds));
     console.log('Active users:', activeUsers);
     console.log('Static users:', staticUsers);
+    console.log('Followed users with locations:', followedUsers);
     console.log('Following filter enabled:', filters.showFollowing);
     
     // Use a Map to track unique users by ID
     const uniqueUsers = new Map<string, NearbyUser>();
     
-    // Add active users first
+    // First add followed users if the filter is enabled
+    if (filters.showFollowing) {
+      followedUsers.forEach(user => {
+        uniqueUsers.set(user.id, {
+          ...user,
+          is_following: true
+        });
+      });
+    }
+    
+    // Add active users
     activeUsers.forEach(user => {
       // Check if this user is being followed
       const isFollowing = followingIds.has(user.id);
-      console.log(`User ${user.id} (${user.full_name}) is followed: ${isFollowing}`);
+      console.log(`User ${user.id} (${user.full_name || user.username}) is followed: ${isFollowing}`);
       uniqueUsers.set(user.id, {
         ...user,
         is_following: isFollowing
@@ -316,7 +370,7 @@ export const useMapData = () => {
       if (!uniqueUsers.has(user.id)) {
         // Check if this user is being followed
         const isFollowing = followingIds.has(user.id);
-        console.log(`Static user ${user.id} (${user.full_name}) is followed: ${isFollowing}`);
+        console.log(`Static user ${user.id} (${user.full_name || user.username}) is followed: ${isFollowing}`);
         uniqueUsers.set(user.id, {
           ...user,
           is_following: isFollowing
@@ -340,7 +394,7 @@ export const useMapData = () => {
     }
     
     return users;
-  }, [nearbyActiveUsers, staticLocationUsers, userProfileLocation, filters.showOwnLocation, filters.showFollowing, followingData]);
+  }, [nearbyActiveUsers, staticLocationUsers, userProfileLocation, followedUsersLocations, followingData, filters.showOwnLocation, filters.showFollowing]);
   
   return {
     nearbyUsers,
