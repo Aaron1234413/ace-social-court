@@ -119,27 +119,41 @@ const MapExplorer = () => {
   // Update location privacy settings in state when data loads
   useEffect(() => {
     if (userPrivacySettings) {
-      // Safely parse the privacy settings with proper type checking
-      const defaultSettings: LocationPrivacySettings = {
-        shareExactLocation: false,
-        showOnMap: false,
-        locationHistory: false
-      };
+      // Parse JSON data if it's a string
+      let settingsObj: any;
       
-      // Ensure we have a properly formed object with boolean values
-      const safeSettings: LocationPrivacySettings = {
-        shareExactLocation: typeof userPrivacySettings.shareExactLocation === 'boolean' 
-          ? userPrivacySettings.shareExactLocation 
-          : defaultSettings.shareExactLocation,
-        showOnMap: typeof userPrivacySettings.showOnMap === 'boolean' 
-          ? userPrivacySettings.showOnMap 
-          : defaultSettings.showOnMap,
-        locationHistory: typeof userPrivacySettings.locationHistory === 'boolean' 
-          ? userPrivacySettings.locationHistory 
-          : defaultSettings.locationHistory
-      };
-      
-      setLocationPrivacy(safeSettings);
+      try {
+        // If it's a string, try to parse it
+        if (typeof userPrivacySettings === 'string') {
+          settingsObj = JSON.parse(userPrivacySettings);
+        } else {
+          // Otherwise use it directly
+          settingsObj = userPrivacySettings;
+        }
+        
+        // Create safe settings object with fallbacks
+        const safeSettings: LocationPrivacySettings = {
+          shareExactLocation: typeof settingsObj?.shareExactLocation === 'boolean' 
+            ? settingsObj.shareExactLocation 
+            : false,
+          showOnMap: typeof settingsObj?.showOnMap === 'boolean' 
+            ? settingsObj.showOnMap 
+            : false,
+          locationHistory: typeof settingsObj?.locationHistory === 'boolean' 
+            ? settingsObj.locationHistory 
+            : false
+        };
+        
+        setLocationPrivacy(safeSettings);
+      } catch (e) {
+        console.error('Failed to parse privacy settings:', e);
+        // Use default settings if parsing fails
+        setLocationPrivacy({
+          shareExactLocation: false,
+          showOnMap: false,
+          locationHistory: false
+        });
+      }
     }
   }, [userPrivacySettings]);
   
