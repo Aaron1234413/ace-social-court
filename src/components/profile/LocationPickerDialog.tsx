@@ -242,9 +242,10 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   };
 
   // Select a location from search results
-  const selectSearchResult = async (result: any) => {
+  const selectSearchResult = (result: any) => {
     if (!map.current) return;
     
+    console.log('Search result selected:', result);
     const [lng, lat] = result.center;
     
     // Fly to the selected location
@@ -368,21 +369,11 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
                 {searchResults.map((result) => (
                   <li 
                     key={result.id}
-                    className="p-2 hover:bg-muted cursor-pointer border-b last:border-0"
+                    className="p-2 hover:bg-muted cursor-pointer border-b last:border-0 flex items-center gap-2"
                     onClick={() => selectSearchResult(result)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        selectSearchResult(result);
-                      }
-                    }}
                   >
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-sm">{result.place_name}</span>
-                    </div>
+                    <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm">{result.place_name}</span>
                   </li>
                 ))}
               </ul>
