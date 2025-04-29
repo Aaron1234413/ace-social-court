@@ -1,7 +1,19 @@
 
 import React from 'react';
-import { type NearbyUser } from './NearbyUsersList';
 import MapLocationPin from './MapLocationPin';
+
+export type NearbyUser = {
+  id: string;
+  full_name: string;
+  username: string;
+  avatar_url: string;
+  user_type: string;
+  distance: number;
+  latitude: number;
+  longitude: number;
+  location_name?: string;
+  is_static_location?: boolean;
+};
 
 interface NearbyUsersLayerProps {
   users: NearbyUser[];
@@ -27,7 +39,8 @@ const NearbyUsersLayer = ({ users, map, filters, onSelectUser }: NearbyUsersLaye
     name: user.full_name || user.username || 'Tennis Player',
     coordinates: [user.longitude, user.latitude] as [number, number],
     type: user.user_type as 'player' | 'coach',
-    userData: user
+    userData: user,
+    isStaticLocation: user.is_static_location || false
   }));
   
   // Handle user selection on map

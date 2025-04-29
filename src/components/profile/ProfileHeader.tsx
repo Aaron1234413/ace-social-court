@@ -1,9 +1,10 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Pencil } from 'lucide-react';
+import { Pencil, MapPin } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import MessageButton from '@/components/messages/MessageButton';
 
@@ -123,6 +124,14 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
           </div>
         )}
       </div>
+      
+      {/* Display location if available */}
+      {profile.location_name && (
+        <div className="flex items-center gap-2 text-sm">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <span>{profile.location_name}</span>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,115 +1,114 @@
 
-import React from 'react';
-import { 
-  MapPin, 
-  Users, 
-  UserCog,
-  Calendar,
-  SlidersHorizontal,
-} from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Toggle } from "@/components/ui/toggle";
-import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import LocationPrivacyControl from '@/components/map/LocationPrivacyControl';
-import { toast } from 'sonner';
-
-interface FilterSettings {
-  showCourts: boolean;
-  showPlayers: boolean;
-  showCoaches: boolean;
-  showEvents: boolean;
-  distance: number;
-}
-
-interface LocationPrivacySettings {
-  shareExactLocation: boolean;
-  showOnMap: boolean;
-  locationHistory: boolean;
-}
+import { Filter } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import LocationPrivacyControl from "./LocationPrivacyControl";
+import { useState } from "react";
 
 interface MapFiltersSheetProps {
-  filters: FilterSettings;
-  onFilterChange: (key: keyof FilterSettings, value: any) => void;
-  locationPrivacy: LocationPrivacySettings;
-  onPrivacyChange: (key: keyof LocationPrivacySettings) => void;
+  filters: {
+    showCourts: boolean;
+    showPlayers: boolean;
+    showCoaches: boolean;
+    showEvents: boolean;
+    showStaticLocations: boolean;
+    distance: number;
+  };
+  onFilterChange: (key: string, value: any) => void;
+  locationPrivacy: {
+    shareExactLocation: boolean;
+    showOnMap: boolean;
+    locationHistory: boolean;
+  };
+  onPrivacyChange: (key: string) => void;
   userLocationEnabled: boolean;
   isUserLoggedIn: boolean;
 }
 
-const MapFiltersSheet = ({ 
-  filters, 
-  onFilterChange, 
-  locationPrivacy, 
+const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
+  filters,
+  onFilterChange,
+  locationPrivacy,
   onPrivacyChange,
   userLocationEnabled,
   isUserLoggedIn
-}: MapFiltersSheetProps) => {
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
   
-  const toggleFilter = (key: keyof FilterSettings) => {
-    onFilterChange(key, !filters[key]);
-    toast.info(`${key.replace('show', '')} ${filters[key] ? 'hidden' : 'shown'}`);
-  };
-
-  const setDistance = (value: number[]) => {
+  const handleDistanceChange = (value: number[]) => {
     onFilterChange('distance', value[0]);
   };
-
+  
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm">
-          <SlidersHorizontal className="h-4 w-4 mr-2" />
-          Filters
+        <Button variant="outline" className="flex items-center gap-2">
+          <Filter className="h-4 w-4" />
+          <span>Filters</span>
         </Button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Map Filters</SheetTitle>
           <SheetDescription>
-            Control what you see on the tennis map.
+            Customize what appears on the map and set your location privacy preferences.
           </SheetDescription>
         </SheetHeader>
+        
         <div className="py-4 space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Location Types</h3>
-            <div className="flex flex-wrap gap-2">
-              <Toggle 
-                pressed={filters.showCourts} 
-                onPressedChange={() => toggleFilter('showCourts')}
-                className="gap-2"
-              >
-                <MapPin className="h-4 w-4" /> Courts
-              </Toggle>
-              <Toggle 
-                pressed={filters.showPlayers} 
-                onPressedChange={() => toggleFilter('showPlayers')}
-                className="gap-2"
-              >
-                <Users className="h-4 w-4" /> Players
-              </Toggle>
-              <Toggle 
-                pressed={filters.showCoaches} 
-                onPressedChange={() => toggleFilter('showCoaches')}
-                className="gap-2"
-              >
-                <UserCog className="h-4 w-4" /> Coaches
-              </Toggle>
-              <Toggle 
-                pressed={filters.showEvents} 
-                onPressedChange={() => toggleFilter('showEvents')}
-                className="gap-2"
-              >
-                <Calendar className="h-4 w-4" /> Events
-              </Toggle>
+          <div className="space-y-4">
+            <h3 className="font-medium">Show on Map</h3>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-courts">Tennis Courts</Label>
+              <Switch
+                id="show-courts"
+                checked={filters.showCourts}
+                onCheckedChange={(value) => onFilterChange('showCourts', value)}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-players">Players</Label>
+              <Switch
+                id="show-players"
+                checked={filters.showPlayers}
+                onCheckedChange={(value) => onFilterChange('showPlayers', value)}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-coaches">Coaches</Label>
+              <Switch
+                id="show-coaches"
+                checked={filters.showCoaches}
+                onCheckedChange={(value) => onFilterChange('showCoaches', value)}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-events">Events</Label>
+              <Switch
+                id="show-events"
+                checked={filters.showEvents}
+                onCheckedChange={(value) => onFilterChange('showEvents', value)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="show-static-locations">Home Locations</Label>
+                <p className="text-xs text-muted-foreground">Show users' home locations even when they're not active</p>
+              </div>
+              <Switch
+                id="show-static-locations"
+                checked={filters.showStaticLocations}
+                onCheckedChange={(value) => onFilterChange('showStaticLocations', value)}
+              />
             </div>
           </div>
           
@@ -117,84 +116,38 @@ const MapFiltersSheet = ({
           
           <div className="space-y-4">
             <div>
-              <h3 className="text-sm font-medium mb-2">Distance</h3>
-              <div className="px-2">
-                <Slider 
-                  defaultValue={[filters.distance]} 
-                  max={100} 
-                  step={5} 
-                  onValueChange={setDistance}
-                />
-                <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                  <span>0 mi</span>
-                  <span>{filters.distance} mi</span>
-                  <span>100 mi</span>
-                </div>
-              </div>
+              <h3 className="font-medium">Distance</h3>
+              <p className="text-sm text-muted-foreground">Show results within {filters.distance} miles</p>
             </div>
             
-            <Separator />
-            
-            <LocationPrivacySection 
-              privacy={locationPrivacy}
-              onPrivacyChange={onPrivacyChange}
-              userLocationEnabled={userLocationEnabled}
-              isUserLoggedIn={isUserLoggedIn}
+            <Slider
+              defaultValue={[filters.distance]}
+              max={100}
+              min={1}
+              step={1}
+              onValueChange={handleDistanceChange}
+              className="mt-2"
             />
+            
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>1 mile</span>
+              <span>50 miles</span>
+              <span>100 miles</span>
+            </div>
           </div>
+          
+          <Separator />
+          
+          <LocationPrivacyControl
+            locationPrivacy={locationPrivacy}
+            onToggle={onPrivacyChange}
+            userLocationEnabled={userLocationEnabled}
+            isUserLoggedIn={isUserLoggedIn}
+          />
         </div>
       </SheetContent>
     </Sheet>
   );
 };
-
-// Internal component for the location privacy section
-const LocationPrivacySection = ({ 
-  privacy, 
-  onPrivacyChange, 
-  userLocationEnabled, 
-  isUserLoggedIn 
-}: { 
-  privacy: LocationPrivacySettings, 
-  onPrivacyChange: (key: keyof LocationPrivacySettings) => void,
-  userLocationEnabled: boolean,
-  isUserLoggedIn: boolean
-}) => {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Location Settings</h3>
-        {!isUserLoggedIn && <Lock className="h-4 w-4 text-muted-foreground" />}
-      </div>
-      
-      <p className="text-xs text-muted-foreground mb-3">
-        {!isUserLoggedIn
-          ? "Sign in to share your location"
-          : userLocationEnabled 
-            ? "Location access is enabled" 
-            : "Enable location access for better results"}
-      </p>
-      
-      {userLocationEnabled && isUserLoggedIn ? (
-        <LocationPrivacyControl 
-          settings={privacy} 
-          onChange={onPrivacyChange} 
-        />
-      ) : (
-        <div className="flex items-center gap-2 text-sm text-amber-600">
-          <Shield className="h-4 w-4" />
-          <span>
-            {!isUserLoggedIn
-              ? "Sign in to share your location"
-              : "Location services are disabled"}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Import missing components for LocationPrivacySection
-import { Lock, Shield } from 'lucide-react';
 
 export default MapFiltersSheet;

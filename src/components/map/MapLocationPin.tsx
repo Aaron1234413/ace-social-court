@@ -7,6 +7,8 @@ interface Location {
   name: string;
   coordinates: [number, number]; // [longitude, latitude]
   type: 'court' | 'player' | 'coach' | 'event';
+  userData?: any;
+  isStaticLocation?: boolean;
 }
 
 interface MapLocationPinProps {
@@ -25,20 +27,35 @@ const MapLocationPin = ({ location, map, onClick }: MapLocationPinProps) => {
     const el = document.createElement('div');
     el.className = 'marker';
     
-    // Style based on location type
-    switch (location.type) {
-      case 'court':
-        el.innerHTML = `<div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white">C</div>`;
-        break;
-      case 'player':
-        el.innerHTML = `<div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white">P</div>`;
-        break;
-      case 'coach':
-        el.innerHTML = `<div class="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white">T</div>`;
-        break;
-      case 'event':
-        el.innerHTML = `<div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">E</div>`;
-        break;
+    // Style based on location type, adding a different style for static locations
+    if (location.isStaticLocation) {
+      // Static locations (from profile) have a different style with a house icon
+      switch (location.type) {
+        case 'player':
+          el.innerHTML = `<div class="w-6 h-6 bg-blue-300 rounded-full flex items-center justify-center text-white border-2 border-blue-500">P</div>`;
+          break;
+        case 'coach':
+          el.innerHTML = `<div class="w-6 h-6 bg-purple-300 rounded-full flex items-center justify-center text-white border-2 border-purple-500">T</div>`;
+          break;
+        default:
+          el.innerHTML = `<div class="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-white">?</div>`;
+      }
+    } else {
+      // Regular active locations
+      switch (location.type) {
+        case 'court':
+          el.innerHTML = `<div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white">C</div>`;
+          break;
+        case 'player':
+          el.innerHTML = `<div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white">P</div>`;
+          break;
+        case 'coach':
+          el.innerHTML = `<div class="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white">T</div>`;
+          break;
+        case 'event':
+          el.innerHTML = `<div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">E</div>`;
+          break;
+      }
     }
     
     // Create and add the marker
@@ -53,9 +70,30 @@ const MapLocationPin = ({ location, map, onClick }: MapLocationPinProps) => {
       });
     }
     
+    // Add tooltip with name
+    const popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 25,
+      className: 'marker-popup'
+    });
+
+    // Add hover events for the tooltip
+    el.addEventListener('mouseenter', () => {
+      popup.setLngLat(location.coordinates)
+        .setHTML(`<div class="text-sm font-medium">${location.name}</div>
+                  ${location.isStaticLocation ? '<div class="text-xs text-muted-foreground">Home location</div>' : ''}`)
+        .addTo(map);
+    });
+
+    el.addEventListener('mouseleave', () => {
+      popup.remove();
+    });
+    
     // Clean up on unmount
     return () => {
       marker.remove();
+      popup.remove();
     };
   }, [location, map, onClick]);
   

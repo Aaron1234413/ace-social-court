@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +10,7 @@ import MapView from '@/components/map/MapView';
 import MapFiltersSheet from '@/components/map/MapFiltersSheet';
 import NearbyUsersList from '@/components/map/NearbyUsersList';
 import LocationStatusCard from '@/components/map/LocationStatusCard';
+import { NearbyUser } from '@/components/map/NearbyUsersLayer';
 
 // Define types
 interface LocationPrivacySettings {
@@ -22,6 +24,7 @@ interface FilterSettings {
   showPlayers: boolean;
   showCoaches: boolean;
   showEvents: boolean;
+  showStaticLocations: boolean;
   distance: number; // in miles
 }
 
@@ -32,6 +35,7 @@ const MapExplorer = () => {
     showPlayers: true,
     showCoaches: true,
     showEvents: true,
+    showStaticLocations: true,
     distance: 25, // in miles
   });
   
@@ -47,8 +51,8 @@ const MapExplorer = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   
   // Query for nearby users using our Supabase function
-  const { data: nearbyUsers, isLoading: isLoadingNearbyUsers } = useQuery({
-    queryKey: ['nearby-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches],
+  const { data: nearbyActiveUsers, isLoading: isLoadingNearbyUsers } = useQuery({
+    queryKey: ['nearby-active-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches],
     queryFn: async () => {
       if (!userPosition) return [];
       
@@ -75,6 +79,93 @@ const MapExplorer = () => {
     },
     enabled: !!userPosition,
   });
+
+  // Query for users with static locations (from profiles)
+  const { data: staticLocationUsers } = useQuery({
+    queryKey: ['static-location-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches, filters.showStaticLocations],
+    queryFn: async () => {
+      if (!userPosition || !filters.showStaticLocations) return [];
+      
+      try {
+        // This query gets users who have a location set in their profile
+        // but may not be actively sharing their location
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name')
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null)
+          .not('location_name', 'is', null)
+          .filter('location_privacy', 'not.eq', JSON.stringify({showOnMap: true}))
+          .order('username');
+        
+        if (error) {
+          console.error('Error fetching static location users:', error);
+          return [];
+        }
+        
+        // Filter by user type
+        const filteredUsers = data.filter(user => 
+          (user.user_type === 'player' && filters.showPlayers) || 
+          (user.user_type === 'coach' && filters.showCoaches)
+        );
+        
+        // Calculate distance
+        return filteredUsers.map(user => ({
+          ...user,
+          is_static_location: true,
+          distance: calculateDistance(
+            userPosition.lat, userPosition.lng, 
+            user.latitude!, user.longitude!
+          )
+        })).filter(user => user.distance <= filters.distance);
+      } catch (err) {
+        console.error('Exception fetching static location users:', err);
+        return [];
+      }
+    },
+    enabled: !!userPosition && filters.showStaticLocations,
+  });
+  
+  // Simple haversine distance calculation (like the Supabase function but in JS)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 3959; // Earth's radius in miles
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    const d = R * c;
+    return d;
+  };
+
+  const toRad = (value: number): number => {
+    return value * Math.PI / 180;
+  };
+  
+  // Combine active and static users, removing duplicates
+  const nearbyUsers: NearbyUser[] = React.useMemo(() => {
+    const activeUsers = nearbyActiveUsers || [];
+    const staticUsers = staticLocationUsers || [];
+    
+    // Use a Map to track unique users by ID
+    const uniqueUsers = new Map<string, NearbyUser>();
+    
+    // Add active users first
+    activeUsers.forEach(user => {
+      uniqueUsers.set(user.id, user);
+    });
+    
+    // Then add static users, but only if they don't already exist
+    staticUsers.forEach(user => {
+      if (!uniqueUsers.has(user.id)) {
+        uniqueUsers.set(user.id, user);
+      }
+    });
+    
+    return Array.from(uniqueUsers.values());
+  }, [nearbyActiveUsers, staticLocationUsers]);
   
   // Query for user's location privacy settings
   const { data: userPrivacySettings } = useQuery({
@@ -288,7 +379,7 @@ const MapExplorer = () => {
             onMapInitialized={setMapInstance}
             onUserPositionUpdate={handleUserPositionUpdate}
             mapInstance={mapInstance}
-            nearbyUsers={nearbyUsers || null}
+            nearbyUsers={nearbyUsers}
             filters={{
               showPlayers: filters.showPlayers,
               showCoaches: filters.showCoaches
