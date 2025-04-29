@@ -265,6 +265,7 @@ export const useMapData = () => {
       if (!user) return [];
       
       try {
+        console.log('Fetching following users for user:', user.id);
         const { data, error } = await supabase
           .from('followers')
           .select('following_id')
@@ -275,6 +276,7 @@ export const useMapData = () => {
           return [];
         }
         
+        console.log('Following data fetched:', data);
         return data.map(row => row.following_id);
       } catch (err) {
         console.error('Exception fetching followed users:', err);
@@ -290,6 +292,11 @@ export const useMapData = () => {
     const staticUsers = staticLocationUsers || [];
     const followingIds = new Set(followingData || []);
     
+    console.log('Following IDs:', Array.from(followingIds));
+    console.log('Active users:', activeUsers);
+    console.log('Static users:', staticUsers);
+    console.log('Following filter enabled:', filters.showFollowing);
+    
     // Use a Map to track unique users by ID
     const uniqueUsers = new Map<string, NearbyUser>();
     
@@ -297,6 +304,7 @@ export const useMapData = () => {
     activeUsers.forEach(user => {
       // Check if this user is being followed
       const isFollowing = followingIds.has(user.id);
+      console.log(`User ${user.id} (${user.full_name}) is followed: ${isFollowing}`);
       uniqueUsers.set(user.id, {
         ...user,
         is_following: isFollowing
@@ -308,6 +316,7 @@ export const useMapData = () => {
       if (!uniqueUsers.has(user.id)) {
         // Check if this user is being followed
         const isFollowing = followingIds.has(user.id);
+        console.log(`Static user ${user.id} (${user.full_name}) is followed: ${isFollowing}`);
         uniqueUsers.set(user.id, {
           ...user,
           is_following: isFollowing
@@ -325,7 +334,9 @@ export const useMapData = () => {
     
     // If showing only following users, filter to just those
     if (filters.showFollowing) {
+      console.log('Filtering to show only followed users');
       users = users.filter(user => user.is_following || user.is_own_profile);
+      console.log('Filtered users:', users);
     }
     
     return users;
