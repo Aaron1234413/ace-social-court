@@ -13,6 +13,7 @@ import TabNavigator from '@/components/map/TabNavigator';
 import PeopleTab from '@/components/map/PeopleTab';
 import CourtsTab from '@/components/map/CourtsTab';
 import { useMapData } from '@/hooks/useMapData';
+import AddTennisCourtDialog from '@/components/map/AddTennisCourtDialog';
 
 const MapExplorerContent = () => {
   const {
@@ -49,7 +50,10 @@ const MapExplorerContent = () => {
 
   return (
     <div className="container py-4 px-4 md:px-6">
-      <MapHeader />
+      <div className="flex items-center justify-between mb-4">
+        <MapHeader />
+        <AddTennisCourtDialog />
+      </div>
       <LocationErrorAlert />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -67,7 +71,7 @@ const MapExplorerContent = () => {
               showCoaches: filters.showCoaches,
               showCourts: filters.showCourts,
               showOwnLocation: filters.showOwnLocation,
-              showFollowing: filters.showFollowing, // Pass the new filter option
+              showFollowing: filters.showFollowing,
             }}
             onSelectUser={handleUserSelect}
             onSelectCourt={handleCourtSelect}
