@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MapContainer from '@/components/map/MapContainer';
 import { Button } from '@/components/ui/button';
 import { 
@@ -7,7 +7,8 @@ import {
   Users, 
   UserCog,
   Calendar,
-  SlidersHorizontal 
+  SlidersHorizontal,
+  Loader2
 } from 'lucide-react';
 import {
   Sheet,
@@ -31,13 +32,24 @@ const MapExplorer = () => {
     distance: 25, // in miles
   });
   
+  const [isReady, setIsReady] = useState(false);
+  
+  useEffect(() => {
+    // Ensure the component is fully mounted
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
   const toggleFilter = (key: keyof typeof filters) => {
     setFilters(prev => ({
       ...prev,
       [key]: !prev[key]
     }));
     
-    // Show toast for filter changes (helpful for debugging)
+    // Show toast for filter changes
     toast.info(`${key.replace('show', '')} ${filters[key] ? 'hidden' : 'shown'}`);
   };
 
@@ -129,7 +141,13 @@ const MapExplorer = () => {
         </Sheet>
       </div>
       
-      <MapContainer className="rounded-lg shadow-md" height="h-[60vh]" />
+      {isReady ? (
+        <MapContainer className="rounded-lg shadow-md" height="h-[60vh]" />
+      ) : (
+        <div className="rounded-lg shadow-md h-[60vh] flex items-center justify-center bg-muted">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
       
       <div className="mt-6">
         <h2 className="text-lg font-semibold mb-3">Nearby Tennis Locations</h2>

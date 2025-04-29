@@ -18,21 +18,22 @@ interface MapContainerProps {
 }
 
 const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const mapInitializedRef = useRef(false);
 
-  // Function to initialize map with given token
   const initializeMap = (token: string) => {
     if (!mapContainerRef.current) {
-      console.log("Map container ref is null, cannot initialize map");
+      console.error("Map container element not found");
+      setMapError("Map container not available");
+      setLoading(false);
       return false;
     }
 
     try {
-      console.log("Initializing map with token:", token.substring(0, 10) + '...');
+      console.log("Starting map initialization with token:", token.substring(0, 10) + '...');
       mapboxgl.accessToken = token;
       
       // Clean up existing map instance if it exists
@@ -45,34 +46,26 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
       mapInstanceRef.current = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/streets-v12',
-        center: [-74.5, 40], // Default to US East Coast
-        zoom: 4,
-        failIfMajorPerformanceCaveat: false // More forgiving performance requirements
+        center: [-98.5795, 39.8283], // Center of the US
+        zoom: 3,
+        attributionControl: true,
+        preserveDrawingBuffer: true // Allows for image export
       });
-
-      // Set a timeout to detect if map is taking too long to load
-      const timeoutId = setTimeout(() => {
-        if (loading && !mapError) {
-          console.warn("Map load timeout - possible token issue");
-          setMapError("Map is taking too long to load");
-          setLoading(false);
-        }
-      }, 10000);
-
-      // Add navigation controls (zoom in/out)
-      mapInstanceRef.current.addControl(
-        new mapboxgl.NavigationControl(),
-        'top-right'
-      );
 
       // Listen for map load event to confirm success
       mapInstanceRef.current.on('load', () => {
         console.log("Map loaded successfully");
         setLoading(false);
         setMapError(null);
-        clearTimeout(timeoutId);
+        mapInitializedRef.current = true;
         
-        // Add geolocate control after map has loaded
+        // Add navigation controls (zoom in/out)
+        mapInstanceRef.current?.addControl(
+          new mapboxgl.NavigationControl(),
+          'top-right'
+        );
+        
+        // Add geolocation control after map has loaded
         try {
           mapInstanceRef.current?.addControl(
             new mapboxgl.GeolocateControl({
@@ -96,7 +89,6 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
         console.error("Map error:", e);
         setMapError(`Map error: ${e.error?.message || 'Unknown error'}`);
         setLoading(false);
-        clearTimeout(timeoutId);
         return false;
       });
       
@@ -109,81 +101,80 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
     }
   };
 
-  // Initialize map after component has mounted
   useEffect(() => {
-    setMounted(true);
+    // Ensure component is fully mounted and container exists in DOM
+    const timer = setTimeout(() => {
+      console.log("Attempting map initialization...");
+      console.log("Map container exists:", !!mapContainerRef.current);
+      
+      if (!mapInitializedRef.current) {
+        // Try user token first
+        const userTokenSuccess = initializeMap(USER_MAPBOX_TOKEN);
+        
+        // If user token fails, try fallback
+        if (!userTokenSuccess) {
+          console.log("User token failed, trying fallback token");
+          setTimeout(() => {
+            if (!mapInitializedRef.current) {
+              initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
+            }
+          }, 500);
+        }
+      }
+    }, 100); // Short delay to ensure DOM is ready
+    
     return () => {
+      clearTimeout(timer);
       if (mapInstanceRef.current) {
+        console.log("Cleaning up map instance");
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
   }, []);
 
-  // Initialize map once component is mounted and ref is available
-  useEffect(() => {
-    if (!mounted) return;
-    
-    console.log("Component mounted, attempting to initialize map");
-    console.log("Map container exists:", !!mapContainerRef.current);
-    
-    // Short delay to ensure DOM is fully rendered
-    const timer = setTimeout(() => {
-      // Try with user token first
-      const userTokenSuccess = initializeMap(USER_MAPBOX_TOKEN);
-      
-      // If user token fails, try fallback after a short delay
-      if (!userTokenSuccess) {
-        console.log("User token failed, will try fallback token");
-        const fallbackTimer = setTimeout(() => {
-          console.log("Trying fallback token now");
-          initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
-        }, 1000);
-        
-        return () => clearTimeout(fallbackTimer);
-      }
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [mounted]);
-
   const handleRetry = () => {
+    console.log("Retrying map initialization");
     setLoading(true);
     setMapError(null);
-    // Try user token first, then fallback
-    const success = initializeMap(USER_MAPBOX_TOKEN);
-    if (!success) {
-      setTimeout(() => initializeMap(ACE_SOCIAL_MAPBOX_TOKEN), 1000);
+    mapInitializedRef.current = false;
+    
+    // Try user token first
+    const userTokenSuccess = initializeMap(USER_MAPBOX_TOKEN);
+    
+    // If user token fails, try fallback
+    if (!userTokenSuccess) {
+      setTimeout(() => {
+        if (!mapInitializedRef.current) {
+          initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
+        }
+      }, 500);
     }
   };
 
-  if (loading) {
-    return (
-      <Card className={`${className || ''} ${height} flex flex-col items-center justify-center`}>
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-        <p className="text-sm text-muted-foreground">Loading map...</p>
-      </Card>
-    );
-  }
-
-  if (mapError) {
-    return (
-      <Card className={`${className || ''} ${height} flex flex-col items-center justify-center p-4`}>
-        <p className="text-red-500 mb-4">{mapError}</p>
-        <Button 
-          onClick={handleRetry}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Retry Loading Map
-        </Button>
-      </Card>
-    );
-  }
-
   return (
     <Card className={`${className || ''} ${height} relative overflow-hidden`}>
-      <div ref={mapContainerRef} className="absolute inset-0" />
+      {loading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+          <p className="text-sm text-muted-foreground">Loading map...</p>
+        </div>
+      )}
+      
+      {mapError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 z-10 p-4">
+          <p className="text-red-500 mb-4 text-center">{mapError}</p>
+          <Button 
+            onClick={handleRetry}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry Loading Map
+          </Button>
+        </div>
+      )}
+      
+      <div ref={mapContainerRef} className="absolute inset-0" id="map-container" />
     </Card>
   );
 };
