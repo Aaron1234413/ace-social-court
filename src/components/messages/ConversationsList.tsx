@@ -14,6 +14,13 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
   const navigate = useNavigate();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
 
+  const handleConversationClick = (userId: string | undefined) => {
+    if (userId) {
+      console.log("Navigating to conversation:", userId);
+      navigate(`/messages/${userId}`);
+    }
+  };
+
   if (isLoadingConversations) {
     return (
       <div className="space-y-4">
@@ -63,7 +70,7 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
                     ? 'bg-primary/10' 
                     : 'hover:bg-accent'
                 }`}
-                onClick={() => navigate(`/messages/${conversation.other_user?.id}`)}
+                onClick={() => handleConversationClick(conversation.other_user?.id)}
               >
                 <Avatar className="h-10 w-10">
                   {conversation.other_user?.avatar_url && (

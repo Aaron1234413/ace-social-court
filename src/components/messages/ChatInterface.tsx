@@ -1,5 +1,5 @@
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMessages } from '@/hooks/use-messages';
 import { useAuth } from '@/components/AuthProvider';
@@ -12,12 +12,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Message } from '@/components/messages/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Send, ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
 
 const ChatInterface = () => {
   const { id: otherUserId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   
   const { 
     messages, 
@@ -52,7 +54,10 @@ const ChatInterface = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage();
+    if (newMessage.trim()) {
+      sendMessage();
+      toast.success("Message sent successfully");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -60,6 +65,11 @@ const ChatInterface = () => {
       e.preventDefault();
       sendMessage();
     }
+  };
+  
+  const handleMessageClick = (messageId: string) => {
+    setSelectedMessage(messageId === selectedMessage ? null : messageId);
+    console.log("Message clicked:", messageId);
   };
 
   const renderMessages = () => {
@@ -114,10 +124,11 @@ const ChatInterface = () => {
               <div 
                 key={message.id} 
                 className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                onClick={() => handleMessageClick(message.id)}
               >
                 <div className={`flex items-end gap-2 max-w-[80%] ${
                   message.sender_id === user?.id ? 'flex-row-reverse' : 'flex-row'
-                }`}>
+                } cursor-pointer hover:opacity-90 transition-opacity`}>
                   <Avatar className="h-8 w-8">
                     {message.sender?.avatar_url && (
                       <img 
@@ -137,7 +148,7 @@ const ChatInterface = () => {
                       message.sender_id === user?.id 
                         ? 'bg-primary text-primary-foreground rounded-br-none' 
                         : 'bg-accent rounded-bl-none'
-                    }`}>
+                    } ${selectedMessage === message.id ? 'ring-2 ring-offset-2 ring-primary' : ''}`}>
                       <p>{message.content}</p>
                     </div>
                     <p className="text-xs text-muted-foreground mx-2">
