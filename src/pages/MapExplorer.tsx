@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import MapContainer from '@/components/map/MapContainer';
 import { Button } from '@/components/ui/button';
@@ -33,6 +32,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/components/AuthProvider';
 
+// Define the location privacy type for better type safety
+interface LocationPrivacySettings {
+  shareExactLocation: boolean;
+  showOnMap: boolean;
+  locationHistory: boolean;
+}
+
 const MapExplorer = () => {
   const { user } = useAuth();
   const [filters, setFilters] = useState({
@@ -45,7 +51,7 @@ const MapExplorer = () => {
   
   const [isReady, setIsReady] = useState(false);
   const [userLocationEnabled, setUserLocationEnabled] = useState(false);
-  const [locationPrivacy, setLocationPrivacy] = useState({
+  const [locationPrivacy, setLocationPrivacy] = useState<LocationPrivacySettings>({
     shareExactLocation: false,
     showOnMap: false,
     locationHistory: false,
@@ -113,7 +119,27 @@ const MapExplorer = () => {
   // Update location privacy settings in state when data loads
   useEffect(() => {
     if (userPrivacySettings) {
-      setLocationPrivacy(userPrivacySettings);
+      // Safely parse the privacy settings with proper type checking
+      const defaultSettings: LocationPrivacySettings = {
+        shareExactLocation: false,
+        showOnMap: false,
+        locationHistory: false
+      };
+      
+      // Ensure we have a properly formed object with boolean values
+      const safeSettings: LocationPrivacySettings = {
+        shareExactLocation: typeof userPrivacySettings.shareExactLocation === 'boolean' 
+          ? userPrivacySettings.shareExactLocation 
+          : defaultSettings.shareExactLocation,
+        showOnMap: typeof userPrivacySettings.showOnMap === 'boolean' 
+          ? userPrivacySettings.showOnMap 
+          : defaultSettings.showOnMap,
+        locationHistory: typeof userPrivacySettings.locationHistory === 'boolean' 
+          ? userPrivacySettings.locationHistory 
+          : defaultSettings.locationHistory
+      };
+      
+      setLocationPrivacy(safeSettings);
     }
   }, [userPrivacySettings]);
   
@@ -143,7 +169,7 @@ const MapExplorer = () => {
     }));
   };
 
-  const togglePrivacySetting = async (key: keyof typeof locationPrivacy) => {
+  const togglePrivacySetting = async (key: keyof LocationPrivacySettings) => {
     if (!user) {
       toast.error('You must be logged in to change privacy settings');
       return;
