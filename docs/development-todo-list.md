@@ -1,3 +1,4 @@
+
 # AceSocial: Development To-Do List
 
 ## Phase 1: Foundation Setup
@@ -18,9 +19,9 @@
 13. Build content interaction components (likes, comments)
 
 ## Phase 3: Social Features
-14. Implement follow/unfollow functionality
-15. Create user search and discovery
-16. Design and build notification system
+14. ✅ Implement follow/unfollow functionality
+15. ✅ Create user search and discovery
+16. ✅ Design and build notification system
 17. Implement direct messaging between users
 18. Create user mention system in posts and comments
 19. Add content sharing capabilities
