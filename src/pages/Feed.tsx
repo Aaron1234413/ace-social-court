@@ -2,6 +2,7 @@
 import React from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PostList from '@/components/social/PostList';
 import { usePosts } from '@/hooks/use-posts';
