@@ -79,12 +79,10 @@ export const useMessages = (otherUserId?: string) => {
     queryFn: async () => {
       if (!user || !otherUserId) return [];
 
+      // First, get the messages between current user and other user
       const { data, error } = await supabase
         .from('direct_messages')
-        .select(`
-          *,
-          sender:sender_id(username, full_name, avatar_url)
-        `)
+        .select('*')
         .or(`and(sender_id.eq.${user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${user.id})`)
         .order('created_at', { ascending: true });
 
@@ -92,6 +90,22 @@ export const useMessages = (otherUserId?: string) => {
         console.error('Error fetching messages:', error);
         return [];
       }
+
+      // For each message, fetch the sender's profile
+      const messagesWithSenders = await Promise.all(
+        data.map(async (message) => {
+          const { data: senderData } = await supabase
+            .from('profiles')
+            .select('username, full_name, avatar_url')
+            .eq('id', message.sender_id)
+            .single();
+
+          return {
+            ...message,
+            sender: senderData
+          } as Message;
+        })
+      );
 
       // Mark any unread messages as read
       const unreadMessages = data.filter(
@@ -109,7 +123,7 @@ export const useMessages = (otherUserId?: string) => {
         );
       }
 
-      return data as Message[];
+      return messagesWithSenders;
     },
     enabled: !!user && !!otherUserId
   });
