@@ -24,7 +24,7 @@ interface TennisCourtsLayerProps {
 }
 
 const TennisCourtsLayer = ({ courts, map, onSelectCourt }: TennisCourtsLayerProps) => {
-  // Convert courts to map location objects
+  // Convert courts to map location objects with the correct structure
   const courtLocations = courts.map(court => ({
     id: court.id,
     name: court.name,
@@ -35,18 +35,24 @@ const TennisCourtsLayer = ({ courts, map, onSelectCourt }: TennisCourtsLayerProp
     state: court.state,
     country: court.country,
     surface_type: court.surface_type,
-    distance: court.distance,
-    is_public: court.is_public
+    is_public: court.is_public,
+    distance: court.distance
   }));
   
   return (
     <>
-      {courtLocations.map(court => (
+      {courtLocations.map(courtLocation => (
         <TennisCourtMarker
-          key={court.id}
-          court={court}
+          key={courtLocation.id}
+          court={courtLocation}
           map={map}
-          onClick={onSelectCourt}
+          onClick={(courtData) => {
+            // Convert back to the TennisCourt format expected by onSelectCourt
+            const originalCourt = courts.find(c => c.id === courtData.id);
+            if (originalCourt) {
+              onSelectCourt(originalCourt);
+            }
+          }}
         />
       ))}
     </>

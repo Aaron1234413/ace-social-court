@@ -1,9 +1,8 @@
 
 import React from 'react';
 import mapboxgl from 'mapbox-gl';
-import { MapPin } from 'lucide-react';
 
-interface TennisCourt {
+interface TennisCourtLocation {
   id: string;
   name: string;
   description?: string | null;
@@ -18,9 +17,9 @@ interface TennisCourt {
 }
 
 interface TennisCourtMarkerProps {
-  court: TennisCourt;
+  court: TennisCourtLocation;
   map: mapboxgl.Map | null;
-  onClick?: (court: TennisCourt) => void;
+  onClick?: (court: TennisCourtLocation) => void;
 }
 
 const TennisCourtMarker = ({ court, map, onClick }: TennisCourtMarkerProps) => {
