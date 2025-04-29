@@ -156,8 +156,8 @@ const MapContainer = ({
       setLocationWarning(null);
     });
     
-    // Fix: Properly type the error event
-    geolocateControl.on('error', (e: mapboxgl.EventData) => {
+    // Fix: Properly type the error event without using mapboxgl.EventData
+    geolocateControl.on('error', (e: any) => {
       console.error("Geolocation error:", e);
       
       // Extract error message safely
@@ -165,10 +165,10 @@ const MapContainer = ({
       
       // Check if error is a GeolocationPositionError (from browser API)
       if (e && 'message' in e) {
-        errorMessage = (e as any).message || errorMessage;
+        errorMessage = e.message || errorMessage;
       } else if (e && 'code' in e) {
         // Handle standard Geolocation API errors by code
-        const code = (e as any).code;
+        const code = e.code;
         if (code === 1) {
           errorMessage = "Location access denied";
         } else if (code === 2) {
