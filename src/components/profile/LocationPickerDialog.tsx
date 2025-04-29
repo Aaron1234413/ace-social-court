@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +33,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mapInitialized, setMapInitialized] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -47,11 +48,13 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   // Set Mapbox token before initializing
   const setMapboxToken = () => {
     try {
+      // Try primary token first
       mapboxgl.accessToken = USER_MAPBOX_TOKEN;
       return true;
     } catch (error) {
       console.error('Error setting primary Mapbox token:', error);
       try {
+        // Fall back to secondary token if primary fails
         mapboxgl.accessToken = ACE_SOCIAL_MAPBOX_TOKEN;
         return true;
       } catch (fallbackError) {
@@ -64,7 +67,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
 
   // Initialize map when dialog opens
   useEffect(() => {
-    if (!isOpen || !mapContainer.current) return;
+    if (!isOpen || !mapContainer.current || mapInitialized) return;
 
     const initMap = async () => {
       setLoading(true);
@@ -116,6 +119,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
 
         map.current.on('load', () => {
           setLoading(false);
+          setMapInitialized(true);
         });
 
         // Handle map error events
@@ -137,13 +141,13 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       if (map.current) {
         map.current.remove();
         map.current = null;
+        setMapInitialized(false);
       }
       if (marker.current) {
-        marker.current.remove();
         marker.current = null;
       }
     };
-  }, [isOpen, initialLatitude, initialLongitude]);
+  }, [isOpen, initialLatitude, initialLongitude, mapInitialized]);
 
   // Handle map click to place marker
   const handleMapClick = async (e: mapboxgl.MapMouseEvent) => {
@@ -210,6 +214,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     setSearchResults([]);
     
     try {
+      // Make sure we have a token set before searching
       if (!mapboxgl.accessToken) {
         setMapboxToken();
       }
@@ -307,12 +312,14 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         selectedPosition.lng, 
         selectedPosition.address
       );
+      onClose();
     }
   };
 
   // Handle key press for search input
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleSearch();
     }
   };
@@ -322,6 +329,9 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Set Your Location</DialogTitle>
+          <DialogDescription>
+            Search for a location or click on the map to set your position
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 flex-1">
@@ -332,13 +342,14 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
                 placeholder="Search for a location"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 className="w-full"
               />
             </div>
             <Button 
               onClick={handleSearch} 
               disabled={isSearching || !searchQuery.trim()}
+              type="button"
             >
               {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             </Button>
@@ -375,13 +386,13 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
             className="h-[300px] w-full rounded-md border relative"
           >
             {loading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             )}
             
             {mapError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
                 <div className="text-center p-4">
                   <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
                   <p className="text-sm text-destructive">{mapError}</p>
@@ -402,10 +413,11 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} type="button">Cancel</Button>
           <Button 
             onClick={handleSubmit}
             disabled={!selectedPosition}
+            type="button"
           >
             Confirm Location
           </Button>
