@@ -11,6 +11,7 @@ import CommentButton from '@/components/social/CommentButton';
 import ShareButton from '@/components/social/ShareButton';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/components/AuthProvider';
+import PostContent from '@/components/social/PostContent';
 
 const PostDetail = () => {
   const { id } = useParams();
@@ -19,24 +20,43 @@ const PostDetail = () => {
   const { data: post, isLoading, error } = useQuery({
     queryKey: ['post', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, get the post data
+      const { data: postData, error: postError } = await supabase
         .from('posts')
         .select(`
-          *,
-          author:user_id (
-            id,
-            full_name,
-            user_type,
-            avatar_url
-          ),
-          likes:likes (count),
-          comments:comments (count)
+          *
         `)
         .eq('id', id)
         .single();
       
-      if (error) throw error;
-      return data as Post;
+      if (postError) throw postError;
+      
+      // Then, get the author data separately
+      if (postData) {
+        const { data: authorData } = await supabase
+          .from('profiles')
+          .select('full_name, user_type, avatar_url')
+          .eq('id', postData.user_id)
+          .single();
+          
+        // Get like count
+        const { data: likesCount } = await supabase
+          .rpc('get_likes_count', { post_id: postData.id });
+          
+        // Get comment count
+        const { data: commentsCount } = await supabase
+          .rpc('get_comments_count', { post_id: postData.id });
+        
+        // Construct the complete post object
+        return {
+          ...postData,
+          author: authorData || { full_name: 'Unknown', user_type: 'player' },
+          likes_count: likesCount || 0,
+          comments_count: commentsCount || 0
+        } as Post;
+      }
+      
+      return null;
     },
   });
 
@@ -87,7 +107,7 @@ const PostDetail = () => {
           </div>
 
           {post.content && (
-            <p className="text-base break-words mb-4">{post.content}</p>
+            <PostContent content={post.content} className="text-base break-words mb-4" />
           )}
 
           {post.media_url && (
