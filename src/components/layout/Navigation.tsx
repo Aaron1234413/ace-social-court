@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, Home, User, LayoutGrid } from 'lucide-react';
+import { Menu, Home, User, LayoutGrid, Search } from 'lucide-react';
 
 const Navigation = () => {
   const { user } = useAuth();
@@ -30,6 +30,12 @@ const Navigation = () => {
       path: '/feed',
       icon: <LayoutGrid className="h-4 w-4 md:h-5 md:w-5" />,
       requiresAuth: true
+    },
+    {
+      name: 'Search',
+      path: '/search',
+      icon: <Search className="h-4 w-4 md:h-5 md:w-5" />,
+      requiresAuth: false
     },
     {
       name: 'Profile',

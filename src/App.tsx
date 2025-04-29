@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Feed from "./pages/Feed";
+import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 import ProfileEdit from "./pages/ProfileEdit";
 import { useState } from "react";
@@ -35,6 +36,7 @@ const App = () => {
                   <Route path="/profile/:id" element={<Profile />} />
                   <Route path="/profile/edit" element={<ProfileEdit />} />
                   <Route path="/feed" element={<Feed />} />
+                  <Route path="/search" element={<Search />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
