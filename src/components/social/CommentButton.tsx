@@ -16,6 +16,7 @@ const CommentButton = ({ postId }: CommentButtonProps) => {
   const [commentCount, setCommentCount] = useState(0);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const fetchCommentCount = async () => {
     setIsLoading(true);
@@ -51,6 +52,10 @@ const CommentButton = ({ postId }: CommentButtonProps) => {
         }, 
         () => {
           fetchCommentCount();
+          if (!isCommentsModalOpen) {
+            setIsAnimating(true);
+            setTimeout(() => setIsAnimating(false), 1000);
+          }
         }
       )
       .subscribe();
@@ -100,10 +105,14 @@ const CommentButton = ({ postId }: CommentButtonProps) => {
         variant="ghost"
         size="sm"
         onClick={handleCommentClick}
-        className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+        className={`flex items-center gap-1 text-muted-foreground hover:text-foreground transition-all ${isAnimating ? 'animate-pulse' : ''}`}
       >
         <MessageSquare className="h-4 w-4" />
-        <span>{isLoading ? "..." : commentCount}</span>
+        <span
+          className={`${isAnimating ? 'font-medium' : ''}`}
+        >
+          {isLoading ? "..." : commentCount}
+        </span>
         <span className="sr-only md:not-sr-only md:ml-1">Comments</span>
       </Button>
 

@@ -7,9 +7,10 @@ import { personalizePostFeed, PersonalizationContext } from '@/utils/feedPersona
 
 interface UsePostsOptions {
   personalize?: boolean;
+  sortBy?: 'recent' | 'popular' | 'commented';
 }
 
-export const usePosts = (options: UsePostsOptions = { personalize: true }) => {
+export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy: 'recent' }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userFollowings, setUserFollowings] = useState<string[]>([]);
@@ -50,14 +51,45 @@ export const usePosts = (options: UsePostsOptions = { personalize: true }) => {
     }
   };
 
+  // Function to sort posts based on sortBy option
+  const sortPosts = (postsToSort: Post[], sortBy: string = 'recent') => {
+    // Posts are already sorted by recent by default
+    if (sortBy === 'recent') {
+      return postsToSort;
+    }
+
+    return [...postsToSort]; // Return a copy to avoid mutating the original array
+  };
+
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
       
-      const { data: postsData, error: postsError } = await supabase
+      // Initial query
+      let query = supabase
         .from('posts')
-        .select('id, content, created_at, user_id, media_url, media_type, updated_at')
-        .order('created_at', { ascending: false });
+        .select(`
+          id,
+          content,
+          created_at,
+          user_id,
+          media_url,
+          media_type,
+          updated_at,
+          (select count(*) from likes where post_id = posts.id) as likes_count,
+          (select count(*) from comments where post_id = posts.id) as comments_count
+        `);
+      
+      // Sort based on option
+      if (options.sortBy === 'recent') {
+        query = query.order('created_at', { ascending: false });
+      } else if (options.sortBy === 'popular') {
+        query = query.order('likes_count', { ascending: false });
+      } else if (options.sortBy === 'commented') {
+        query = query.order('comments_count', { ascending: false });
+      }
+
+      const { data: postsData, error: postsError } = await query;
 
       if (postsError) throw postsError;
       
@@ -73,7 +105,9 @@ export const usePosts = (options: UsePostsOptions = { personalize: true }) => {
         user_id: post.user_id,
         media_url: post.media_url,
         media_type: post.media_type,
-        author: null
+        author: null,
+        likes_count: post.likes_count,
+        comments_count: post.comments_count
       }));
 
       if (formattedPosts.length > 0) {
@@ -122,7 +156,7 @@ export const usePosts = (options: UsePostsOptions = { personalize: true }) => {
         const personalizedPosts = personalizePostFeed(formattedPosts, personalizationContext);
         setPosts(personalizedPosts);
       } else {
-        // If no personalization or not logged in, just show the posts in chronological order
+        // If no personalization or not logged in, just show the posts in sorted order
         setPosts(formattedPosts);
       }
       
@@ -136,7 +170,7 @@ export const usePosts = (options: UsePostsOptions = { personalize: true }) => {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [options.personalize, options.sortBy]);
 
   return { 
     posts, 

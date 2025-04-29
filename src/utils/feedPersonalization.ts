@@ -46,6 +46,16 @@ export const personalizePostFeed = (posts: Post[], context: PersonalizationConte
     if (hoursSincePosted < 24) {
       score += WEIGHTS.RECENCY * (1 - hoursSincePosted / 24);
     }
+
+    // Boost posts with more likes
+    if (post.likes_count) {
+      score += WEIGHTS.LIKES * Math.min(1, post.likes_count / 10); // Cap at 10 likes for full weight
+    }
+    
+    // Boost posts with more comments
+    if (post.comments_count) {
+      score += WEIGHTS.COMMENTS * Math.min(1, post.comments_count / 5); // Cap at 5 comments for full weight
+    }
     
     return {
       post,

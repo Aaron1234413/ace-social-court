@@ -8,11 +8,19 @@ import PostList from '@/components/social/PostList';
 import { usePosts } from '@/hooks/use-posts';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { MessageSquare, Heart, Clock, TrendingUp } from 'lucide-react';
+
+type SortOption = 'recent' | 'popular' | 'commented';
 
 const Feed = () => {
   const { user } = useAuth();
   const [personalized, setPersonalized] = useState(true);
-  const { posts, isLoading, fetchPosts } = usePosts({ personalize: personalized });
+  const [sortOption, setSortOption] = useState<SortOption>('recent');
+  const { posts, isLoading, fetchPosts } = usePosts({ 
+    personalize: personalized,
+    sortBy: sortOption 
+  });
 
   const handleShare = (postId: string) => {
     console.log(`Shared post ${postId}`);
@@ -21,6 +29,12 @@ const Feed = () => {
 
   const togglePersonalization = () => {
     setPersonalized(!personalized);
+  };
+
+  const handleSortChange = (value: string) => {
+    if (value) {
+      setSortOption(value as SortOption);
+    }
   };
 
   return (
@@ -39,6 +53,27 @@ const Feed = () => {
           </div>
         )}
       </div>
+      
+      {user && (
+        <div className="mb-5">
+          <ToggleGroup 
+            type="single" 
+            value={sortOption}
+            onValueChange={handleSortChange}
+            className="justify-start"
+          >
+            <ToggleGroupItem value="recent" aria-label="Sort by recent">
+              <Clock className="h-4 w-4 mr-1" /> Recent
+            </ToggleGroupItem>
+            <ToggleGroupItem value="popular" aria-label="Sort by likes">
+              <Heart className="h-4 w-4 mr-1" /> Popular
+            </ToggleGroupItem>
+            <ToggleGroupItem value="commented" aria-label="Sort by comments">
+              <MessageSquare className="h-4 w-4 mr-1" /> Discussed
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      )}
       
       {user ? (
         <>

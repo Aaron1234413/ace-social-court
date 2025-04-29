@@ -16,6 +16,7 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
   const [likes, setLikes] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     const fetchLikeData = async () => {
@@ -38,6 +39,26 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
     };
 
     fetchLikeData();
+    
+    // Set up realtime subscription for likes
+    const channel = supabase
+      .channel('public:likes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'likes',
+          filter: `post_id=eq.${postId}`
+        }, 
+        () => {
+          fetchLikeData();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [postId, user]);
 
   const handleLike = async () => {
@@ -47,6 +68,8 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
     }
 
     try {
+      setIsAnimating(true);
+      
       if (isLiked) {
         const { error } = await supabase
           .from('likes')
@@ -56,7 +79,6 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
         if (error) throw error;
         setLikes(prev => prev - 1);
         setIsLiked(false);
-        toast.success("Like removed");
       } else {
         const { error } = await supabase
           .from('likes')
@@ -65,11 +87,14 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
         if (error) throw error;
         setLikes(prev => prev + 1);
         setIsLiked(true);
-        toast.success("Post liked!");
       }
+      
+      // Reset animation state after a short delay
+      setTimeout(() => setIsAnimating(false), 300);
     } catch (error) {
       console.error('Error updating like:', error);
       toast.error("Failed to update like");
+      setIsAnimating(false);
     }
   };
 
@@ -82,12 +107,12 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
       variant="ghost"
       size="sm"
       onClick={handleLike}
-      className="flex items-center gap-1"
+      className={`flex items-center gap-1 transition-all ${isAnimating ? 'scale-110' : ''}`}
     >
       <Heart
-        className={`h-4 w-4 ${isLiked ? 'fill-current text-red-500' : ''}`}
+        className={`h-4 w-4 transition-colors ${isLiked ? 'fill-current text-red-500' : ''} ${isAnimating && !isLiked ? 'animate-ping' : ''}`}
       />
-      {likes}
+      <span className={`${isLiked ? 'text-red-500 font-medium' : ''}`}>{likes}</span>
     </Button>
   );
 };

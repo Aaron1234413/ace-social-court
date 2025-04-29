@@ -10,4 +10,6 @@ export interface Post {
     full_name: string | null;
     user_type: string | null;
   } | null;
+  likes_count?: number;
+  comments_count?: number;
 }
