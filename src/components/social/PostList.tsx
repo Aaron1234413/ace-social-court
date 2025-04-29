@@ -103,8 +103,8 @@ const PostList = ({ posts, currentUserId, handleShare, isLoading }: PostListProp
             )}
           </CardContent>
           <CardFooter className="border-t p-2 md:p-4 flex justify-between">
-            <LikeButton postId={post.id} />
-            <CommentButton postId={post.id} />
+            <LikeButton postId={post.id} postUserId={post.user_id} postContent={post.content} />
+            <CommentButton postId={post.id} postUserId={post.user_id} />
             <Button 
               variant="ghost" 
               size="sm" 
