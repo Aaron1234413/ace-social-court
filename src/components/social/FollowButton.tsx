@@ -5,16 +5,20 @@ import { UserPlus, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
+import { useNotifications } from "@/components/notifications/useNotifications";
 
 interface FollowButtonProps {
   userId: string;
+  username?: string;
+  fullName?: string;
   isFollowing?: boolean;
 }
 
-const FollowButton = ({ userId }: FollowButtonProps) => {
+const FollowButton = ({ userId, username, fullName, isFollowing: initialIsFollowing }: FollowButtonProps) => {
   const { user } = useAuth();
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing || false);
   const [isLoading, setIsLoading] = useState(true);
+  const { createNotification } = useNotifications();
 
   useEffect(() => {
     const checkFollowStatus = async () => {
@@ -62,6 +66,17 @@ const FollowButton = ({ userId }: FollowButtonProps) => {
         if (error) throw error;
         setIsFollowing(true);
         toast.success("User followed!");
+        
+        // Create notification for new follower
+        const displayName = fullName || username || 'Someone';
+        await createNotification({
+          userIds: [userId],
+          type: 'follow',
+          content: `${displayName} started following you`,
+          senderId: user.id,
+          entityId: null,
+          entityType: null
+        });
       }
     } catch (error) {
       console.error('Error following/unfollowing:', error);

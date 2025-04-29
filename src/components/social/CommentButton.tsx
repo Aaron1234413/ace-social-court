@@ -6,17 +6,20 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import CommentsModal from './CommentsModal';
+import { useNotifications } from '@/components/notifications/useNotifications';
 
 interface CommentButtonProps {
   postId: string;
+  postUserId: string;
 }
 
-const CommentButton = ({ postId }: CommentButtonProps) => {
+const CommentButton = ({ postId, postUserId }: CommentButtonProps) => {
   const { user } = useAuth();
   const [commentCount, setCommentCount] = useState(0);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const { createNotification } = useNotifications();
 
   const fetchCommentCount = async () => {
     setIsLoading(true);
@@ -77,13 +80,14 @@ const CommentButton = ({ postId }: CommentButtonProps) => {
     if (!user || !content.trim()) return;
 
     try {
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('comments')
         .insert({
           content,
           post_id: postId,
           user_id: user.id
-        });
+        })
+        .select();
 
       if (error) {
         toast.error("Failed to submit comment");
@@ -93,6 +97,20 @@ const CommentButton = ({ postId }: CommentButtonProps) => {
 
       toast.success("Comment added");
       fetchCommentCount();
+      
+      // Send notification if commenting on someone else's post
+      if (user.id !== postUserId) {
+        const commentPreview = content.length > 30 ? content.substring(0, 30) + '...' : content;
+        
+        await createNotification({
+          userIds: [postUserId],
+          type: 'comment',
+          content: `Someone commented on your post: "${commentPreview}"`,
+          senderId: user.id,
+          entityId: postId,
+          entityType: 'post'
+        });
+      }
     } catch (error) {
       console.error('Error submitting comment:', error);
       toast.error("Something went wrong");
