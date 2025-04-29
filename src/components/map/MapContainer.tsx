@@ -7,10 +7,10 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Primary Ace Social Mapbox token
+// User-provided Mapbox token (primary)
+const USER_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW5rMmpxNmh5eGs5NmgyIn0.GyTAYck1VjlY0OWF8e6Y7w';
+// Fallback Ace Social Mapbox token
 const ACE_SOCIAL_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWNlc29jaWFsIiwiYSI6ImNscGsxY3pzZjIzb2gya3A1cnhwM2Rnb2UifQ.NuO33X9W3CNpUyTKT7_X2Q';
-// Fallback token in case the primary one has issues
-const FALLBACK_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW5rMmpxNmh5eGs5NmgyIn0.GyTAYck1VjlY0OWF8e6Y7w';
 
 interface MapContainerProps {
   className?: string;
@@ -81,14 +81,14 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
 
   // Initialize map on component mount
   useEffect(() => {
-    // Try with primary token first
-    const primarySuccess = initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
+    // Try with user token first (your token)
+    const primarySuccess = initializeMap(USER_MAPBOX_TOKEN);
     
-    // If primary token fails, try fallback after a short delay
+    // If user token fails, try fallback after a short delay
     if (!primarySuccess) {
       const fallbackTimer = setTimeout(() => {
         console.log("Trying fallback token");
-        initializeMap(FALLBACK_MAPBOX_TOKEN);
+        initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
       }, 1000);
       
       return () => {
@@ -126,8 +126,8 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
           onClick={() => {
             setLoading(true);
             setMapError(null);
-            // Try the fallback token
-            initializeMap(FALLBACK_MAPBOX_TOKEN);
+            // Try the fallback token if user token failed
+            initializeMap(ACE_SOCIAL_MAPBOX_TOKEN);
           }}
         >
           Retry
