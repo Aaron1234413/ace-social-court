@@ -18,7 +18,7 @@ interface MapViewProps {
   filters: {
     showPlayers: boolean;
     showCoaches: boolean;
-    showOwnLocation?: boolean; // Added filter
+    showOwnLocation?: boolean; // Defined as optional to match with NearbyUsersLayer interface
   };
   onSelectUser: (user: any) => void;
 }

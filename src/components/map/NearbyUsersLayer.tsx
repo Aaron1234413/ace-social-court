@@ -13,6 +13,7 @@ export type NearbyUser = {
   longitude: number;
   location_name?: string;
   is_static_location?: boolean;
+  is_own_profile?: boolean;
 };
 
 interface NearbyUsersLayerProps {
@@ -21,6 +22,7 @@ interface NearbyUsersLayerProps {
   filters: {
     showPlayers: boolean;
     showCoaches: boolean;
+    showOwnLocation?: boolean; // Added this property
   };
   onSelectUser: (user: NearbyUser) => void;
 }
@@ -28,6 +30,11 @@ interface NearbyUsersLayerProps {
 const NearbyUsersLayer = ({ users, map, filters, onSelectUser }: NearbyUsersLayerProps) => {
   // Filter users based on filters
   const filteredUsers = users.filter(user => {
+    // Handle user's own profile location separately
+    if (user.is_own_profile && filters.showOwnLocation === false) {
+      return false;
+    }
+    
     if (user.user_type === 'player') return filters.showPlayers;
     if (user.user_type === 'coach') return filters.showCoaches;
     return false;
@@ -40,7 +47,8 @@ const NearbyUsersLayer = ({ users, map, filters, onSelectUser }: NearbyUsersLaye
     coordinates: [user.longitude, user.latitude] as [number, number],
     type: user.user_type as 'player' | 'coach',
     userData: user,
-    isStaticLocation: user.is_static_location || false
+    isStaticLocation: user.is_static_location || false,
+    isOwnProfile: user.is_own_profile || false
   }));
   
   // Handle user selection on map

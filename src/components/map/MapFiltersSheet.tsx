@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Filter, Users, MapPin, User, CalendarClock, Tennis, Home } from 'lucide-react';
+import { Filter, Users, MapPin, User, CalendarClock, Home } from 'lucide-react';
 import LocationPrivacyControl from '@/components/map/LocationPrivacyControl';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -20,7 +21,7 @@ interface FilterSettings {
   showCoaches: boolean;
   showEvents: boolean;
   showStaticLocations: boolean;
-  showOwnLocation: boolean; // Added this filter
+  showOwnLocation: boolean;
   distance: number; // in miles
 }
 
@@ -59,7 +60,7 @@ const MapFiltersSheet = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Tennis className="h-4 w-4 text-green-500" />
+                <MapPin className="h-4 w-4 text-green-500" />
                 <Label htmlFor="show-courts">Tennis Courts</Label>
               </div>
               <Switch 
