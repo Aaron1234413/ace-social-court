@@ -130,8 +130,8 @@ const MapExplorer = () => {
       <div className="mt-6">
         <h2 className="text-lg font-semibold mb-3">Nearby Tennis Locations</h2>
         <p className="text-muted-foreground">
-          Use the map to explore tennis courts and connect with players in your area. 
-          Enable location services for the best experience.
+          Explore tennis courts and connect with players in your area. 
+          Allow location access for the best experience.
         </p>
       </div>
     </div>
