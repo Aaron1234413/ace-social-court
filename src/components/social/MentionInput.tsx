@@ -32,6 +32,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
   maxRows = 4
 }) => {
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionStartPosition, setMentionStartPosition] = useState<number | null>(null);
   const [caretPosition, setCaretPosition] = useState<{ top: number, left: number, bottom: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mentionMenuRef = useRef<HTMLDivElement>(null);
@@ -42,6 +43,8 @@ const MentionInput: React.FC<MentionInputProps> = ({
     queryKey: ['mention-suggestions', mentionQuery],
     queryFn: async () => {
       if (!mentionQuery && mentionQuery !== '') return [];
+      
+      console.log('Fetching user suggestions for:', mentionQuery);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -54,6 +57,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
         return [];
       }
       
+      console.log('User suggestions found:', data?.length || 0);
       return data as UserSuggestion[];
     },
     enabled: mentionQuery !== null,
@@ -64,11 +68,19 @@ const MentionInput: React.FC<MentionInputProps> = ({
     if (e.key === '@') {
       updateCaretPosition();
       setMentionQuery('');
+      setMentionStartPosition(textareaRef.current?.selectionStart || null);
+      console.log('@ detected, initiating mention at position:', textareaRef.current?.selectionStart);
     } else if (e.key === 'Enter' && !e.shiftKey && onSubmit) {
-      e.preventDefault();
-      onSubmit();
+      if (mentionQuery !== null && suggestions && suggestions.length > 0) {
+        e.preventDefault();
+        insertMention(suggestions[selectedSuggestionIndex]);
+      } else {
+        e.preventDefault();
+        onSubmit();
+      }
     } else if (e.key === 'Escape' && mentionQuery !== null) {
       setMentionQuery(null);
+      setMentionStartPosition(null);
     } else if (
       mentionQuery !== null && 
       suggestions && 
@@ -135,63 +147,80 @@ const MentionInput: React.FC<MentionInputProps> = ({
     onChange(newValue);
     
     const cursorPosition = e.target.selectionStart;
-    const textBeforeCursor = newValue.substring(0, cursorPosition);
     
-    // Find the last @ symbol in the text before cursor
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
-    if (lastAtIndex !== -1) {
-      // Check if there's a space between the @ and the cursor
-      const textBetweenAtAndCursor = textBeforeCursor.substring(lastAtIndex + 1);
-      
-      // If there's a space or newline, we're not in a mention
-      if (textBetweenAtAndCursor.includes(' ') || textBetweenAtAndCursor.includes('\n')) {
+    // If we're in the middle of typing a mention
+    if (mentionStartPosition !== null) {
+      // Check if we've moved cursor away from the mention area
+      if (cursorPosition < mentionStartPosition) {
         setMentionQuery(null);
+        setMentionStartPosition(null);
+        return;
+      }
+      
+      // Extract the mention query (text between @ and cursor)
+      const query = newValue.substring(mentionStartPosition, cursorPosition);
+      
+      // If there's a space or newline, we're not in a mention anymore
+      if (query.includes(' ') || query.includes('\n')) {
+        setMentionQuery(null);
+        setMentionStartPosition(null);
       } else {
-        // Extract the mention query (text after @)
-        const query = textBetweenAtAndCursor;
         setMentionQuery(query);
         updateCaretPosition();
         setSelectedSuggestionIndex(0); // Reset selection when query changes
       }
     } else {
-      setMentionQuery(null);
+      // Check if we should start a new mention (if there's a @ before the cursor)
+      const textBeforeCursor = newValue.substring(0, cursorPosition);
+      const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+      
+      if (lastAtIndex !== -1) {
+        // Check if there's a space between the last @ and the cursor
+        const textBetweenAtAndCursor = textBeforeCursor.substring(lastAtIndex + 1);
+        
+        // If there's no space or newline, we're in a mention
+        if (!textBetweenAtAndCursor.includes(' ') && !textBetweenAtAndCursor.includes('\n')) {
+          const query = textBetweenAtAndCursor;
+          setMentionQuery(query);
+          setMentionStartPosition(lastAtIndex + 1);
+          updateCaretPosition();
+          setSelectedSuggestionIndex(0);
+          console.log('Detected mention in progress:', query);
+        }
+      }
     }
   };
 
   // Insert a mention at the current cursor position
   const insertMention = (user: UserSuggestion) => {
-    if (!textareaRef.current) return;
+    if (!textareaRef.current || mentionStartPosition === null) return;
     
     const textarea = textareaRef.current;
     const cursorPosition = textarea.selectionStart;
-    const textBeforeCursor = value.substring(0, cursorPosition);
+    const username = user.username || user.id;
+    
+    // Create new text with the mention
+    const textBeforeMention = value.substring(0, mentionStartPosition - 1); // -1 to remove the @
     const textAfterCursor = value.substring(cursorPosition);
+    const newText = `${textBeforeMention}@${username} ${textAfterCursor}`;
     
-    // Find the last @ symbol in the text before cursor
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    // Update the textarea
+    onChange(newText);
     
-    if (lastAtIndex !== -1) {
-      // Create new text with the mention
-      const username = user.username || user.id;
-      const textBeforeMention = value.substring(0, lastAtIndex);
-      const newText = `${textBeforeMention}@${username} ${textAfterCursor}`;
-      
-      // Update the textarea
-      onChange(newText);
-      
-      // Reset mention query
-      setMentionQuery(null);
-      
-      // Set cursor position after the inserted mention
-      setTimeout(() => {
-        if (textareaRef.current) {
-          const newPosition = lastAtIndex + username.length + 2; // +2 for @ and space
-          textareaRef.current.focus();
-          textareaRef.current.setSelectionRange(newPosition, newPosition);
-        }
-      }, 0);
-    }
+    // Reset mention query
+    setMentionQuery(null);
+    setMentionStartPosition(null);
+    
+    // Set cursor position after the inserted mention
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPosition = textBeforeMention.length + username.length + 2; // +2 for @ and space
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
+    
+    console.log('Inserted mention:', username);
   };
 
   // Close mention suggestions when clicking outside
@@ -199,6 +228,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (mentionMenuRef.current && !mentionMenuRef.current.contains(event.target as Node)) {
         setMentionQuery(null);
+        setMentionStartPosition(null);
       }
     };
 

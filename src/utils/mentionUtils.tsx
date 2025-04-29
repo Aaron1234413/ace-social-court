@@ -13,40 +13,46 @@ export const formatTextWithMentions = (text: string): React.ReactNode => {
   // Regular expression to match @username mentions
   const mentionRegex = /@([a-zA-Z0-9_]+)/g;
   
-  // Split the text by mentions
-  const parts = text.split(mentionRegex);
-  
-  // Find all mentions
-  const mentions = text.match(mentionRegex) || [];
+  // Find all matches
+  const matches = Array.from(text.matchAll(mentionRegex));
   
   // If no mentions found, return the original text
-  if (mentions.length === 0) {
+  if (matches.length === 0) {
     return text;
   }
   
-  // Combine parts with mention links
+  // Build the result with mentions as links
   const result: React.ReactNode[] = [];
+  let lastIndex = 0;
   
-  parts.forEach((part, index) => {
-    // Add the text part
-    if (part) {
-      result.push(part);
+  matches.forEach((match, index) => {
+    const matchIndex = match.index!;
+    const username = match[1]; // The captured group (without @)
+    
+    // Add text before the mention
+    if (matchIndex > lastIndex) {
+      result.push(text.substring(lastIndex, matchIndex));
     }
     
-    // Add the mention link (if any)
-    if (index < mentions.length) {
-      const username = mentions[index].substring(1); // Remove @ sign
-      result.push(
-        <Link 
-          key={`mention-${index}`}
-          to={`/profile/${username}`}
-          className="font-medium text-primary hover:underline"
-        >
-          @{username}
-        </Link>
-      );
-    }
+    // Add the mention link
+    result.push(
+      <Link 
+        key={`mention-${index}`}
+        to={`/profile/${username}`}
+        className="font-medium text-primary hover:underline"
+      >
+        @{username}
+      </Link>
+    );
+    
+    // Update lastIndex to after this mention
+    lastIndex = matchIndex + match[0].length;
   });
+  
+  // Add any text after the last mention
+  if (lastIndex < text.length) {
+    result.push(text.substring(lastIndex));
+  }
   
   return result;
 };
@@ -60,7 +66,7 @@ export const extractMentions = (text: string): string[] => {
   if (!text) return [];
   
   const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-  const mentions = text.match(mentionRegex) || [];
+  const matches = Array.from(text.matchAll(mentionRegex));
   
-  return mentions.map(mention => mention.substring(1));
+  return matches.map(match => match[1]); // Return the captured group (without @)
 };
