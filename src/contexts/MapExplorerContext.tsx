@@ -19,7 +19,7 @@ interface FilterSettings {
   showEvents: boolean;
   showStaticLocations: boolean;
   showOwnLocation: boolean;
-  showFollowing: boolean; // Added this property
+  showFollowing: boolean; 
   distance: number; // in miles
   state: string | null; // Filter for state
 }
@@ -57,6 +57,7 @@ interface MapExplorerContextType {
   handleUserPositionUpdate: (position: { lng: number; lat: number }) => void;
   handleUserSelect: (user: NearbyUser) => void;
   handleCourtSelect: (court: TennisCourt) => void;
+  showAllCourts: () => void;  // Add this function to the context type
 }
 
 const MapExplorerContext = createContext<MapExplorerContextType | undefined>(undefined);
@@ -354,6 +355,12 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  // Function to manually switch to fallback mode
+  const showAllCourts = () => {
+    setShouldFallbackToAllCourts(true);
+    toast.info("Showing all tennis courts across the USA.");
+  };
+
   return (
     <MapExplorerContext.Provider
       value={{
@@ -389,6 +396,7 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         handleUserPositionUpdate,
         handleUserSelect,
         handleCourtSelect,
+        showAllCourts, // Add the function to the context value
       }}
     >
       {children}
