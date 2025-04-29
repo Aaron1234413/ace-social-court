@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Share } from 'lucide-react';
 import LikeButton from '@/components/social/LikeButton';
 import CommentButton from '@/components/social/CommentButton';
+import ShareButton from '@/components/social/ShareButton';
 import FollowButton from '@/components/social/FollowButton';
 import { Post } from '@/types/post';
 import { formatDistanceToNow } from 'date-fns';
@@ -12,11 +10,11 @@ import { formatDistanceToNow } from 'date-fns';
 interface PostListProps {
   posts: Post[];
   currentUserId?: string;
-  handleShare: (postId: string) => void;
+  handleShare?: (postId: string) => void;
   isLoading: boolean;
 }
 
-const PostList = ({ posts, currentUserId, handleShare, isLoading }: PostListProps) => {
+const PostList = ({ posts, currentUserId, isLoading }: PostListProps) => {
   if (isLoading) {
     return (
       <div className="space-y-4 md:space-y-6">
@@ -105,15 +103,7 @@ const PostList = ({ posts, currentUserId, handleShare, isLoading }: PostListProp
           <CardFooter className="border-t p-2 md:p-4 flex justify-between">
             <LikeButton postId={post.id} postUserId={post.user_id} postContent={post.content} />
             <CommentButton postId={post.id} postUserId={post.user_id} />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => handleShare(post.id)}
-              className="flex items-center gap-1 text-xs md:text-sm"
-              aria-label="Share post"
-            >
-              <Share className="h-3 w-3 md:h-4 md:w-4" /> <span className="hidden sm:inline">Share</span>
-            </Button>
+            <ShareButton postId={post.id} postContent={post.content} />
           </CardFooter>
         </Card>
       ))}

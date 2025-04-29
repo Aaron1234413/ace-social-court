@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PostList from '@/components/social/PostList';
@@ -21,11 +20,6 @@ const Feed = () => {
     personalize: personalized,
     sortBy: sortOption 
   });
-
-  const handleShare = (postId: string) => {
-    console.log(`Shared post ${postId}`);
-    toast.info("Share feature coming soon!");
-  };
 
   const togglePersonalization = () => {
     setPersonalized(!personalized);
@@ -84,7 +78,6 @@ const Feed = () => {
           <PostList 
             posts={posts}
             currentUserId={user.id}
-            handleShare={handleShare}
             isLoading={isLoading}
           />
         </>
