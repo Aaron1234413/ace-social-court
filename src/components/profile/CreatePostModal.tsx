@@ -1,14 +1,11 @@
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { Image, Video, Loader2, Upload } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { useQuery } from '@tanstack/react-query';
+import { CreatePostForm } from './post/CreatePostForm';
 
 interface CreatePostModalProps {
   open: boolean;
@@ -52,11 +49,11 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       return;
     }
 
-    // Check file size (50MB max)
-    if (file.size > 50 * 1024 * 1024) {
+    // Check file size (200MB max)
+    if (file.size > 200 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "File size should be less than 50MB",
+        description: "File size should be less than 200MB",
         variant: "destructive",
       });
       return;
@@ -99,7 +96,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       const fileExt = mediaFile.name.split('.').pop();
       const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
       
-      const { error: uploadError, data: uploadData } = await supabase
+      const { error: uploadError } = await supabase
         .storage
         .from('posts')
         .upload(filePath, mediaFile);
@@ -151,6 +148,12 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     }
   };
 
+  const handleClearMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    setMediaType(null);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -161,90 +164,18 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4">
-          {!mediaPreview ? (
-            <div className="border-2 border-dashed rounded-lg p-6 text-center">
-              <div className="flex justify-center mb-4">
-                <Image className="mr-2 h-6 w-6 text-muted-foreground" />
-                <Video className="ml-2 h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Drag and drop an image or video (max 50MB), or click to browse
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => document.getElementById('media-upload')?.click()}
-                className="relative"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Select Media
-              </Button>
-              <input
-                id="media-upload"
-                type="file"
-                accept="image/*,video/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-          ) : (
-            <div className="relative">
-              <div className="aspect-square max-h-[350px] rounded-md overflow-hidden flex items-center justify-center bg-black">
-                {mediaType === 'image' ? (
-                  <img 
-                    src={mediaPreview} 
-                    alt="Preview" 
-                    className="max-h-full max-w-full object-contain" 
-                  />
-                ) : (
-                  <video 
-                    src={mediaPreview} 
-                    className="max-h-full max-w-full"
-                    controls
-                  />
-                )}
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="absolute top-2 right-2"
-                onClick={() => {
-                  setMediaFile(null);
-                  setMediaPreview(null);
-                  setMediaType(null);
-                }}
-              >
-                Change
-              </Button>
-            </div>
-          )}
-
-          <div>
-            <Textarea 
-              placeholder="Write a caption..." 
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="resize-none"
-              rows={4}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={!mediaFile || isUploading}>
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                'Share'
-              )}
-            </Button>
-          </div>
-        </div>
+        <CreatePostForm
+          caption={caption}
+          setCaption={setCaption}
+          mediaFile={mediaFile}
+          mediaPreview={mediaPreview}
+          mediaType={mediaType}
+          isUploading={isUploading}
+          onMediaSelect={handleFileChange}
+          onSubmit={handleSubmit}
+          onCancel={handleClose}
+          onClearMedia={handleClearMedia}
+        />
       </DialogContent>
     </Dialog>
   );
