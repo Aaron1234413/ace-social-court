@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from '@/components/ui/card';
-import { Loader2, RefreshCw, Locate } from 'lucide-react';
+import { Loader2, RefreshCw, Locate, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -12,18 +12,38 @@ const USER_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW
 // Fallback Ace Social Mapbox token
 const ACE_SOCIAL_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWNlc29jaWFsIiwiYSI6ImNscGsxY3pzZjIzb2gya3A1cnhwM2Rnb2UifQ.NuO33X9W3CNpUyTKT7_X2Q';
 
+interface LocationPrivacySettings {
+  shareExactLocation: boolean;
+  showOnMap: boolean;
+  locationHistory: boolean;
+}
+
 interface MapContainerProps {
   className?: string;
   height?: string;
+  locationPrivacySettings?: LocationPrivacySettings;
 }
 
-const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => {
+const defaultPrivacySettings: LocationPrivacySettings = {
+  shareExactLocation: false,
+  showOnMap: false,
+  locationHistory: false
+};
+
+const MapContainer = ({ 
+  className, 
+  height = 'h-[70vh]',
+  locationPrivacySettings = defaultPrivacySettings
+}: MapContainerProps) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const mapInitializedRef = useRef(false);
   const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
+  const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const [userPosition, setUserPosition] = useState<{lng: number, lat: number} | null>(null);
+  const [locationWarning, setLocationWarning] = useState<string | null>(null);
 
   const initializeMap = (token: string) => {
     if (!mapContainerRef.current) {
@@ -70,16 +90,23 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
         try {
           geolocateControlRef.current = new mapboxgl.GeolocateControl({
             positionOptions: {
-              enableHighAccuracy: true
+              enableHighAccuracy: locationPrivacySettings.shareExactLocation,
+              timeout: 6000
             },
-            trackUserLocation: true,
-            showUserHeading: true
+            trackUserLocation: locationPrivacySettings.locationHistory,
+            showUserHeading: locationPrivacySettings.shareExactLocation,
+            showUserLocation: false // We'll handle displaying user location ourselves
           });
           
           mapInstanceRef.current?.addControl(
             geolocateControlRef.current,
             'top-right'
           );
+          
+          // Listen to position changes if user has enabled location sharing
+          if (locationPrivacySettings.showOnMap) {
+            setupLocationTracking();
+          }
         } catch (error) {
           console.warn("Could not add geolocation control:", error);
         }
@@ -104,6 +131,86 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
     }
   };
 
+  const setupLocationTracking = () => {
+    if (!mapInstanceRef.current || !geolocateControlRef.current) return;
+    
+    // Listen for geolocate events to update our user position
+    const geolocateControl = geolocateControlRef.current;
+    
+    mapInstanceRef.current.on('geolocate', (e) => {
+      // This event provides the user's location
+      const { longitude, latitude } = e.coords;
+      
+      // Store user position
+      setUserPosition({
+        lng: longitude,
+        lat: latitude
+      });
+      
+      // If user wants to show location on map, add or update marker
+      if (locationPrivacySettings.showOnMap) {
+        updateUserMarker(longitude, latitude);
+      }
+      
+      console.log("User location:", longitude, latitude);
+      setLocationWarning(null);
+    });
+    
+    // Handle errors in geolocation
+    geolocateControl.on('error', (e) => {
+      console.error("Geolocation error:", e.error);
+      setLocationWarning(e.error?.message || "Could not determine your location");
+      
+      if (userMarkerRef.current && !locationPrivacySettings.showOnMap) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+    });
+  };
+  
+  const updateUserMarker = (longitude: number, latitude: number) => {
+    if (!mapInstanceRef.current) return;
+    
+    // If we should show user on map
+    if (locationPrivacySettings.showOnMap) {
+      // Remove existing marker if precision changed
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+      }
+      
+      // Create marker element
+      const el = document.createElement('div');
+      el.className = 'user-location-marker';
+      
+      if (locationPrivacySettings.shareExactLocation) {
+        // Precise location marker (blue dot)
+        el.innerHTML = `
+          <div class="relative">
+            <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
+            <div class="absolute -inset-1 bg-blue-500 rounded-full opacity-30 animate-ping"></div>
+          </div>
+        `;
+      } else {
+        // Approximate location marker (larger blue circle)
+        el.innerHTML = `
+          <div class="w-8 h-8 bg-blue-500 rounded-full opacity-30"></div>
+        `;
+      }
+      
+      // Create the marker
+      userMarkerRef.current = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center'
+      })
+        .setLngLat([longitude, latitude])
+        .addTo(mapInstanceRef.current);
+    } else if (userMarkerRef.current) {
+      // Remove marker if user disabled showing location
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
+  };
+
   const findUserLocation = () => {
     if (!mapInstanceRef.current || !geolocateControlRef.current) {
       toast.error("Map is not ready yet");
@@ -119,6 +226,43 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
       toast.error("Could not access your location");
     }
   };
+  
+  // Clean up user marker when privacy settings change
+  useEffect(() => {
+    if (mapInstanceRef.current && userPosition) {
+      if (locationPrivacySettings.showOnMap) {
+        updateUserMarker(userPosition.lng, userPosition.lat);
+      } else if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+    }
+    
+    // Update geolocate control settings if it exists
+    if (geolocateControlRef.current && mapInstanceRef.current) {
+      // We need to remove and re-add the control to update its settings
+      mapInstanceRef.current.removeControl(geolocateControlRef.current);
+      
+      geolocateControlRef.current = new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: locationPrivacySettings.shareExactLocation,
+          timeout: 6000
+        },
+        trackUserLocation: locationPrivacySettings.locationHistory,
+        showUserHeading: locationPrivacySettings.shareExactLocation,
+        showUserLocation: false // We'll handle displaying user location ourselves
+      });
+      
+      mapInstanceRef.current.addControl(
+        geolocateControlRef.current,
+        'top-right'
+      );
+      
+      if (locationPrivacySettings.showOnMap) {
+        setupLocationTracking();
+      }
+    }
+  }, [locationPrivacySettings]);
 
   useEffect(() => {
     // Ensure component is fully mounted and container exists in DOM
@@ -205,6 +349,13 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
             <Locate className="h-4 w-4" />
             Find my location
           </Button>
+          
+          {locationWarning && (
+            <div className="mt-2 bg-amber-50 border border-amber-200 p-2 rounded-md text-xs text-amber-800 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+              <span>{locationWarning}</span>
+            </div>
+          )}
         </div>
       )}
     </Card>

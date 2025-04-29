@@ -9,7 +9,9 @@ import {
   Calendar,
   SlidersHorizontal,
   Loader2,
-  MapPinCheck
+  MapPinCheck,
+  Lock,
+  Shield
 } from 'lucide-react';
 import {
   Sheet,
@@ -22,7 +24,9 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
+import LocationPrivacyControl from '@/components/map/LocationPrivacyControl';
 
 const MapExplorer = () => {
   const [filters, setFilters] = useState({
@@ -35,6 +39,11 @@ const MapExplorer = () => {
   
   const [isReady, setIsReady] = useState(false);
   const [userLocationEnabled, setUserLocationEnabled] = useState(false);
+  const [locationPrivacy, setLocationPrivacy] = useState({
+    shareExactLocation: false,
+    showOnMap: false,
+    locationHistory: false,
+  });
   
   useEffect(() => {
     // Ensure the component is fully mounted
@@ -60,6 +69,30 @@ const MapExplorer = () => {
       ...prev,
       distance: value[0]
     }));
+  };
+
+  const togglePrivacySetting = (key: keyof typeof locationPrivacy) => {
+    setLocationPrivacy(prev => {
+      const newSettings = {
+        ...prev,
+        [key]: !prev[key]
+      };
+      
+      // If they disable showing on map, also disable exact location sharing
+      if (key === 'showOnMap' && !newSettings.showOnMap) {
+        newSettings.shareExactLocation = false;
+      }
+      
+      // If they enable exact location, also enable showing on map
+      if (key === 'shareExactLocation' && newSettings.shareExactLocation) {
+        newSettings.showOnMap = true;
+      }
+      
+      // Show toast for changes
+      toast.info(`Location ${key} ${newSettings[key] ? 'enabled' : 'disabled'}`);
+      
+      return newSettings;
+    });
   };
 
   useEffect(() => {
@@ -156,17 +189,26 @@ const MapExplorer = () => {
                 <Separator />
                 
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Location Settings</h3>
-                  <p className="text-xs text-muted-foreground mb-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">Location Settings</h3>
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground mb-3">
                     {userLocationEnabled 
                       ? "Location access is enabled" 
                       : "Enable location access for better results"}
                   </p>
                   
-                  {userLocationEnabled && (
-                    <div className="flex items-center gap-2 text-sm text-green-600">
-                      <MapPinCheck className="h-4 w-4" />
-                      <span>Location services active</span>
+                  {userLocationEnabled ? (
+                    <LocationPrivacyControl 
+                      settings={locationPrivacy} 
+                      onChange={togglePrivacySetting} 
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-amber-600">
+                      <Shield className="h-4 w-4" />
+                      <span>Location services are disabled</span>
                     </div>
                   )}
                 </div>
@@ -177,7 +219,11 @@ const MapExplorer = () => {
       </div>
       
       {isReady ? (
-        <MapContainer className="rounded-lg shadow-md" height="h-[60vh]" />
+        <MapContainer 
+          className="rounded-lg shadow-md" 
+          height="h-[60vh]" 
+          locationPrivacySettings={locationPrivacy}
+        />
       ) : (
         <div className="rounded-lg shadow-md h-[60vh] flex items-center justify-center bg-muted">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -190,6 +236,26 @@ const MapExplorer = () => {
           Explore tennis courts and connect with players in your area. 
           {!userLocationEnabled && " Allow location access for the best experience."}
         </p>
+        
+        {userLocationEnabled && locationPrivacy.showOnMap && (
+          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-green-700">
+              <MapPinCheck className="h-4 w-4" />
+              <span>
+                Your {locationPrivacy.shareExactLocation ? 'exact' : 'approximate'} location is visible to other tennis players
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {userLocationEnabled && !locationPrivacy.showOnMap && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-700">
+              <Shield className="h-4 w-4" />
+              <span>Your location is private and not visible to others</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
