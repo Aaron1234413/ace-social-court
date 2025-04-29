@@ -1,47 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import MapContainer from '@/components/map/MapContainer';
-import { Button } from '@/components/ui/button';
-import { 
-  MapPin, 
-  Users, 
-  UserCog,
-  Calendar,
-  SlidersHorizontal,
-  Loader2,
-  MapPinCheck,
-  Lock,
-  Shield
-} from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Toggle } from "@/components/ui/toggle";
-import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
-import { toast } from 'sonner';
-import LocationPrivacyControl from '@/components/map/LocationPrivacyControl';
-import NearbyUsersList from '@/components/map/NearbyUsersList';
-import NearbyUsersLayer from '@/components/map/NearbyUsersLayer';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card } from '@/components/ui/card';
 import { useAuth } from '@/components/AuthProvider';
+import { toast } from 'sonner';
 
-// Define the location privacy type for better type safety
+// Import refactored components
+import MapView from '@/components/map/MapView';
+import MapFiltersSheet from '@/components/map/MapFiltersSheet';
+import NearbyUsersList from '@/components/map/NearbyUsersList';
+import LocationStatusCard from '@/components/map/LocationStatusCard';
+
+// Define types
 interface LocationPrivacySettings {
   shareExactLocation: boolean;
   showOnMap: boolean;
   locationHistory: boolean;
 }
 
+interface FilterSettings {
+  showCourts: boolean;
+  showPlayers: boolean;
+  showCoaches: boolean;
+  showEvents: boolean;
+  distance: number; // in miles
+}
+
 const MapExplorer = () => {
   const { user } = useAuth();
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FilterSettings>({
     showCourts: true,
     showPlayers: true,
     showCoaches: true,
@@ -60,7 +46,7 @@ const MapExplorer = () => {
   const [userPosition, setUserPosition] = useState<{lng: number, lat: number} | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   
-  // Query for nearby users using our new Supabase function
+  // Query for nearby users using our Supabase function
   const { data: nearbyUsers, isLoading: isLoadingNearbyUsers } = useQuery({
     queryKey: ['nearby-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches],
     queryFn: async () => {
@@ -166,20 +152,10 @@ const MapExplorer = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  const toggleFilter = (key: keyof typeof filters) => {
+  const handleFilterChange = (key: keyof FilterSettings, value: any) => {
     setFilters(prev => ({
       ...prev,
-      [key]: !prev[key]
-    }));
-    
-    // Show toast for filter changes
-    toast.info(`${key.replace('show', '')} ${filters[key] ? 'hidden' : 'shown'}`);
-  };
-
-  const setDistance = (value: number[]) => {
-    setFilters(prev => ({
-      ...prev,
-      distance: value[0]
+      [key]: value
     }));
   };
 
@@ -293,140 +269,32 @@ const MapExplorer = () => {
           <h1 className="text-2xl font-bold">Tennis Map</h1>
           <p className="text-muted-foreground">Find courts, players, and coaches near you</p>
         </div>
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Map Filters</SheetTitle>
-              <SheetDescription>
-                Control what you see on the tennis map.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="py-4 space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Location Types</h3>
-                <div className="flex flex-wrap gap-2">
-                  <Toggle 
-                    pressed={filters.showCourts} 
-                    onPressedChange={() => toggleFilter('showCourts')}
-                    className="gap-2"
-                  >
-                    <MapPin className="h-4 w-4" /> Courts
-                  </Toggle>
-                  <Toggle 
-                    pressed={filters.showPlayers} 
-                    onPressedChange={() => toggleFilter('showPlayers')}
-                    className="gap-2"
-                  >
-                    <Users className="h-4 w-4" /> Players
-                  </Toggle>
-                  <Toggle 
-                    pressed={filters.showCoaches} 
-                    onPressedChange={() => toggleFilter('showCoaches')}
-                    className="gap-2"
-                  >
-                    <UserCog className="h-4 w-4" /> Coaches
-                  </Toggle>
-                  <Toggle 
-                    pressed={filters.showEvents} 
-                    onPressedChange={() => toggleFilter('showEvents')}
-                    className="gap-2"
-                  >
-                    <Calendar className="h-4 w-4" /> Events
-                  </Toggle>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Distance</h3>
-                  <div className="px-2">
-                    <Slider 
-                      defaultValue={[filters.distance]} 
-                      max={100} 
-                      step={5} 
-                      onValueChange={setDistance}
-                    />
-                    <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                      <span>0 mi</span>
-                      <span>{filters.distance} mi</span>
-                      <span>100 mi</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">Location Settings</h3>
-                    {!user && <Lock className="h-4 w-4 text-muted-foreground" />}
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground mb-3">
-                    {!user
-                      ? "Sign in to share your location"
-                      : userLocationEnabled 
-                        ? "Location access is enabled" 
-                        : "Enable location access for better results"}
-                  </p>
-                  
-                  {userLocationEnabled && user ? (
-                    <LocationPrivacyControl 
-                      settings={locationPrivacy} 
-                      onChange={togglePrivacySetting} 
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm text-amber-600">
-                      <Shield className="h-4 w-4" />
-                      <span>
-                        {!user
-                          ? "Sign in to share your location"
-                          : "Location services are disabled"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+        
+        <MapFiltersSheet 
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          locationPrivacy={locationPrivacy}
+          onPrivacyChange={togglePrivacySetting}
+          userLocationEnabled={userLocationEnabled}
+          isUserLoggedIn={!!user}
+        />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
-          {isReady ? (
-            <MapContainer 
-              className="rounded-lg shadow-md" 
-              height="h-[70vh]" 
-              locationPrivacySettings={locationPrivacy}
-              onMapInitialized={setMapInstance}
-              onUserPositionUpdate={handleUserPositionUpdate}
-            >
-              {mapInstance && nearbyUsers && (
-                <NearbyUsersLayer 
-                  users={nearbyUsers} 
-                  map={mapInstance}
-                  filters={{
-                    showPlayers: filters.showPlayers,
-                    showCoaches: filters.showCoaches
-                  }}
-                  onSelectUser={handleUserSelect}
-                />
-              )}
-            </MapContainer>
-          ) : (
-            <div className="rounded-lg shadow-md h-[70vh] flex items-center justify-center bg-muted">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          )}
+          <MapView 
+            isReady={isReady}
+            locationPrivacy={locationPrivacy}
+            onMapInitialized={setMapInstance}
+            onUserPositionUpdate={handleUserPositionUpdate}
+            mapInstance={mapInstance}
+            nearbyUsers={nearbyUsers || null}
+            filters={{
+              showPlayers: filters.showPlayers,
+              showCoaches: filters.showCoaches
+            }}
+            onSelectUser={handleUserSelect}
+          />
         </div>
         
         <div className="space-y-4">
@@ -436,65 +304,13 @@ const MapExplorer = () => {
             onUserSelect={handleUserSelect}
           />
           
-          <Card className="p-4">
-            <h3 className="font-semibold mb-2">Your Location Status</h3>
-            {user ? (
-              userLocationEnabled && locationPrivacy.showOnMap ? (
-                <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm text-green-700">
-                    <MapPinCheck className="h-4 w-4" />
-                    <span>
-                      Your {locationPrivacy.shareExactLocation ? 'exact' : 'approximate'} location is visible to other tennis players
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm text-blue-700">
-                    <Shield className="h-4 w-4" />
-                    <span>Your location is private and not visible to others</span>
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-amber-700">
-                  <Lock className="h-4 w-4" />
-                  <span>Sign in to share your location with other players</span>
-                </div>
-              </div>
-            )}
-            
-            {!userPosition && userLocationEnabled && (
-              <Button
-                className="mt-3 w-full"
-                size="sm"
-                onClick={() => {
-                  if (mapInstance && navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                      (position) => {
-                        const { longitude, latitude } = position.coords;
-                        mapInstance.flyTo({
-                          center: [longitude, latitude],
-                          zoom: 14
-                        });
-                        toast.success("Location found");
-                      },
-                      (error) => {
-                        console.error("Error getting location:", error);
-                        toast.error("Could not find your location");
-                      }
-                    );
-                  } else {
-                    toast.info("Finding your location...");
-                  }
-                }}
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                Find my location
-              </Button>
-            )}
-          </Card>
+          <LocationStatusCard 
+            isLoggedIn={!!user}
+            userLocationEnabled={userLocationEnabled}
+            locationPrivacy={locationPrivacy}
+            userPosition={userPosition}
+            mapInstance={mapInstance}
+          />
         </div>
       </div>
     </div>
