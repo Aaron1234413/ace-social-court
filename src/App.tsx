@@ -6,7 +6,7 @@ import {
   Route,
   Navigate
 } from 'react-router-dom';
-import { useAuth } from './components/AuthProvider';
+import { useAuth, AuthProvider } from './components/AuthProvider';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
@@ -18,33 +18,47 @@ import Messages from './pages/Messages';
 import Search from './pages/Search';
 import NotFound from './pages/NotFound';
 import MapExplorer from './pages/MapExplorer';
+import { Loader2 } from 'lucide-react';
 
-function App() {
+// Create a separate component for the routes to use the auth hook
+function AppRoutes() {
   const { user, session } = useAuth();
   const isLoading = session === null && user === null;
 
   // Show loading indicator while checking auth status
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/feed" element={<Feed />} />
+      <Route path="/post/:id" element={<PostDetail />} />
+      <Route path="/profile/:id?" element={<Profile />} />
+      <Route path="/profile/edit" element={<ProfileEdit />} />
+      <Route path="/notifications" element={<Notifications />} />
+      <Route path="/messages/:chatId?" element={<Messages />} />
+      <Route path="/search" element={<Search />} />
+      <Route path="/map" element={<MapExplorer />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
     <div className="app">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/feed" element={<Feed />} />
-          <Route path="/post/:id" element={<PostDetail />} />
-          <Route path="/profile/:id?" element={<Profile />} />
-          <Route path="/profile/edit" element={<ProfileEdit />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/messages/:chatId?" element={<Messages />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/map" element={<MapExplorer />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
     </div>
   );
 }

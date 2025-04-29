@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -51,6 +52,14 @@ const Profile = () => {
     enabled: !!userId
   });
 
+  if (!userId) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
@@ -69,15 +78,15 @@ const Profile = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
-      <ProfileHeader userId={userId!} isOwnProfile={isOwnProfile} />
+      <ProfileHeader userId={userId} isOwnProfile={isOwnProfile} />
       <Separator />
-      <ProfileMediaGallery userId={userId!} />
+      <ProfileMediaGallery userId={userId} />
       <Separator />
-      <AchievementsList userId={userId!} />
+      <AchievementsList userId={userId} />
       {profile.user_type === 'coach' && (
         <>
           <Separator />
-          <CertificationsList userId={userId!} />
+          <CertificationsList userId={userId} />
         </>
       )}
     </div>
