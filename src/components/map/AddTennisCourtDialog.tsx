@@ -92,14 +92,18 @@ const AddTennisCourtDialog = () => {
   };
 
   const handleLocationSelect = () => {
+    console.log("Opening location picker");
     setShowLocationPicker(true);
   };
 
   const handleLocationPickerClose = () => {
+    console.log("Closing location picker");
     setShowLocationPicker(false);
   };
 
   const handleLocationPickerSelect = (lat: number, lng: number, address: string) => {
+    console.log("Location selected:", lat, lng, address);
+    
     // Parse the address to extract city, state, country if possible
     let city = '';
     let state = '';
@@ -163,6 +167,8 @@ const AddTennisCourtDialog = () => {
     setIsSubmitting(true);
 
     try {
+      console.log("Submitting tennis court data:", formData);
+      
       const { data, error } = await supabase
         .from('tennis_courts')
         .insert([
@@ -253,7 +259,7 @@ const AddTennisCourtDialog = () => {
                 {(formData.latitude !== 0 || formData.longitude !== 0) && (
                   <div className="bg-muted p-3 rounded-md">
                     <p className="text-sm font-medium">Selected Location:</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1 break-words">
                       {formData.address ? (
                         <>
                           {formData.address}, {formData.city}, {formData.state}, {formData.country}

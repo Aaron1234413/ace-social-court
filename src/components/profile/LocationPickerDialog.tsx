@@ -8,6 +8,7 @@ import { MapPin, Search, Loader2, AlertCircle } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 // User-provided Mapbox token (primary)
 const USER_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW5rMmpxNmh5eGs5NmgyIn0.GyTAYck1VjlY0OWF8e6Y7w';
@@ -50,12 +51,14 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     try {
       // Try primary token first
       mapboxgl.accessToken = USER_MAPBOX_TOKEN;
+      console.log('Set primary Mapbox token');
       return true;
     } catch (error) {
       console.error('Error setting primary Mapbox token:', error);
       try {
         // Fall back to secondary token if primary fails
         mapboxgl.accessToken = ACE_SOCIAL_MAPBOX_TOKEN;
+        console.log('Set fallback Mapbox token');
         return true;
       } catch (fallbackError) {
         console.error('Error setting fallback Mapbox token:', fallbackError);
@@ -72,6 +75,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     const initMap = async () => {
       setLoading(true);
       setMapError(null);
+      console.log('Initializing map...');
 
       // Set the Mapbox token first
       if (!setMapboxToken()) {
@@ -90,6 +94,8 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           zoom: initialLatitude && initialLongitude ? 13 : 3
         });
 
+        console.log('Map created');
+        
         // Add navigation controls
         map.current.addControl(
           new mapboxgl.NavigationControl(),
@@ -101,6 +107,8 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
             .setLngLat([initialLongitude, initialLatitude])
             .addTo(map.current);
+
+          console.log('Added initial marker at:', initialLatitude, initialLongitude);
 
           // Get address for initial position
           const address = await reverseGeocode(initialLatitude, initialLongitude);
@@ -118,6 +126,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         map.current.on('click', handleMapClick);
 
         map.current.on('load', () => {
+          console.log('Map loaded successfully');
           setLoading(false);
           setMapInitialized(true);
         });
@@ -174,6 +183,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       const address = await reverseGeocode(lat, lng);
       setSelectedPosition({ lat, lng, address });
       console.log('Location selected:', { lat, lng, address });
+      toast.success('Location selected!');
     } catch (error) {
       console.error('Error getting address:', error);
       // Even if we fail to get the address, set the position with coordinates
@@ -182,6 +192,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         lng, 
         address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
       });
+      toast.info('Location selected with coordinates only.');
     }
   };
 
@@ -221,6 +232,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     setIsSearching(true);
     setSearchError(null);
     setSearchResults([]);
+    console.log('Searching for:', searchQuery);
     
     try {
       // Make sure we have a token set before searching
@@ -285,6 +297,8 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       address: result.place_name
     });
     
+    toast.success('Location selected!');
+    
     // Clear search results
     setSearchResults([]);
     setSearchQuery('');
@@ -297,6 +311,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         setMapboxToken();
       }
       
+      console.log('Reverse geocoding:', lat, lng);
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`
       );
@@ -306,6 +321,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       }
       
       const data = await response.json();
+      console.log('Reverse geocoding result:', data);
       return data.features && data.features.length > 0 
         ? data.features[0].place_name 
         : `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
@@ -318,13 +334,16 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   // Handle form submission
   const handleSubmit = () => {
     if (selectedPosition) {
-      console.log('Submitting location:', selectedPosition);
+      console.log('Confirming location:', selectedPosition);
       onSelectLocation(
         selectedPosition.lat, 
         selectedPosition.lng, 
         selectedPosition.address
       );
+      toast.success('Location confirmed!');
       onClose();
+    } else {
+      toast.error('Please select a location first.');
     }
   };
 
@@ -416,7 +435,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
               <Label className="text-xs text-muted-foreground">Selected Location</Label>
               <div className="flex items-center gap-2 mt-1">
                 <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-                <span className="text-sm">{selectedPosition.address}</span>
+                <span className="text-sm break-words">{selectedPosition.address}</span>
               </div>
             </div>
           )}
