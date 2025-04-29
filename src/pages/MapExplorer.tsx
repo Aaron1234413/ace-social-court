@@ -20,6 +20,7 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { toast } from 'sonner';
 
 const MapExplorer = () => {
   const [filters, setFilters] = useState({
@@ -35,6 +36,9 @@ const MapExplorer = () => {
       ...prev,
       [key]: !prev[key]
     }));
+    
+    // Show toast for filter changes (helpful for debugging)
+    toast.info(`${key.replace('show', '')} ${filters[key] ? 'hidden' : 'shown'}`);
   };
 
   const setDistance = (value: number[]) => {
