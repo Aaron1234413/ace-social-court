@@ -14,6 +14,7 @@ import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 import ProfileEdit from "./pages/ProfileEdit";
 import Notifications from "./pages/Notifications";
+import Messages from "./pages/Messages";
 import { useState } from "react";
 
 const App = () => {
@@ -39,6 +40,8 @@ const App = () => {
                   <Route path="/feed" element={<Feed />} />
                   <Route path="/search" element={<Search />} />
                   <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/messages/:id" element={<Messages />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

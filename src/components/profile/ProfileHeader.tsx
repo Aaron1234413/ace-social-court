@@ -1,9 +1,11 @@
-
-import { useAuth } from '@/components/AuthProvider';
-import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Pencil } from 'lucide-react';
+import FollowButton from '@/components/social/FollowButton';
+import MessageButton from '@/components/messages/MessageButton';
 
 interface ProfileHeaderProps {
   userId: string;
@@ -11,8 +13,8 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
-  const { data: profile } = useQuery({
-    queryKey: ['profile', userId],
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile-header', userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -25,19 +27,8 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     }
   });
 
-  const { data: followerCount } = useQuery({
-    queryKey: ['followers', userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .rpc('get_followers_count', { user_id: userId });
-      
-      if (error) throw error;
-      return data;
-    }
-  });
-
   const { data: followingCount } = useQuery({
-    queryKey: ['following', userId],
+    queryKey: ['following-count', userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_following_count', { user_id: userId });
@@ -47,46 +38,88 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     }
   });
 
+  const { data: followersCount } = useQuery({
+    queryKey: ['followers-count', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_followers_count', { user_id: userId });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  if (isLoading) {
+    return <div>Loading profile...</div>;
+  }
+
+  if (!profile) {
+    return <div>Profile not found</div>;
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{profile?.username || 'User'}</h1>
-          <p className="text-muted-foreground">{profile?.full_name}</p>
+      <div className="flex flex-col sm:flex-row items-center gap-4">
+        <Avatar className="w-20 h-20 border-2 border-background">
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt={profile.username || 'User avatar'} />
+          ) : (
+            <AvatarFallback className="text-2xl">
+              {profile.username?.[0]?.toUpperCase() || profile.full_name?.[0]?.toUpperCase() || 'U'}
+            </AvatarFallback>
+          )}
+        </Avatar>
+        <div className="flex-1 text-center sm:text-left">
+          <h1 className="text-2xl font-bold">{profile.full_name || profile.username}</h1>
+          {profile.username && <p className="text-muted-foreground">@{profile.username}</p>}
+          <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-2">
+            <div>
+              <span className="font-semibold">{followingCount || 0}</span> Following
+            </div>
+            <div>
+              <span className="font-semibold">{followersCount || 0}</span> Followers
+            </div>
+          </div>
         </div>
-        {isOwnProfile ? (
-          <Button asChild variant="outline">
-            <Link to="/profile/edit">Edit Profile</Link>
-          </Button>
-        ) : (
-          <Button>Follow</Button>
-        )}
+        <div className="flex flex-row sm:flex-col gap-2">
+          {isOwnProfile ? (
+            <Button asChild size="sm">
+              <Link to="/profile/edit">
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Link>
+            </Button>
+          ) : (
+            <>
+              <FollowButton userId={userId} />
+              <MessageButton userId={userId} />
+            </>
+          )}
+        </div>
       </div>
-
-      <div className="flex gap-6">
+      {profile.bio && (
         <div>
-          <span className="font-bold">{followerCount || 0}</span>
-          <span className="text-muted-foreground ml-1">followers</span>
+          <h2 className="font-semibold mb-1">Bio</h2>
+          <p className="whitespace-pre-wrap">{profile.bio}</p>
         </div>
-        <div>
-          <span className="font-bold">{followingCount || 0}</span>
-          <span className="text-muted-foreground ml-1">following</span>
-        </div>
-      </div>
-
-      {profile?.bio && (
-        <p className="text-sm">{profile.bio}</p>
       )}
-
-      <div className="flex flex-col gap-2">
-        {profile?.playing_style && (
-          <div className="text-sm">
-            <span className="font-medium">Playing Style:</span> {profile.playing_style}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+        {profile.user_type && (
+          <div>
+            <span className="text-muted-foreground block">Account Type</span>
+            <span className="capitalize">{profile.user_type}</span>
           </div>
         )}
-        {profile?.experience_level && (
-          <div className="text-sm">
-            <span className="font-medium">Experience:</span> {profile.experience_level}
+        {profile.experience_level && (
+          <div>
+            <span className="text-muted-foreground block">Experience</span>
+            <span className="capitalize">{profile.experience_level}</span>
+          </div>
+        )}
+        {profile.playing_style && (
+          <div>
+            <span className="text-muted-foreground block">Playing Style</span>
+            <span>{profile.playing_style}</span>
           </div>
         )}
       </div>

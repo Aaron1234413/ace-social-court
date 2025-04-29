@@ -22,7 +22,7 @@
 14. ✅ Implement follow/unfollow functionality
 15. ✅ Create user search and discovery
 16. ✅ Design and build notification system
-17. Implement direct messaging between users
+17. ✅ Implement direct messaging between users
 18. Create user mention system in posts and comments
 19. Add content sharing capabilities
 

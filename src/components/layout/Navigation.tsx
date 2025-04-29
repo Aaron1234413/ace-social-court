@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, Home, User, LayoutGrid, Search, Bell } from 'lucide-react';
+import { Menu, Home, User, LayoutGrid, Search, Bell, MessageSquare } from 'lucide-react';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover';
 
 const Navigation = () => {
@@ -38,6 +38,12 @@ const Navigation = () => {
       requiresAuth: false
     },
     {
+      name: 'Messages',
+      path: '/messages',
+      icon: <MessageSquare className="h-4 w-4 md:h-5 md:w-5" />,
+      requiresAuth: true
+    },
+    {
       name: 'Profile',
       path: '/profile',
       icon: <User className="h-4 w-4 md:h-5 md:w-5" />,
@@ -63,7 +69,7 @@ const Navigation = () => {
             key={link.path}
             to={link.path}
             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-              location.pathname === link.path
+              location.pathname === link.path || (link.path === '/messages' && location.pathname.startsWith('/messages/'))
                 ? 'bg-primary/10 text-primary font-medium'
                 : 'hover:bg-accent hover:text-accent-foreground'
             }`}
