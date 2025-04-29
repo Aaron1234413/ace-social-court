@@ -7,10 +7,10 @@ const MapHeader: React.FC = () => {
   const { filters, locationPrivacy, togglePrivacySetting, handleFilterChange, userLocationEnabled, user, locationError } = useMapExplorer();
   
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between w-full space-y-2 xs:space-y-0">
       <div>
-        <h1 className="text-2xl font-bold">Tennis Map</h1>
-        <p className="text-muted-foreground">Find courts, players, and coaches near you</p>
+        <h1 className="text-xl sm:text-2xl font-bold">Tennis Map</h1>
+        <p className="text-sm text-muted-foreground">Find courts, players, and coaches near you</p>
       </div>
       
       <MapFiltersSheet 

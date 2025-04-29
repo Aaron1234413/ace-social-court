@@ -49,15 +49,19 @@ const MapExplorerContent = () => {
   }, [mapInstance, userProfileLocation, filters.showOwnLocation, handleUserSelect]);
 
   return (
-    <div className="container py-4 px-4 md:px-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="container max-w-full px-2 py-2 sm:px-4 md:px-6 lg:px-8">
+      <div className="flex items-center justify-between mb-2 md:mb-4">
         <MapHeader />
-        <AddTennisCourtDialog />
+        <div className="flex-shrink-0">
+          <AddTennisCourtDialog />
+        </div>
       </div>
+      
       <LocationErrorAlert />
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+        {/* Map takes full width on mobile/tablet, 2/3 on desktop */}
+        <div className="w-full lg:col-span-2">
           <MapView 
             isReady={isReady}
             locationPrivacy={locationPrivacy}
@@ -78,14 +82,19 @@ const MapExplorerContent = () => {
           />
         </div>
         
-        <div className="space-y-4">
-          <TabNavigator />
-          
-          {activeTab === 'people' ? (
-            <PeopleTab />
-          ) : (
-            <CourtsTab />
-          )}
+        {/* Sidebar takes full width on mobile/tablet, 1/3 on desktop */}
+        <div className="w-full mt-3 lg:mt-0">
+          <div className="bg-card rounded-lg border shadow-sm p-3 md:p-4 space-y-3 md:space-y-4">
+            <TabNavigator />
+            
+            <div className="h-full">
+              {activeTab === 'people' ? (
+                <PeopleTab />
+              ) : (
+                <CourtsTab />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

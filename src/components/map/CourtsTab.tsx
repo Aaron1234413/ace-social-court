@@ -4,6 +4,7 @@ import { useMapExplorer } from '@/contexts/MapExplorerContext';
 import { useMapData } from '@/hooks/useMapData';
 import NearbyCourtsPanel from './NearbyCourtsPanel';
 import TennisCourtCard from './TennisCourtCard';
+import { Card } from '@/components/ui/card';
 
 const CourtsTab: React.FC = () => {
   const { 
@@ -36,7 +37,7 @@ const CourtsTab: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="space-y-3 md:space-y-4">
       <NearbyCourtsPanel
         courts={nearbyCourts || []}
         isLoading={isLoadingCourts}
@@ -60,20 +61,22 @@ const CourtsTab: React.FC = () => {
       />
       
       {selectedCourt && (
-        <TennisCourtCard
-          court={selectedCourt}
-          onViewOnMap={() => {
-            if (mapInstance && selectedCourt.latitude && selectedCourt.longitude) {
-              mapInstance.flyTo({
-                center: [selectedCourt.longitude, selectedCourt.latitude],
-                zoom: 16,
-                essential: true
-              });
-            }
-          }}
-        />
+        <Card className="overflow-hidden">
+          <TennisCourtCard
+            court={selectedCourt}
+            onViewOnMap={() => {
+              if (mapInstance && selectedCourt.latitude && selectedCourt.longitude) {
+                mapInstance.flyTo({
+                  center: [selectedCourt.longitude, selectedCourt.latitude],
+                  zoom: 16,
+                  essential: true
+                });
+              }
+            }}
+          />
+        </Card>
       )}
-    </>
+    </div>
   );
 };
 

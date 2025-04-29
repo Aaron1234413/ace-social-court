@@ -23,7 +23,7 @@ interface MapViewProps {
     showCoaches: boolean;
     showCourts: boolean;
     showOwnLocation?: boolean;
-    showFollowing?: boolean; // Ensure this is passed to the NearbyUsersLayer
+    showFollowing?: boolean;
   };
   onSelectUser: (user: any) => void;
   onSelectCourt: (court: TennisCourt) => void;
@@ -41,12 +41,15 @@ const MapView: React.FC<MapViewProps> = ({
   onSelectUser,
   onSelectCourt
 }) => {
+  // Adjust map height based on screen size
+  const mapHeight = "h-[50vh] sm:h-[60vh] md:h-[65vh] lg:h-[70vh]";
+  
   return (
     <>
       {isReady ? (
         <MapContainer 
-          className="rounded-lg shadow-md" 
-          height="h-[70vh]" 
+          className="rounded-lg shadow-md overflow-hidden" 
+          height={mapHeight} 
           locationPrivacySettings={locationPrivacy}
           onMapInitialized={onMapInitialized}
           onUserPositionUpdate={onUserPositionUpdate}
@@ -74,7 +77,7 @@ const MapView: React.FC<MapViewProps> = ({
           )}
         </MapContainer>
       ) : (
-        <div className="rounded-lg shadow-md h-[70vh] flex items-center justify-center bg-muted">
+        <div className={`rounded-lg shadow-md ${mapHeight} flex items-center justify-center bg-muted`}>
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
