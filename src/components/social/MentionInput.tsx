@@ -35,12 +35,13 @@ const MentionInput: React.FC<MentionInputProps> = ({
   const [caretPosition, setCaretPosition] = useState<{ top: number, left: number, bottom: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mentionMenuRef = useRef<HTMLDivElement>(null);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
 
   // Query users for mention suggestions
   const { data: suggestions, isLoading } = useQuery({
     queryKey: ['mention-suggestions', mentionQuery],
     queryFn: async () => {
-      if (!mentionQuery || mentionQuery.length < 2) return [];
+      if (!mentionQuery && mentionQuery !== '') return [];
       
       const { data, error } = await supabase
         .from('profiles')
@@ -55,10 +56,10 @@ const MentionInput: React.FC<MentionInputProps> = ({
       
       return data as UserSuggestion[];
     },
-    enabled: !!mentionQuery && mentionQuery.length >= 2,
+    enabled: mentionQuery !== null,
   });
 
-  // Handle keydown events to detect @ character
+  // Handle keydown events to detect @ character and navigate suggestions
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === '@') {
       updateCaretPosition();
@@ -71,14 +72,19 @@ const MentionInput: React.FC<MentionInputProps> = ({
     } else if (
       mentionQuery !== null && 
       suggestions && 
-      suggestions.length > 0 && 
-      (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Tab')
+      suggestions.length > 0
     ) {
-      // Handle navigation in suggestion list
-      e.preventDefault();
-      if (e.key === 'Enter' || e.key === 'Tab') {
-        // Insert selected suggestion
-        insertMention(suggestions[0]);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => prev > 0 ? prev - 1 : 0);
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertMention(suggestions[selectedSuggestionIndex]);
       }
     }
   };
@@ -128,28 +134,28 @@ const MentionInput: React.FC<MentionInputProps> = ({
     const newValue = e.target.value;
     onChange(newValue);
     
-    // Check if we're in the process of typing a mention
-    if (mentionQuery !== null) {
-      const cursorPosition = e.target.selectionStart;
-      const textBeforeCursor = newValue.substring(0, cursorPosition);
+    const cursorPosition = e.target.selectionStart;
+    const textBeforeCursor = newValue.substring(0, cursorPosition);
+    
+    // Find the last @ symbol in the text before cursor
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      // Check if there's a space between the @ and the cursor
+      const textBetweenAtAndCursor = textBeforeCursor.substring(lastAtIndex + 1);
       
-      // Find the last @ symbol in the text before cursor
-      const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-      
-      if (lastAtIndex !== -1) {
-        // Extract the mention query
-        const potentialQuery = textBeforeCursor.substring(lastAtIndex + 1);
-        
-        // If there's a space, we're no longer in a mention
-        if (potentialQuery.includes(' ') || potentialQuery.includes('\n')) {
-          setMentionQuery(null);
-        } else {
-          setMentionQuery(potentialQuery);
-          updateCaretPosition();
-        }
-      } else {
+      // If there's a space or newline, we're not in a mention
+      if (textBetweenAtAndCursor.includes(' ') || textBetweenAtAndCursor.includes('\n')) {
         setMentionQuery(null);
+      } else {
+        // Extract the mention query (text after @)
+        const query = textBetweenAtAndCursor;
+        setMentionQuery(query);
+        updateCaretPosition();
+        setSelectedSuggestionIndex(0); // Reset selection when query changes
       }
+    } else {
+      setMentionQuery(null);
     }
   };
 
@@ -245,10 +251,12 @@ const MentionInput: React.FC<MentionInputProps> = ({
             </div>
           ) : suggestions && suggestions.length > 0 ? (
             <div className="py-1">
-              {suggestions.map((user) => (
+              {suggestions.map((user, index) => (
                 <button
                   key={user.id}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-accent text-left"
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 text-left ${
+                    index === selectedSuggestionIndex ? 'bg-accent' : 'hover:bg-accent/50'
+                  }`}
                   onClick={() => insertMention(user)}
                 >
                   <Avatar className="h-5 w-5">
