@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Share } from 'lucide-react';
+import { Share, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu,
@@ -39,6 +39,30 @@ const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
     window.open(url, '_blank');
     toast.success("Sharing to Twitter");
   };
+  
+  const shareViaInstagram = () => {
+    // Instagram doesn't have a direct web API for sharing links
+    // We'll use a mobile deep link that opens Instagram and allows users to share via Stories
+    // Note: This primarily works on mobile devices with Instagram app installed
+    
+    const instagramUrl = `instagram://story?url=${encodeURIComponent(shareUrl)}`;
+    
+    // Try to open Instagram app
+    window.location.href = instagramUrl;
+    
+    // Set a timeout to check if the app opened
+    setTimeout(() => {
+      // If we're still here, it likely means the Instagram app isn't installed
+      // Provide a fallback to open Instagram website
+      toast.info("For best sharing experience, use Instagram on your mobile device", {
+        description: "The Instagram app may be needed to share stories",
+        action: {
+          label: "Open Instagram",
+          onClick: () => window.open("https://www.instagram.com", "_blank")
+        }
+      });
+    }, 500);
+  };
 
   return (
     <>
@@ -66,6 +90,9 @@ const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={shareViaTwitter}>
             Share on Twitter
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={shareViaInstagram}>
+            Share on Instagram
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
