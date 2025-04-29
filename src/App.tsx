@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import ProfileEdit from "./pages/ProfileEdit";
 import Notifications from "./pages/Notifications";
 import Messages from "./pages/Messages";
+import PostDetail from "./pages/PostDetail";
 import { useState } from "react";
 
 const App = () => {
@@ -42,6 +43,7 @@ const App = () => {
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/messages" element={<Messages />} />
                   <Route path="/messages/:id" element={<Messages />} />
+                  <Route path="/post/:id" element={<PostDetail />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
