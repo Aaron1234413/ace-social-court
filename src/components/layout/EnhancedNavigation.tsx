@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -15,18 +16,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile'; // Fixed hook name
 
-interface EnhancedNavigationProps {
-  className?: string;
-  mobileOpen: boolean;
-  setMobileOpen: (open: boolean) => void;
-}
-
-const EnhancedNavigation = ({ className, mobileOpen, setMobileOpen }: EnhancedNavigationProps) => {
+const EnhancedNavigation = () => { // Removed props since they cause issues
   const { user } = useAuth();
   const { pathname } = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile(); // Fixed hook name
+  const [mobileOpen, setMobileOpen] = React.useState(false); // Added state internally
 
   const baseStyles =
     "group flex w-full items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium hover:bg-secondary focus:outline-none";
@@ -36,7 +32,7 @@ const EnhancedNavigation = ({ className, mobileOpen, setMobileOpen }: EnhancedNa
     "text-muted-foreground hover:text-primary";
 
   return (
-    <nav className={cn("flex-1", className)}>
+    <nav className="flex-1">
       <ul className="grid gap-1">
         <li>
           <NavLink
@@ -108,7 +104,7 @@ const EnhancedNavigation = ({ className, mobileOpen, setMobileOpen }: EnhancedNa
       </ul>
       <div className="mt-auto hidden flex-col pt-6 lg:flex">
         <div className="mb-4">
-          <NotificationsPopover mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+          <NotificationsPopover /> {/* Removed props here to match the component's definition */}
         </div>
         <Button variant="outline" asChild className="w-full justify-start rounded-md px-3 py-2">
           <NavLink to="/profile/edit" onClick={() => setMobileOpen(false)}>

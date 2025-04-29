@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -18,7 +19,7 @@ import Notifications from '@/pages/Notifications';
 import Search from '@/pages/Search';
 import PostDetail from '@/pages/PostDetail';
 import NotFound from '@/pages/NotFound';
-import AdminTools from '@/pages/AdminTools'; // Add this import
+import AdminTools from '@/pages/AdminTools';
 
 // Components
 import { Toaster } from "@/components/ui/sonner";
@@ -41,7 +42,7 @@ function App() {
       <BrowserRouter>
         <ThemeProvider defaultTheme="system" storageKey="vite-react-theme">
           <QueryClientProvider client={queryClient}>
-            <EnhancedNavigation />
+            <EnhancedNavigation /> {/* No props needed now */}
             <main className="flex-1">
               <Routes>
                 <Route path="/" element={<Index />} />
