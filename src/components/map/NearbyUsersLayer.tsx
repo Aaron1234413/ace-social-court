@@ -1,6 +1,5 @@
 
-import React, { useEffect } from 'react';
-import { MapPin, Users, UserCog } from 'lucide-react';
+import React from 'react';
 import { type NearbyUser } from './NearbyUsersList';
 import MapLocationPin from './MapLocationPin';
 

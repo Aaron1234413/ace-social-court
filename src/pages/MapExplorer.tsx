@@ -24,7 +24,6 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
 import LocationPrivacyControl from '@/components/map/LocationPrivacyControl';
 import NearbyUsersList from '@/components/map/NearbyUsersList';
@@ -33,40 +32,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/components/AuthProvider';
-
-// Mock data for nearby users until we have a real API implementation
-const MOCK_NEARBY_USERS = [
-  {
-    id: '1',
-    full_name: 'Sarah Williams',
-    username: 'sarahtennis',
-    avatar_url: null,
-    user_type: 'player',
-    distance: 0.8,
-    latitude: 40.7128,
-    longitude: -74.006
-  },
-  {
-    id: '2',
-    full_name: 'Coach Mike',
-    username: 'tennispro',
-    avatar_url: null,
-    user_type: 'coach',
-    distance: 1.2,
-    latitude: 40.7138,
-    longitude: -74.008
-  },
-  {
-    id: '3',
-    full_name: 'Alex Johnson',
-    username: 'alexj',
-    avatar_url: null,
-    user_type: 'player',
-    distance: 1.5,
-    latitude: 40.7118,
-    longitude: -74.004
-  }
-];
 
 const MapExplorer = () => {
   const { user } = useAuth();
@@ -89,20 +54,68 @@ const MapExplorer = () => {
   const [userPosition, setUserPosition] = useState<{lng: number, lat: number} | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   
-  // Query for nearby users - using mock data for now
-  // In a real implementation, this would fetch from Supabase based on the user's location
+  // Query for nearby users using our new Supabase function
   const { data: nearbyUsers, isLoading: isLoadingNearbyUsers } = useQuery({
-    queryKey: ['nearby-users', userPosition, filters.distance],
+    queryKey: ['nearby-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches],
     queryFn: async () => {
-      // Mock implementation - in reality, would fetch from database
       if (!userPosition) return [];
       
-      // In a real implementation, you'd use a Supabase function or query to find users within distance
-      // For now, return mock data
-      return MOCK_NEARBY_USERS;
+      try {
+        const { data, error } = await supabase.rpc('find_nearby_users', {
+          user_lat: userPosition.lat,
+          user_lng: userPosition.lng,
+          distance_miles: filters.distance,
+          show_players: filters.showPlayers,
+          show_coaches: filters.showCoaches
+        });
+        
+        if (error) {
+          console.error('Error fetching nearby users:', error);
+          toast.error('Failed to find nearby players and coaches');
+          return [];
+        }
+        
+        return data || [];
+      } catch (err) {
+        console.error('Exception fetching nearby users:', err);
+        return [];
+      }
     },
     enabled: !!userPosition,
   });
+  
+  // Query for user's location privacy settings
+  const { data: userPrivacySettings } = useQuery({
+    queryKey: ['user-location-privacy', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('location_privacy')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching privacy settings:', error);
+        return null;
+      }
+      
+      return data?.location_privacy || {
+        shareExactLocation: false,
+        showOnMap: false,
+        locationHistory: false
+      };
+    },
+    enabled: !!user,
+  });
+  
+  // Update location privacy settings in state when data loads
+  useEffect(() => {
+    if (userPrivacySettings) {
+      setLocationPrivacy(userPrivacySettings);
+    }
+  }, [userPrivacySettings]);
   
   useEffect(() => {
     // Ensure the component is fully mounted
@@ -130,28 +143,55 @@ const MapExplorer = () => {
     }));
   };
 
-  const togglePrivacySetting = (key: keyof typeof locationPrivacy) => {
-    setLocationPrivacy(prev => {
-      const newSettings = {
-        ...prev,
-        [key]: !prev[key]
-      };
+  const togglePrivacySetting = async (key: keyof typeof locationPrivacy) => {
+    if (!user) {
+      toast.error('You must be logged in to change privacy settings');
+      return;
+    }
+    
+    const newSettings = {
+      ...locationPrivacy,
+      [key]: !locationPrivacy[key]
+    };
+    
+    // If they disable showing on map, also disable exact location sharing
+    if (key === 'showOnMap' && !newSettings.showOnMap) {
+      newSettings.shareExactLocation = false;
+    }
+    
+    // If they enable exact location, also enable showing on map
+    if (key === 'shareExactLocation' && newSettings.shareExactLocation) {
+      newSettings.showOnMap = true;
+    }
+    
+    // Update state immediately for responsive UI
+    setLocationPrivacy(newSettings);
+    
+    // Show toast for changes
+    toast.info(`Location ${key} ${newSettings[key] ? 'enabled' : 'disabled'}`);
+    
+    // Update in database
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          location_privacy: newSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
       
-      // If they disable showing on map, also disable exact location sharing
-      if (key === 'showOnMap' && !newSettings.showOnMap) {
-        newSettings.shareExactLocation = false;
+      if (error) {
+        console.error('Error saving privacy settings:', error);
+        toast.error('Failed to save privacy settings');
+        // Revert state if save fails
+        setLocationPrivacy(locationPrivacy);
       }
-      
-      // If they enable exact location, also enable showing on map
-      if (key === 'shareExactLocation' && newSettings.shareExactLocation) {
-        newSettings.showOnMap = true;
-      }
-      
-      // Show toast for changes
-      toast.info(`Location ${key} ${newSettings[key] ? 'enabled' : 'disabled'}`);
-      
-      return newSettings;
-    });
+    } catch (err) {
+      console.error('Exception saving privacy settings:', err);
+      toast.error('Failed to save privacy settings');
+      // Revert state if save fails
+      setLocationPrivacy(locationPrivacy);
+    }
   };
 
   useEffect(() => {
@@ -169,8 +209,28 @@ const MapExplorer = () => {
     }
   }, []);
 
-  const handleUserPositionUpdate = (position: {lng: number, lat: number}) => {
+  const handleUserPositionUpdate = async (position: {lng: number, lat: number}) => {
     setUserPosition(position);
+    
+    // If user is logged in, update their location in the database
+    if (user && locationPrivacy.showOnMap) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            latitude: position.lat,
+            longitude: position.lng,
+            location_updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+        
+        if (error) {
+          console.error('Error updating user location:', error);
+        }
+      } catch (err) {
+        console.error('Exception updating user location:', err);
+      }
+    }
   };
 
   const handleUserSelect = (user: any) => {
@@ -267,16 +327,18 @@ const MapExplorer = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium">Location Settings</h3>
-                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    {!user && <Lock className="h-4 w-4 text-muted-foreground" />}
                   </div>
                   
                   <p className="text-xs text-muted-foreground mb-3">
-                    {userLocationEnabled 
-                      ? "Location access is enabled" 
-                      : "Enable location access for better results"}
+                    {!user
+                      ? "Sign in to share your location"
+                      : userLocationEnabled 
+                        ? "Location access is enabled" 
+                        : "Enable location access for better results"}
                   </p>
                   
-                  {userLocationEnabled ? (
+                  {userLocationEnabled && user ? (
                     <LocationPrivacyControl 
                       settings={locationPrivacy} 
                       onChange={togglePrivacySetting} 
@@ -284,7 +346,11 @@ const MapExplorer = () => {
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-amber-600">
                       <Shield className="h-4 w-4" />
-                      <span>Location services are disabled</span>
+                      <span>
+                        {!user
+                          ? "Sign in to share your location"
+                          : "Location services are disabled"}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -332,20 +398,29 @@ const MapExplorer = () => {
           
           <Card className="p-4">
             <h3 className="font-semibold mb-2">Your Location Status</h3>
-            {userLocationEnabled && locationPrivacy.showOnMap ? (
-              <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-green-700">
-                  <MapPinCheck className="h-4 w-4" />
-                  <span>
-                    Your {locationPrivacy.shareExactLocation ? 'exact' : 'approximate'} location is visible to other tennis players
-                  </span>
+            {user ? (
+              userLocationEnabled && locationPrivacy.showOnMap ? (
+                <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-green-700">
+                    <MapPinCheck className="h-4 w-4" />
+                    <span>
+                      Your {locationPrivacy.shareExactLocation ? 'exact' : 'approximate'} location is visible to other tennis players
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <Shield className="h-4 w-4" />
+                    <span>Your location is private and not visible to others</span>
+                  </div>
+                </div>
+              )
             ) : (
-              <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-blue-700">
-                  <Shield className="h-4 w-4" />
-                  <span>Your location is private and not visible to others</span>
+              <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-amber-700">
+                  <Lock className="h-4 w-4" />
+                  <span>Sign in to share your location with other players</span>
                 </div>
               </div>
             )}
@@ -355,11 +430,28 @@ const MapExplorer = () => {
                 className="mt-3 w-full"
                 size="sm"
                 onClick={() => {
-                  toast.info("Finding your location...");
+                  if (mapInstance && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        const { longitude, latitude } = position.coords;
+                        mapInstance.flyTo({
+                          center: [longitude, latitude],
+                          zoom: 14
+                        });
+                        toast.success("Location found");
+                      },
+                      (error) => {
+                        console.error("Error getting location:", error);
+                        toast.error("Could not find your location");
+                      }
+                    );
+                  } else {
+                    toast.info("Finding your location...");
+                  }
                 }}
               >
                 <MapPin className="h-4 w-4 mr-2" />
-                Share my location
+                Find my location
               </Button>
             )}
           </Card>

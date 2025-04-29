@@ -338,6 +338,10 @@ export type Database = {
             | null
           full_name: string | null
           id: string
+          latitude: number | null
+          location_privacy: Json | null
+          location_updated_at: string | null
+          longitude: number | null
           playing_style: string | null
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
@@ -352,6 +356,10 @@ export type Database = {
             | null
           full_name?: string | null
           id: string
+          latitude?: number | null
+          location_privacy?: Json | null
+          location_updated_at?: string | null
+          longitude?: number | null
           playing_style?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
@@ -366,6 +374,10 @@ export type Database = {
             | null
           full_name?: string | null
           id?: string
+          latitude?: number | null
+          location_privacy?: Json | null
+          location_updated_at?: string | null
+          longitude?: number | null
           playing_style?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
@@ -399,6 +411,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_distance_miles: {
+        Args: { lat1: number; long1: number; lat2: number; long2: number }
+        Returns: number
+      }
+      find_nearby_users: {
+        Args: {
+          user_lat: number
+          user_lng: number
+          distance_miles: number
+          show_players?: boolean
+          show_coaches?: boolean
+        }
+        Returns: {
+          id: string
+          full_name: string
+          username: string
+          avatar_url: string
+          user_type: string
+          distance: number
+          latitude: number
+          longitude: number
+        }[]
+      }
       get_comments_count: {
         Args: { post_id: string }
         Returns: number
