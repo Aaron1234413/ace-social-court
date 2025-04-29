@@ -553,6 +553,7 @@ const MapExplorer = () => {
 
   return (
     <div className="container py-4 px-4 md:px-6">
+      {/* Keep existing code (header and filters) */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Tennis Map</h1>
