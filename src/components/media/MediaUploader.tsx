@@ -9,11 +9,13 @@ import { useAuth } from '@/components/AuthProvider';
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
   allowedTypes?: ('image' | 'video')[];
+  bucketName?: string;
 }
 
 const MediaUploader = ({ 
   onMediaUpload, 
-  allowedTypes = ['image', 'video'] 
+  allowedTypes = ['image', 'video'],
+  bucketName = 'media'
 }: MediaUploaderProps) => {
   const { user } = useAuth(); // Get the authenticated user
   const [isUploading, setIsUploading] = useState(false);
@@ -63,7 +65,7 @@ const MediaUploader = ({
       
       // Upload file to Supabase Storage with explicit owner
       const { data, error } = await supabase.storage
-        .from('media')
+        .from(bucketName)
         .upload(`${user.id}/${fileName}`, file, {
           cacheControl: '3600',
           contentType: file.type,
@@ -77,7 +79,7 @@ const MediaUploader = ({
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('media')
+        .from(bucketName)
         .getPublicUrl(`${user.id}/${fileName}`);
 
       // Pass URL to parent component

@@ -6,16 +6,27 @@ import { supabase } from "./client";
  */
 export const initializeStorage = async () => {
   try {
-    // Check if posts bucket exists
+    // Check if buckets exist
     const { data: buckets } = await supabase.storage.listBuckets();
-    const postsBucketExists = buckets?.some(bucket => bucket.name === 'posts');
+    
+    // Create media bucket if it doesn't exist
+    const mediaBucketExists = buckets?.some(bucket => bucket.name === 'media');
+    if (!mediaBucketExists) {
+      await supabase.storage.createBucket('media', {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB
+      });
+      console.log('Created media bucket');
+    }
     
     // Create posts bucket if it doesn't exist
+    const postsBucketExists = buckets?.some(bucket => bucket.name === 'posts');
     if (!postsBucketExists) {
       await supabase.storage.createBucket('posts', {
         public: true,
         fileSizeLimit: 10485760, // 10MB
       });
+      console.log('Created posts bucket');
     }
     
     return true;

@@ -4,7 +4,8 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  Navigate
+  Navigate,
+  useLocation
 } from 'react-router-dom';
 import { useAuth, AuthProvider } from './components/AuthProvider';
 import Index from './pages/Index';
@@ -20,11 +21,20 @@ import NotFound from './pages/NotFound';
 import MapExplorer from './pages/MapExplorer';
 import { Loader2 } from 'lucide-react';
 import Navigation from './components/layout/Navigation';
+import { initializeStorage } from './integrations/supabase/storage';
 
 // Create a separate component for the routes to use the auth hook
 function AppRoutes() {
   const { user, session } = useAuth();
   const isLoading = session === null && user === null;
+  const location = useLocation();
+
+  // Initialize storage buckets when app loads
+  useEffect(() => {
+    if (user) {
+      initializeStorage().catch(console.error);
+    }
+  }, [user]);
 
   // Show loading indicator while checking auth status
   if (isLoading) {

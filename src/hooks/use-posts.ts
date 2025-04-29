@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
 import { toast } from 'sonner';
@@ -51,17 +51,7 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
     }
   };
 
-  // Function to sort posts based on sortBy option
-  const sortPosts = (postsToSort: Post[], sortBy: string = 'recent') => {
-    // Posts are already sorted by recent by default
-    if (sortBy === 'recent') {
-      return postsToSort;
-    }
-
-    return [...postsToSort]; // Return a copy to avoid mutating the original array
-  };
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -78,8 +68,6 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
         media_type,
         updated_at`);
         
-      // Add count of likes and comments using separate queries after fetching posts
-      
       // Sort based on option
       if (options.sortBy === 'recent') {
         selectQuery = selectQuery.order('created_at', { ascending: false });
@@ -182,11 +170,11 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [options.personalize, options.sortBy]);
 
   useEffect(() => {
     fetchPosts();
-  }, [options.personalize, options.sortBy]);
+  }, [fetchPosts]);
 
   return { 
     posts, 
@@ -216,6 +204,8 @@ export const useCreatePost = () => {
         return null;
       }
       
+      console.log('Creating post with data:', postData);
+      
       const { data, error } = await supabase
         .from('posts')
         .insert({
@@ -227,13 +217,17 @@ export const useCreatePost = () => {
         .select('*')
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating post:', error);
+        throw error;
+      }
       
+      console.log('Post created successfully:', data);
       toast.success("Post created successfully!");
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating post:', error);
-      toast.error("Failed to create post");
+      toast.error(`Failed to create post: ${error.message}`);
       return null;
     } finally {
       setIsCreatingPost(false);

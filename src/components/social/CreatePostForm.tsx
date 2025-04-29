@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, ImagePlus, Send } from 'lucide-react';
 import MentionInput from './MentionInput';
+import MediaUploader from '../media/MediaUploader';
+import { toast } from 'sonner';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
@@ -15,28 +17,51 @@ interface CreatePostFormProps {
 const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
   const { user } = useAuth();
   const [content, setContent] = useState('');
+  const [showMediaUploader, setShowMediaUploader] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const { createPost, isCreatingPost } = useCreatePost();
 
   if (!user) {
     return null;
   }
 
+  const handleMediaUpload = (url: string, type: 'image' | 'video') => {
+    setMediaUrl(url);
+    setMediaType(type);
+    setShowMediaUploader(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!content.trim() || isCreatingPost) {
+    if ((!content.trim() && !mediaUrl) || isCreatingPost) {
+      if (!content.trim() && !mediaUrl) {
+        toast.error('Please add some content or media to your post');
+      }
       return;
     }
     
-    await createPost({
-      content: content.trim(),
-      media_url: null,
-      media_type: null
-    });
-    
-    setContent('');
-    onSuccess?.();
-    onPostCreated?.(); // Call both callbacks for backward compatibility
+    try {
+      await createPost({
+        content: content.trim(),
+        media_url: mediaUrl,
+        media_type: mediaType
+      });
+      
+      setContent('');
+      setMediaUrl(null);
+      setMediaType(null);
+      setShowMediaUploader(false);
+      
+      onSuccess?.();
+      onPostCreated?.(); // Call both callbacks for backward compatibility
+      
+      toast.success('Post created successfully!');
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast.error('Failed to create post');
+    }
   };
 
   return (
@@ -57,6 +82,45 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
             maxRows={5}
           />
           
+          {showMediaUploader && (
+            <div className="mt-3">
+              <MediaUploader
+                onMediaUpload={handleMediaUpload}
+                bucketName="media"
+              />
+            </div>
+          )}
+          
+          {mediaUrl && !showMediaUploader && (
+            <div className="mt-3 relative rounded-md overflow-hidden border">
+              {mediaType === 'image' ? (
+                <img 
+                  src={mediaUrl} 
+                  alt="Uploaded media" 
+                  className="max-h-48 w-auto mx-auto" 
+                />
+              ) : mediaType === 'video' ? (
+                <video 
+                  src={mediaUrl} 
+                  controls 
+                  className="max-h-48 w-auto mx-auto" 
+                />
+              ) : null}
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={() => {
+                  setMediaUrl(null);
+                  setMediaType(null);
+                }}
+              >
+                Remove
+              </Button>
+            </div>
+          )}
+          
           <div className="flex justify-between items-center mt-3">
             <Button 
               type="button" 
@@ -64,16 +128,18 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
               size="sm"
               className="flex items-center gap-1"
               disabled={isCreatingPost}
-              // Image upload functionality would go here
+              onClick={() => setShowMediaUploader(!showMediaUploader)}
             >
               <ImagePlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Media</span>
+              <span className="hidden sm:inline">
+                {mediaUrl ? 'Change Media' : 'Add Media'}
+              </span>
             </Button>
             
             <Button 
               type="submit" 
               size="sm"
-              disabled={!content.trim() || isCreatingPost}
+              disabled={((!content.trim() && !mediaUrl) || isCreatingPost)}
             >
               {isCreatingPost ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
