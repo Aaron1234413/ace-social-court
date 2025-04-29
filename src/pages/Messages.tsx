@@ -4,12 +4,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import ConversationsList from '@/components/messages/ConversationsList';
 import ChatInterface from '@/components/messages/ChatInterface';
-import { MessageSquare } from 'lucide-react';
+import NewMessageDialog from '@/components/messages/NewMessageDialog';
+import { MessageSquare, MessageSquarePlus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const Messages = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { id: selectedUserId } = useParams<{ id: string }>();
+  const [newMessageOpen, setNewMessageOpen] = useState(false);
   
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -28,7 +32,51 @@ const Messages = () => {
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">Messages</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold">Messages</h1>
+        
+        {/* Mobile new message button */}
+        <div className="md:hidden">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setNewMessageOpen(true)}
+            className="gap-2"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+            New
+          </Button>
+        </div>
+        
+        {/* Mobile conversations list drawer */}
+        {selectedUserId && (
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Conversations
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-full sm:max-w-md p-0">
+                <div className="p-4 border-b">
+                  <h2 className="font-medium">Conversations</h2>
+                </div>
+                <div className="p-4 overflow-y-auto h-full">
+                  <Button 
+                    variant="outline" 
+                    className="w-full gap-2 mb-4" 
+                    onClick={() => setNewMessageOpen(true)}
+                  >
+                    <MessageSquarePlus className="h-4 w-4" />
+                    New Message
+                  </Button>
+                  <ConversationsList selectedUserId={selectedUserId} />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        )}
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(80vh-120px)]">
         {/* Conversations List - Hidden on mobile when a conversation is selected */}
@@ -52,10 +100,20 @@ const Messages = () => {
               <MessageSquare className="h-16 w-16 mb-4 opacity-20" />
               <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
               <p>Select a conversation from the list or start a new one.</p>
+              <Button 
+                variant="outline"
+                className="mt-6 gap-2"
+                onClick={() => setNewMessageOpen(true)}
+              >
+                <MessageSquarePlus className="h-4 w-4" />
+                New Message
+              </Button>
             </div>
           )}
         </div>
       </div>
+      
+      <NewMessageDialog open={newMessageOpen} onOpenChange={setNewMessageOpen} />
     </div>
   );
 };

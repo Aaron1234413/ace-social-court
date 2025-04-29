@@ -8,7 +8,7 @@ import { useCreateConversation } from '@/hooks/use-messages';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, Search, UserPlus } from 'lucide-react';
 
 interface NewMessageDialogProps {
@@ -30,7 +30,7 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username, full_name, avatar_url')
-        .or(`full_name.ilike.%${searchQuery}%,username.ilike.%${searchQuery}%`)
+        .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
         .neq('id', user?.id)
         .limit(10);
         
@@ -58,13 +58,16 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>New Message</DialogTitle>
+          <DialogDescription>
+            Search for a user to start a conversation with.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search users..."
+              placeholder="Search by username or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -107,7 +110,7 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
                       
                       <div className="text-left">
                         <p className="font-medium text-foreground">
-                          {user.full_name || 'Unknown User'}
+                          {user.full_name || user.username || 'Unknown User'}
                         </p>
                         {user.username && (
                           <p className="text-xs text-muted-foreground">
