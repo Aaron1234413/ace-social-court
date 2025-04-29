@@ -21,6 +21,9 @@ interface MapContainerProps {
   className?: string;
   height?: string;
   locationPrivacySettings?: LocationPrivacySettings;
+  children?: React.ReactNode;
+  onMapInitialized?: (map: mapboxgl.Map) => void;
+  onUserPositionUpdate?: (position: {lng: number, lat: number}) => void;
 }
 
 const defaultPrivacySettings: LocationPrivacySettings = {
@@ -32,7 +35,10 @@ const defaultPrivacySettings: LocationPrivacySettings = {
 const MapContainer = ({ 
   className, 
   height = 'h-[70vh]',
-  locationPrivacySettings = defaultPrivacySettings
+  locationPrivacySettings = defaultPrivacySettings,
+  children,
+  onMapInitialized,
+  onUserPositionUpdate
 }: MapContainerProps) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,6 +116,11 @@ const MapContainer = ({
           console.warn("Could not add geolocation control:", error);
         }
         
+        // Callback to parent component when map is initialized
+        if (onMapInitialized && mapInstanceRef.current) {
+          onMapInitialized(mapInstanceRef.current);
+        }
+        
         toast.success("Map loaded successfully");
       });
 
@@ -136,27 +147,32 @@ const MapContainer = ({
     // Listen for geolocate events to update our user position
     const geolocateControl = geolocateControlRef.current;
     
-    // Fix: Properly type the geolocate event
-    mapInstanceRef.current.on('geolocate', (e: { coords: { longitude: number; latitude: number } }) => {
+    // Fix: Type the geolocate event properly
+    mapInstanceRef.current.on('geolocate', (e: any) => {
       // This event provides the user's location
-      const { longitude, latitude } = e.coords;
-      
-      // Store user position
-      setUserPosition({
-        lng: longitude,
-        lat: latitude
-      });
-      
-      // If user wants to show location on map, add or update marker
-      if (locationPrivacySettings.showOnMap) {
-        updateUserMarker(longitude, latitude);
+      if (e && e.coords) {
+        const { longitude, latitude } = e.coords;
+        
+        // Store user position
+        const newPosition = { lng: longitude, lat: latitude };
+        setUserPosition(newPosition);
+        
+        // Notify parent component of position update
+        if (onUserPositionUpdate) {
+          onUserPositionUpdate(newPosition);
+        }
+        
+        // If user wants to show location on map, add or update marker
+        if (locationPrivacySettings.showOnMap) {
+          updateUserMarker(longitude, latitude);
+        }
+        
+        console.log("User location:", longitude, latitude);
+        setLocationWarning(null);
       }
-      
-      console.log("User location:", longitude, latitude);
-      setLocationWarning(null);
     });
     
-    // Fix: Properly type the error event without using mapboxgl.EventData
+    // Fix: Type the error event properly
     geolocateControl.on('error', (e: any) => {
       console.error("Geolocation error:", e);
       
@@ -246,7 +262,6 @@ const MapContainer = ({
     }
   };
   
-  // Clean up user marker when privacy settings change
   useEffect(() => {
     if (mapInstanceRef.current && userPosition) {
       if (locationPrivacySettings.showOnMap) {
@@ -281,7 +296,7 @@ const MapContainer = ({
         setupLocationTracking();
       }
     }
-  }, [locationPrivacySettings]);
+  }, [locationPrivacySettings, onUserPositionUpdate]);
 
   useEffect(() => {
     // Ensure component is fully mounted and container exists in DOM
@@ -357,6 +372,9 @@ const MapContainer = ({
       )}
       
       <div ref={mapContainerRef} className="absolute inset-0" id="map-container" />
+      
+      {/* Render children (map layers, markers, etc.) */}
+      {!loading && !mapError && children}
       
       {!loading && !mapError && (
         <div className="absolute bottom-4 left-4 z-10">

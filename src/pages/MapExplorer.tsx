@@ -27,8 +27,49 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
 import LocationPrivacyControl from '@/components/map/LocationPrivacyControl';
+import NearbyUsersList from '@/components/map/NearbyUsersList';
+import NearbyUsersLayer from '@/components/map/NearbyUsersLayer';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card } from '@/components/ui/card';
+import { useAuth } from '@/components/AuthProvider';
+
+// Mock data for nearby users until we have a real API implementation
+const MOCK_NEARBY_USERS = [
+  {
+    id: '1',
+    full_name: 'Sarah Williams',
+    username: 'sarahtennis',
+    avatar_url: null,
+    user_type: 'player',
+    distance: 0.8,
+    latitude: 40.7128,
+    longitude: -74.006
+  },
+  {
+    id: '2',
+    full_name: 'Coach Mike',
+    username: 'tennispro',
+    avatar_url: null,
+    user_type: 'coach',
+    distance: 1.2,
+    latitude: 40.7138,
+    longitude: -74.008
+  },
+  {
+    id: '3',
+    full_name: 'Alex Johnson',
+    username: 'alexj',
+    avatar_url: null,
+    user_type: 'player',
+    distance: 1.5,
+    latitude: 40.7118,
+    longitude: -74.004
+  }
+];
 
 const MapExplorer = () => {
+  const { user } = useAuth();
   const [filters, setFilters] = useState({
     showCourts: true,
     showPlayers: true,
@@ -43,6 +84,24 @@ const MapExplorer = () => {
     shareExactLocation: false,
     showOnMap: false,
     locationHistory: false,
+  });
+  const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
+  const [userPosition, setUserPosition] = useState<{lng: number, lat: number} | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  
+  // Query for nearby users - using mock data for now
+  // In a real implementation, this would fetch from Supabase based on the user's location
+  const { data: nearbyUsers, isLoading: isLoadingNearbyUsers } = useQuery({
+    queryKey: ['nearby-users', userPosition, filters.distance],
+    queryFn: async () => {
+      // Mock implementation - in reality, would fetch from database
+      if (!userPosition) return [];
+      
+      // In a real implementation, you'd use a Supabase function or query to find users within distance
+      // For now, return mock data
+      return MOCK_NEARBY_USERS;
+    },
+    enabled: !!userPosition,
   });
   
   useEffect(() => {
@@ -109,6 +168,23 @@ const MapExplorer = () => {
       });
     }
   }, []);
+
+  const handleUserPositionUpdate = (position: {lng: number, lat: number}) => {
+    setUserPosition(position);
+  };
+
+  const handleUserSelect = (user: any) => {
+    setSelectedUser(user);
+    
+    // If map instance exists, fly to the user's location
+    if (mapInstance && user.latitude && user.longitude) {
+      mapInstance.flyTo({
+        center: [user.longitude, user.latitude],
+        zoom: 14,
+        essential: true
+      });
+    }
+  };
 
   return (
     <div className="container py-4 px-4 md:px-6">
@@ -218,44 +294,76 @@ const MapExplorer = () => {
         </Sheet>
       </div>
       
-      {isReady ? (
-        <MapContainer 
-          className="rounded-lg shadow-md" 
-          height="h-[60vh]" 
-          locationPrivacySettings={locationPrivacy}
-        />
-      ) : (
-        <div className="rounded-lg shadow-md h-[60vh] flex items-center justify-center bg-muted">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2">
+          {isReady ? (
+            <MapContainer 
+              className="rounded-lg shadow-md" 
+              height="h-[70vh]" 
+              locationPrivacySettings={locationPrivacy}
+              onMapInitialized={setMapInstance}
+              onUserPositionUpdate={handleUserPositionUpdate}
+            >
+              {mapInstance && nearbyUsers && (
+                <NearbyUsersLayer 
+                  users={nearbyUsers} 
+                  map={mapInstance}
+                  filters={{
+                    showPlayers: filters.showPlayers,
+                    showCoaches: filters.showCoaches
+                  }}
+                  onSelectUser={handleUserSelect}
+                />
+              )}
+            </MapContainer>
+          ) : (
+            <div className="rounded-lg shadow-md h-[70vh] flex items-center justify-center bg-muted">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
         </div>
-      )}
-      
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-3">Nearby Tennis Locations</h2>
-        <p className="text-muted-foreground">
-          Explore tennis courts and connect with players in your area. 
-          {!userLocationEnabled && " Allow location access for the best experience."}
-        </p>
         
-        {userLocationEnabled && locationPrivacy.showOnMap && (
-          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-green-700">
-              <MapPinCheck className="h-4 w-4" />
-              <span>
-                Your {locationPrivacy.shareExactLocation ? 'exact' : 'approximate'} location is visible to other tennis players
-              </span>
-            </div>
-          </div>
-        )}
-        
-        {userLocationEnabled && !locationPrivacy.showOnMap && (
-          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-blue-700">
-              <Shield className="h-4 w-4" />
-              <span>Your location is private and not visible to others</span>
-            </div>
-          </div>
-        )}
+        <div className="space-y-4">
+          <NearbyUsersList 
+            users={nearbyUsers || []}
+            isLoading={isLoadingNearbyUsers || !userPosition}
+            onUserSelect={handleUserSelect}
+          />
+          
+          <Card className="p-4">
+            <h3 className="font-semibold mb-2">Your Location Status</h3>
+            {userLocationEnabled && locationPrivacy.showOnMap ? (
+              <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-green-700">
+                  <MapPinCheck className="h-4 w-4" />
+                  <span>
+                    Your {locationPrivacy.shareExactLocation ? 'exact' : 'approximate'} location is visible to other tennis players
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <Shield className="h-4 w-4" />
+                  <span>Your location is private and not visible to others</span>
+                </div>
+              </div>
+            )}
+            
+            {!userPosition && userLocationEnabled && (
+              <Button
+                className="mt-3 w-full"
+                size="sm"
+                onClick={() => {
+                  toast.info("Finding your location...");
+                }}
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Share my location
+              </Button>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );
