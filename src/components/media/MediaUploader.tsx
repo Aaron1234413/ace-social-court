@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -32,9 +31,9 @@ const MediaUploader = ({
       return;
     }
 
-    // Check file size (50MB limit)
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('File is too large. Maximum size is 50MB.');
+    // Check file size (200MB limit)
+    if (file.size > 200 * 1024 * 1024) {
+      toast.error('File is too large. Maximum size is 200MB.');
       return;
     }
 
@@ -114,7 +113,7 @@ const MediaUploader = ({
                 ? 'Upload image or video (up to 2 mins)' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: 50MB</span>
+            <span className="text-xs text-gray-400">Maximum size: 200MB</span>
             <input
               type="file"
               className="hidden"

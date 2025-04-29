@@ -14,14 +14,14 @@ export const initializeStorage = async () => {
     if (!mediaBucketExists) {
       await supabase.storage.createBucket('media', {
         public: true,
-        fileSizeLimit: 52428800, // Increased to 50MB (from 10MB)
+        fileSizeLimit: 209715200, // Increased to 200MB for 2-minute videos
       });
       console.log('Created media bucket');
     } else {
       // Update existing media bucket size limit
       await supabase.storage.updateBucket('media', {
         public: true,
-        fileSizeLimit: 52428800, // 50MB
+        fileSizeLimit: 209715200, // 200MB
       });
       console.log('Updated media bucket size limit');
     }
@@ -31,14 +31,14 @@ export const initializeStorage = async () => {
     if (!postsBucketExists) {
       await supabase.storage.createBucket('posts', {
         public: true,
-        fileSizeLimit: 52428800, // Increased to 50MB (from 10MB)
+        fileSizeLimit: 209715200, // Increased to 200MB for 2-minute videos
       });
       console.log('Created posts bucket');
     } else {
       // Update existing posts bucket size limit
       await supabase.storage.updateBucket('posts', {
         public: true,
-        fileSizeLimit: 52428800, // 50MB
+        fileSizeLimit: 209715200, // 200MB
       });
       console.log('Updated posts bucket size limit');
     }
