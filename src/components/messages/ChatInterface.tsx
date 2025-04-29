@@ -1,9 +1,8 @@
-
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMessages } from '@/hooks/use-messages';
 import { useAuth } from '@/components/AuthProvider';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -18,8 +17,10 @@ const ChatInterface = () => {
   const { id: otherUserId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   const { 
     messages, 
@@ -29,6 +30,13 @@ const ChatInterface = () => {
     sendMessage,
     isSending
   } = useMessages(otherUserId);
+  
+  // Focus input field when component mounts
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [otherUserId]);
 
   const { data: otherUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ['user', otherUserId],
@@ -47,30 +55,65 @@ const ChatInterface = () => {
     enabled: !!otherUserId
   });
 
+  // Subscribe to realtime updates for new messages
+  useEffect(() => {
+    if (!otherUserId || !user) return;
+    
+    console.log("Setting up realtime subscription for messages");
+    
+    const channel = supabase
+      .channel('direct_messages_channel')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'direct_messages',
+        filter: `recipient_id=eq.${user.id}`
+      }, () => {
+        console.log("Realtime message received, invalidating queries");
+        queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      })
+      .subscribe();
+    
+    console.log("Realtime subscription status:", channel.state);
+    
+    return () => {
+      console.log("Realtime subscription status:", channel.state);
+      supabase.removeChannel(channel);
+    };
+  }, [otherUserId, user, queryClient]);
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim()) {
       sendMessage();
       toast.success("Message sent successfully");
     }
-  };
+  }, [newMessage, sendMessage]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      if (newMessage.trim()) {
+        sendMessage();
+      }
     }
-  };
+  }, [newMessage, sendMessage]);
   
-  const handleMessageClick = (messageId: string) => {
+  const handleMessageClick = useCallback((messageId: string) => {
     setSelectedMessage(messageId === selectedMessage ? null : messageId);
     console.log("Message clicked:", messageId);
-  };
+  }, [selectedMessage]);
+
+  // Helper to navigate back to messages list on mobile
+  const handleBackClick = useCallback(() => {
+    navigate('/messages');
+  }, [navigate]);
 
   const renderMessages = () => {
     if (isLoadingMessages) {
@@ -124,11 +167,13 @@ const ChatInterface = () => {
               <div 
                 key={message.id} 
                 className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                onClick={() => handleMessageClick(message.id)}
               >
-                <div className={`flex items-end gap-2 max-w-[80%] ${
-                  message.sender_id === user?.id ? 'flex-row-reverse' : 'flex-row'
-                } cursor-pointer hover:opacity-90 transition-opacity`}>
+                <div 
+                  className={`flex items-end gap-2 max-w-[80%] ${
+                    message.sender_id === user?.id ? 'flex-row-reverse' : 'flex-row'
+                  } cursor-pointer hover:opacity-90 transition-opacity`}
+                  onClick={() => handleMessageClick(message.id)}
+                >
                   <Avatar className="h-8 w-8">
                     {message.sender?.avatar_url && (
                       <img 
@@ -181,7 +226,7 @@ const ChatInterface = () => {
           variant="ghost" 
           size="icon" 
           className="md:hidden mr-2"
-          onClick={() => navigate('/messages')}
+          onClick={handleBackClick}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -226,7 +271,8 @@ const ChatInterface = () => {
             onKeyDown={handleKeyDown}
             disabled={isSending}
             className="flex-1"
-            autoFocus
+            ref={inputRef}
+            aria-label="Message input"
           />
           <Button 
             type="submit"

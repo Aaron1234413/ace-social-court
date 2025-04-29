@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import ConversationsList from '@/components/messages/ConversationsList';
 import ChatInterface from '@/components/messages/ChatInterface';
@@ -12,7 +12,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 const Messages = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { id: selectedUserId } = useParams<{ id: string }>();
+  const location = useLocation();
+  const { chatId: selectedUserId } = useParams<{ chatId?: string }>();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
   
   // Redirect to login if not authenticated
@@ -21,6 +22,12 @@ const Messages = () => {
       navigate('/auth');
     }
   }, [user, navigate]);
+
+  // Logging for debugging
+  useEffect(() => {
+    console.log("Messages page - selectedUserId:", selectedUserId);
+    console.log("Current location:", location.pathname);
+  }, [selectedUserId, location]);
 
   if (!user) {
     return (
@@ -94,7 +101,7 @@ const Messages = () => {
           selectedUserId ? 'block md:col-span-2' : 'hidden md:block md:col-span-2'
         }`}>
           {selectedUserId ? (
-            <ChatInterface />
+            <ChatInterface key={selectedUserId} />
           ) : (
             <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
               <MessageSquare className="h-16 w-16 mb-4 opacity-20" />
@@ -113,7 +120,19 @@ const Messages = () => {
         </div>
       </div>
       
-      <NewMessageDialog open={newMessageOpen} onOpenChange={setNewMessageOpen} />
+      <NewMessageDialog 
+        open={newMessageOpen} 
+        onOpenChange={(open) => {
+          setNewMessageOpen(open);
+          // Force refresh the conversations list when dialogue closes
+          if (!open) {
+            // Small delay to ensure state updates
+            setTimeout(() => {
+              window.dispatchEvent(new Event('conversations-refresh'));
+            }, 100);
+          }
+        }} 
+      />
     </div>
   );
 };

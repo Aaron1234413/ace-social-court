@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,14 @@ import NewMessageDialog from './NewMessageDialog';
 const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
   const { conversations, isLoadingConversations } = useConversations();
   const navigate = useNavigate();
+  const location = useLocation();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
 
   const handleConversationClick = (userId: string | undefined) => {
     if (userId) {
       console.log("Navigating to conversation:", userId);
-      navigate(`/messages/${userId}`);
+      // Use navigate with replace option to avoid navigation stack issues
+      navigate(`/messages/${userId}`, { replace: location.pathname.includes(userId) });
     }
   };
 
@@ -60,17 +62,24 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
             const isSelected = selectedUserId === conversation.other_user?.id;
             const hasUnread = conversation.last_message && 
               !conversation.last_message.read && 
-              conversation.last_message.recipient_id === conversation.other_user?.id;
+              conversation.last_message.sender_id !== conversation.other_user?.id;
 
             return (
-              <button
+              <div
                 key={conversation.id}
                 className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${
                   isSelected 
                     ? 'bg-primary/10' 
                     : 'hover:bg-accent'
-                }`}
+                } cursor-pointer`}
                 onClick={() => handleConversationClick(conversation.other_user?.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleConversationClick(conversation.other_user?.id);
+                  }
+                }}
               >
                 <Avatar className="h-10 w-10">
                   {conversation.other_user?.avatar_url && (
@@ -108,7 +117,7 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
                 {hasUnread && (
                   <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
