@@ -1,6 +1,6 @@
 
-import { Link } from 'react-router-dom';
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 /**
  * Parses text for @mentions and converts them to clickable links
