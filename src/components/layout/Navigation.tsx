@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, Home, User, LayoutGrid, Search, Bell, MessageSquare, LogOut } from 'lucide-react';
+import { Menu, Home, User, LayoutGrid, Search, Bell, MessageSquare, LogOut, Map } from 'lucide-react';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -58,6 +58,12 @@ const Navigation = () => {
       path: '/notifications',
       icon: <Bell className="h-4 w-4 md:h-5 md:w-5" />,
       requiresAuth: true
+    },
+    {
+      name: 'Map',
+      path: '/map',
+      icon: <Map className="h-4 w-4 md:h-5 md:w-5" />,
+      requiresAuth: false
     }
   ];
 

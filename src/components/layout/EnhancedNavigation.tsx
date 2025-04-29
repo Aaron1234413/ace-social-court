@@ -4,29 +4,14 @@ import Navigation from './Navigation';
 import { useLocation } from 'react-router-dom';
 import { Map } from 'lucide-react';
 
-interface NavigationProps {
-  additionalNavItems?: Array<{
-    label: string;
-    icon: React.ReactNode;
-    href: string;
-    active: boolean;
-  }>;
-}
-
 const EnhancedNavigation: React.FC = () => {
   const location = useLocation();
   
-  // Define an additional navigation item for the Map
-  const additionalNavItems = [
-    {
-      label: "Map",
-      icon: <Map className="h-4 w-4" />,
-      href: "/map",
-      active: location.pathname === "/map"
-    }
-  ];
+  // Since Navigation.tsx doesn't accept additionalNavItems directly,
+  // we'll need to modify how we pass this information
+  // For now, we'll not pass any props since Navigation handles its own links
   
-  return <Navigation additionalNavItems={additionalNavItems} />;
+  return <Navigation />;
 };
 
 export default EnhancedNavigation;

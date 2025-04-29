@@ -16,7 +16,7 @@ interface MapContainerProps {
 const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const [mapboxToken, setMapboxToken] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [tokenInput, setTokenInput] = useState('');
   const [showTokenInput, setShowTokenInput] = useState(false);
@@ -25,8 +25,12 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
   useEffect(() => {
     const fetchMapboxToken = async () => {
       try {
-        // We need to use raw query here since app_settings isn't in the TypeScript types yet
-        const { data, error } = await supabase.rpc('get_setting', { setting_key: 'mapbox_token' });
+        // Use direct database query instead of RPC since the function doesn't exist yet
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'mapbox_token')
+          .single();
         
         if (error) {
           console.error('Error fetching Mapbox token:', error);
@@ -35,8 +39,8 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
           return;
         }
         
-        if (data) {
-          setMapboxToken(data);
+        if (data?.value) {
+          setMapboxToken(data.value);
         } else {
           setShowTokenInput(true);
         }
@@ -105,11 +109,14 @@ const MapContainer = ({ className, height = 'h-[70vh]' }: MapContainerProps) => 
       // First save to local state to initialize the map
       setMapboxToken(tokenInput);
       
-      // Then save to Supabase for persistence using raw query
-      const { error } = await supabase.rpc(
-        'set_setting',
-        { setting_key: 'mapbox_token', setting_value: tokenInput }
-      );
+      // Then save to Supabase for persistence using direct database query
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({ 
+          key: 'mapbox_token', 
+          value: tokenInput,
+          updated_at: new Date().toISOString()
+        });
       
       if (error) throw error;
       
