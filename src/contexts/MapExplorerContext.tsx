@@ -69,6 +69,7 @@ interface MapExplorerContextType {
   handleUserSelect: (user: any) => void;
   handleCourtSelect: (court: TennisCourt) => void;
   showAllCourts: () => void;
+  userProfileLocation: any; // Add this missing property
 }
 
 const MapExplorerContext = createContext<MapExplorerContextType | undefined>(undefined);
@@ -365,6 +366,42 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     toast.info("Showing all tennis courts across the USA.");
   };
 
+  // Query for the user's own profile location
+  const { data: userProfileLocation } = useQuery({
+    queryKey: ['user-profile-location', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching user profile location:', error);
+          return null;
+        }
+        
+        if (data && data.latitude && data.longitude) {
+          return {
+            ...data,
+            is_static_location: true,
+            is_own_profile: true,
+            distance: 0
+          };
+        }
+        
+        return null;
+      } catch (err) {
+        console.error('Exception fetching user profile location:', err);
+        return null;
+      }
+    },
+    enabled: !!user && filters.showOwnLocation,
+  });
+
   const value = {
     user,
     filters,
@@ -396,6 +433,7 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     handleUserSelect,
     handleCourtSelect,
     showAllCourts,
+    userProfileLocation, // Add the userProfileLocation to the context value
   };
 
   return (
