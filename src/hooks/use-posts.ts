@@ -66,30 +66,26 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
       setIsLoading(true);
       
       // Initial query
-      let query = supabase
-        .from('posts')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          media_url,
-          media_type,
-          updated_at,
-          (select count(*) from likes where post_id = posts.id) as likes_count,
-          (select count(*) from comments where post_id = posts.id) as comments_count
-        `);
+      let query = supabase.from('posts');
+      
+      // Select specific fields and include calculated fields for likes and comments
+      let selectQuery = query.select(`
+        id,
+        content,
+        created_at,
+        user_id,
+        media_url,
+        media_type,
+        updated_at`);
+        
+      // Add count of likes and comments using separate queries after fetching posts
       
       // Sort based on option
       if (options.sortBy === 'recent') {
-        query = query.order('created_at', { ascending: false });
-      } else if (options.sortBy === 'popular') {
-        query = query.order('likes_count', { ascending: false });
-      } else if (options.sortBy === 'commented') {
-        query = query.order('comments_count', { ascending: false });
+        selectQuery = selectQuery.order('created_at', { ascending: false });
       }
 
-      const { data: postsData, error: postsError } = await query;
+      const { data: postsData, error: postsError } = await selectQuery;
 
       if (postsError) throw postsError;
       
@@ -98,17 +94,37 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
         return;
       }
       
-      const formattedPosts: Post[] = postsData.map(post => ({
-        id: post.id,
-        content: post.content,
-        created_at: post.created_at,
-        user_id: post.user_id,
-        media_url: post.media_url,
-        media_type: post.media_type,
-        author: null,
-        likes_count: post.likes_count,
-        comments_count: post.comments_count
+      // Format posts and get likes/comments counts separately
+      const formattedPosts: Post[] = await Promise.all(postsData.map(async post => {
+        // Get likes count
+        const { data: likesData } = await supabase
+          .rpc('get_likes_count', { post_id: post.id });
+          
+        // Get comments count
+        const { data: commentsData } = await supabase
+          .rpc('get_comments_count', { post_id: post.id });
+        
+        return {
+          id: post.id,
+          content: post.content,
+          created_at: post.created_at,
+          user_id: post.user_id,
+          media_url: post.media_url,
+          media_type: post.media_type,
+          author: null,
+          likes_count: likesData || 0,
+          comments_count: commentsData || 0
+        };
       }));
+
+      // Sort by popularity or comments if needed
+      let sortedPosts = [...formattedPosts];
+      
+      if (options.sortBy === 'popular') {
+        sortedPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+      } else if (options.sortBy === 'commented') {
+        sortedPosts.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
+      }
 
       if (formattedPosts.length > 0) {
         const userIds = formattedPosts.map(post => post.user_id);
@@ -126,7 +142,7 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
             });
           });
           
-          formattedPosts.forEach(post => {
+          sortedPosts.forEach(post => {
             post.author = profileMap.get(post.user_id) || null;
           });
         } else {
@@ -153,11 +169,11 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
         };
         
         // Personalize the feed
-        const personalizedPosts = personalizePostFeed(formattedPosts, personalizationContext);
+        const personalizedPosts = personalizePostFeed(sortedPosts, personalizationContext);
         setPosts(personalizedPosts);
       } else {
         // If no personalization or not logged in, just show the posts in sorted order
-        setPosts(formattedPosts);
+        setPosts(sortedPosts);
       }
       
     } catch (error) {
