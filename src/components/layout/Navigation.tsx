@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,12 +10,15 @@ import {
 } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, Home, User, LayoutGrid, Search, Bell, MessageSquare } from 'lucide-react';
+import { Menu, Home, User, LayoutGrid, Search, Bell, MessageSquare, LogOut } from 'lucide-react';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Navigation = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -61,6 +65,17 @@ const Navigation = () => {
     link => !link.requiresAuth || (link.requiresAuth && user)
   );
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success("Signed out successfully");
+      navigate('/');
+    } catch (error) {
+      console.error("Sign out error:", error);
+      toast.error("Failed to sign out");
+    }
+  };
+
   function NavLinks() {
     return (
       <>
@@ -94,6 +109,15 @@ const Navigation = () => {
                 {user.email?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleSignOut}
+              className="flex items-center gap-1 text-muted-foreground hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden md:inline">Sign Out</span>
+            </Button>
           </div>
         ) : (
           <div className="flex gap-2">
@@ -146,6 +170,19 @@ const Navigation = () => {
             <div className="mt-auto py-4">
               <AuthButtons />
             </div>
+            {user && (
+              <Button 
+                variant="ghost" 
+                className="mt-2 flex justify-start text-muted-foreground hover:text-destructive"
+                onClick={() => {
+                  handleSignOut();
+                  setIsOpen(false);
+                }}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            )}
           </SheetContent>
         </Sheet>
       </nav>
