@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +24,7 @@ interface FilterSettings {
   showCoaches: boolean;
   showEvents: boolean;
   showStaticLocations: boolean;
+  showOwnLocation: boolean; // Added this filter
   distance: number; // in miles
 }
 
@@ -49,6 +49,7 @@ const MapExplorer = () => {
     showCoaches: true,
     showEvents: true,
     showStaticLocations: true,
+    showOwnLocation: true, // New filter, default to true
     distance: 25, // in miles
   });
   
@@ -91,6 +92,42 @@ const MapExplorer = () => {
       }
     },
     enabled: !!userPosition,
+  });
+
+  // Query for the user's own profile location
+  const { data: userProfileLocation } = useQuery({
+    queryKey: ['user-profile-location', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching user profile location:', error);
+          return null;
+        }
+        
+        if (data && data.latitude && data.longitude) {
+          return {
+            ...data,
+            is_static_location: true,
+            is_own_profile: true,
+            distance: 0
+          };
+        }
+        
+        return null;
+      } catch (err) {
+        console.error('Exception fetching user profile location:', err);
+        return null;
+      }
+    },
+    enabled: !!user && filters.showOwnLocation,
   });
 
   // Query for users with static locations (from profiles)
@@ -177,8 +214,13 @@ const MapExplorer = () => {
       }
     });
     
+    // Add the user's own profile location if it exists and the filter is enabled
+    if (userProfileLocation && filters.showOwnLocation) {
+      uniqueUsers.set(userProfileLocation.id, userProfileLocation as NearbyUser);
+    }
+    
     return Array.from(uniqueUsers.values());
-  }, [nearbyActiveUsers, staticLocationUsers]);
+  }, [nearbyActiveUsers, staticLocationUsers, userProfileLocation, filters.showOwnLocation]);
   
   // Query for user's location privacy settings
   const { data: userPrivacySettings } = useQuery({
@@ -366,6 +408,23 @@ const MapExplorer = () => {
     }
   };
 
+  // If we have the user's profile location and there's a map instance, offer to show it
+  useEffect(() => {
+    if (mapInstance && userProfileLocation && filters.showOwnLocation && !userPosition) {
+      // Only show this once when the map loads
+      const timer = setTimeout(() => {
+        toast.info(
+          <div className="cursor-pointer" onClick={() => handleUserSelect(userProfileLocation)}>
+            Click to view your profile location
+          </div>,
+          { duration: 5000 }
+        );
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [mapInstance, userProfileLocation, filters.showOwnLocation, userPosition]);
+
   return (
     <div className="container py-4 px-4 md:px-6">
       <div className="flex items-center justify-between mb-6">
@@ -395,7 +454,8 @@ const MapExplorer = () => {
             nearbyUsers={nearbyUsers}
             filters={{
               showPlayers: filters.showPlayers,
-              showCoaches: filters.showCoaches
+              showCoaches: filters.showCoaches,
+              showOwnLocation: filters.showOwnLocation
             }}
             onSelectUser={handleUserSelect}
           />
@@ -414,6 +474,8 @@ const MapExplorer = () => {
             locationPrivacy={locationPrivacy}
             userPosition={userPosition}
             mapInstance={mapInstance}
+            profileLocation={userProfileLocation}
+            onViewProfileLocation={() => userProfileLocation && handleUserSelect(userProfileLocation)}
           />
         </div>
       </div>

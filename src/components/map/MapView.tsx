@@ -18,6 +18,7 @@ interface MapViewProps {
   filters: {
     showPlayers: boolean;
     showCoaches: boolean;
+    showOwnLocation?: boolean; // Added filter
   };
   onSelectUser: (user: any) => void;
 }
@@ -48,7 +49,8 @@ const MapView: React.FC<MapViewProps> = ({
               map={mapInstance}
               filters={{
                 showPlayers: filters.showPlayers,
-                showCoaches: filters.showCoaches
+                showCoaches: filters.showCoaches,
+                showOwnLocation: filters.showOwnLocation || false
               }}
               onSelectUser={onSelectUser}
             />

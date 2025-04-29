@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MapPin, MapPinCheck, Shield, Lock } from 'lucide-react';
+import { MapPin, MapPinCheck, Shield, Lock, Home } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -14,6 +14,8 @@ interface LocationStatusCardProps {
   };
   userPosition: { lng: number; lat: number } | null;
   mapInstance: mapboxgl.Map | null;
+  profileLocation?: any; // Added
+  onViewProfileLocation?: () => void; // Added
 }
 
 const LocationStatusCard: React.FC<LocationStatusCardProps> = ({
@@ -21,7 +23,9 @@ const LocationStatusCard: React.FC<LocationStatusCardProps> = ({
   userLocationEnabled,
   locationPrivacy,
   userPosition,
-  mapInstance
+  mapInstance,
+  profileLocation,
+  onViewProfileLocation
 }) => {
   const handleFindLocation = () => {
     if (mapInstance && navigator.geolocation) {
@@ -44,6 +48,8 @@ const LocationStatusCard: React.FC<LocationStatusCardProps> = ({
     }
   };
 
+  const hasProfileLocation = !!profileLocation?.location_name;
+
   return (
     <Card className="p-4">
       <h3 className="font-semibold mb-2">Your Location Status</h3>
@@ -61,7 +67,7 @@ const LocationStatusCard: React.FC<LocationStatusCardProps> = ({
           <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2 text-sm text-blue-700">
               <Shield className="h-4 w-4" />
-              <span>Your location is private and not visible to others</span>
+              <span>Your live location is private and not visible to others</span>
             </div>
           </div>
         )
@@ -70,6 +76,30 @@ const LocationStatusCard: React.FC<LocationStatusCardProps> = ({
           <div className="flex items-center gap-2 text-sm text-amber-700">
             <Lock className="h-4 w-4" />
             <span>Sign in to share your location with other players</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Show profile location if available */}
+      {hasProfileLocation && isLoggedIn && (
+        <div className="mt-3 p-2 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Home className="h-4 w-4 text-gray-600" />
+              <div>
+                <span className="text-gray-600">Profile location:</span>
+                <div className="font-medium truncate max-w-[180px]">{profileLocation.location_name}</div>
+              </div>
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              onClick={onViewProfileLocation}
+            >
+              View
+            </Button>
           </div>
         </div>
       )}

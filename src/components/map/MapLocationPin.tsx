@@ -9,6 +9,7 @@ interface Location {
   type: 'court' | 'player' | 'coach' | 'event';
   userData?: any;
   isStaticLocation?: boolean;
+  isOwnProfile?: boolean; // Add flag for own profile
 }
 
 interface MapLocationPinProps {
@@ -27,8 +28,15 @@ const MapLocationPin = ({ location, map, onClick }: MapLocationPinProps) => {
     const el = document.createElement('div');
     el.className = 'marker';
     
-    // Style based on location type, adding a different style for static locations
-    if (location.isStaticLocation) {
+    // Style based on location type, with special handling for own location
+    if (location.isOwnProfile) {
+      // Own profile location gets a special style
+      el.innerHTML = `<div class="w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center text-white border-2 border-white relative">
+                        <div class="absolute -inset-1 bg-cyan-500 rounded-full opacity-30"></div>
+                        ${location.type === 'coach' ? 'T' : 'P'}
+                      </div>`;
+    }
+    else if (location.isStaticLocation) {
       // Static locations (from profile) have a different style with a house icon
       switch (location.type) {
         case 'player':
@@ -82,7 +90,11 @@ const MapLocationPin = ({ location, map, onClick }: MapLocationPinProps) => {
     el.addEventListener('mouseenter', () => {
       popup.setLngLat(location.coordinates)
         .setHTML(`<div class="text-sm font-medium">${location.name}</div>
-                  ${location.isStaticLocation ? '<div class="text-xs text-muted-foreground">Home location</div>' : ''}`)
+                  ${location.isOwnProfile 
+                    ? '<div class="text-xs text-cyan-600 font-medium">Your profile location</div>' 
+                    : location.isStaticLocation 
+                      ? '<div class="text-xs text-muted-foreground">Home location</div>' 
+                      : ''}`)
         .addTo(map);
     });
 
