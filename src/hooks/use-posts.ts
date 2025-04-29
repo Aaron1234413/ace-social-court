@@ -3,10 +3,52 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
 import { toast } from 'sonner';
+import { personalizePostFeed, PersonalizationContext } from '@/utils/feedPersonalization';
 
-export const usePosts = () => {
+interface UsePostsOptions {
+  personalize?: boolean;
+}
+
+export const usePosts = (options: UsePostsOptions = { personalize: true }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userFollowings, setUserFollowings] = useState<string[]>([]);
+  const [userProfile, setUserProfile] = useState<{ user_type: string | null } | null>(null);
+  
+  // Fetch user followings for personalization
+  const fetchUserFollowings = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('followers')
+        .select('following_id')
+        .eq('follower_id', userId);
+      
+      if (error) throw error;
+      
+      return data.map(item => item.following_id);
+    } catch (error) {
+      console.error('Error fetching user followings:', error);
+      return [];
+    }
+  };
+  
+  // Fetch user profile for personalization
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', userId)
+        .single();
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  };
 
   const fetchPosts = async () => {
     try {
@@ -57,8 +99,33 @@ export const usePosts = () => {
           console.error('Error fetching profiles:', profilesError);
         }
       }
-
-      setPosts(formattedPosts);
+      
+      // Get current user from supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // If personalization is enabled and user is logged in
+      if (options.personalize && user) {
+        // Fetch user followings and profile for personalization context
+        const followings = await fetchUserFollowings(user.id);
+        const profile = await fetchUserProfile(user.id);
+        
+        setUserFollowings(followings);
+        setUserProfile(profile);
+        
+        const personalizationContext: PersonalizationContext = {
+          currentUserId: user.id,
+          userFollowings: followings,
+          userType: profile?.user_type
+        };
+        
+        // Personalize the feed
+        const personalizedPosts = personalizePostFeed(formattedPosts, personalizationContext);
+        setPosts(personalizedPosts);
+      } else {
+        // If no personalization or not logged in, just show the posts in chronological order
+        setPosts(formattedPosts);
+      }
+      
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error("Failed to load posts");
@@ -71,5 +138,11 @@ export const usePosts = () => {
     fetchPosts();
   }, []);
 
-  return { posts, isLoading, fetchPosts };
+  return { 
+    posts, 
+    isLoading, 
+    fetchPosts,
+    userFollowings,
+    userProfile
+  };
 };

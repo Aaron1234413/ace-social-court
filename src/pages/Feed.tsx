@@ -1,24 +1,44 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PostList from '@/components/social/PostList';
 import { usePosts } from '@/hooks/use-posts';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const Feed = () => {
   const { user } = useAuth();
-  const { posts, isLoading, fetchPosts } = usePosts();
+  const [personalized, setPersonalized] = useState(true);
+  const { posts, isLoading, fetchPosts } = usePosts({ personalize: personalized });
 
   const handleShare = (postId: string) => {
     console.log(`Shared post ${postId}`);
     toast.info("Share feature coming soon!");
   };
 
+  const togglePersonalization = () => {
+    setPersonalized(!personalized);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Home Feed</h1>
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold">Home Feed</h1>
+        
+        {user && (
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="personalized" 
+              checked={personalized}
+              onCheckedChange={togglePersonalization}
+            />
+            <Label htmlFor="personalized">Personalized</Label>
+          </div>
+        )}
+      </div>
       
       {user ? (
         <>
