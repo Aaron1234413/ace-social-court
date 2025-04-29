@@ -63,7 +63,7 @@ const CommentButton = ({ postId }: CommentButtonProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [postId]);
+  }, [postId, isCommentsModalOpen]);
 
   const handleCommentClick = () => {
     if (!user) {

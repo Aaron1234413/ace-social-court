@@ -20,7 +20,10 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
 
   useEffect(() => {
     const fetchLikeData = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
 
       // Get like count
       const { data: likeCount } = await supabase
@@ -77,7 +80,7 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
           .match({ user_id: user.id, post_id: postId });
 
         if (error) throw error;
-        setLikes(prev => prev - 1);
+        setLikes(prev => Math.max(0, prev - 1));
         setIsLiked(false);
       } else {
         const { error } = await supabase
@@ -98,21 +101,23 @@ const LikeButton = ({ postId }: LikeButtonProps) => {
     }
   };
 
-  if (isLoading) {
-    return <Button variant="ghost" size="sm" disabled>Loading...</Button>;
-  }
-
   return (
     <Button
       variant="ghost"
       size="sm"
       onClick={handleLike}
-      className={`flex items-center gap-1 transition-all ${isAnimating ? 'scale-110' : ''}`}
+      disabled={isLoading}
+      className={`flex items-center gap-1 transition-all duration-200 ${isAnimating ? 'scale-110' : ''}`}
     >
       <Heart
-        className={`h-4 w-4 transition-colors ${isLiked ? 'fill-current text-red-500' : ''} ${isAnimating && !isLiked ? 'animate-ping' : ''}`}
+        className={`h-4 w-4 transition-all duration-200 
+          ${isLiked ? 'fill-current text-red-500' : ''} 
+          ${isAnimating && isLiked ? 'scale-125' : ''}
+          ${isAnimating && !isLiked ? 'animate-ping opacity-70' : ''}`}
       />
-      <span className={`${isLiked ? 'text-red-500 font-medium' : ''}`}>{likes}</span>
+      <span className={`transition-all duration-200 ${isLiked ? 'text-red-500 font-medium' : ''}`}>
+        {isLoading ? "..." : likes}
+      </span>
     </Button>
   );
 };

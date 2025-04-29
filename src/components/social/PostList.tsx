@@ -7,6 +7,7 @@ import LikeButton from '@/components/social/LikeButton';
 import CommentButton from '@/components/social/CommentButton';
 import FollowButton from '@/components/social/FollowButton';
 import { Post } from '@/types/post';
+import { formatDistanceToNow } from 'date-fns';
 
 interface PostListProps {
   posts: Post[];
@@ -18,13 +19,30 @@ interface PostListProps {
 const PostList = ({ posts, currentUserId, handleShare, isLoading }: PostListProps) => {
   if (isLoading) {
     return (
-      <div className="text-center py-8">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-4 bg-slate-200 rounded w-3/4 mb-2.5"></div>
-          <div className="h-10 bg-slate-200 rounded w-full mb-2.5"></div>
-          <div className="h-10 bg-slate-200 rounded w-full"></div>
-        </div>
-        <p className="mt-4 text-muted-foreground">Loading posts...</p>
+      <div className="space-y-4 md:space-y-6">
+        {[...Array(3)].map((_, index) => (
+          <Card key={index} className="overflow-hidden animate-pulse">
+            <CardHeader className="pb-2 p-4 md:p-6">
+              <div className="flex items-center">
+                <div className="h-10 w-10 rounded-full bg-gray-200"></div>
+                <div className="ml-3">
+                  <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                  <div className="h-3 w-32 bg-gray-200 rounded mt-2"></div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 md:p-6">
+              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-40 bg-gray-200 rounded w-full mt-4"></div>
+            </CardContent>
+            <CardFooter className="border-t p-2 md:p-4 flex justify-between">
+              <div className="h-8 w-16 bg-gray-200 rounded"></div>
+              <div className="h-8 w-16 bg-gray-200 rounded"></div>
+              <div className="h-8 w-16 bg-gray-200 rounded"></div>
+            </CardFooter>
+          </Card>
+        ))}
       </div>
     );
   }
@@ -40,7 +58,7 @@ const PostList = ({ posts, currentUserId, handleShare, isLoading }: PostListProp
   return (
     <div className="space-y-4 md:space-y-6">
       {posts.map(post => (
-        <Card key={post.id} className="overflow-hidden">
+        <Card key={post.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <CardHeader className="pb-2 p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -51,7 +69,7 @@ const PostList = ({ posts, currentUserId, handleShare, isLoading }: PostListProp
                   <h3 className="font-semibold text-sm md:text-base">{post.author?.full_name || 'Anonymous'}</h3>
                   <p className="text-xs md:text-sm text-muted-foreground">
                     {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
-                      new Date(post.created_at).toLocaleDateString()
+                      formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
                     }
                   </p>
                 </div>
