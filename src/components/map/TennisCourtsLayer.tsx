@@ -14,7 +14,7 @@ export interface TennisCourt {
   country: string | null;
   surface_type: string | null;
   is_public: boolean;
-  distance: number;
+  distance?: number; // Make distance optional
 }
 
 interface TennisCourtsLayerProps {

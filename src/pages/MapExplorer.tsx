@@ -141,7 +141,11 @@ const MapExplorer = () => {
             return [];
           }
           
-          return data || [];
+          // Add a default distance property to each court for consistency
+          return (data || []).map(court => ({
+            ...court,
+            distance: 0 // Default distance when we don't have user location
+          }));
         }
         
         return [];
@@ -553,6 +557,7 @@ const MapExplorer = () => {
 
   return (
     <div className="container py-4 px-4 md:px-6">
+      {/* Keep existing code (header and filters) */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Tennis Map</h1>
@@ -571,7 +576,7 @@ const MapExplorer = () => {
       
       {locationError && (
         <div className="mb-4">
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="text-amber-800">
               {locationError}
