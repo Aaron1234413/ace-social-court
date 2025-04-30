@@ -8,7 +8,7 @@ import { usePosts } from '@/hooks/use-posts';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { MessageSquare, Heart, Clock, TrendingUp } from 'lucide-react';
+import { MessageSquare, Heart, Clock } from 'lucide-react';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 

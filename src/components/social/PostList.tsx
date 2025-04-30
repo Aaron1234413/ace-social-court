@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import LikeButton from '@/components/social/LikeButton';
@@ -6,6 +7,8 @@ import ShareButton from '@/components/social/ShareButton';
 import FollowButton from '@/components/social/FollowButton';
 import { Post } from '@/types/post';
 import { formatDistanceToNow } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface PostListProps {
   posts: Post[];
@@ -60,11 +63,20 @@ const PostList = ({ posts, currentUserId, isLoading }: PostListProps) => {
           <CardHeader className="pb-2 p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                  {post.author?.full_name?.charAt(0) || '?'}
-                </div>
+                <Link to={`/profile/${post.user_id}`} className="hover:opacity-80 transition-opacity">
+                  <Avatar className="h-8 w-8 md:h-10 md:w-10">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                      {post.author?.full_name?.charAt(0) || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
                 <div className="ml-3">
-                  <h3 className="font-semibold text-sm md:text-base">{post.author?.full_name || 'Anonymous'}</h3>
+                  <Link 
+                    to={`/profile/${post.user_id}`} 
+                    className="font-semibold text-sm md:text-base hover:underline"
+                  >
+                    {post.author?.full_name || 'Anonymous'}
+                  </Link>
                   <p className="text-xs md:text-sm text-muted-foreground">
                     {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
                       formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
