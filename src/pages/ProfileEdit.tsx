@@ -37,7 +37,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const ProfileEdit = () => {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isNewUser = location.state?.newUser === true;
@@ -50,6 +50,7 @@ const ProfileEdit = () => {
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
+    mode: 'onChange',
     defaultValues: {
       username: '',
       full_name: '',
@@ -136,7 +137,20 @@ const ProfileEdit = () => {
       return;
     }
 
-    setFormSubmitAttempt(true);
+    console.log('Form validation status:', {
+      isValid: form.formState.isValid,
+      errors: form.formState.errors,
+      values
+    });
+    
+    // Show errors for required fields if they're missing
+    if (!form.formState.isValid) {
+      const errorFields = Object.keys(form.formState.errors);
+      toast.error(`Please fill in all required fields: ${errorFields.join(', ')}`);
+      setFormSubmitAttempt(true);
+      return;
+    }
+
     setIsSaving(true);
     try {
       console.log('Submitting profile with values:', values);
@@ -373,15 +387,6 @@ const ProfileEdit = () => {
             type="submit" 
             className="w-full" 
             disabled={isSaving}
-            onClick={() => {
-              console.log('Submit button clicked');
-              console.log('Form valid:', form.formState.isValid);
-              console.log('Form errors:', form.formState.errors);
-              
-              if (!form.formState.isValid) {
-                toast.error('Please fill in all required fields');
-              }
-            }}
           >
             {isSaving ? (
               <>

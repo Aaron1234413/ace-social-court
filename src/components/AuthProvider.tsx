@@ -71,17 +71,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(data);
       
       // Check if profile is complete enough to use the app
-      const hasRequiredFields = 
-        data.username && 
-        data.username.trim() !== '' && 
-        data.full_name && 
-        data.full_name.trim() !== '' && 
-        data.user_type;
+      // Simplified check that clearly validates the required fields
+      const hasUsername = !!data.username && data.username.trim() !== '';
+      const hasFullName = !!data.full_name && data.full_name.trim() !== '';
+      const hasUserType = !!data.user_type;
       
-      setIsProfileComplete(!!hasRequiredFields);
+      const hasRequiredFields = hasUsername && hasFullName && hasUserType;
+      
+      console.log('Profile completion check:', {
+        hasUsername,
+        hasFullName,
+        hasUserType,
+        isComplete: hasRequiredFields
+      });
+      
+      setIsProfileComplete(hasRequiredFields);
       
       console.log('Profile loaded:', data);
-      console.log('Profile complete status:', !!hasRequiredFields);
+      console.log('Profile complete status:', hasRequiredFields);
       
     } catch (err) {
       console.error('Failed to fetch profile:', err);
