@@ -27,7 +27,7 @@ import { Toaster } from 'sonner';
 
 // A component that handles auth-protected routes
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isProfileComplete } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -35,8 +35,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (!isLoading && !user && location.pathname !== '/auth') {
       console.log('User not authenticated, redirecting to auth page');
       navigate('/auth');
+      return;
     }
-  }, [user, isLoading, navigate, location.pathname]);
+
+    // If user is authenticated but profile is incomplete, redirect to profile edit
+    // Only redirect if they're not already on the profile edit page
+    if (!isLoading && user && !isProfileComplete && location.pathname !== '/profile/edit') {
+      console.log('Profile incomplete, redirecting to profile edit');
+      navigate('/profile/edit', { state: { newUser: true } });
+    }
+  }, [user, isLoading, isProfileComplete, navigate, location.pathname]);
 
   if (isLoading) {
     return (
@@ -101,11 +109,7 @@ function AppRoutes() {
             <Profile />
           </ProtectedRoute>
         } />
-        <Route path="/profile/edit" element={
-          <ProtectedRoute>
-            <ProfileEdit />
-          </ProtectedRoute>
-        } />
+        <Route path="/profile/edit" element={<ProfileEdit />} />
         <Route path="/notifications" element={
           <ProtectedRoute>
             <Notifications />
