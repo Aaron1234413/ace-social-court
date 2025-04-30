@@ -8,18 +8,29 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
   user: null, 
   session: null,
-  isLoading: true
+  isLoading: true,
+  signOut: async () => {}
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error(`Error signing out: ${error.message}`);
+    } else {
+      toast.success("Signed out successfully");
+    }
+  };
 
   useEffect(() => {
     console.log("AuthProvider initializing");
@@ -58,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading }}>
+    <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

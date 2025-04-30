@@ -4,9 +4,10 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  useLocation
+  useLocation,
+  useNavigate
 } from 'react-router-dom';
-import { AuthProvider } from './components/AuthProvider';
+import { AuthProvider, useAuth } from './components/AuthProvider';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
@@ -22,8 +23,31 @@ import { Loader2 } from 'lucide-react';
 import Navigation from './components/layout/Navigation';
 import { initializeStorage } from './integrations/supabase/storage';
 import EnhancedNavigation from './components/layout/EnhancedNavigation';
-import { useAuth } from './components/AuthProvider';
 import { Toaster } from 'sonner';
+
+// A component that handles auth-protected routes
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !user && location.pathname !== '/auth') {
+      console.log('User not authenticated, redirecting to auth page');
+      navigate('/auth');
+    }
+  }, [user, isLoading, navigate, location.pathname]);
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 // Create a separate component for the routes to use the auth hook
 function AppRoutes() {
@@ -62,14 +86,46 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/feed" element={<Feed />} />
-        <Route path="/post/:id" element={<PostDetail />} />
-        <Route path="/profile/:id?" element={<Profile />} />
-        <Route path="/profile/edit" element={<ProfileEdit />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/messages/:chatId?" element={<Messages />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/map" element={<MapExplorer />} />
+        <Route path="/feed" element={
+          <ProtectedRoute>
+            <Feed />
+          </ProtectedRoute>
+        } />
+        <Route path="/post/:id" element={
+          <ProtectedRoute>
+            <PostDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/:id?" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/edit" element={
+          <ProtectedRoute>
+            <ProfileEdit />
+          </ProtectedRoute>
+        } />
+        <Route path="/notifications" element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        } />
+        <Route path="/messages/:chatId?" element={
+          <ProtectedRoute>
+            <Messages />
+          </ProtectedRoute>
+        } />
+        <Route path="/search" element={
+          <ProtectedRoute>
+            <Search />
+          </ProtectedRoute>
+        } />
+        <Route path="/map" element={
+          <ProtectedRoute>
+            <MapExplorer />
+          </ProtectedRoute>
+        } />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

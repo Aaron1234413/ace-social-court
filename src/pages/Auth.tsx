@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,18 +12,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-
-  // If user is already logged in, redirect to home
-  if (user) {
-    navigate("/feed");
-    return null;
-  }
+  
+  // Handle redirection when user is already logged in or becomes logged in
+  useEffect(() => {
+    if (user) {
+      console.log("Auth: User detected, redirecting to feed");
+      navigate("/feed");
+    }
+  }, [user, navigate]);
 
   const validateForm = () => {
     if (!email || !password) {
@@ -55,14 +57,18 @@ const Auth = () => {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: window.location.origin + '/feed'
+          }
         });
         
         if (error) throw error;
         
         if (data.user) {
           toast.success("Account created successfully!");
-          // Don't navigate yet - wait for session to be established
           console.log("Sign up successful, user:", data.user);
+          
+          // Let the auth state listener handle navigation
         } else {
           // This might be because email confirmation is required
           toast.info("Please check your email to confirm your account!");
@@ -78,7 +84,8 @@ const Auth = () => {
         if (data.user) {
           toast.success("Signed in successfully!");
           console.log("Sign in successful, user:", data.user);
-          navigate("/feed");
+          
+          // Let the auth state listener handle navigation
         }
       }
     } catch (error) {
