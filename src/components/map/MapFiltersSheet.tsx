@@ -24,6 +24,7 @@ const MapFiltersSheet = () => {
     handleFilterChange, 
     locationPrivacy, 
     togglePrivacySetting,
+    userLocationEnabled,
     showAllCourts
   } = useMapExplorer();
 
@@ -151,6 +152,8 @@ const MapFiltersSheet = () => {
             <LocationPrivacyControl 
               locationPrivacy={locationPrivacy}
               onToggle={togglePrivacySetting}
+              userLocationEnabled={userLocationEnabled}
+              isUserLoggedIn={!!user}
             />
           )}
         </div>

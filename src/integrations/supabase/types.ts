@@ -344,6 +344,7 @@ export type Database = {
           location_updated_at: string | null
           longitude: number | null
           playing_style: string | null
+          skill_level: string | null
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
           username: string | null
@@ -363,6 +364,7 @@ export type Database = {
           location_updated_at?: string | null
           longitude?: number | null
           playing_style?: string | null
+          skill_level?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
           username?: string | null
@@ -382,6 +384,7 @@ export type Database = {
           location_updated_at?: string | null
           longitude?: number | null
           playing_style?: string | null
+          skill_level?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
           username?: string | null

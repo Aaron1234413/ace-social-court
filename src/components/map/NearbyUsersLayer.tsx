@@ -1,4 +1,3 @@
-
 import React from 'react';
 import MapLocationPin from './MapLocationPin';
 
@@ -14,7 +13,8 @@ export type NearbyUser = {
   location_name?: string;
   is_static_location?: boolean;
   is_own_profile?: boolean;
-  is_following?: boolean; // Add flag to indicate if user is being followed
+  is_following?: boolean;
+  skill_level?: string | null; // Added skill level property
 };
 
 interface NearbyUsersLayerProps {

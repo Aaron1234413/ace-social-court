@@ -41,13 +41,14 @@ export const useMapData = () => {
       if (!userPosition) return [];
       
       try {
-        const { data, error } = await supabase.rpc('find_nearby_users', {
-          user_lat: userPosition.lat,
-          user_lng: userPosition.lng,
-          distance_miles: filters.distance,
-          show_players: filters.showPlayers,
-          show_coaches: filters.showCoaches
-        });
+        // Since our Supabase function may not be updated to include skill_level yet,
+        // we'll query the profiles directly to get skill levels
+        const { data: activeUsers, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, skill_level')
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null)
+          .is('location_privacy->showOnMap', true);
         
         if (error) {
           console.error('Error fetching nearby users:', error);
@@ -55,8 +56,32 @@ export const useMapData = () => {
           return [];
         }
         
-        // Apply skill level filter here since our RPC doesn't handle it
-        let filteredData = data || [];
+        // Filter by distance
+        const usersWithDistance = activeUsers
+          .filter(user => {
+            // Filter by user type
+            if (!(user.user_type === 'player' && filters.showPlayers) && 
+                !(user.user_type === 'coach' && filters.showCoaches)) {
+              return false;
+            }
+            
+            return true;
+          })
+          .map(user => {
+            const distance = calculateDistance(
+              userPosition.lat, userPosition.lng, 
+              user.latitude!, user.longitude!
+            );
+            
+            return {
+              ...user,
+              distance
+            };
+          })
+          .filter(user => user.distance <= filters.distance);
+        
+        // Apply skill level filter here
+        let filteredData = usersWithDistance;
         if (filters.skillLevel) {
           filteredData = filteredData.filter(user => 
             !filters.skillLevel || user.skill_level === filters.skillLevel || !user.skill_level
@@ -193,7 +218,7 @@ export const useMapData = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name, skill_level')
           .eq('id', user.id)
           .single();
         
@@ -234,9 +259,7 @@ export const useMapData = () => {
           .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name, skill_level')
           .not('latitude', 'is', null)
           .not('longitude', 'is', null)
-          .not('location_name', 'is', null)
-          .filter('location_privacy', 'not.eq', JSON.stringify({showOnMap: true}))
-          .order('username');
+          .not('location_name', 'is', null);
         
         if (error) {
           console.error('Error fetching static location users:', error);
@@ -403,9 +426,7 @@ export const useMapData = () => {
     
     // If showing only following users, filter to just those
     if (filters.showFollowing) {
-      console.log('Filtering to show only followed users');
       users = users.filter(user => user.is_following || user.is_own_profile);
-      console.log('Filtered users:', users);
     }
     
     // Filter by skill level if specified
