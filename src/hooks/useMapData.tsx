@@ -36,7 +36,7 @@ export const useMapData = () => {
 
   // Query for nearby users using our Supabase function
   const { data: nearbyActiveUsers, isLoading: isLoadingNearbyUsers } = useQuery({
-    queryKey: ['nearby-active-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches],
+    queryKey: ['nearby-active-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches, filters.skillLevel],
     queryFn: async () => {
       if (!userPosition) return [];
       
@@ -55,7 +55,15 @@ export const useMapData = () => {
           return [];
         }
         
-        return data || [];
+        // Apply skill level filter here since our RPC doesn't handle it
+        let filteredData = data || [];
+        if (filters.skillLevel) {
+          filteredData = filteredData.filter(user => 
+            !filters.skillLevel || user.skill_level === filters.skillLevel || !user.skill_level
+          );
+        }
+        
+        return filteredData;
       } catch (err) {
         console.error('Exception fetching nearby users:', err);
         return [];
@@ -214,7 +222,7 @@ export const useMapData = () => {
 
   // Query for users with static locations (from profiles)
   const { data: staticLocationUsers } = useQuery({
-    queryKey: ['static-location-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches, filters.showStaticLocations],
+    queryKey: ['static-location-users', userPosition, filters.distance, filters.showPlayers, filters.showCoaches, filters.showStaticLocations, filters.skillLevel],
     queryFn: async () => {
       if (!userPosition || !filters.showStaticLocations) return [];
       
@@ -223,7 +231,7 @@ export const useMapData = () => {
         // but may not be actively sharing their location
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name, skill_level')
           .not('latitude', 'is', null)
           .not('longitude', 'is', null)
           .not('location_name', 'is', null)
@@ -236,10 +244,17 @@ export const useMapData = () => {
         }
         
         // Filter by user type
-        const filteredUsers = (data || []).filter(user => 
+        let filteredUsers = (data || []).filter(user => 
           (user.user_type === 'player' && filters.showPlayers) || 
           (user.user_type === 'coach' && filters.showCoaches)
         );
+        
+        // Filter by skill level if specified
+        if (filters.skillLevel) {
+          filteredUsers = filteredUsers.filter(user => 
+            !filters.skillLevel || user.skill_level === filters.skillLevel || !user.skill_level
+          );
+        }
         
         // Calculate distance
         return filteredUsers.map(user => ({
@@ -393,8 +408,15 @@ export const useMapData = () => {
       console.log('Filtered users:', users);
     }
     
+    // Filter by skill level if specified
+    if (filters.skillLevel) {
+      users = users.filter(user => 
+        !filters.skillLevel || user.skill_level === filters.skillLevel || !user.skill_level
+      );
+    }
+    
     return users;
-  }, [nearbyActiveUsers, staticLocationUsers, userProfileLocation, followedUsersLocations, followingData, filters.showOwnLocation, filters.showFollowing]);
+  }, [nearbyActiveUsers, staticLocationUsers, userProfileLocation, followedUsersLocations, followingData, filters.showOwnLocation, filters.showFollowing, filters.skillLevel]);
   
   return {
     nearbyUsers,

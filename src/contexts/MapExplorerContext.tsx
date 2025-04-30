@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,6 +23,7 @@ interface FilterSettings {
   showFollowing: boolean; 
   distance: number; // in miles
   state: string | null; // Filter for state
+  skillLevel: string | null; // Filter for skill level
 }
 
 interface MapExplorerContextType {
@@ -57,7 +59,7 @@ interface MapExplorerContextType {
   handleUserPositionUpdate: (position: { lng: number; lat: number }) => void;
   handleUserSelect: (user: NearbyUser) => void;
   handleCourtSelect: (court: TennisCourt) => void;
-  showAllCourts: () => void;  // Add this function to the context type
+  showAllCourts: () => void;
 }
 
 const MapExplorerContext = createContext<MapExplorerContextType | undefined>(undefined);
@@ -80,9 +82,10 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     showEvents: false,
     showStaticLocations: true,
     showOwnLocation: true,
-    showFollowing: false, // Added this line
+    showFollowing: false,
     distance: 25, // in miles
     state: null, // Default to no state filter
+    skillLevel: null, // Default to no skill level filter
   });
   const [selectedUser, setSelectedUser] = useState<NearbyUser | null>(null);
   const [selectedCourt, setSelectedCourt] = useState<TennisCourt | null>(null);
@@ -396,7 +399,7 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         handleUserPositionUpdate,
         handleUserSelect,
         handleCourtSelect,
-        showAllCourts, // Add the function to the context value
+        showAllCourts,
       }}
     >
       {children}
