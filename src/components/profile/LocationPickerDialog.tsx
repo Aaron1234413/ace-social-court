@@ -45,6 +45,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [confirmButtonClicked, setConfirmButtonClicked] = useState(false); // Track if user tried to confirm
   
   // Set Mapbox token before initializing
   const setMapboxToken = () => {
@@ -182,6 +183,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       // Get address for the location
       const address = await reverseGeocode(lat, lng);
       setSelectedPosition({ lat, lng, address });
+      setConfirmButtonClicked(false); // Reset confirmation attempt flag
       console.log('Location selected:', { lat, lng, address });
       toast.success('Location selected!');
     } catch (error) {
@@ -192,6 +194,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         lng, 
         address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
       });
+      setConfirmButtonClicked(false); // Reset confirmation attempt flag
       toast.info('Location selected with coordinates only.');
     }
   };
@@ -210,6 +213,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         lng: position.lng,
         address
       });
+      setConfirmButtonClicked(false); // Reset confirmation attempt flag
       console.log('New position after drag:', { 
         lat: position.lat,
         lng: position.lng,
@@ -222,6 +226,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         lng: position.lng,
         address: `${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}`
       });
+      setConfirmButtonClicked(false); // Reset confirmation attempt flag
     }
   };
 
@@ -296,6 +301,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       lng,
       address: result.place_name
     });
+    setConfirmButtonClicked(false); // Reset confirmation attempt flag
     
     toast.success('Location selected!');
     
@@ -333,6 +339,8 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
 
   // Handle form submission
   const handleSubmit = () => {
+    setConfirmButtonClicked(true); // Mark that user tried to confirm
+    
     if (selectedPosition) {
       console.log('Confirming location:', selectedPosition);
       onSelectLocation(
@@ -439,14 +447,22 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
               </div>
             </div>
           )}
+          
+          {confirmButtonClicked && !selectedPosition && (
+            <Alert variant="destructive" className="py-2 mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>Please select a location on the map first</AlertDescription>
+            </Alert>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={onClose} type="button">Cancel</Button>
           <Button 
             onClick={handleSubmit}
-            disabled={!selectedPosition}
             type="button"
+            variant="default"
+            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 font-medium"
           >
             Confirm Location
           </Button>

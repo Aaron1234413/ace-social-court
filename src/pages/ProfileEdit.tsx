@@ -47,8 +47,9 @@ const ProfileEdit = () => {
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   const [locationName, setLocationName] = useState('');
   const [formSubmitAttempt, setFormSubmitAttempt] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
-  // Initialize form with validation mode set to onChange for real-time validation
+  // Initialize form with validation mode set to all for real-time validation
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     mode: 'all', // Enable real-time validation
@@ -138,6 +139,9 @@ const ProfileEdit = () => {
       return;
     }
 
+    // Clear previous validation message
+    setValidationMessage(null);
+
     // Log full form status for debugging
     console.log('Form validation status:', {
       isValid: form.formState.isValid,
@@ -150,7 +154,9 @@ const ProfileEdit = () => {
     // Show errors for required fields if they're missing
     if (!form.formState.isValid) {
       const errorFields = Object.keys(form.formState.errors);
-      toast.error(`Please fill in all required fields: ${errorFields.join(', ')}`);
+      const errorMessage = `Please fill in all required fields: ${errorFields.join(', ')}`;
+      setValidationMessage(errorMessage);
+      toast.error(errorMessage);
       setFormSubmitAttempt(true);
       return;
     }
@@ -225,6 +231,13 @@ const ProfileEdit = () => {
         {isNewUser ? 'Set Up Your Profile' : 'Edit Profile'}
       </h1>
       
+      {validationMessage && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertDescription>{validationMessage}</AlertDescription>
+        </Alert>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -397,8 +410,8 @@ const ProfileEdit = () => {
 
           <Button 
             type="submit" 
-            className="w-full"
-            disabled={isSaving || !form.formState.isValid}
+            className="w-full font-medium"
+            disabled={isSaving}
           >
             {isSaving ? (
               <>
