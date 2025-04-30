@@ -16,19 +16,11 @@ const Feed = () => {
   const { user } = useAuth();
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
-  const [isLoaded, setIsLoaded] = useState(false);
   
   const { posts, isLoading, fetchPosts } = usePosts({ 
     personalize: personalized,
     sortBy: sortOption 
   });
-
-  // Fix the loading state detection
-  useEffect(() => {
-    // Set isLoaded to true once we've checked auth status
-    // regardless of whether user is logged in or not
-    setIsLoaded(true);
-  }, [user]);
 
   const togglePersonalization = () => {
     setPersonalized(!personalized);
@@ -39,17 +31,6 @@ const Feed = () => {
       setSortOption(value as SortOption);
     }
   };
-
-  // Only show loading indicator during initial auth check
-  if (!isLoaded) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

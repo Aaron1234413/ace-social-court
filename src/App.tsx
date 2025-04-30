@@ -26,8 +26,8 @@ import { initializeStorage } from './integrations/supabase/storage';
 // Create a separate component for the routes to use the auth hook
 function AppRoutes() {
   const { user, session } = useAuth();
-  const isLoading = session === null && user === null;
   const location = useLocation();
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize storage buckets when app loads
   useEffect(() => {
@@ -36,8 +36,15 @@ function AppRoutes() {
     }
   }, [user]);
 
-  // Show loading indicator while checking auth status
-  if (isLoading) {
+  // Handle initialization after checking auth status
+  useEffect(() => {
+    // Mark as initialized once we've checked auth status
+    // even if user is null (logged out), we still want to initialize
+    setIsInitialized(true);
+  }, []);
+
+  // Show loading indicator only during initial app load
+  if (!isInitialized) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
