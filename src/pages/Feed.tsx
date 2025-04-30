@@ -23,11 +23,11 @@ const Feed = () => {
     sortBy: sortOption 
   });
 
-  // Make sure we only attempt to render after we've checked auth status
+  // Fix the loading state detection
   useEffect(() => {
-    if (user !== null || !user) {
-      setIsLoaded(true);
-    }
+    // Set isLoaded to true once we've checked auth status
+    // regardless of whether user is logged in or not
+    setIsLoaded(true);
   }, [user]);
 
   const togglePersonalization = () => {
@@ -40,7 +40,7 @@ const Feed = () => {
     }
   };
 
-  // Don't render until we've checked auth status
+  // Only show loading indicator during initial auth check
   if (!isLoaded) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
