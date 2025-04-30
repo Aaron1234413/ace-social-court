@@ -4,10 +4,9 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  Navigate,
   useLocation
 } from 'react-router-dom';
-import { useAuth, AuthProvider } from './components/AuthProvider';
+import { AuthProvider } from './components/AuthProvider';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
@@ -22,10 +21,13 @@ import MapExplorer from './pages/MapExplorer';
 import { Loader2 } from 'lucide-react';
 import Navigation from './components/layout/Navigation';
 import { initializeStorage } from './integrations/supabase/storage';
+import EnhancedNavigation from './components/layout/EnhancedNavigation';
+import { useAuth } from './components/AuthProvider';
+import { Toaster } from 'sonner';
 
 // Create a separate component for the routes to use the auth hook
 function AppRoutes() {
-  const { user, session } = useAuth();
+  const { user, isLoading } = useAuth();
   const location = useLocation();
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -44,7 +46,7 @@ function AppRoutes() {
   }, []);
 
   // Show loading indicator only during initial app load
-  if (!isInitialized) {
+  if (!isInitialized || isLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -54,8 +56,8 @@ function AppRoutes() {
 
   return (
     <>
-      {/* Show navigation for all routes except auth */}
-      {location.pathname !== '/auth' && <Navigation />}
+      {/* Use Enhanced Navigation which handles auth state */}
+      <EnhancedNavigation />
       
       <Routes>
         <Route path="/" element={<Index />} />
@@ -80,6 +82,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />
+          <Toaster position="top-center" />
         </BrowserRouter>
       </AuthProvider>
     </div>
