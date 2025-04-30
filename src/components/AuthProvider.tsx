@@ -75,13 +75,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const hasUsername = !!data.username && data.username.trim() !== '';
       const hasFullName = !!data.full_name && data.full_name.trim() !== '';
       const hasUserType = !!data.user_type;
+      const hasExperienceLevel = !!data.experience_level;
       
-      const hasRequiredFields = hasUsername && hasFullName && hasUserType;
+      const hasRequiredFields = hasUsername && hasFullName && hasUserType && hasExperienceLevel;
       
       console.log('Profile completion check:', {
         hasUsername,
         hasFullName,
         hasUserType,
+        hasExperienceLevel,
         isComplete: hasRequiredFields
       });
       

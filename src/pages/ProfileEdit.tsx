@@ -121,12 +121,22 @@ const ProfileEdit = () => {
 
   const handleSetLocation = (lat: number, lng: number, address: string) => {
     console.log('Setting location:', { lat, lng, address });
+    
+    if (isNaN(lat) || isNaN(lng)) {
+      console.error('Invalid location coordinates:', { lat, lng });
+      toast.error('Invalid location coordinates. Please try again.');
+      return;
+    }
+    
     form.setValue('latitude', lat);
     form.setValue('longitude', lng);
     form.setValue('location_name', address);
     setLocationName(address);
     setIsLocationPickerOpen(false); // Close the dialog after location is set
     toast.success('Location set successfully');
+    
+    // Log the form values after setting location for debugging
+    console.log('Form values after setting location:', form.getValues());
   };
 
   const openLocationPicker = () => {
@@ -165,21 +175,26 @@ const ProfileEdit = () => {
     try {
       console.log('Submitting profile with values:', values);
       
+      // Ensure we're passing proper values for latitude and longitude
+      const profileData = {
+        id: user.id,
+        username: values.username,
+        full_name: values.full_name,
+        user_type: values.user_type,
+        playing_style: values.playing_style || null,
+        experience_level: values.experience_level,
+        bio: values.bio || null,
+        location_name: values.location_name || null,
+        latitude: values.latitude !== undefined ? Number(values.latitude) : null,
+        longitude: values.longitude !== undefined ? Number(values.longitude) : null,
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('Submitting profile data:', profileData);
+      
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          username: values.username,
-          full_name: values.full_name,
-          user_type: values.user_type,
-          playing_style: values.playing_style || null,
-          experience_level: values.experience_level,
-          bio: values.bio || null,
-          location_name: values.location_name || null,
-          latitude: values.latitude || null,
-          longitude: values.longitude || null,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(profileData);
 
       if (error) {
         console.error('Error updating profile:', error);
@@ -393,6 +408,7 @@ const ProfileEdit = () => {
                         form.setValue('longitude', undefined);
                         form.setValue('location_name', '');
                         setLocationName('');
+                        console.log('Location cleared, form values:', form.getValues());
                       }}
                       className="text-sm text-destructive"
                     >

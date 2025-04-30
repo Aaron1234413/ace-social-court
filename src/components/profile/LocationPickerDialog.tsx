@@ -42,10 +42,14 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     lat: number;
     lng: number;
     address: string;
-  } | null>(null);
+  } | null>(initialLatitude && initialLongitude ? {
+    lat: initialLatitude,
+    lng: initialLongitude,
+    address: ''  // Will be populated after reverse geocoding
+  } : null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [confirmButtonClicked, setConfirmButtonClicked] = useState(false); // Track if user tried to confirm
+  const [confirmButtonClicked, setConfirmButtonClicked] = useState(false);
   
   // Set Mapbox token before initializing
   const setMapboxToken = () => {
@@ -112,12 +116,23 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           console.log('Added initial marker at:', initialLatitude, initialLongitude);
 
           // Get address for initial position
-          const address = await reverseGeocode(initialLatitude, initialLongitude);
-          setSelectedPosition({
-            lat: initialLatitude,
-            lng: initialLongitude,
-            address
-          });
+          reverseGeocode(initialLatitude, initialLongitude)
+            .then(address => {
+              setSelectedPosition({
+                lat: initialLatitude,
+                lng: initialLongitude,
+                address
+              });
+            })
+            .catch(err => {
+              console.error('Error getting initial address:', err);
+              // Still set position with coordinates
+              setSelectedPosition({
+                lat: initialLatitude,
+                lng: initialLongitude,
+                address: `${initialLatitude.toFixed(6)}, ${initialLongitude.toFixed(6)}`
+              });
+            });
           
           // Set up drag end event for marker
           marker.current.on('dragend', handleMarkerDragEnd);
@@ -343,9 +358,10 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     
     if (selectedPosition) {
       console.log('Confirming location:', selectedPosition);
+      // Make sure we pass valid numerical values
       onSelectLocation(
-        selectedPosition.lat, 
-        selectedPosition.lng, 
+        Number(selectedPosition.lat), 
+        Number(selectedPosition.lng), 
         selectedPosition.address
       );
       toast.success('Location confirmed!');
@@ -461,7 +477,6 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           <Button 
             onClick={handleSubmit}
             type="button"
-            variant="default"
             className="bg-primary hover:bg-primary/90 text-white px-4 py-2 font-medium"
           >
             Confirm Location
