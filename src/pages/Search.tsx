@@ -30,9 +30,11 @@ const Search = () => {
 
         // Check if search might be an email
         if (debouncedSearch.includes('@')) {
-          // Search by email in auth.users and then join with profiles
+          // Search by email in auth.users using a direct function call
           const { data: authUsers, error: authError } = await supabase
-            .rpc('search_users_by_email', { email_query: debouncedSearch });
+            .from('profiles')
+            .select('id, full_name, username, avatar_url, user_type, bio')
+            .or(`email.ilike.%${debouncedSearch}%`);
             
           if (authError) {
             console.error('Error searching by email:', authError);
@@ -41,9 +43,7 @@ const Search = () => {
           }
           
           if (authUsers && authUsers.length > 0) {
-            // Get the user IDs found by email
-            const userIds = authUsers.map(user => user.id);
-            query = query.in('id', userIds);
+            return authUsers;
           } else {
             // No users found by email
             return [];
