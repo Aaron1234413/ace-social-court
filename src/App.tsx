@@ -59,7 +59,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // Create a separate component for the routes to use the auth hook
 function AppRoutes() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isProfileComplete } = useAuth();
   const location = useLocation();
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -76,6 +76,16 @@ function AppRoutes() {
     // even if user is null (logged out), we still want to initialize
     setIsInitialized(true);
   }, []);
+
+  // Log auth and profile state for debugging
+  useEffect(() => {
+    console.log('App Routes - Auth State:', { 
+      user: user ? `${user.id} (${user.email})` : 'No user', 
+      isLoading, 
+      isProfileComplete,
+      currentPath: location.pathname
+    });
+  }, [user, isLoading, isProfileComplete, location.pathname]);
 
   // Show loading indicator only during initial app load
   if (!isInitialized || isLoading) {

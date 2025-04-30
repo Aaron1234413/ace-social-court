@@ -46,6 +46,7 @@ const ProfileEdit = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   const [locationName, setLocationName] = useState('');
+  const [formSubmitAttempt, setFormSubmitAttempt] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -135,6 +136,7 @@ const ProfileEdit = () => {
       return;
     }
 
+    setFormSubmitAttempt(true);
     setIsSaving(true);
     try {
       console.log('Submitting profile with values:', values);
@@ -160,6 +162,8 @@ const ProfileEdit = () => {
         throw error;
       }
 
+      console.log('Profile updated successfully, refreshing profile data');
+      
       // Refresh the profile in the AuthContext
       await refreshProfile();
       
@@ -369,6 +373,15 @@ const ProfileEdit = () => {
             type="submit" 
             className="w-full" 
             disabled={isSaving}
+            onClick={() => {
+              console.log('Submit button clicked');
+              console.log('Form valid:', form.formState.isValid);
+              console.log('Form errors:', form.formState.errors);
+              
+              if (!form.formState.isValid) {
+                toast.error('Please fill in all required fields');
+              }
+            }}
           >
             {isSaving ? (
               <>

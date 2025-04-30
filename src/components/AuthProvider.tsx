@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     
     try {
+      console.log('Refreshing profile for user:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -66,18 +67,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
+      console.log('Fetched profile data:', data);
       setProfile(data);
       
       // Check if profile is complete enough to use the app
       const hasRequiredFields = 
         data.username && 
+        data.username.trim() !== '' && 
         data.full_name && 
+        data.full_name.trim() !== '' && 
         data.user_type;
       
       setIsProfileComplete(!!hasRequiredFields);
       
       console.log('Profile loaded:', data);
-      console.log('Profile complete:', hasRequiredFields);
+      console.log('Profile complete status:', !!hasRequiredFields);
       
     } catch (err) {
       console.error('Failed to fetch profile:', err);
