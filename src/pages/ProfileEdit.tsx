@@ -48,9 +48,10 @@ const ProfileEdit = () => {
   const [locationName, setLocationName] = useState('');
   const [formSubmitAttempt, setFormSubmitAttempt] = useState(false);
 
+  // Initialize form with validation mode set to onChange for real-time validation
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    mode: 'onChange',
+    mode: 'all', // Enable real-time validation
     defaultValues: {
       username: '',
       full_name: '',
@@ -137,8 +138,11 @@ const ProfileEdit = () => {
       return;
     }
 
+    // Log full form status for debugging
     console.log('Form validation status:', {
       isValid: form.formState.isValid,
+      dirtyFields: form.formState.dirtyFields,
+      touchedFields: form.formState.touchedFields,
       errors: form.formState.errors,
       values
     });
@@ -264,6 +268,7 @@ const ProfileEdit = () => {
                 <Select 
                   value={field.value} 
                   onValueChange={field.onChange}
+                  defaultValue="player"
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -275,6 +280,9 @@ const ProfileEdit = () => {
                     <SelectItem value="coach">Coach</SelectItem>
                   </SelectContent>
                 </Select>
+                {form.formState.errors.user_type && (
+                  <p className="text-sm text-destructive">{form.formState.errors.user_type.message}</p>
+                )}
               </FormItem>
             )}
           />
@@ -301,6 +309,7 @@ const ProfileEdit = () => {
                 <Select 
                   value={field.value} 
                   onValueChange={field.onChange}
+                  defaultValue="beginner"
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -314,6 +323,9 @@ const ProfileEdit = () => {
                     <SelectItem value="professional">Professional</SelectItem>
                   </SelectContent>
                 </Select>
+                {form.formState.errors.experience_level && (
+                  <p className="text-sm text-destructive">{form.formState.errors.experience_level.message}</p>
+                )}
               </FormItem>
             )}
           />
@@ -385,8 +397,8 @@ const ProfileEdit = () => {
 
           <Button 
             type="submit" 
-            className="w-full" 
-            disabled={isSaving}
+            className="w-full"
+            disabled={isSaving || !form.formState.isValid}
           >
             {isSaving ? (
               <>

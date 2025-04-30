@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(data);
       
       // Check if profile is complete enough to use the app
-      // Simplified check that clearly validates the required fields
+      // Explicitly check each required field and log the result
       const hasUsername = !!data.username && data.username.trim() !== '';
       const hasFullName = !!data.full_name && data.full_name.trim() !== '';
       const hasUserType = !!data.user_type;
