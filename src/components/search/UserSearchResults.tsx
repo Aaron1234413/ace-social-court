@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import FollowButton from '@/components/social/FollowButton';
 import { useAuth } from '@/components/AuthProvider';
+import { UserCheck } from 'lucide-react';
 
 interface User {
   id: string;
@@ -36,14 +37,14 @@ const UserSearchResults = ({ users }: UserSearchResultsProps) => {
                 className="h-full w-full rounded-full object-cover"
               />
             ) : (
-              user.full_name?.charAt(0) || '?'
+              user.full_name?.charAt(0) || user.username?.charAt(0) || '?'
             )}
           </div>
           
           <div className="flex-1 min-w-0">
             <Link to={`/profile/${user.id}`} className="hover:underline">
               <h3 className="font-semibold text-base truncate">
-                {user.full_name || 'Anonymous User'}
+                {user.full_name || user.username || 'Anonymous User'}
               </h3>
             </Link>
             
@@ -61,9 +62,21 @@ const UserSearchResults = ({ users }: UserSearchResultsProps) => {
             )}
           </div>
           
+          {/* Display ID for debugging */}
+          <div className="hidden md:block text-xs text-muted-foreground">
+            ID: {user.id.substring(0, 8)}...
+          </div>
+          
           {currentUser && currentUser.id !== user.id && (
             <div className="ml-auto">
               <FollowButton userId={user.id} />
+            </div>
+          )}
+          
+          {currentUser && currentUser.id === user.id && (
+            <div className="ml-auto flex items-center gap-1 text-xs text-primary">
+              <UserCheck className="h-4 w-4" />
+              <span>You</span>
             </div>
           )}
         </div>

@@ -14,7 +14,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormDescription, Form } fr
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MapPin } from 'lucide-react';
+import { MapPin, Loader2 } from 'lucide-react';
 import LocationPickerDialog from '@/components/profile/LocationPickerDialog';
 
 type UserType = Database['public']['Enums']['user_type'];
@@ -39,6 +39,7 @@ const ProfileEdit = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   const [locationName, setLocationName] = useState('');
 
@@ -59,6 +60,7 @@ const ProfileEdit = () => {
 
   useEffect(() => {
     if (!user) {
+      toast.error('You must be logged in to edit your profile');
       navigate('/auth');
       return;
     }
@@ -71,7 +73,12 @@ const ProfileEdit = () => {
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching profile:', error);
+          throw error;
+        }
+
+        console.log('Fetched profile data:', data);
 
         form.reset({
           username: data.username || '',
@@ -87,6 +94,7 @@ const ProfileEdit = () => {
 
         setLocationName(data.location_name || '');
       } catch (error) {
+        console.error('Failed to fetch profile:', error);
         toast.error('Failed to fetch profile');
       } finally {
         setIsLoading(false);
@@ -111,35 +119,53 @@ const ProfileEdit = () => {
   };
 
   const onSubmit = async (values: ProfileFormValues) => {
+    if (!user) {
+      toast.error('You must be logged in to update your profile');
+      return;
+    }
+
+    setIsSaving(true);
     try {
       console.log('Submitting profile with values:', values);
+      
       const { error } = await supabase
         .from('profiles')
         .update({
-          username: values.username,
-          full_name: values.full_name,
+          username: values.username || null,
+          full_name: values.full_name || null,
           user_type: values.user_type,
-          playing_style: values.playing_style,
+          playing_style: values.playing_style || null,
           experience_level: values.experience_level,
-          bio: values.bio,
-          location_name: values.location_name,
-          latitude: values.latitude,
-          longitude: values.longitude,
+          bio: values.bio || null,
+          location_name: values.location_name || null,
+          latitude: values.latitude || null,
+          longitude: values.longitude || null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      }
 
       toast.success('Profile updated successfully');
       navigate('/profile');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(`Failed to update profile: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -245,7 +271,7 @@ const ProfileEdit = () => {
                 <FormControl>
                   <textarea
                     {...field}
-                    className="w-full border rounded p-2 min-h-[100px]"
+                    className="w-full border rounded p-2 min-h-[100px] bg-background"
                     placeholder="Tell us about yourself"
                   />
                 </FormControl>
@@ -301,7 +327,20 @@ const ProfileEdit = () => {
             </CardContent>
           </Card>
 
-          <Button type="submit" className="w-full">Save Profile</Button>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Profile'
+            )}
+          </Button>
         </form>
       </Form>
 

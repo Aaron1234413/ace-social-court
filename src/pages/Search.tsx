@@ -7,8 +7,9 @@ import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Loader2, Search as SearchIcon } from 'lucide-react';
+import { Loader2, Search as SearchIcon, AlertCircle } from 'lucide-react';
 import UserSearchResults from '@/components/search/UserSearchResults';
+import { toast } from 'sonner';
 
 type UserType = 'all' | 'player' | 'coach';
 
@@ -17,24 +18,59 @@ const Search = () => {
   const [userType, setUserType] = useState<UserType>('all');
   const debouncedSearch = useDebounce(searchQuery, 500);
 
-  const { data: searchResults, isLoading } = useQuery({
+  const { data: searchResults, isLoading, error } = useQuery({
     queryKey: ['user-search', debouncedSearch, userType],
     queryFn: async () => {
       if (!debouncedSearch || debouncedSearch.length < 2) return [];
 
-      let query = supabase
-        .from('profiles')
-        .select('id, full_name, username, avatar_url, user_type, bio')
-        .or(`full_name.ilike.%${debouncedSearch}%,username.ilike.%${debouncedSearch}%`);
+      try {
+        let query = supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url, user_type, bio');
 
-      if (userType !== 'all') {
-        query = query.eq('user_type', userType);
+        // Check if search might be an email
+        if (debouncedSearch.includes('@')) {
+          // Search by email in auth.users and then join with profiles
+          const { data: authUsers, error: authError } = await supabase
+            .rpc('search_users_by_email', { email_query: debouncedSearch });
+            
+          if (authError) {
+            console.error('Error searching by email:', authError);
+            toast.error('Failed to search by email');
+            throw authError;
+          }
+          
+          if (authUsers && authUsers.length > 0) {
+            // Get the user IDs found by email
+            const userIds = authUsers.map(user => user.id);
+            query = query.in('id', userIds);
+          } else {
+            // No users found by email
+            return [];
+          }
+        } else {
+          // Regular name/username search
+          query = query.or(`full_name.ilike.%${debouncedSearch}%,username.ilike.%${debouncedSearch}%`);
+        }
+
+        if (userType !== 'all') {
+          query = query.eq('user_type', userType);
+        }
+
+        const { data, error } = await query.limit(20);
+
+        if (error) {
+          console.error('Search error:', error);
+          toast.error('Error performing search');
+          throw error;
+        }
+        
+        console.log('Search results:', data);
+        return data || [];
+      } catch (err) {
+        console.error('Exception during search:', err);
+        return [];
       }
-
-      const { data, error } = await query.limit(20);
-
-      if (error) throw error;
-      return data || [];
     },
     enabled: debouncedSearch.length >= 2,
   });
@@ -49,7 +85,7 @@ const Search = () => {
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or username..."
+                placeholder="Search by name, username, or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -80,6 +116,11 @@ const Search = () => {
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center py-12 text-destructive">
+              <AlertCircle className="h-6 w-6 mb-2" />
+              <p>An error occurred while searching. Please try again.</p>
             </div>
           ) : debouncedSearch.length < 2 ? (
             <div className="text-center py-12 text-muted-foreground">
