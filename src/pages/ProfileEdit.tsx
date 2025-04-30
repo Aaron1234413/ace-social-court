@@ -128,8 +128,14 @@ const ProfileEdit = () => {
       return;
     }
     
-    form.setValue('latitude', lat);
-    form.setValue('longitude', lng);
+    // Convert to proper number format to ensure it's stored correctly
+    const parsedLat = parseFloat(lat.toFixed(6));
+    const parsedLng = parseFloat(lng.toFixed(6));
+    
+    console.log('Parsed coordinates:', { parsedLat, parsedLng });
+    
+    form.setValue('latitude', parsedLat);
+    form.setValue('longitude', parsedLng);
     form.setValue('location_name', address);
     setLocationName(address);
     setIsLocationPickerOpen(false); // Close the dialog after location is set
@@ -176,6 +182,10 @@ const ProfileEdit = () => {
       console.log('Submitting profile with values:', values);
       
       // Ensure we're passing proper values for latitude and longitude
+      // Convert to proper number format if they exist
+      const latitude = values.latitude !== undefined ? Number(parseFloat(values.latitude.toString()).toFixed(6)) : null;
+      const longitude = values.longitude !== undefined ? Number(parseFloat(values.longitude.toString()).toFixed(6)) : null;
+      
       const profileData = {
         id: user.id,
         username: values.username,
@@ -185,8 +195,8 @@ const ProfileEdit = () => {
         experience_level: values.experience_level,
         bio: values.bio || null,
         location_name: values.location_name || null,
-        latitude: values.latitude !== undefined ? Number(values.latitude) : null,
-        longitude: values.longitude !== undefined ? Number(values.longitude) : null,
+        latitude: latitude,
+        longitude: longitude,
         updated_at: new Date().toISOString()
       };
       
@@ -416,9 +426,15 @@ const ProfileEdit = () => {
                     </Button>
                   )}
                 </div>
+                {/* Display current coordinate values for debugging */}
+                {form.watch('latitude') && (
+                  <div className="text-xs text-muted-foreground">
+                    Coordinates: {form.watch('latitude')?.toFixed(6)}, {form.watch('longitude')?.toFixed(6)}
+                  </div>
+                )}
                 {/* Hidden fields to store location data */}
-                <input type="hidden" {...form.register('latitude', { valueAsNumber: true })} />
-                <input type="hidden" {...form.register('longitude', { valueAsNumber: true })} />
+                <input type="hidden" {...form.register('latitude', { setValueAs: v => v === '' ? undefined : Number(v) })} />
+                <input type="hidden" {...form.register('longitude', { setValueAs: v => v === '' ? undefined : Number(v) })} />
                 <input type="hidden" {...form.register('location_name')} />
               </div>
             </CardContent>

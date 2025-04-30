@@ -197,16 +197,20 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     try {
       // Get address for the location
       const address = await reverseGeocode(lat, lng);
-      setSelectedPosition({ lat, lng, address });
+      setSelectedPosition({ 
+        lat: Number(lat.toFixed(6)), 
+        lng: Number(lng.toFixed(6)), 
+        address 
+      });
       setConfirmButtonClicked(false); // Reset confirmation attempt flag
-      console.log('Location selected:', { lat, lng, address });
+      console.log('Location selected:', { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)), address });
       toast.success('Location selected!');
     } catch (error) {
       console.error('Error getting address:', error);
       // Even if we fail to get the address, set the position with coordinates
       setSelectedPosition({
-        lat, 
-        lng, 
+        lat: Number(lat.toFixed(6)), 
+        lng: Number(lng.toFixed(6)), 
         address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
       });
       setConfirmButtonClicked(false); // Reset confirmation attempt flag
@@ -224,21 +228,21 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     try {
       const address = await reverseGeocode(position.lat, position.lng);
       setSelectedPosition({
-        lat: position.lat,
-        lng: position.lng,
+        lat: Number(position.lat.toFixed(6)),
+        lng: Number(position.lng.toFixed(6)),
         address
       });
       setConfirmButtonClicked(false); // Reset confirmation attempt flag
       console.log('New position after drag:', { 
-        lat: position.lat,
-        lng: position.lng,
+        lat: Number(position.lat.toFixed(6)),
+        lng: Number(position.lng.toFixed(6)),
         address
       });
     } catch (error) {
       console.error('Error getting address after drag:', error);
       setSelectedPosition({
-        lat: position.lat,
-        lng: position.lng,
+        lat: Number(position.lat.toFixed(6)),
+        lng: Number(position.lng.toFixed(6)),
         address: `${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}`
       });
       setConfirmButtonClicked(false); // Reset confirmation attempt flag
@@ -312,13 +316,18 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     
     // Set selected position
     setSelectedPosition({
-      lat,
-      lng,
+      lat: Number(lat.toFixed(6)),
+      lng: Number(lng.toFixed(6)),
       address: result.place_name
     });
     setConfirmButtonClicked(false); // Reset confirmation attempt flag
     
     toast.success('Location selected!');
+    console.log('Selected position set:', {
+      lat: Number(lat.toFixed(6)),
+      lng: Number(lng.toFixed(6)),
+      address: result.place_name
+    });
     
     // Clear search results
     setSearchResults([]);
@@ -358,15 +367,37 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     
     if (selectedPosition) {
       console.log('Confirming location:', selectedPosition);
-      // Make sure we pass valid numerical values
-      onSelectLocation(
-        Number(selectedPosition.lat), 
-        Number(selectedPosition.lng), 
-        selectedPosition.address
-      );
-      toast.success('Location confirmed!');
-      onClose();
+      
+      // Log detailed position data
+      console.log('Position details before confirm:', {
+        lat: selectedPosition.lat,
+        lng: selectedPosition.lng,
+        latType: typeof selectedPosition.lat,
+        lngType: typeof selectedPosition.lng,
+        isNaN_lat: isNaN(selectedPosition.lat),
+        isNaN_lng: isNaN(selectedPosition.lng)
+      });
+      
+      try {
+        // Ensure we have valid numeric values
+        const lat = Number(selectedPosition.lat);
+        const lng = Number(selectedPosition.lng);
+        
+        if (isNaN(lat) || isNaN(lng)) {
+          throw new Error(`Invalid coordinates: lat=${selectedPosition.lat}, lng=${selectedPosition.lng}`);
+        }
+        
+        // Make sure we pass valid numerical values
+        onSelectLocation(lat, lng, selectedPosition.address);
+        console.log('Location confirmed successfully:', { lat, lng, address: selectedPosition.address });
+        toast.success('Location confirmed!');
+        onClose();
+      } catch (error) {
+        console.error('Error confirming location:', error);
+        toast.error('Failed to confirm location. Please try again.');
+      }
     } else {
+      console.error('No location selected');
       toast.error('Please select a location first.');
     }
   };
@@ -461,6 +492,9 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
                 <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
                 <span className="text-sm break-words">{selectedPosition.address}</span>
               </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Coordinates: {selectedPosition.lat.toFixed(6)}, {selectedPosition.lng.toFixed(6)}
+              </div>
             </div>
           )}
           
@@ -478,6 +512,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
             onClick={handleSubmit}
             type="button"
             className="bg-primary hover:bg-primary/90 text-white px-4 py-2 font-medium"
+            disabled={!selectedPosition}
           >
             Confirm Location
           </Button>

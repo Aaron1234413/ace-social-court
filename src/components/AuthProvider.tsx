@@ -11,6 +11,9 @@ interface Profile {
   user_type: 'player' | 'coach';
   experience_level: 'beginner' | 'intermediate' | 'advanced' | 'professional' | null;
   bio: string | null;
+  location_name?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface AuthContextType {
