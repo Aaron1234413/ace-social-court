@@ -1,8 +1,8 @@
 
-# AceSocial: Tennis Social Platform - Product Requirements Document
+# rallypointx: Tennis Social Platform - Product Requirements Document
 
 ## 1. Product Overview
-AceSocial is a social media platform specifically designed for tennis players and coaches to connect, share content, improve their skills, and find nearby players/coaches. The platform combines elements of TikTok's content sharing, Strava's location features, and AI-powered coaching.
+rallypointx is a social media platform specifically designed for tennis players and coaches to connect, share content, improve their skills, and find nearby players/coaches. The platform combines elements of TikTok's content sharing, Strava's location features, and AI-powered coaching.
 
 ## 2. User Types
 - **Players**: Recreational to professional tennis players looking to improve, connect, and share their tennis journey

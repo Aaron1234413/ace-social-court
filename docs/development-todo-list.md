@@ -1,5 +1,5 @@
 
-# AceSocial: Development To-Do List
+# rallypointx: Development To-Do List
 
 ## Phase 1: Foundation Setup
 1. ✅ Create project structure and base components

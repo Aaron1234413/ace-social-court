@@ -146,7 +146,7 @@ const Navigation = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-6">
             <Link to="/" className="font-bold text-xl text-primary">
-              AceSocial
+              rallypointx
             </Link>
             <div className="flex items-center gap-1">
               <NavLinks />
@@ -159,7 +159,7 @@ const Navigation = () => {
       {/* Mobile Navigation */}
       <nav className="md:hidden flex items-center justify-between p-4 border-b bg-background">
         <Link to="/" className="font-bold text-xl text-primary">
-          AceSocial
+          rallypointx
         </Link>
 
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
