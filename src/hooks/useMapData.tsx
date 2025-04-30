@@ -84,7 +84,7 @@ export const useMapData = () => {
         let filteredData = usersWithDistance;
         if (filters.skillLevel) {
           filteredData = filteredData.filter(user => 
-            !filters.skillLevel || user.skill_level === filters.skillLevel || !user.skill_level
+            !filters.skillLevel || user.skill_level === filters.skillLevel
           );
         }
         
@@ -275,7 +275,7 @@ export const useMapData = () => {
         // Filter by skill level if specified
         if (filters.skillLevel) {
           filteredUsers = filteredUsers.filter(user => 
-            !filters.skillLevel || user.skill_level === filters.skillLevel || !user.skill_level
+            !filters.skillLevel || user.skill_level === filters.skillLevel
           );
         }
         
@@ -334,7 +334,7 @@ export const useMapData = () => {
         // Get the profile data for all followed users
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name, skill_level')
           .in('id', followingData)
           .not('latitude', 'is', null)
           .not('longitude', 'is', null);
@@ -432,7 +432,7 @@ export const useMapData = () => {
     // Filter by skill level if specified
     if (filters.skillLevel) {
       users = users.filter(user => 
-        !filters.skillLevel || user.skill_level === filters.skillLevel || !user.skill_level
+        !filters.skillLevel || user.skill_level === filters.skillLevel
       );
     }
     

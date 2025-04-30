@@ -17,17 +17,45 @@ import LocationPrivacyControl from "./LocationPrivacyControl";
 import { useMapExplorer } from "@/contexts/MapExplorerContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const MapFiltersSheet = () => {
-  const { 
-    user, 
-    filters, 
-    handleFilterChange, 
-    locationPrivacy, 
-    togglePrivacySetting,
-    userLocationEnabled,
-    showAllCourts
-  } = useMapExplorer();
+// Define props interface for the component
+interface FilterSettings {
+  showCourts: boolean;
+  showPlayers: boolean;
+  showCoaches: boolean;
+  showEvents?: boolean;
+  showStaticLocations?: boolean;
+  showOwnLocation?: boolean;
+  showFollowing?: boolean;
+  distance: number;
+  state?: string | null;
+  skillLevel?: string | null;
+}
 
+interface LocationPrivacySettings {
+  shareExactLocation: boolean;
+  showOnMap: boolean;
+  locationHistory: boolean;
+}
+
+interface MapFiltersSheetProps {
+  filters: FilterSettings;
+  onFilterChange: (key: keyof FilterSettings, value: any) => void;
+  locationPrivacy: LocationPrivacySettings;
+  onPrivacyChange: (key: keyof LocationPrivacySettings) => void;
+  userLocationEnabled: boolean;
+  isUserLoggedIn: boolean;
+  availableStates?: string[];
+}
+
+const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({ 
+  filters,
+  onFilterChange,
+  locationPrivacy,
+  onPrivacyChange,
+  userLocationEnabled,
+  isUserLoggedIn,
+  availableStates = []
+}) => {
   // Available skill levels
   const skillLevels = ['Beginner', 'Intermediate', 'Advanced', 'Pro'];
   
@@ -59,7 +87,7 @@ const MapFiltersSheet = () => {
                 <Switch 
                   id="show-courts" 
                   checked={filters.showCourts}
-                  onCheckedChange={(checked) => handleFilterChange('showCourts', checked)}
+                  onCheckedChange={(checked) => onFilterChange('showCourts', checked)}
                 />
               </div>
               
@@ -71,7 +99,7 @@ const MapFiltersSheet = () => {
                 <Switch 
                   id="show-players" 
                   checked={filters.showPlayers}
-                  onCheckedChange={(checked) => handleFilterChange('showPlayers', checked)}
+                  onCheckedChange={(checked) => onFilterChange('showPlayers', checked)}
                 />
               </div>
               
@@ -83,11 +111,11 @@ const MapFiltersSheet = () => {
                 <Switch 
                   id="show-coaches" 
                   checked={filters.showCoaches}
-                  onCheckedChange={(checked) => handleFilterChange('showCoaches', checked)}
+                  onCheckedChange={(checked) => onFilterChange('showCoaches', checked)}
                 />
               </div>
 
-              {user && (
+              {isUserLoggedIn && (
                 <div className="flex items-center justify-between">
                   <Label htmlFor="show-following" className="flex items-center gap-2">
                     <Heart className="h-4 w-4 text-primary" />
@@ -95,8 +123,8 @@ const MapFiltersSheet = () => {
                   </Label>
                   <Switch 
                     id="show-following" 
-                    checked={filters.showFollowing}
-                    onCheckedChange={(checked) => handleFilterChange('showFollowing', checked)}
+                    checked={filters.showFollowing || false}
+                    onCheckedChange={(checked) => onFilterChange('showFollowing', checked)}
                   />
                 </div>
               )}
@@ -118,7 +146,7 @@ const MapFiltersSheet = () => {
               max={100}
               step={1}
               value={[filters.distance]}
-              onValueChange={(value) => handleFilterChange('distance', value[0])}
+              onValueChange={(value) => onFilterChange('distance', value[0])}
               className="my-6"
             />
           </div>
@@ -128,7 +156,7 @@ const MapFiltersSheet = () => {
             <h3 className="text-sm font-medium mb-3">Player Skill Level</h3>
             <Select
               value={filters.skillLevel || ""}
-              onValueChange={(value) => handleFilterChange('skillLevel', value || null)}
+              onValueChange={(value) => onFilterChange('skillLevel', value || null)}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Any skill level" />
@@ -148,12 +176,12 @@ const MapFiltersSheet = () => {
           <Separator />
           
           {/* Location Privacy Settings */}
-          {user && (
+          {isUserLoggedIn && (
             <LocationPrivacyControl 
               locationPrivacy={locationPrivacy}
-              onToggle={togglePrivacySetting}
+              onToggle={onPrivacyChange}
               userLocationEnabled={userLocationEnabled}
-              isUserLoggedIn={!!user}
+              isUserLoggedIn={isUserLoggedIn}
             />
           )}
         </div>
