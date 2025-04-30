@@ -24,6 +24,7 @@ interface FilterSettings {
   distance: number; // in miles
   state: string | null; // Filter for state
   skillLevel: string | null; // Filter for skill level
+  locationSearch: string | null; // Search term for locations
 }
 
 interface MapExplorerContextType {
@@ -60,6 +61,7 @@ interface MapExplorerContextType {
   handleUserSelect: (user: NearbyUser) => void;
   handleCourtSelect: (court: TennisCourt) => void;
   showAllCourts: () => void;
+  searchLocation: (searchTerm: string) => Promise<void>;
 }
 
 const MapExplorerContext = createContext<MapExplorerContextType | undefined>(undefined);
@@ -86,6 +88,7 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     distance: 25, // in miles
     state: null, // Default to no state filter
     skillLevel: null, // Default to no skill level filter
+    locationSearch: null, // Default to no location search
   });
   const [selectedUser, setSelectedUser] = useState<NearbyUser | null>(null);
   const [selectedCourt, setSelectedCourt] = useState<TennisCourt | null>(null);
@@ -95,6 +98,49 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [courtsPage, setCourtsPage] = useState(1);
   const courtsPerPage = 50;
   const [userProfileLocation, setUserProfileLocation] = useState(null);
+
+  // New function to search for a location using Mapbox Geocoding API
+  const searchLocation = async (searchTerm: string) => {
+    if (!searchTerm || !mapInstance) {
+      return;
+    }
+
+    try {
+      // We use the public Mapbox token since this is a read-only operation
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchTerm)}.json?access_token=${mapboxgl.accessToken}&country=us&types=place,address,locality,neighborhood,region`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to search for location');
+      }
+
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const firstResult = data.features[0];
+        const [lng, lat] = firstResult.center;
+        
+        // Update map view
+        mapInstance.flyTo({
+          center: [lng, lat],
+          zoom: 10,
+          essential: true
+        });
+
+        // Set user position to the searched location
+        // This helps with filtering nearby courts and users
+        setUserPosition({ lng, lat });
+        
+        toast.success(`Found: ${firstResult.place_name}`);
+      } else {
+        toast.error('No locations found for your search');
+      }
+    } catch (error) {
+      console.error('Error searching location:', error);
+      toast.error('Error searching for location');
+    }
+  };
 
   // Query for user's location privacy settings
   useEffect(() => {
@@ -206,7 +252,7 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name, skill_level')
           .eq('id', user.id)
           .single();
 
@@ -231,11 +277,23 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchUserProfileLocation();
   }, [user, filters.showOwnLocation]);
 
+  // Update filters when location search changes
+  useEffect(() => {
+    if (filters.locationSearch) {
+      searchLocation(filters.locationSearch);
+    }
+  }, [filters.locationSearch]);
+
   const handleFilterChange = (key: keyof FilterSettings, value: any) => {
     setFilters(prev => ({
       ...prev,
       [key]: value
     }));
+
+    // Special handling for location search
+    if (key === 'locationSearch' && value) {
+      searchLocation(value);
+    }
 
     // Reset to page 1 when changing filters
     if (key === 'state') {
@@ -400,6 +458,7 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         handleUserSelect,
         handleCourtSelect,
         showAllCourts,
+        searchLocation,
       }}
     >
       {children}

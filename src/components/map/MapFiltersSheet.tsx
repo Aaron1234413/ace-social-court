@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, MapPin, Users, UserCog, Map, CircleSlash, Heart } from "lucide-react";
+import { Settings, MapPin, Users, UserCog, Map, CircleSlash, Heart, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +16,8 @@ import { Slider } from "@/components/ui/slider";
 import LocationPrivacyControl from "./LocationPrivacyControl";
 import { useMapExplorer } from "@/contexts/MapExplorerContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 // Define props interface for the component
 interface FilterSettings {
@@ -29,6 +31,7 @@ interface FilterSettings {
   distance: number;
   state?: string | null;
   skillLevel?: string | null;
+  locationSearch?: string | null;
 }
 
 interface LocationPrivacySettings {
@@ -58,6 +61,18 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
 }) => {
   // Available skill levels
   const skillLevels = ['Beginner', 'Intermediate', 'Advanced', 'Pro'];
+  const [locationSearch, setLocationSearch] = useState(filters.locationSearch || '');
+  
+  // Handle location search input
+  const handleLocationSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocationSearch(e.target.value);
+  };
+
+  // Handle location search submission
+  const handleLocationSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onFilterChange('locationSearch', locationSearch);
+  };
   
   return (
     <Sheet>
@@ -75,6 +90,53 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
         </SheetHeader>
         
         <div className="space-y-6">
+          {/* Location Search */}
+          <div>
+            <h3 className="text-sm font-medium mb-3">Search Location</h3>
+            <form onSubmit={handleLocationSearchSubmit} className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  type="text"
+                  placeholder="Search by city, address..."
+                  className="pl-8"
+                  value={locationSearch}
+                  onChange={handleLocationSearchChange}
+                />
+              </div>
+              <Button type="submit" size="sm">Search</Button>
+            </form>
+            <p className="text-xs text-muted-foreground mt-1">
+              Search for courts and players in specific locations
+            </p>
+          </div>
+          
+          <Separator />
+          
+          {/* State Filter */}
+          <div>
+            <h3 className="text-sm font-medium mb-3">Filter by State</h3>
+            <Select
+              value={filters.state || "any"}
+              onValueChange={(value) => onFilterChange('state', value === "any" ? null : value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Any state" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any state</SelectItem>
+                {availableStates.map(state => (
+                  <SelectItem key={state} value={state}>{state}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Filter tennis courts by state
+            </p>
+          </div>
+          
+          <Separator />
+          
           {/* Map Visibility Filters */}
           <div>
             <h3 className="text-sm font-medium mb-3">Map Visibility</h3>
@@ -155,8 +217,8 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
           <div>
             <h3 className="text-sm font-medium mb-3">Player Skill Level</h3>
             <Select
-              value={filters.skillLevel || ""}
-              onValueChange={(value) => onFilterChange('skillLevel', value || null)}
+              value={filters.skillLevel || "any"}
+              onValueChange={(value) => onFilterChange('skillLevel', value === "any" ? null : value)}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Any skill level" />
