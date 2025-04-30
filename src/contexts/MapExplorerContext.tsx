@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { NearbyUser } from '@/components/map/NearbyUsersLayer';
 import { TennisCourt } from '@/components/map/TennisCourtsLayer';
+import mapboxgl from 'mapbox-gl';
 
 // Define types
 interface LocationPrivacySettings {
