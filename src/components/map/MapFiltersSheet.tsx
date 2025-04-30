@@ -162,7 +162,7 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
                 <SelectValue placeholder="Any skill level" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any skill level</SelectItem>
+                <SelectItem value="any">Any skill level</SelectItem>
                 {skillLevels.map(level => (
                   <SelectItem key={level} value={level}>{level}</SelectItem>
                 ))}

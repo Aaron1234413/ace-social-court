@@ -99,7 +99,7 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
             <SelectValue placeholder="Any level" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Any level</SelectItem>
+            <SelectItem value="any">Any level</SelectItem>
             {skillLevels.map(level => (
               <SelectItem key={level} value={level}>{level}</SelectItem>
             ))}
