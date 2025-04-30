@@ -9,6 +9,7 @@ import { Post } from '@/types/post';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PostListProps {
   posts: Post[];
@@ -22,25 +23,25 @@ const PostList = ({ posts, currentUserId, isLoading }: PostListProps) => {
     return (
       <div className="space-y-4 md:space-y-6">
         {[...Array(3)].map((_, index) => (
-          <Card key={index} className="overflow-hidden animate-pulse">
+          <Card key={index} className="overflow-hidden">
             <CardHeader className="pb-2 p-4 md:p-6">
               <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-gray-200"></div>
+                <Skeleton className="h-10 w-10 rounded-full" />
                 <div className="ml-3">
-                  <div className="h-4 w-24 bg-gray-200 rounded"></div>
-                  <div className="h-3 w-32 bg-gray-200 rounded mt-2"></div>
+                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="h-3 w-32" />
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-4 md:p-6">
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-40 bg-gray-200 rounded w-full mt-4"></div>
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4 mb-4" />
+              <Skeleton className="h-40 w-full" />
             </CardContent>
             <CardFooter className="border-t p-2 md:p-4 flex justify-between">
-              <div className="h-8 w-16 bg-gray-200 rounded"></div>
-              <div className="h-8 w-16 bg-gray-200 rounded"></div>
-              <div className="h-8 w-16 bg-gray-200 rounded"></div>
+              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-8 w-16" />
             </CardFooter>
           </Card>
         ))}

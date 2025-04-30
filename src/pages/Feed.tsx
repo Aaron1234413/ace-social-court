@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import CreatePostForm from '@/components/social/CreatePostForm';
@@ -16,10 +16,19 @@ const Feed = () => {
   const { user } = useAuth();
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
+  const [isLoaded, setIsLoaded] = useState(false);
+  
   const { posts, isLoading, fetchPosts } = usePosts({ 
     personalize: personalized,
     sortBy: sortOption 
   });
+
+  // Make sure we only attempt to render after we've checked auth status
+  useEffect(() => {
+    if (user !== null || !user) {
+      setIsLoaded(true);
+    }
+  }, [user]);
 
   const togglePersonalization = () => {
     setPersonalized(!personalized);
@@ -30,6 +39,17 @@ const Feed = () => {
       setSortOption(value as SortOption);
     }
   };
+
+  // Don't render until we've checked auth status
+  if (!isLoaded) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
