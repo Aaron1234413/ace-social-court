@@ -8,7 +8,7 @@ export const initializeStorage = async () => {
   try {
     console.log('Starting storage initialization...');
     
-    // Check if buckets exist
+    // First check if buckets exist
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
     if (bucketsError) {
@@ -16,10 +16,13 @@ export const initializeStorage = async () => {
       return false;
     }
     
+    console.log('Current buckets:', buckets?.map(b => b.name) || 'none');
+    
     // Create media bucket if it doesn't exist
     const mediaBucketExists = buckets?.some(bucket => bucket.name === 'media');
     if (!mediaBucketExists) {
-      const { error: createError } = await supabase.storage.createBucket('media', {
+      console.log('Creating "media" bucket...');
+      const { data, error: createError } = await supabase.storage.createBucket('media', {
         public: true,
         fileSizeLimit: 1000000000, // 1GB - Pro tier support
       });
@@ -28,10 +31,11 @@ export const initializeStorage = async () => {
         console.error('Error creating media bucket:', createError);
         return false;
       }
-      console.log('Created media bucket successfully');
+      console.log('Created media bucket successfully:', data);
     } else {
       // Update existing media bucket with Pro tier size limit
-      const { error: updateError } = await supabase.storage.updateBucket('media', {
+      console.log('Updating "media" bucket...');
+      const { data, error: updateError } = await supabase.storage.updateBucket('media', {
         public: true,
         fileSizeLimit: 1000000000, // 1GB - Pro tier support
       });
@@ -40,13 +44,14 @@ export const initializeStorage = async () => {
         console.error('Error updating media bucket:', updateError);
         return false;
       }
-      console.log('Updated media bucket successfully');
+      console.log('Updated media bucket successfully:', data);
     }
     
     // Create posts bucket if it doesn't exist
     const postsBucketExists = buckets?.some(bucket => bucket.name === 'posts');
     if (!postsBucketExists) {
-      const { error: createError } = await supabase.storage.createBucket('posts', {
+      console.log('Creating "posts" bucket...');
+      const { data, error: createError } = await supabase.storage.createBucket('posts', {
         public: true,
         fileSizeLimit: 1000000000, // 1GB - Pro tier support
       });
@@ -55,10 +60,11 @@ export const initializeStorage = async () => {
         console.error('Error creating posts bucket:', createError);
         return false;
       }
-      console.log('Created posts bucket successfully');
+      console.log('Created posts bucket successfully:', data);
     } else {
       // Update existing posts bucket with Pro tier size limit
-      const { error: updateError } = await supabase.storage.updateBucket('posts', {
+      console.log('Updating "posts" bucket...');
+      const { data, error: updateError } = await supabase.storage.updateBucket('posts', {
         public: true,
         fileSizeLimit: 1000000000, // 1GB - Pro tier support
       });
@@ -67,7 +73,7 @@ export const initializeStorage = async () => {
         console.error('Error updating posts bucket:', updateError);
         return false;
       }
-      console.log('Updated posts bucket successfully');
+      console.log('Updated posts bucket successfully:', data);
     }
     
     console.log('Storage initialization completed successfully!');
@@ -118,4 +124,46 @@ export const isValidImage = (file: File): boolean => {
   }
   
   return true;
+};
+
+/**
+ * Ensure a specific storage bucket exists
+ * @param bucketName Name of the bucket to check/create
+ * @returns boolean indicating if the bucket exists or was created successfully
+ */
+export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
+  try {
+    // Check if bucket exists
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      console.error(`Error listing buckets when checking for ${bucketName}:`, bucketsError);
+      return false;
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+    
+    if (bucketExists) {
+      console.log(`Bucket '${bucketName}' already exists.`);
+      return true;
+    }
+    
+    // Create bucket if it doesn't exist
+    console.log(`Creating '${bucketName}' bucket...`);
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: 1000000000, // 1GB - Pro tier support
+    });
+    
+    if (createError) {
+      console.error(`Error creating '${bucketName}' bucket:`, createError);
+      return false;
+    }
+    
+    console.log(`Bucket '${bucketName}' created successfully`);
+    return true;
+  } catch (error) {
+    console.error(`Error ensuring bucket '${bucketName}' exists:`, error);
+    return false;
+  }
 };

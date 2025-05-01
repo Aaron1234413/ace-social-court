@@ -1,11 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, X, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { isValidImage, isValidVideo } from '@/integrations/supabase/storage';
+import { isValidImage, isValidVideo, ensureBucketExists } from '@/integrations/supabase/storage';
 
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
@@ -24,6 +24,21 @@ const MediaUploader = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [bucketReady, setBucketReady] = useState(false);
+  
+  // Check if the bucket exists when component mounts
+  useEffect(() => {
+    const checkBucket = async () => {
+      const exists = await ensureBucketExists(bucketName);
+      setBucketReady(exists);
+      if (!exists) {
+        setUploadError(`Storage bucket "${bucketName}" not available. Please try again later.`);
+        toast.error(`Storage bucket "${bucketName}" not available. Please refresh the page.`);
+      }
+    };
+    
+    checkBucket();
+  }, [bucketName]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -32,6 +47,18 @@ const MediaUploader = ({
     // Reset states
     setUploadError(null);
     setUploadProgress(0);
+    
+    // Check if bucket is ready
+    if (!bucketReady) {
+      // Try to ensure bucket exists again
+      const exists = await ensureBucketExists(bucketName);
+      if (!exists) {
+        setUploadError(`Storage bucket "${bucketName}" not available. Please try again later.`);
+        toast.error(`Storage bucket "${bucketName}" not available. Please refresh the page.`);
+        return;
+      }
+      setBucketReady(true);
+    }
     
     // Check if user is authenticated
     if (!user) {
@@ -89,6 +116,12 @@ const MediaUploader = ({
       
       console.log(`Starting upload to ${bucketName}/${filePath}`);
       console.log(`File type: ${file.type}, size: ${file.size} bytes`);
+      
+      // Verify bucket exists one more time before upload
+      const bucketExists = await ensureBucketExists(bucketName);
+      if (!bucketExists) {
+        throw new Error(`Bucket "${bucketName}" could not be created or accessed`);
+      }
       
       // Upload file to Supabase Storage with explicit owner
       const { data, error } = await supabase.storage
@@ -156,7 +189,7 @@ const MediaUploader = ({
                 type === 'image' ? 'image/*' : 'video/*'
               ).join(',')}
               onChange={handleFileChange}
-              disabled={isUploading}
+              disabled={isUploading || !bucketReady}
             />
             <Button 
               type="button" 
@@ -169,9 +202,9 @@ const MediaUploader = ({
                 const fileInput = e.currentTarget.previousElementSibling as HTMLInputElement;
                 fileInput.click();
               }}
-              disabled={isUploading}
+              disabled={isUploading || !bucketReady}
             >
-              {isUploading ? 'Uploading...' : 'Select File'}
+              {isUploading ? 'Uploading...' : !bucketReady ? 'Storage not available' : 'Select File'}
             </Button>
             
             {uploadError && (

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useCreatePost } from '@/hooks/use-posts';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -8,6 +8,7 @@ import { Loader2, ImagePlus, Send } from 'lucide-react';
 import MentionInput from './MentionInput';
 import MediaUploader from '../media/MediaUploader';
 import { toast } from 'sonner';
+import { ensureBucketExists } from '@/integrations/supabase/storage';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
@@ -20,7 +21,25 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
   const [showMediaUploader, setShowMediaUploader] = useState(false);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [bucketReady, setBucketReady] = useState(false);
   const { createPost, isCreatingPost } = useCreatePost();
+
+  // Check and initialize the posts bucket when component mounts
+  useEffect(() => {
+    const initBucket = async () => {
+      const exists = await ensureBucketExists('posts');
+      setBucketReady(exists);
+      if (!exists) {
+        toast.error("Storage not available. Some features may not work properly. Please try refreshing the page.");
+      } else {
+        console.log("Posts bucket is ready for uploads");
+      }
+    };
+    
+    if (user) {
+      initBucket();
+    }
+  }, [user]);
 
   if (!user) {
     return null;
@@ -135,7 +154,7 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
               variant="outline" 
               size="sm"
               className="flex items-center gap-1"
-              disabled={isCreatingPost}
+              disabled={isCreatingPost || !bucketReady}
               onClick={() => setShowMediaUploader(!showMediaUploader)}
             >
               <ImagePlus className="h-4 w-4" />
