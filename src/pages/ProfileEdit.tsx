@@ -42,7 +42,7 @@ const ProfileEdit = () => {
   const location = useLocation();
   const isNewUser = location.state?.newUser === true;
   
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   const [locationName, setLocationName] = useState('');
@@ -75,6 +75,7 @@ const ProfileEdit = () => {
 
     const fetchProfile = async () => {
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -129,8 +130,8 @@ const ProfileEdit = () => {
     }
     
     // Convert to proper number format to ensure it's stored correctly
-    const parsedLat = parseFloat(lat.toFixed(6));
-    const parsedLng = parseFloat(lng.toFixed(6));
+    const parsedLat = parseFloat(Number(lat).toFixed(6));
+    const parsedLng = parseFloat(Number(lng).toFixed(6));
     
     console.log('Parsed coordinates:', { parsedLat, parsedLng });
     

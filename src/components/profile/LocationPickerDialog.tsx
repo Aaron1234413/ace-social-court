@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,8 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // User-provided Mapbox token (primary)
 const USER_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW5rMmpxNmh5eGs5NmgyIn0.GyTAYck1VjlY0OWF8e6Y7w';
@@ -35,6 +38,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   const marker = useRef<mapboxgl.Marker | null>(null);
   const [loading, setLoading] = useState(true);
   const [mapInitialized, setMapInitialized] = useState(false);
+  const [mapLoadProgress, setMapLoadProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -80,6 +84,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     const initMap = async () => {
       setLoading(true);
       setMapError(null);
+      setMapLoadProgress(10);
       console.log('Initializing map...');
 
       // Set the Mapbox token first
@@ -87,6 +92,8 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         setLoading(false);
         return;
       }
+
+      setMapLoadProgress(30);
 
       try {
         // Create map instance
@@ -99,6 +106,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           zoom: initialLatitude && initialLongitude ? 13 : 3
         });
 
+        setMapLoadProgress(50);
         console.log('Map created');
         
         // Add navigation controls
@@ -106,6 +114,8 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           new mapboxgl.NavigationControl(),
           'top-right'
         );
+
+        setMapLoadProgress(70);
 
         // Create a marker if initial position provided
         if (initialLatitude && initialLongitude) {
@@ -138,11 +148,14 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           marker.current.on('dragend', handleMarkerDragEnd);
         }
 
+        setMapLoadProgress(90);
+
         // Handle map click to set marker
         map.current.on('click', handleMapClick);
 
         map.current.on('load', () => {
           console.log('Map loaded successfully');
+          setMapLoadProgress(100);
           setLoading(false);
           setMapInitialized(true);
         });
@@ -368,16 +381,6 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     if (selectedPosition) {
       console.log('Confirming location:', selectedPosition);
       
-      // Log detailed position data
-      console.log('Position details before confirm:', {
-        lat: selectedPosition.lat,
-        lng: selectedPosition.lng,
-        latType: typeof selectedPosition.lat,
-        lngType: typeof selectedPosition.lng,
-        isNaN_lat: isNaN(selectedPosition.lat),
-        isNaN_lng: isNaN(selectedPosition.lng)
-      });
-      
       try {
         // Ensure we have valid numeric values
         const lat = Number(selectedPosition.lat);
@@ -420,93 +423,97 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-3">
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  type="text"
-                  placeholder="Search for a location"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  className="w-full"
-                />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <ScrollArea className="flex-1 pr-3 max-h-[70vh]">
+            <div className="space-y-4 pb-4">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    type="text"
+                    placeholder="Search for a location"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    className="w-full"
+                  />
+                </div>
+                <Button 
+                  onClick={handleSearch} 
+                  disabled={isSearching || !searchQuery.trim()}
+                  type="button"
+                >
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
               </div>
-              <Button 
-                onClick={handleSearch} 
-                disabled={isSearching || !searchQuery.trim()}
-                type="button"
-              >
-                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              </Button>
-            </div>
 
-            {searchError && (
-              <Alert variant="destructive" className="py-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{searchError}</AlertDescription>
-              </Alert>
-            )}
+              {searchError && (
+                <Alert variant="destructive" className="py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{searchError}</AlertDescription>
+                </Alert>
+              )}
 
-            {searchResults.length > 0 && (
-              <div className="bg-background border rounded-md max-h-[200px] overflow-y-auto">
-                <ul>
-                  {searchResults.map((result) => (
-                    <li 
-                      key={result.id}
-                      className="p-2 hover:bg-muted cursor-pointer border-b last:border-0 flex items-center gap-2"
-                      onClick={() => selectSearchResult(result)}
-                    >
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-sm">{result.place_name}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div 
-              ref={mapContainer} 
-              className="h-[300px] w-full rounded-md border relative"
-            >
-              {loading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              {searchResults.length > 0 && (
+                <div className="bg-background border rounded-md max-h-[200px] overflow-y-auto">
+                  <ul>
+                    {searchResults.map((result) => (
+                      <li 
+                        key={result.id}
+                        className="p-2 hover:bg-muted cursor-pointer border-b last:border-0 flex items-center gap-2"
+                        onClick={() => selectSearchResult(result)}
+                      >
+                        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-sm">{result.place_name}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
-              
-              {mapError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-                  <div className="text-center p-4">
-                    <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-                    <p className="text-sm text-destructive">{mapError}</p>
+
+              <div 
+                ref={mapContainer} 
+                className="h-[300px] w-full rounded-md border relative"
+              >
+                {loading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                    <Progress value={mapLoadProgress} className="w-[80%] h-2" />
+                    <p className="text-sm mt-2">Loading map... {mapLoadProgress}%</p>
+                  </div>
+                )}
+                
+                {mapError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                    <div className="text-center p-4">
+                      <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                      <p className="text-sm text-destructive">{mapError}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {selectedPosition && (
+                <div className="bg-muted p-3 rounded-md">
+                  <Label className="text-xs text-muted-foreground">Selected Location</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-sm break-words">{selectedPosition.address}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Coordinates: {selectedPosition.lat.toFixed(6)}, {selectedPosition.lng.toFixed(6)}
                   </div>
                 </div>
               )}
+              
+              {confirmButtonClicked && !selectedPosition && (
+                <Alert variant="destructive" className="py-2 mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>Please select a location on the map first</AlertDescription>
+                </Alert>
+              )}
             </div>
-
-            {selectedPosition && (
-              <div className="bg-muted p-3 rounded-md">
-                <Label className="text-xs text-muted-foreground">Selected Location</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span className="text-sm break-words">{selectedPosition.address}</span>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Coordinates: {selectedPosition.lat.toFixed(6)}, {selectedPosition.lng.toFixed(6)}
-                </div>
-              </div>
-            )}
-            
-            {confirmButtonClicked && !selectedPosition && (
-              <Alert variant="destructive" className="py-2 mt-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>Please select a location on the map first</AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
 
         <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
           <Button variant="outline" onClick={onClose} type="button">Cancel</Button>
