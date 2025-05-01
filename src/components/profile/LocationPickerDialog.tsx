@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // User-provided Mapbox token (primary)
 const USER_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW5rMmpxNmh5eGs5NmgyIn0.GyTAYck1VjlY0OWF8e6Y7w';
@@ -412,7 +412,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Set Court Location</DialogTitle>
           <DialogDescription>
@@ -420,93 +420,95 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Input
-                type="text"
-                placeholder="Search for a location"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyPress}
-                className="w-full"
-              />
+        <ScrollArea className="flex-1 pr-3">
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  placeholder="Search for a location"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="w-full"
+                />
+              </div>
+              <Button 
+                onClick={handleSearch} 
+                disabled={isSearching || !searchQuery.trim()}
+                type="button"
+              >
+                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
             </div>
-            <Button 
-              onClick={handleSearch} 
-              disabled={isSearching || !searchQuery.trim()}
-              type="button"
-            >
-              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            </Button>
-          </div>
 
-          {searchError && (
-            <Alert variant="destructive" className="py-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{searchError}</AlertDescription>
-            </Alert>
-          )}
+            {searchError && (
+              <Alert variant="destructive" className="py-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{searchError}</AlertDescription>
+              </Alert>
+            )}
 
-          {searchResults.length > 0 && (
-            <div className="bg-background border rounded-md max-h-[200px] overflow-y-auto">
-              <ul>
-                {searchResults.map((result) => (
-                  <li 
-                    key={result.id}
-                    className="p-2 hover:bg-muted cursor-pointer border-b last:border-0 flex items-center gap-2"
-                    onClick={() => selectSearchResult(result)}
-                  >
-                    <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm">{result.place_name}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div 
-            ref={mapContainer} 
-            className="h-[300px] w-full rounded-md border relative"
-          >
-            {loading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            {searchResults.length > 0 && (
+              <div className="bg-background border rounded-md max-h-[200px] overflow-y-auto">
+                <ul>
+                  {searchResults.map((result) => (
+                    <li 
+                      key={result.id}
+                      className="p-2 hover:bg-muted cursor-pointer border-b last:border-0 flex items-center gap-2"
+                      onClick={() => selectSearchResult(result)}
+                    >
+                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm">{result.place_name}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
-            
-            {mapError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-                <div className="text-center p-4">
-                  <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-                  <p className="text-sm text-destructive">{mapError}</p>
+
+            <div 
+              ref={mapContainer} 
+              className="h-[300px] w-full rounded-md border relative"
+            >
+              {loading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+              
+              {mapError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                  <div className="text-center p-4">
+                    <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                    <p className="text-sm text-destructive">{mapError}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {selectedPosition && (
+              <div className="bg-muted p-3 rounded-md">
+                <Label className="text-xs text-muted-foreground">Selected Location</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-sm break-words">{selectedPosition.address}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Coordinates: {selectedPosition.lat.toFixed(6)}, {selectedPosition.lng.toFixed(6)}
                 </div>
               </div>
             )}
+            
+            {confirmButtonClicked && !selectedPosition && (
+              <Alert variant="destructive" className="py-2 mt-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>Please select a location on the map first</AlertDescription>
+              </Alert>
+            )}
           </div>
+        </ScrollArea>
 
-          {selectedPosition && (
-            <div className="bg-muted p-3 rounded-md">
-              <Label className="text-xs text-muted-foreground">Selected Location</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-                <span className="text-sm break-words">{selectedPosition.address}</span>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Coordinates: {selectedPosition.lat.toFixed(6)}, {selectedPosition.lng.toFixed(6)}
-              </div>
-            </div>
-          )}
-          
-          {confirmButtonClicked && !selectedPosition && (
-            <Alert variant="destructive" className="py-2 mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>Please select a location on the map first</AlertDescription>
-            </Alert>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 mt-4">
+        <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
           <Button variant="outline" onClick={onClose} type="button">Cancel</Button>
           <Button 
             onClick={handleSubmit}
