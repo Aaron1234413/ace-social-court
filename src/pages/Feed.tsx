@@ -26,6 +26,7 @@ const Feed = () => {
   });
 
   useEffect(() => {
+    // Initialize storage only if the user is logged in
     const setupStorage = async () => {
       try {
         if (user) {
@@ -35,7 +36,11 @@ const Feed = () => {
           setStorageInitialized(result);
           
           if (!result) {
-            toast.error('Failed to initialize storage. Some features might be limited.');
+            toast.error('Failed to initialize storage. Media uploads may be limited.', {
+              description: "Storage initialization will be retried next time you log in."
+            });
+          } else {
+            toast.success('Storage initialized successfully');
           }
         }
       } catch (err) {
