@@ -47,6 +47,9 @@ const MediaUploader = ({
         ? 'video' 
         : null;
 
+    // Log more info about the file
+    console.log(`Selected file: ${file.name}, size: ${file.size} bytes (${Math.round(file.size / 1024 / 1024 * 100) / 100} MB), type: ${file.type}`);
+
     // Check if file type is allowed
     if (!fileType || !allowedTypes.includes(fileType)) {
       const errorMsg = `File type not supported. Allowed types: ${allowedTypes.join(', ')}`;
@@ -55,20 +58,16 @@ const MediaUploader = ({
       return;
     }
 
-    // Check file size - add more logging
-    console.log(`File size: ${file.size} bytes (${Math.round(file.size / 1024 / 1024 * 100) / 100} MB)`);
-    console.log(`File type: ${file.type}`);
-    
     // Validate file based on type
     if (fileType === 'video' && !isValidVideo(file)) {
-      const errorMsg = 'Invalid video file. Maximum size is 100MB.';
+      const errorMsg = 'Invalid video file. Maximum size is 1GB.';
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
     }
 
     if (fileType === 'image' && !isValidImage(file)) {
-      const errorMsg = 'Invalid image file. Maximum size is 100MB.';
+      const errorMsg = 'Invalid image file. Maximum size is 1GB.';
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
@@ -76,6 +75,7 @@ const MediaUploader = ({
 
     try {
       setIsUploading(true);
+      toast.info("Starting file upload, please wait...");
       
       // Create object URL for preview
       const objectUrl = URL.createObjectURL(file);
@@ -105,12 +105,14 @@ const MediaUploader = ({
         throw error;
       }
 
+      console.log('File uploaded successfully, getting public URL');
+
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
 
-      console.log('File uploaded successfully:', publicUrl);
+      console.log('Got public URL:', publicUrl);
       
       // Pass URL to parent component
       onMediaUpload(publicUrl, fileType);
@@ -143,10 +145,10 @@ const MediaUploader = ({
             <Upload className="h-8 w-8 text-gray-400" />
             <span className="text-sm text-gray-500">
               {allowedTypes.length > 1 
-                ? 'Upload image or video (up to 100MB)' 
+                ? 'Upload image or video (up to 1GB)' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: 100MB</span>
+            <span className="text-xs text-gray-400">Maximum size: 1GB</span>
             <input
               type="file"
               className="hidden"

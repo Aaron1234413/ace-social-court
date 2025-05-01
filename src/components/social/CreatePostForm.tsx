@@ -31,6 +31,7 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
     setMediaUrl(url);
     setMediaType(type);
     setShowMediaUploader(false);
+    toast.success(`${type} uploaded successfully!`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,7 +94,7 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
             <div className="mt-3">
               <MediaUploader
                 onMediaUpload={handleMediaUpload}
-                bucketName="media"
+                bucketName="posts"
               />
             </div>
           )}
