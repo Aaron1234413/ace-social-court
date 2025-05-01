@@ -44,6 +44,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false);
   const [isProfileChecked, setIsProfileChecked] = useState<boolean>(false);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
+  // Add local storage key for tracking profile completion
+  const PROFILE_COMPLETE_KEY = 'user_profile_complete';
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -53,6 +55,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null);
       setIsProfileComplete(false);
       setIsProfileChecked(false);
+      // Clear profile completion status from localStorage
+      localStorage.removeItem(PROFILE_COMPLETE_KEY);
       toast.success("Signed out successfully");
     }
   };
@@ -87,21 +91,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const hasUserType = !!data.user_type;
       const hasExperienceLevel = !!data.experience_level;
       
-      const hasRequiredFields = hasUsername && hasFullName && hasUserType && hasExperienceLevel;
+      const profileIsComplete = hasUsername && hasFullName && hasUserType && hasExperienceLevel;
       
       console.log('Profile completion check:', {
         hasUsername,
         hasFullName,
         hasUserType,
         hasExperienceLevel,
-        isComplete: hasRequiredFields
+        isComplete: profileIsComplete
       });
       
-      setIsProfileComplete(hasRequiredFields);
+      // If profile is complete, store this information in localStorage for future sessions
+      if (profileIsComplete) {
+        localStorage.setItem(PROFILE_COMPLETE_KEY, 'true');
+        console.log('Profile is complete, saved to localStorage');
+      }
+      
+      // Set profile complete status - check both current completion and stored completion
+      const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
+      setIsProfileComplete(profileIsComplete || storedProfileComplete);
       setIsProfileChecked(true);
       
       console.log('Profile loaded:', data);
-      console.log('Profile complete status:', hasRequiredFields);
+      console.log('Profile complete status:', profileIsComplete || storedProfileComplete, 
+                  '(current:', profileIsComplete, ', stored:', storedProfileComplete, ')');
       
     } catch (err) {
       console.error('Failed to fetch profile:', err);
@@ -126,7 +139,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_IN' && session) {
           toast.success("Signed in successfully!");
           
-          // Defer profile fetching to avoid Supabase deadlock
+          // Check if we have stored profile completion status
+          const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
+          if (storedProfileComplete) {
+            console.log('Found stored profile completion status: complete');
+            setIsProfileComplete(true);
+          }
+          
+          // Still refresh profile to get latest data
           setTimeout(() => {
             refreshProfile();
           }, 0);
@@ -134,6 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
           setIsProfileComplete(false);
           setIsProfileChecked(false);
+          localStorage.removeItem(PROFILE_COMPLETE_KEY);
           toast.info("Signed out successfully");
         } else if (event === 'USER_UPDATED') {
           toast.info("User profile updated");
@@ -152,6 +173,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        // Check if we have stored profile completion status
+        const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
+        if (storedProfileComplete) {
+          console.log('Found stored profile completion status: complete');
+          setIsProfileComplete(true);
+        }
+        
         // Defer profile fetching to avoid Supabase deadlock
         setTimeout(() => {
           refreshProfile();
