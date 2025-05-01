@@ -12,14 +12,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   
-  // Handle redirection when user is already logged in or becomes logged in
+  // Handle redirection when user is already logged in
   useEffect(() => {
     if (user) {
       console.log("Auth: User detected, redirecting to feed");

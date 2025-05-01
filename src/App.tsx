@@ -20,7 +20,6 @@ import Search from './pages/Search';
 import NotFound from './pages/NotFound';
 import MapExplorer from './pages/MapExplorer';
 import { Loader2 } from 'lucide-react';
-import Navigation from './components/layout/Navigation';
 import { initializeStorage } from './integrations/supabase/storage';
 import EnhancedNavigation from './components/layout/EnhancedNavigation';
 import { Toaster } from 'sonner';
@@ -63,7 +62,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // Create a separate component for the routes to use the auth hook
 function AppRoutes() {
-  const { user, isLoading, isProfileComplete } = useAuth();
+  const { user, isLoading } = useAuth();
   const location = useLocation();
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -82,15 +81,14 @@ function AppRoutes() {
     }
   }, [isLoading]);
 
-  // Log auth and profile state for debugging
+  // Log auth state for debugging
   useEffect(() => {
     console.log("App Routes - Auth State:", { 
       user: user ? `${user.id} (${user.email})` : 'No user', 
       isLoading, 
-      isProfileComplete,
       currentPath: location.pathname
     });
-  }, [user, isLoading, isProfileComplete, location.pathname]);
+  }, [user, isLoading, location.pathname]);
 
   // Show loading indicator only during initial app load
   if (isLoading || !isInitialized) {

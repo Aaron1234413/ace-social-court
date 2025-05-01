@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false);
   const [isProfileChecked, setIsProfileChecked] = useState<boolean>(false);
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -57,7 +58,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const refreshProfile = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsProfileChecked(true);
+      return;
+    }
     
     try {
       console.log('Refreshing profile for user:', user.id);
@@ -69,6 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) {
         console.error('Error fetching profile:', error);
+        setIsProfileChecked(true);
         return;
       }
       
@@ -100,7 +105,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
     } catch (err) {
       console.error('Failed to fetch profile:', err);
-      setIsProfileChecked(true); // Mark as checked even on error to prevent infinite loading
+      setIsProfileChecked(true);
+    } finally {
+      // Always mark profile as checked, even on error
+      setIsProfileChecked(true);
     }
   };
 
@@ -134,8 +142,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             refreshProfile();
           }, 0);
         }
-        
-        setIsLoading(false);
       }
     );
 
@@ -152,9 +158,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }, 0);
       } else {
         // No session, mark as not loading and profile checked
-        setIsLoading(false);
         setIsProfileChecked(true);
       }
+      
+      // Mark auth as checked regardless of session
+      setAuthChecked(true);
+      setIsLoading(false);
     });
 
     return () => {
