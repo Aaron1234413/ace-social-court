@@ -57,14 +57,14 @@ const MediaUploader = ({
 
     // Validate file based on type
     if (fileType === 'video' && !isValidVideo(file)) {
-      const errorMsg = 'Invalid video file. Maximum size is 200MB.';
+      const errorMsg = 'Invalid video file. Maximum size is 500MB.';
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
     }
 
     if (fileType === 'image' && !isValidImage(file)) {
-      const errorMsg = 'Invalid image file. Maximum size is 20MB.';
+      const errorMsg = 'Invalid image file. Maximum size is 30MB.';
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
@@ -139,10 +139,10 @@ const MediaUploader = ({
             <Upload className="h-8 w-8 text-gray-400" />
             <span className="text-sm text-gray-500">
               {allowedTypes.length > 1 
-                ? 'Upload image or video (up to 2 mins)' 
+                ? 'Upload image or video (up to 10 mins)' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: {allowedTypes.includes('video') ? '200MB' : '20MB'}</span>
+            <span className="text-xs text-gray-400">Maximum size: {allowedTypes.includes('video') ? '500MB' : '30MB'}</span>
             <input
               type="file"
               className="hidden"

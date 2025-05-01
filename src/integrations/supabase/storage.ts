@@ -21,7 +21,7 @@ export const initializeStorage = async () => {
     if (!mediaBucketExists) {
       const { error: createError } = await supabase.storage.createBucket('media', {
         public: true,
-        fileSizeLimit: 209715200, // 200MB for 2-minute videos
+        fileSizeLimit: 524288000, // 500MB for videos (TikTok standard)
       });
       
       if (createError) {
@@ -33,7 +33,7 @@ export const initializeStorage = async () => {
       // Update existing media bucket size limit
       const { error: updateError } = await supabase.storage.updateBucket('media', {
         public: true,
-        fileSizeLimit: 209715200, // 200MB
+        fileSizeLimit: 524288000, // 500MB
       });
       
       if (updateError) {
@@ -48,7 +48,7 @@ export const initializeStorage = async () => {
     if (!postsBucketExists) {
       const { error: createError } = await supabase.storage.createBucket('posts', {
         public: true,
-        fileSizeLimit: 209715200, // 200MB for 2-minute videos
+        fileSizeLimit: 524288000, // 500MB for videos (TikTok standard)
       });
       
       if (createError) {
@@ -60,7 +60,7 @@ export const initializeStorage = async () => {
       // Update existing posts bucket size limit
       const { error: updateError } = await supabase.storage.updateBucket('posts', {
         public: true,
-        fileSizeLimit: 209715200, // 200MB
+        fileSizeLimit: 524288000, // 500MB
       });
       
       if (updateError) {
@@ -90,8 +90,8 @@ export const isValidVideo = (file: File): boolean => {
     return false;
   }
   
-  // Check if file size is within limit (200MB)
-  if (file.size > 209715200) {
+  // Check if file size is within limit (500MB)
+  if (file.size > 524288000) {
     console.log('Video file too large:', file.size);
     return false;
   }
@@ -111,8 +111,8 @@ export const isValidImage = (file: File): boolean => {
     return false;
   }
   
-  // Check if file size is within limit (20MB for images)
-  if (file.size > 20971520) {
+  // Check if file size is within limit (30MB for images)
+  if (file.size > 31457280) {
     console.log('Image file too large:', file.size);
     return false;
   }
