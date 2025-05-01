@@ -21,7 +21,7 @@ export const initializeStorage = async () => {
     if (!mediaBucketExists) {
       const { error: createError } = await supabase.storage.createBucket('media', {
         public: true,
-        fileSizeLimit: 50000000, // 50MB - More reasonable size for free/starter plans
+        fileSizeLimit: 5000000000, // 5GB - Supabase's Pro tier limit
       });
       
       if (createError) {
@@ -33,7 +33,7 @@ export const initializeStorage = async () => {
       // Update existing media bucket size limit
       const { error: updateError } = await supabase.storage.updateBucket('media', {
         public: true,
-        fileSizeLimit: 50000000, // 50MB
+        fileSizeLimit: 5000000000, // 5GB
       });
       
       if (updateError) {
@@ -48,7 +48,7 @@ export const initializeStorage = async () => {
     if (!postsBucketExists) {
       const { error: createError } = await supabase.storage.createBucket('posts', {
         public: true,
-        fileSizeLimit: 50000000, // 50MB - More reasonable size for free/starter plans
+        fileSizeLimit: 5000000000, // 5GB - Supabase's Pro tier limit
       });
       
       if (createError) {
@@ -60,7 +60,7 @@ export const initializeStorage = async () => {
       // Update existing posts bucket size limit
       const { error: updateError } = await supabase.storage.updateBucket('posts', {
         public: true,
-        fileSizeLimit: 50000000, // 50MB
+        fileSizeLimit: 5000000000, // 5GB
       });
       
       if (updateError) {
@@ -90,8 +90,8 @@ export const isValidVideo = (file: File): boolean => {
     return false;
   }
   
-  // Check if file size is within limit (50MB for free tier)
-  if (file.size > 50000000) {
+  // Check if file size is within limit (5GB for Pro tier)
+  if (file.size > 5000000000) {
     console.log('Video file too large:', file.size);
     return false;
   }
@@ -111,8 +111,8 @@ export const isValidImage = (file: File): boolean => {
     return false;
   }
   
-  // Check if file size is within limit (10MB for images)
-  if (file.size > 10000000) {
+  // Check if file size is within limit (100MB for images)
+  if (file.size > 100000000) {
     console.log('Image file too large:', file.size);
     return false;
   }

@@ -19,7 +19,6 @@ const Feed = () => {
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [storageInitialized, setStorageInitialized] = useState(false);
-  const [storageInitializationAttempted, setStorageInitializationAttempted] = useState(false);
   
   const { posts, isLoading, fetchPosts } = usePosts({ 
     personalize: personalized,
@@ -34,31 +33,20 @@ const Feed = () => {
           const result = await initializeStorage();
           console.log('Feed: Storage initialization result:', result);
           setStorageInitialized(result);
-          setStorageInitializationAttempted(true);
           
           if (!result) {
-            toast.error('Some media features might be limited', {
-              description: 'Storage initialization encountered an issue',
-              duration: 5000
-            });
+            toast.error('Failed to initialize storage. Some features might be limited.');
           }
         }
       } catch (err) {
         console.error('Failed to initialize storage:', err);
         setStorageInitialized(false);
-        setStorageInitializationAttempted(true);
-        toast.error('Error initializing media storage', {
-          description: 'You may have limited upload capabilities',
-          duration: 5000
-        });
+        toast.error('Error initializing media storage');
       }
     };
     
-    // Only attempt to initialize storage once
-    if (user && !storageInitializationAttempted) {
-      setupStorage();
-    }
-  }, [user, storageInitializationAttempted]);
+    setupStorage();
+  }, [user]);
 
   useEffect(() => {
     // Log the user's profile status for debugging
