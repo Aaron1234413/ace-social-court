@@ -33,6 +33,7 @@ const Feed = () => {
   };
 
   const handlePostUpdated = () => {
+    console.log("Feed: Post updated, refreshing posts");
     fetchPosts();
   };
 

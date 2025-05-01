@@ -46,16 +46,21 @@ export const PostActions = ({ post, onEdit, onDelete }: PostActionsProps) => {
     }
   };
   
+  // Stop event propagation to prevent interference with other post interactions
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+  
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild onClick={handleMenuClick}>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
             <MoreHorizontal className="h-4 w-4" />
             <span className="sr-only">Open post menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" onClick={handleMenuClick}>
           <DropdownMenuItem className="cursor-pointer" onClick={() => setShowEditModal(true)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
