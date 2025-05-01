@@ -3,7 +3,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
-import LocationPickerDialog from '@/components/profile/LocationPickerDialog';
+import { LocationPickerDialog } from '@/components/location';
 import type { ProfileFormValues } from '../ProfileEditForm';
 
 interface LocationFieldProps {
