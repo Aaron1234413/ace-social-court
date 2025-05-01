@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useCreatePost } from '@/hooks/use-posts';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -8,7 +8,6 @@ import { Loader2, ImagePlus, Send } from 'lucide-react';
 import MentionInput from './MentionInput';
 import MediaUploader from '../media/MediaUploader';
 import { toast } from 'sonner';
-import { getUsableBucket } from '@/integrations/supabase/storage';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
@@ -21,40 +20,16 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
   const [showMediaUploader, setShowMediaUploader] = useState(false);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
-  const [bucketReady, setBucketReady] = useState(false);
-  const [activeBucket, setActiveBucket] = useState<string | null>(null);
   const { createPost, isCreatingPost } = useCreatePost();
-
-  // Check and initialize the storage bucket when component mounts
-  useEffect(() => {
-    const initBucket = async () => {
-      // Always use 'media' bucket
-      const bucketToUse = await getUsableBucket();
-      setActiveBucket(bucketToUse);
-      setBucketReady(!!bucketToUse);
-      
-      if (!bucketToUse) {
-        toast.error("Media storage not available. Please try refreshing the page.");
-      } else {
-        console.log(`Using '${bucketToUse}' bucket for uploads`);
-      }
-    };
-    
-    if (user) {
-      initBucket();
-    }
-  }, [user]);
 
   if (!user) {
     return null;
   }
 
   const handleMediaUpload = (url: string, type: 'image' | 'video') => {
-    console.log("Media uploaded successfully:", { url, type });
     setMediaUrl(url);
     setMediaType(type);
     setShowMediaUploader(false);
-    toast.success(`${type} uploaded successfully!`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,12 +41,6 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
       }
       return;
     }
-    
-    console.log("Creating post with:", {
-      content: content.trim(),
-      mediaUrl,
-      mediaType
-    });
     
     try {
       await createPost({
@@ -113,11 +82,11 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
             maxRows={5}
           />
           
-          {showMediaUploader && activeBucket && (
+          {showMediaUploader && (
             <div className="mt-3">
               <MediaUploader
                 onMediaUpload={handleMediaUpload}
-                bucketName={activeBucket}
+                bucketName="media"
               />
             </div>
           )}
@@ -158,7 +127,7 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
               variant="outline" 
               size="sm"
               className="flex items-center gap-1"
-              disabled={isCreatingPost || !bucketReady}
+              disabled={isCreatingPost}
               onClick={() => setShowMediaUploader(!showMediaUploader)}
             >
               <ImagePlus className="h-4 w-4" />

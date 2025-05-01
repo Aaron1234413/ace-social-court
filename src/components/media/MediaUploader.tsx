@@ -1,11 +1,10 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, X, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { isValidImage, isValidVideo, ensureBucketExists } from '@/integrations/supabase/storage';
+import { isValidImage, isValidVideo } from '@/integrations/supabase/storage';
 
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
@@ -24,21 +23,6 @@ const MediaUploader = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
-  const [bucketReady, setBucketReady] = useState(false);
-  
-  // Check if the bucket exists when component mounts
-  useEffect(() => {
-    const checkBucket = async () => {
-      const exists = await ensureBucketExists(bucketName);
-      setBucketReady(exists);
-      if (!exists) {
-        setUploadError(`Storage bucket "${bucketName}" not available. Please try again later.`);
-        toast.error(`Storage bucket "${bucketName}" not available. Please refresh the page.`);
-      }
-    };
-    
-    checkBucket();
-  }, [bucketName]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -47,18 +31,6 @@ const MediaUploader = ({
     // Reset states
     setUploadError(null);
     setUploadProgress(0);
-    
-    // Check if bucket is ready
-    if (!bucketReady) {
-      // Try to ensure bucket exists again
-      const exists = await ensureBucketExists(bucketName);
-      if (!exists) {
-        setUploadError(`Storage bucket "${bucketName}" not available. Please try again later.`);
-        toast.error(`Storage bucket "${bucketName}" not available. Please refresh the page.`);
-        return;
-      }
-      setBucketReady(true);
-    }
     
     // Check if user is authenticated
     if (!user) {
@@ -74,9 +46,6 @@ const MediaUploader = ({
         ? 'video' 
         : null;
 
-    // Log more info about the file
-    console.log(`Selected file: ${file.name}, size: ${file.size} bytes (${Math.round(file.size / 1024 / 1024 * 100) / 100} MB), type: ${file.type}`);
-
     // Check if file type is allowed
     if (!fileType || !allowedTypes.includes(fileType)) {
       const errorMsg = `File type not supported. Allowed types: ${allowedTypes.join(', ')}`;
@@ -87,14 +56,14 @@ const MediaUploader = ({
 
     // Validate file based on type
     if (fileType === 'video' && !isValidVideo(file)) {
-      const errorMsg = 'Invalid video file. Maximum size is 1GB.';
+      const errorMsg = 'Invalid video file. Maximum size is 5GB with Supabase Pro tier.';
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
     }
 
     if (fileType === 'image' && !isValidImage(file)) {
-      const errorMsg = 'Invalid image file. Maximum size is 1GB.';
+      const errorMsg = 'Invalid image file. Maximum size is 100MB.';
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
@@ -102,7 +71,6 @@ const MediaUploader = ({
 
     try {
       setIsUploading(true);
-      toast.info("Starting file upload, please wait...");
       
       // Create object URL for preview
       const objectUrl = URL.createObjectURL(file);
@@ -116,12 +84,6 @@ const MediaUploader = ({
       
       console.log(`Starting upload to ${bucketName}/${filePath}`);
       console.log(`File type: ${file.type}, size: ${file.size} bytes`);
-      
-      // Verify bucket exists one more time before upload
-      const bucketExists = await ensureBucketExists(bucketName);
-      if (!bucketExists) {
-        throw new Error(`Bucket "${bucketName}" could not be created or accessed`);
-      }
       
       // Upload file to Supabase Storage with explicit owner
       const { data, error } = await supabase.storage
@@ -138,14 +100,12 @@ const MediaUploader = ({
         throw error;
       }
 
-      console.log('File uploaded successfully, getting public URL');
-
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
 
-      console.log('Got public URL:', publicUrl);
+      console.log('File uploaded successfully:', publicUrl);
       
       // Pass URL to parent component
       onMediaUpload(publicUrl, fileType);
@@ -178,10 +138,10 @@ const MediaUploader = ({
             <Upload className="h-8 w-8 text-gray-400" />
             <span className="text-sm text-gray-500">
               {allowedTypes.length > 1 
-                ? 'Upload image or video (up to 1GB)' 
+                ? 'Upload image or video (up to 5GB with Supabase Pro)' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: 1GB</span>
+            <span className="text-xs text-gray-400">Maximum size: {allowedTypes.includes('video') ? '5GB' : '100MB'}</span>
             <input
               type="file"
               className="hidden"
@@ -189,7 +149,7 @@ const MediaUploader = ({
                 type === 'image' ? 'image/*' : 'video/*'
               ).join(',')}
               onChange={handleFileChange}
-              disabled={isUploading || !bucketReady}
+              disabled={isUploading}
             />
             <Button 
               type="button" 
@@ -202,9 +162,9 @@ const MediaUploader = ({
                 const fileInput = e.currentTarget.previousElementSibling as HTMLInputElement;
                 fileInput.click();
               }}
-              disabled={isUploading || !bucketReady}
+              disabled={isUploading}
             >
-              {isUploading ? 'Uploading...' : !bucketReady ? 'Storage not available' : 'Select File'}
+              {isUploading ? 'Uploading...' : 'Select File'}
             </Button>
             
             {uploadError && (

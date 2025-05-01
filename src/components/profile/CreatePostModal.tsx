@@ -1,13 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { CreatePostForm } from './post/CreatePostForm';
-import { toast } from 'sonner';
-import { getUsableBucket } from '@/integrations/supabase/storage';
 
 interface CreatePostModalProps {
   open: boolean;
@@ -17,26 +15,12 @@ interface CreatePostModalProps {
 
 export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePostModalProps) => {
   const { user } = useAuth();
-  const { toast: uiToast } = useToast();
+  const { toast } = useToast();
   const [caption, setCaption] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeBucket, setActiveBucket] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Always use 'media' bucket
-    async function checkBucket() {
-      const bucketToUse = await getUsableBucket();
-      setActiveBucket(bucketToUse);
-      console.log(`CreatePostModal will use '${bucketToUse}' bucket`);
-    }
-    
-    if (open) {
-      checkBucket();
-    }
-  }, [open]);
 
   const resetState = () => {
     setCaption('');
@@ -57,19 +41,25 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     // Check file type
     const fileType = file.type.split('/')[0];
     if (fileType !== 'image' && fileType !== 'video') {
-      toast.error("Unsupported file type. Please upload an image or video file");
+      toast({
+        title: "Unsupported file type",
+        description: "Please upload an image or video file",
+        variant: "destructive",
+      });
       return;
     }
 
-    // Check file size (100MB max)
-    const maxSize = 100000000; // 100MB
+    // Check file size (5GB max for video with Pro tier, 100MB max for image)
+    const maxSize = fileType === 'video' ? 5000000000 : 100000000;
     if (file.size > maxSize) {
-      toast.error(`File too large. Maximum size is 100MB`);
+      toast({
+        title: "File too large",
+        description: `File size should be less than ${fileType === 'video' ? '5GB (Supabase Pro tier)' : '100MB'}`,
+        variant: "destructive",
+      });
       return;
     }
 
-    console.log(`Selected file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
-    
     setMediaFile(file);
     setMediaType(fileType as 'image' | 'video');
 
@@ -83,64 +73,46 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
 
   const handleSubmit = async () => {
     if (!user) {
-      toast.error("Please sign in to create a post");
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to create a post",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!mediaFile) {
-      toast.error("Please upload an image or video");
+      toast({
+        title: "Media required",
+        description: "Please upload an image or video",
+        variant: "destructive",
+      });
       return;
     }
-
-    if (!activeBucket) {
-      toast.error("Media storage is not available. Please try refreshing the page.");
-      return;
-    }
-
-    console.log("Starting post creation with media:", {
-      fileName: mediaFile.name,
-      fileSize: mediaFile.size,
-      fileType: mediaFile.type,
-      mediaType,
-      bucketToUse: activeBucket
-    });
 
     try {
       setIsUploading(true);
-      toast.info("Starting file upload, please wait...");
       
-      // Upload media file to storage using the media bucket
+      // Upload media file to storage
       const fileExt = mediaFile.name.split('.').pop();
       const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
       
-      console.log(`Starting upload to ${activeBucket}/${filePath}`);
-      console.log(`File type: ${mediaFile.type}, size: ${mediaFile.size} bytes`);
-      
-      // Upload file to Supabase Storage
-      const { error: uploadError, data: uploadData } = await supabase
+      const { error: uploadError } = await supabase
         .storage
-        .from(activeBucket)
-        .upload(filePath, mediaFile, {
-          cacheControl: '3600',
-          contentType: mediaFile.type,
-          upsert: false
-        });
+        .from('posts')
+        .upload(filePath, mediaFile);
 
       if (uploadError) {
-        console.error("Upload error:", uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
+        throw uploadError;
       }
-
-      console.log("Media uploaded successfully:", uploadData);
 
       // Get public URL
       const { data: publicUrlData } = supabase
         .storage
-        .from(activeBucket)
+        .from('posts')
         .getPublicUrl(filePath);
 
       const mediaUrl = publicUrlData.publicUrl;
-      console.log("Media public URL:", mediaUrl);
 
       // Create post in database
       const { error: postError } = await supabase
@@ -155,17 +127,23 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         .single();
 
       if (postError) {
-        console.error("Post creation error:", postError);
-        throw new Error(`Post creation failed: ${postError.message}`);
+        throw postError;
       }
 
-      toast.success("Your post has been published successfully");
+      toast({
+        title: "Post created",
+        description: "Your post has been published successfully",
+      });
       
       onPostCreated();
       handleClose();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating post:', error);
-      toast.error(error.message || "An error occurred while creating your post");
+      toast({
+        title: "Failed to create post",
+        description: "An error occurred while creating your post",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }
@@ -183,7 +161,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         <DialogHeader>
           <DialogTitle>Create New Post</DialogTitle>
           <DialogDescription>
-            Share your tennis moments with images or videos (up to 100MB)
+            Share your tennis moments with images (up to 100MB) or videos (up to 5GB with Supabase Pro)
           </DialogDescription>
         </DialogHeader>
         
