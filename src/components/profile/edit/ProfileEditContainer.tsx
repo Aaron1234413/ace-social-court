@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
@@ -24,11 +24,13 @@ export interface ProfileData {
   longitude: number | null;
 }
 
-export const ProfileEditContainer = () => {
+interface ProfileEditContainerProps {
+  isNewUser: boolean;
+}
+
+export const ProfileEditContainer = ({ isNewUser }: ProfileEditContainerProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isNewUser = location.state?.newUser === true;
   
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
