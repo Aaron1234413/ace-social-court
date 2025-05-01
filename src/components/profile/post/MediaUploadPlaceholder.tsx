@@ -15,7 +15,7 @@ export const MediaUploadPlaceholder = ({ onClick }: MediaUploadPlaceholderProps)
         <Video className="ml-2 h-6 w-6 text-muted-foreground" />
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        Drag and drop an image or video (max 200MB), or click to browse
+        Drag and drop an image or video (max 5GB with Pro plan), or click to browse
       </p>
       <Button
         variant="outline"
