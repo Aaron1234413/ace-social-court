@@ -8,14 +8,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { CreatePostModal } from "@/components/profile/CreatePostModal";
-
-interface Post {
-  id: string;
-  media_url: string | null;
-  media_type: string | null;
-  content: string;
-  created_at: string;
-}
+import { PostActions } from "@/components/social/PostActions";
+import { Post } from "@/types/post";
 
 interface ProfileMediaGalleryProps {
   userId: string;
@@ -44,6 +38,11 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
   const handlePostCreated = () => {
     refetch();
     setCreatePostModalOpen(false);
+  };
+
+  const handlePostUpdated = () => {
+    refetch();
+    setSelectedPost(null);
   };
 
   if (isLoading) {
@@ -106,26 +105,38 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
 
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
-          <div className="flex flex-col">
-            {selectedPost?.media_type === 'image' ? (
-              <img
-                src={selectedPost.media_url!}
-                alt=""
-                className="w-full h-auto max-h-[80vh] object-contain"
-              />
-            ) : selectedPost?.media_type === 'video' ? (
-              <video
-                src={selectedPost.media_url!}
-                controls
-                className="w-full h-auto max-h-[80vh]"
-              />
-            ) : null}
-            {selectedPost?.content && (
-              <div className="p-4 bg-background">
-                <p className="text-sm text-foreground whitespace-pre-wrap">{selectedPost.content}</p>
+          {selectedPost && (
+            <div className="flex flex-col">
+              <div className="p-4 flex items-center justify-between border-b">
+                <h3 className="font-medium text-lg">Post Details</h3>
+                {isOwnProfile && (
+                  <PostActions 
+                    post={selectedPost} 
+                    onEdit={handlePostUpdated}
+                    onDelete={handlePostUpdated}
+                  />
+                )}
               </div>
-            )}
-          </div>
+              {selectedPost?.media_type === 'image' ? (
+                <img
+                  src={selectedPost.media_url!}
+                  alt=""
+                  className="w-full h-auto max-h-[80vh] object-contain"
+                />
+              ) : selectedPost?.media_type === 'video' ? (
+                <video
+                  src={selectedPost.media_url!}
+                  controls
+                  className="w-full h-auto max-h-[80vh]"
+                />
+              ) : null}
+              {selectedPost?.content && (
+                <div className="p-4 bg-background">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{selectedPost.content}</p>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

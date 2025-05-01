@@ -10,15 +10,17 @@ import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PostActions } from './PostActions';
 
 interface PostListProps {
   posts: Post[];
   currentUserId?: string;
   handleShare?: (postId: string) => void;
   isLoading: boolean;
+  onPostUpdated?: () => void;
 }
 
-const PostList = ({ posts, currentUserId, isLoading }: PostListProps) => {
+const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListProps) => {
   if (isLoading) {
     return (
       <div className="space-y-4 md:space-y-6">
@@ -85,9 +87,20 @@ const PostList = ({ posts, currentUserId, isLoading }: PostListProps) => {
                   </p>
                 </div>
               </div>
-              {currentUserId && currentUserId !== post.user_id && (
-                <FollowButton userId={post.user_id} />
-              )}
+              <div className="flex items-center space-x-2">
+                {/* Show post actions if the post belongs to the current user */}
+                {currentUserId === post.user_id && (
+                  <PostActions 
+                    post={post} 
+                    onEdit={onPostUpdated}
+                    onDelete={onPostUpdated}
+                  />
+                )}
+                {/* Show follow button for other users' posts */}
+                {currentUserId && currentUserId !== post.user_id && (
+                  <FollowButton userId={post.user_id} />
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-4 md:p-6">

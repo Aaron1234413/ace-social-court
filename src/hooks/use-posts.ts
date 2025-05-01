@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
@@ -235,4 +234,157 @@ export const useCreatePost = () => {
   };
 
   return { createPost, isCreatingPost };
+};
+
+// Add new hooks for editing and deleting posts
+export const useEditPost = () => {
+  const [isEditing, setIsEditing] = useState(false);
+
+  const editPost = async (
+    postId: string,
+    postData: {
+      content: string;
+      media_url?: string | null;
+      media_type?: string | null;
+    }
+  ) => {
+    try {
+      setIsEditing(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You must be logged in to edit a post");
+        return null;
+      }
+      
+      console.log('Editing post with data:', { postId, ...postData });
+      
+      // First check if the post belongs to the user
+      const { data: postCheck, error: postCheckError } = await supabase
+        .from('posts')
+        .select('user_id')
+        .eq('id', postId)
+        .single();
+      
+      if (postCheckError) {
+        console.error('Error verifying post ownership:', postCheckError);
+        toast.error("Error verifying post ownership");
+        return null;
+      }
+      
+      if (postCheck.user_id !== user.id) {
+        toast.error("You can only edit your own posts");
+        return null;
+      }
+      
+      // Update the post
+      const { data, error } = await supabase
+        .from('posts')
+        .update({
+          content: postData.content,
+          ...(postData.media_url !== undefined && { media_url: postData.media_url }),
+          ...(postData.media_type !== undefined && { media_type: postData.media_type }),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', postId)
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('Error editing post:', error);
+        throw error;
+      }
+      
+      console.log('Post edited successfully:', data);
+      toast.success("Post updated successfully!");
+      return data;
+    } catch (error: any) {
+      console.error('Error editing post:', error);
+      toast.error(`Failed to update post: ${error.message}`);
+      return null;
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  return { editPost, isEditing };
+};
+
+export const useDeletePost = () => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deletePost = async (postId: string) => {
+    try {
+      setIsDeleting(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("You must be logged in to delete a post");
+        return false;
+      }
+      
+      console.log('Deleting post:', postId);
+      
+      // First check if the post belongs to the user
+      const { data: postCheck, error: postCheckError } = await supabase
+        .from('posts')
+        .select('user_id, media_url, media_type')
+        .eq('id', postId)
+        .single();
+      
+      if (postCheckError) {
+        console.error('Error verifying post ownership:', postCheckError);
+        toast.error("Error verifying post ownership");
+        return false;
+      }
+      
+      if (postCheck.user_id !== user.id) {
+        toast.error("You can only delete your own posts");
+        return false;
+      }
+      
+      // Delete the post
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+      
+      if (error) {
+        console.error('Error deleting post:', error);
+        throw error;
+      }
+      
+      // If the post had media, consider deleting it from storage as well
+      // This is optional and depends on your storage strategy
+      if (postCheck.media_url && postCheck.media_type) {
+        // Extract the file path from the URL
+        const urlParts = postCheck.media_url.split('/');
+        const filePath = urlParts[urlParts.length - 2] + '/' + urlParts[urlParts.length - 1];
+        
+        // Delete the file from storage
+        const { error: storageError } = await supabase.storage
+          .from('posts')
+          .remove([filePath]);
+        
+        if (storageError) {
+          console.error('Error deleting media file:', storageError);
+          // We don't throw here since the post was already deleted
+        }
+      }
+      
+      console.log('Post deleted successfully');
+      toast.success("Post deleted successfully!");
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting post:', error);
+      toast.error(`Failed to delete post: ${error.message}`);
+      return false;
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return { deletePost, isDeleting };
 };

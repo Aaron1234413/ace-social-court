@@ -32,6 +32,10 @@ const Feed = () => {
     }
   };
 
+  const handlePostUpdated = () => {
+    fetchPosts();
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="flex items-center justify-between mb-4 md:mb-6">
@@ -80,6 +84,7 @@ const Feed = () => {
             posts={posts}
             currentUserId={user.id}
             isLoading={isLoading}
+            onPostUpdated={handlePostUpdated}
           />
         </>
       ) : (

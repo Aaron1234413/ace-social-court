@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -12,12 +11,15 @@ import ShareButton from '@/components/social/ShareButton';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/components/AuthProvider';
 import PostContent from '@/components/social/PostContent';
+import { PostActions } from '@/components/social/PostActions';
+import { useNavigate } from 'react-router-dom';
 
 const PostDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
-  const { data: post, isLoading, error } = useQuery({
+  const { data: post, isLoading, error, refetch } = useQuery({
     queryKey: ['post', id],
     queryFn: async () => {
       // First, get the post data
@@ -87,23 +89,39 @@ const PostDetail = () => {
   if (!post) {
     return <Navigate to="/404" />;
   }
+  
+  // Handle post deletion by navigating back to the feed
+  const handlePostDelete = () => {
+    navigate('/feed');
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <Card className="overflow-hidden">
         <div className="p-6">
-          <div className="flex items-center mb-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-              {post.author?.full_name?.charAt(0) || '?'}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                {post.author?.full_name?.charAt(0) || '?'}
+              </div>
+              <div className="ml-3">
+                <h3 className="font-semibold">{post.author?.full_name || 'Anonymous'}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
+                    formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+                  }
+                </p>
+              </div>
             </div>
-            <div className="ml-3">
-              <h3 className="font-semibold">{post.author?.full_name || 'Anonymous'}</h3>
-              <p className="text-sm text-muted-foreground">
-                {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
-                  formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
-                }
-              </p>
-            </div>
+            
+            {/* Add post actions if the current user is the post creator */}
+            {user && user.id === post.user_id && (
+              <PostActions 
+                post={post} 
+                onEdit={() => refetch()} 
+                onDelete={handlePostDelete}
+              />
+            )}
           </div>
 
           {post.content && (
