@@ -21,7 +21,7 @@ export const initializeStorage = async () => {
     if (!mediaBucketExists) {
       const { error: createError } = await supabase.storage.createBucket('media', {
         public: true,
-        fileSizeLimit: 100000000, // 100MB - More reasonable size limit
+        fileSizeLimit: 1000000000, // 1GB - Pro tier support
       });
       
       if (createError) {
@@ -30,10 +30,10 @@ export const initializeStorage = async () => {
       }
       console.log('Created media bucket successfully');
     } else {
-      // Update existing media bucket with a more reasonable size limit
+      // Update existing media bucket with Pro tier size limit
       const { error: updateError } = await supabase.storage.updateBucket('media', {
         public: true,
-        fileSizeLimit: 100000000, // 100MB
+        fileSizeLimit: 1000000000, // 1GB - Pro tier support
       });
       
       if (updateError) {
@@ -48,7 +48,7 @@ export const initializeStorage = async () => {
     if (!postsBucketExists) {
       const { error: createError } = await supabase.storage.createBucket('posts', {
         public: true,
-        fileSizeLimit: 100000000, // 100MB - More reasonable size limit
+        fileSizeLimit: 1000000000, // 1GB - Pro tier support
       });
       
       if (createError) {
@@ -57,10 +57,10 @@ export const initializeStorage = async () => {
       }
       console.log('Created posts bucket successfully');
     } else {
-      // Update existing posts bucket with a more reasonable size limit
+      // Update existing posts bucket with Pro tier size limit
       const { error: updateError } = await supabase.storage.updateBucket('posts', {
         public: true,
-        fileSizeLimit: 100000000, // 100MB
+        fileSizeLimit: 1000000000, // 1GB - Pro tier support
       });
       
       if (updateError) {
@@ -90,8 +90,8 @@ export const isValidVideo = (file: File): boolean => {
     return false;
   }
   
-  // Check if file size is within limit (100MB)
-  if (file.size > 100000000) {
+  // Check if file size is within limit (1GB for Pro tier)
+  if (file.size > 1000000000) {
     console.log('Video file too large:', file.size);
     return false;
   }
@@ -111,8 +111,8 @@ export const isValidImage = (file: File): boolean => {
     return false;
   }
   
-  // Check if file size is within limit (100MB)
-  if (file.size > 100000000) {
+  // Check if file size is within limit (1GB for Pro tier)
+  if (file.size > 1000000000) {
     console.log('Image file too large:', file.size);
     return false;
   }
