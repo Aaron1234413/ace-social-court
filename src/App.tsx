@@ -32,7 +32,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !user && location.pathname !== '/auth') {
+    if (isLoading) return; // Don't do anything while still loading
+    
+    if (!user && location.pathname !== '/auth') {
       console.log('User not authenticated, redirecting to auth page');
       navigate('/auth');
       return;
@@ -40,12 +42,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     // If user is authenticated but profile is incomplete, redirect to profile edit
     // Only redirect if they're not already on the profile edit page
-    if (!isLoading && user && !isProfileComplete && location.pathname !== '/profile/edit') {
+    if (user && !isProfileComplete && location.pathname !== '/profile/edit') {
       console.log('Profile incomplete, redirecting to profile edit');
       navigate('/profile/edit', { state: { newUser: true } });
     }
   }, [user, isLoading, isProfileComplete, navigate, location.pathname]);
 
+  // Show loading indicator only while auth is being determined
   if (isLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
@@ -73,13 +76,14 @@ function AppRoutes() {
   // Handle initialization after checking auth status
   useEffect(() => {
     // Mark as initialized once we've checked auth status
-    // even if user is null (logged out), we still want to initialize
-    setIsInitialized(true);
-  }, []);
+    if (!isLoading) {
+      setIsInitialized(true);
+    }
+  }, [isLoading]);
 
   // Log auth and profile state for debugging
   useEffect(() => {
-    console.log('App Routes - Auth State:', { 
+    console.log("App Routes - Auth State:", { 
       user: user ? `${user.id} (${user.email})` : 'No user', 
       isLoading, 
       isProfileComplete,
@@ -88,7 +92,7 @@ function AppRoutes() {
   }, [user, isLoading, isProfileComplete, location.pathname]);
 
   // Show loading indicator only during initial app load
-  if (!isInitialized || isLoading) {
+  if (isLoading || !isInitialized) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -119,7 +123,11 @@ function AppRoutes() {
             <Profile />
           </ProtectedRoute>
         } />
-        <Route path="/profile/edit" element={<ProfileEdit />} />
+        <Route path="/profile/edit" element={
+          <ProtectedRoute>
+            <ProfileEdit />
+          </ProtectedRoute>
+        } />
         <Route path="/notifications" element={
           <ProtectedRoute>
             <Notifications />
