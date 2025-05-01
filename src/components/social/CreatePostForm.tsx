@@ -27,6 +27,7 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
   }
 
   const handleMediaUpload = (url: string, type: 'image' | 'video') => {
+    console.log("Media uploaded successfully:", { url, type });
     setMediaUrl(url);
     setMediaType(type);
     setShowMediaUploader(false);
@@ -41,6 +42,12 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
       }
       return;
     }
+    
+    console.log("Creating post with:", {
+      content: content.trim(),
+      mediaUrl,
+      mediaType
+    });
     
     try {
       await createPost({

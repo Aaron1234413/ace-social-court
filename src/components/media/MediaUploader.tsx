@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -54,9 +55,13 @@ const MediaUploader = ({
       return;
     }
 
+    // Check file size - add more logging
+    console.log(`File size: ${file.size} bytes (${Math.round(file.size / 1024 / 1024 * 100) / 100} MB)`);
+    console.log(`File type: ${file.type}`);
+    
     // Validate file based on type
     if (fileType === 'video' && !isValidVideo(file)) {
-      const errorMsg = 'Invalid video file. Maximum size is 5GB with Supabase Pro tier.';
+      const errorMsg = 'Invalid video file. Maximum size is 100MB.';
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
@@ -138,10 +143,10 @@ const MediaUploader = ({
             <Upload className="h-8 w-8 text-gray-400" />
             <span className="text-sm text-gray-500">
               {allowedTypes.length > 1 
-                ? 'Upload image or video (up to 5GB with Supabase Pro)' 
+                ? 'Upload image or video (up to 100MB)' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: {allowedTypes.includes('video') ? '5GB' : '100MB'}</span>
+            <span className="text-xs text-gray-400">Maximum size: 100MB</span>
             <input
               type="file"
               className="hidden"

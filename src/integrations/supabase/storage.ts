@@ -21,7 +21,7 @@ export const initializeStorage = async () => {
     if (!mediaBucketExists) {
       const { error: createError } = await supabase.storage.createBucket('media', {
         public: true,
-        fileSizeLimit: 5000000000, // 5GB - Supabase's Pro tier limit
+        fileSizeLimit: 100000000, // 100MB - More reasonable size limit
       });
       
       if (createError) {
@@ -30,17 +30,17 @@ export const initializeStorage = async () => {
       }
       console.log('Created media bucket successfully');
     } else {
-      // Update existing media bucket size limit
+      // Update existing media bucket with a more reasonable size limit
       const { error: updateError } = await supabase.storage.updateBucket('media', {
         public: true,
-        fileSizeLimit: 5000000000, // 5GB
+        fileSizeLimit: 100000000, // 100MB
       });
       
       if (updateError) {
         console.error('Error updating media bucket:', updateError);
         return false;
       }
-      console.log('Updated media bucket size limit successfully');
+      console.log('Updated media bucket successfully');
     }
     
     // Create posts bucket if it doesn't exist
@@ -48,7 +48,7 @@ export const initializeStorage = async () => {
     if (!postsBucketExists) {
       const { error: createError } = await supabase.storage.createBucket('posts', {
         public: true,
-        fileSizeLimit: 5000000000, // 5GB - Supabase's Pro tier limit
+        fileSizeLimit: 100000000, // 100MB - More reasonable size limit
       });
       
       if (createError) {
@@ -57,17 +57,17 @@ export const initializeStorage = async () => {
       }
       console.log('Created posts bucket successfully');
     } else {
-      // Update existing posts bucket size limit
+      // Update existing posts bucket with a more reasonable size limit
       const { error: updateError } = await supabase.storage.updateBucket('posts', {
         public: true,
-        fileSizeLimit: 5000000000, // 5GB
+        fileSizeLimit: 100000000, // 100MB
       });
       
       if (updateError) {
         console.error('Error updating posts bucket:', updateError);
         return false;
       }
-      console.log('Updated posts bucket size limit successfully');
+      console.log('Updated posts bucket successfully');
     }
     
     console.log('Storage initialization completed successfully!');
@@ -90,8 +90,8 @@ export const isValidVideo = (file: File): boolean => {
     return false;
   }
   
-  // Check if file size is within limit (5GB for Pro tier)
-  if (file.size > 5000000000) {
+  // Check if file size is within limit (100MB)
+  if (file.size > 100000000) {
     console.log('Video file too large:', file.size);
     return false;
   }
@@ -111,7 +111,7 @@ export const isValidImage = (file: File): boolean => {
     return false;
   }
   
-  // Check if file size is within limit (100MB for images)
+  // Check if file size is within limit (100MB)
   if (file.size > 100000000) {
     console.log('Image file too large:', file.size);
     return false;
