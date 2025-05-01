@@ -1,17 +1,12 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { MapPin, Search, Loader2, AlertCircle } from 'lucide-react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
 
 // User-provided Mapbox token (primary)
 const USER_MAPBOX_TOKEN = 'pk.eyJ1IjoiYWFyb24yMWNhbXBvcyIsImEiOiJjbWEydXkyZXExNW5rMmpxNmh5eGs5NmgyIn0.GyTAYck1VjlY0OWF8e6Y7w';
@@ -33,12 +28,6 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   initialLatitude,
   initialLongitude
 }) => {
-  const mapContainer = useRef<HTMLDivElement | null>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const marker = useRef<mapboxgl.Marker | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [mapInitialized, setMapInitialized] = useState(false);
-  const [mapLoadProgress, setMapLoadProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -49,219 +38,11 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
   } | null>(initialLatitude && initialLongitude ? {
     lat: initialLatitude,
     lng: initialLongitude,
-    address: ''  // Will be populated after reverse geocoding
+    address: ''
   } : null);
-  const [mapError, setMapError] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [confirmButtonClicked, setConfirmButtonClicked] = useState(false);
   
-  // Set Mapbox token before initializing
-  const setMapboxToken = () => {
-    try {
-      // Try primary token first
-      mapboxgl.accessToken = USER_MAPBOX_TOKEN;
-      console.log('Set primary Mapbox token');
-      return true;
-    } catch (error) {
-      console.error('Error setting primary Mapbox token:', error);
-      try {
-        // Fall back to secondary token if primary fails
-        mapboxgl.accessToken = ACE_SOCIAL_MAPBOX_TOKEN;
-        console.log('Set fallback Mapbox token');
-        return true;
-      } catch (fallbackError) {
-        console.error('Error setting fallback Mapbox token:', fallbackError);
-        setMapError('Could not initialize map. Please try again later.');
-        return false;
-      }
-    }
-  };
-
-  // Initialize map when dialog opens
-  useEffect(() => {
-    if (!isOpen || !mapContainer.current || mapInitialized) return;
-
-    const initMap = async () => {
-      setLoading(true);
-      setMapError(null);
-      setMapLoadProgress(10);
-      console.log('Initializing map...');
-
-      // Set the Mapbox token first
-      if (!setMapboxToken()) {
-        setLoading(false);
-        return;
-      }
-
-      setMapLoadProgress(30);
-
-      try {
-        // Create map instance
-        map.current = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: initialLatitude && initialLongitude ? 
-            [initialLongitude, initialLatitude] : 
-            [-98.5795, 39.8283], // Default to US center
-          zoom: initialLatitude && initialLongitude ? 13 : 3
-        });
-
-        setMapLoadProgress(50);
-        console.log('Map created');
-        
-        // Add navigation controls
-        map.current.addControl(
-          new mapboxgl.NavigationControl(),
-          'top-right'
-        );
-
-        setMapLoadProgress(70);
-
-        // Create a marker if initial position provided
-        if (initialLatitude && initialLongitude) {
-          marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
-            .setLngLat([initialLongitude, initialLatitude])
-            .addTo(map.current);
-
-          console.log('Added initial marker at:', initialLatitude, initialLongitude);
-
-          // Get address for initial position
-          reverseGeocode(initialLatitude, initialLongitude)
-            .then(address => {
-              setSelectedPosition({
-                lat: initialLatitude,
-                lng: initialLongitude,
-                address
-              });
-            })
-            .catch(err => {
-              console.error('Error getting initial address:', err);
-              // Still set position with coordinates
-              setSelectedPosition({
-                lat: initialLatitude,
-                lng: initialLongitude,
-                address: `${initialLatitude.toFixed(6)}, ${initialLongitude.toFixed(6)}`
-              });
-            });
-          
-          // Set up drag end event for marker
-          marker.current.on('dragend', handleMarkerDragEnd);
-        }
-
-        setMapLoadProgress(90);
-
-        // Handle map click to set marker
-        map.current.on('click', handleMapClick);
-
-        map.current.on('load', () => {
-          console.log('Map loaded successfully');
-          setMapLoadProgress(100);
-          setLoading(false);
-          setMapInitialized(true);
-        });
-
-        // Handle map error events
-        map.current.on('error', (e) => {
-          console.error('Map error:', e);
-          setMapError('Map error occurred. Please try again.');
-        });
-
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        setMapError('Failed to initialize map. Please try again later.');
-        setLoading(false);
-      }
-    };
-
-    initMap();
-
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-        setMapInitialized(false);
-      }
-      if (marker.current) {
-        marker.current = null;
-      }
-    };
-  }, [isOpen, initialLatitude, initialLongitude, mapInitialized]);
-
-  // Handle map click to place marker
-  const handleMapClick = async (e: mapboxgl.MapMouseEvent) => {
-    if (!map.current) return;
-    
-    const { lng, lat } = e.lngLat;
-    console.log('Map clicked at:', { lat, lng });
-    
-    // Remove existing marker if any
-    if (marker.current) {
-      marker.current.remove();
-    }
-    
-    // Create new marker at clicked position
-    marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
-      .setLngLat([lng, lat])
-      .addTo(map.current);
-    
-    // Set up drag end event for marker
-    marker.current.on('dragend', handleMarkerDragEnd);
-    
-    try {
-      // Get address for the location
-      const address = await reverseGeocode(lat, lng);
-      setSelectedPosition({ 
-        lat: Number(lat.toFixed(6)), 
-        lng: Number(lng.toFixed(6)), 
-        address 
-      });
-      setConfirmButtonClicked(false); // Reset confirmation attempt flag
-      console.log('Location selected:', { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)), address });
-      toast.success('Location selected!');
-    } catch (error) {
-      console.error('Error getting address:', error);
-      // Even if we fail to get the address, set the position with coordinates
-      setSelectedPosition({
-        lat: Number(lat.toFixed(6)), 
-        lng: Number(lng.toFixed(6)), 
-        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
-      });
-      setConfirmButtonClicked(false); // Reset confirmation attempt flag
-      toast.info('Location selected with coordinates only.');
-    }
-  };
-
-  // Handle marker drag end
-  const handleMarkerDragEnd = async () => {
-    if (!marker.current) return;
-    
-    const position = marker.current.getLngLat();
-    console.log('Marker dragged to:', position);
-    
-    try {
-      const address = await reverseGeocode(position.lat, position.lng);
-      setSelectedPosition({
-        lat: Number(position.lat.toFixed(6)),
-        lng: Number(position.lng.toFixed(6)),
-        address
-      });
-      setConfirmButtonClicked(false); // Reset confirmation attempt flag
-      console.log('New position after drag:', { 
-        lat: Number(position.lat.toFixed(6)),
-        lng: Number(position.lng.toFixed(6)),
-        address
-      });
-    } catch (error) {
-      console.error('Error getting address after drag:', error);
-      setSelectedPosition({
-        lat: Number(position.lat.toFixed(6)),
-        lng: Number(position.lng.toFixed(6)),
-        address: `${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}`
-      });
-      setConfirmButtonClicked(false); // Reset confirmation attempt flag
-    }
-  };
-
   // Search for locations using Mapbox Geocoding API
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -272,13 +53,10 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     console.log('Searching for:', searchQuery);
     
     try {
-      // Make sure we have a token set before searching
-      if (!mapboxgl.accessToken) {
-        setMapboxToken();
-      }
+      const mapboxToken = USER_MAPBOX_TOKEN || ACE_SOCIAL_MAPBOX_TOKEN;
       
       const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxgl.accessToken}&limit=5`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxToken}&limit=5`
       );
       
       if (!response.ok) {
@@ -302,30 +80,8 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
 
   // Select a location from search results
   const selectSearchResult = (result: any) => {
-    if (!map.current) return;
-    
     console.log('Search result selected:', result);
     const [lng, lat] = result.center;
-    
-    // Fly to the selected location
-    map.current.flyTo({
-      center: [lng, lat],
-      zoom: 14,
-      essential: true
-    });
-    
-    // Remove existing marker if any
-    if (marker.current) {
-      marker.current.remove();
-    }
-    
-    // Create new marker at the selected location
-    marker.current = new mapboxgl.Marker({ color: '#3b82f6', draggable: true })
-      .setLngLat([lng, lat])
-      .addTo(map.current);
-    
-    // Set up drag end event for marker
-    marker.current.on('dragend', handleMarkerDragEnd);
     
     // Set selected position
     setSelectedPosition({
@@ -333,10 +89,10 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
       lng: Number(lng.toFixed(6)),
       address: result.place_name
     });
-    setConfirmButtonClicked(false); // Reset confirmation attempt flag
+    setConfirmButtonClicked(false);
     
     toast.success('Location selected!');
-    console.log('Selected position set:', {
+    console.log('Selected position:', {
       lat: Number(lat.toFixed(6)),
       lng: Number(lng.toFixed(6)),
       address: result.place_name
@@ -344,39 +100,11 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
     
     // Clear search results
     setSearchResults([]);
-    setSearchQuery('');
-  };
-
-  // Reverse geocode to get address from coordinates
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    try {
-      if (!mapboxgl.accessToken) {
-        setMapboxToken();
-      }
-      
-      console.log('Reverse geocoding:', lat, lng);
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`Reverse geocoding failed with status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Reverse geocoding result:', data);
-      return data.features && data.features.length > 0 
-        ? data.features[0].place_name 
-        : `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    } catch (error) {
-      console.error('Error reverse geocoding:', error);
-      return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    }
   };
 
   // Handle form submission
   const handleSubmit = () => {
-    setConfirmButtonClicked(true); // Mark that user tried to confirm
+    setConfirmButtonClicked(true);
     
     if (selectedPosition) {
       console.log('Confirming location:', selectedPosition);
@@ -419,7 +147,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Set Court Location</DialogTitle>
           <DialogDescription>
-            Search for a location or click on the map to set the court position
+            Search for a location to set your court position
           </DialogDescription>
         </DialogHeader>
 
@@ -454,12 +182,12 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
               )}
 
               {searchResults.length > 0 && (
-                <div className="bg-background border rounded-md max-h-[200px] overflow-y-auto">
+                <div className="bg-background border rounded-md max-h-[300px] overflow-y-auto">
                   <ul>
                     {searchResults.map((result) => (
                       <li 
                         key={result.id}
-                        className="p-2 hover:bg-muted cursor-pointer border-b last:border-0 flex items-center gap-2"
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-0 flex items-center gap-2"
                         onClick={() => selectSearchResult(result)}
                       >
                         <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -470,31 +198,9 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
                 </div>
               )}
 
-              <div 
-                ref={mapContainer} 
-                className="h-[300px] w-full rounded-md border relative"
-              >
-                {loading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                    <Progress value={mapLoadProgress} className="w-[80%] h-2" />
-                    <p className="text-sm mt-2">Loading map... {mapLoadProgress}%</p>
-                  </div>
-                )}
-                
-                {mapError && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-                    <div className="text-center p-4">
-                      <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-                      <p className="text-sm text-destructive">{mapError}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {selectedPosition && (
                 <div className="bg-muted p-3 rounded-md">
-                  <Label className="text-xs text-muted-foreground">Selected Location</Label>
+                  <div className="text-sm font-medium mb-1">Selected Location</div>
                   <div className="flex items-center gap-2 mt-1">
                     <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="text-sm break-words">{selectedPosition.address}</span>
@@ -508,7 +214,7 @@ const LocationPickerDialog: React.FC<LocationPickerDialogProps> = ({
               {confirmButtonClicked && !selectedPosition && (
                 <Alert variant="destructive" className="py-2 mt-2">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>Please select a location on the map first</AlertDescription>
+                  <AlertDescription>Please select a location first</AlertDescription>
                 </Alert>
               )}
             </div>

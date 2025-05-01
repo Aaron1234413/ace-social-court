@@ -21,7 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 type UserType = Database['public']['Enums']['user_type'];
 type ExperienceLevel = Database['public']['Enums']['experience_level'];
 
-// Define schema for form validation with required fields marked
+// Define schema for form validation without making location fields required
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').nonempty('Username is required'),
   full_name: z.string().min(2, 'Full name must be at least 2 characters').nonempty('Full name is required'),
@@ -49,10 +49,10 @@ const ProfileEdit = () => {
   const [formSubmitAttempt, setFormSubmitAttempt] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
-  // Initialize form with validation mode set to all for real-time validation
+  // Initialize form with validation mode set to onChange for better user experience
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    mode: 'all', // Enable real-time validation
+    mode: 'onChange',
     defaultValues: {
       username: '',
       full_name: '',
@@ -135,11 +135,14 @@ const ProfileEdit = () => {
     
     console.log('Parsed coordinates:', { parsedLat, parsedLng });
     
+    // Directly set the values in the form
     form.setValue('latitude', parsedLat);
     form.setValue('longitude', parsedLng);
     form.setValue('location_name', address);
     setLocationName(address);
-    setIsLocationPickerOpen(false); // Close the dialog after location is set
+    
+    // Close the dialog after location is set
+    setIsLocationPickerOpen(false);
     toast.success('Location set successfully');
     
     // Log the form values after setting location for debugging
@@ -168,10 +171,16 @@ const ProfileEdit = () => {
       values
     });
     
-    // Show errors for required fields if they're missing
-    if (!form.formState.isValid) {
-      const errorFields = Object.keys(form.formState.errors);
-      const errorMessage = `Please fill in all required fields: ${errorFields.join(', ')}`;
+    // Explicit validation check for required fields
+    const { username, full_name, user_type, experience_level } = values;
+    if (!username || !full_name || !user_type || !experience_level) {
+      const missingFields = [];
+      if (!username) missingFields.push('Username');
+      if (!full_name) missingFields.push('Full Name');
+      if (!user_type) missingFields.push('Account Type');
+      if (!experience_level) missingFields.push('Experience Level');
+      
+      const errorMessage = `Please fill in all required fields: ${missingFields.join(', ')}`;
       setValidationMessage(errorMessage);
       toast.error(errorMessage);
       setFormSubmitAttempt(true);
@@ -182,8 +191,8 @@ const ProfileEdit = () => {
     try {
       console.log('Submitting profile with values:', values);
       
-      // Ensure we're passing proper values for latitude and longitude
-      // Convert to proper number format if they exist
+      // Prepare the data for submission
+      // Convert latitude/longitude to numbers or null
       const latitude = values.latitude !== undefined ? Number(parseFloat(values.latitude.toString()).toFixed(6)) : null;
       const longitude = values.longitude !== undefined ? Number(parseFloat(values.longitude.toString()).toFixed(6)) : null;
       
@@ -433,10 +442,6 @@ const ProfileEdit = () => {
                     Coordinates: {form.watch('latitude')?.toFixed(6)}, {form.watch('longitude')?.toFixed(6)}
                   </div>
                 )}
-                {/* Hidden fields to store location data */}
-                <input type="hidden" {...form.register('latitude', { setValueAs: v => v === '' ? undefined : Number(v) })} />
-                <input type="hidden" {...form.register('longitude', { setValueAs: v => v === '' ? undefined : Number(v) })} />
-                <input type="hidden" {...form.register('location_name')} />
               </div>
             </CardContent>
           </Card>
