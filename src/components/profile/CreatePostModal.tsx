@@ -49,12 +49,12 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       return;
     }
 
-    // Check file size (500MB max for video, 30MB max for image)
-    const maxSize = fileType === 'video' ? 500 * 1024 * 1024 : 30 * 1024 * 1024;
+    // Check file size (50MB max due to Supabase free tier limitations)
+    const maxSize = fileType === 'video' ? 50 * 1024 * 1024 : 30 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({
         title: "File too large",
-        description: `File size should be less than ${fileType === 'video' ? '500MB' : '30MB'}`,
+        description: `File size should be less than ${fileType === 'video' ? '50MB (Supabase limit)' : '30MB'}`,
         variant: "destructive",
       });
       return;
@@ -161,7 +161,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         <DialogHeader>
           <DialogTitle>Create New Post</DialogTitle>
           <DialogDescription>
-            Share your tennis moments with images (up to 30MB) or videos (up to 500MB)
+            Share your tennis moments with images (up to 30MB) or videos (up to 50MB due to Supabase limits)
           </DialogDescription>
         </DialogHeader>
         

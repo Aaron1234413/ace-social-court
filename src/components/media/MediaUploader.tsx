@@ -57,7 +57,7 @@ const MediaUploader = ({
 
     // Validate file based on type
     if (fileType === 'video' && !isValidVideo(file)) {
-      const errorMsg = 'Invalid video file. Maximum size is 500MB.';
+      const errorMsg = 'Invalid video file. Maximum size is 50MB due to Supabase limitations.';
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
@@ -139,10 +139,10 @@ const MediaUploader = ({
             <Upload className="h-8 w-8 text-gray-400" />
             <span className="text-sm text-gray-500">
               {allowedTypes.length > 1 
-                ? 'Upload image or video (up to 10 mins)' 
+                ? 'Upload image or video (Supabase free tier: max 50MB)' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: {allowedTypes.includes('video') ? '500MB' : '30MB'}</span>
+            <span className="text-xs text-gray-400">Maximum size: {allowedTypes.includes('video') ? '50MB' : '30MB'}</span>
             <input
               type="file"
               className="hidden"
