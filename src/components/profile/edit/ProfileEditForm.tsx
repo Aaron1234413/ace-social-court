@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -15,6 +16,7 @@ import { BasicInfoFields } from './form-sections/BasicInfoFields';
 import { PlayingInfoFields } from './form-sections/PlayingInfoFields';
 import { LocationField } from './form-sections/LocationField';
 import { Database } from '@/integrations/supabase/types';
+import { ProfileData } from './ProfileEditContainer';
 
 type UserType = Database['public']['Enums']['user_type'];
 type ExperienceLevel = Database['public']['Enums']['experience_level'];
@@ -36,15 +38,16 @@ export type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface ProfileEditFormProps {
   isNewUser: boolean;
+  profileData: ProfileData | null;
 }
 
-export const ProfileEditForm = ({ isNewUser }: ProfileEditFormProps) => {
+export const ProfileEditForm = ({ isNewUser, profileData }: ProfileEditFormProps) => {
   const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   
   const [isSaving, setIsSaving] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
-  const [locationName, setLocationName] = useState('');
+  const [locationName, setLocationName] = useState<string>(profileData?.location_name || '');
   const [formSubmitAttempt, setFormSubmitAttempt] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
@@ -64,6 +67,30 @@ export const ProfileEditForm = ({ isNewUser }: ProfileEditFormProps) => {
       longitude: undefined,
     }
   });
+
+  // Update form values when profile data is loaded
+  useEffect(() => {
+    if (profileData) {
+      console.log('Setting form values from profile data:', profileData);
+      
+      // Update form with profile data
+      form.reset({
+        username: profileData.username || '',
+        full_name: profileData.full_name || '',
+        user_type: profileData.user_type || 'player',
+        playing_style: profileData.playing_style || '',
+        experience_level: profileData.experience_level || 'beginner',
+        bio: profileData.bio || '',
+        location_name: profileData.location_name || '',
+        latitude: profileData.latitude || undefined,
+        longitude: profileData.longitude || undefined,
+      });
+
+      if (profileData.location_name) {
+        setLocationName(profileData.location_name);
+      }
+    }
+  }, [profileData, form]);
 
   // Set location data
   const handleSetLocation = (lat: number, lng: number, address: string) => {

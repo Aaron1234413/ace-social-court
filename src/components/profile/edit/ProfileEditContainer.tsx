@@ -11,6 +11,19 @@ import { Database } from '@/integrations/supabase/types';
 type UserType = Database['public']['Enums']['user_type'];
 type ExperienceLevel = Database['public']['Enums']['experience_level'];
 
+export interface ProfileData {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  user_type: UserType;
+  playing_style: string | null;
+  experience_level: ExperienceLevel | null;
+  bio: string | null;
+  location_name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export const ProfileEditContainer = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -18,6 +31,7 @@ export const ProfileEditContainer = () => {
   const isNewUser = location.state?.newUser === true;
   
   const [isLoading, setIsLoading] = useState(false);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -41,6 +55,7 @@ export const ProfileEditContainer = () => {
         }
 
         console.log('Fetched profile data:', data);
+        setProfileData(data);
       } catch (error) {
         console.error('Failed to fetch profile:', error);
         toast.error('Failed to fetch profile');
@@ -60,7 +75,7 @@ export const ProfileEditContainer = () => {
     );
   }
 
-  return <ProfileEditForm isNewUser={isNewUser} />;
+  return <ProfileEditForm isNewUser={isNewUser} profileData={profileData} />;
 };
 
 export default ProfileEditContainer;
