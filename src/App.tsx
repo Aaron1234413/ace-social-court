@@ -42,6 +42,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     // If user is authenticated but profile is incomplete, redirect to profile edit
     // Only redirect if they're not already on the profile edit page
+    // and only redirect new users (without a completed profile)
     if (user && !isProfileComplete && location.pathname !== '/profile/edit') {
       console.log('Profile incomplete, redirecting to profile edit');
       navigate('/profile/edit', { state: { newUser: true } });

@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false);
+  const [isProfileChecked, setIsProfileChecked] = useState<boolean>(false);
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -50,6 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       setProfile(null);
       setIsProfileComplete(false);
+      setIsProfileChecked(false);
       toast.success("Signed out successfully");
     }
   };
@@ -91,12 +93,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       setIsProfileComplete(hasRequiredFields);
+      setIsProfileChecked(true);
       
       console.log('Profile loaded:', data);
       console.log('Profile complete status:', hasRequiredFields);
       
     } catch (err) {
       console.error('Failed to fetch profile:', err);
+      setIsProfileChecked(true); // Mark as checked even on error to prevent infinite loading
     }
   };
 
@@ -121,6 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setIsProfileComplete(false);
+          setIsProfileChecked(false);
           toast.info("Signed out successfully");
         } else if (event === 'USER_UPDATED') {
           toast.info("User profile updated");
@@ -145,9 +150,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setTimeout(() => {
           refreshProfile();
         }, 0);
+      } else {
+        // No session, mark as not loading and profile checked
+        setIsLoading(false);
+        setIsProfileChecked(true);
       }
-      
-      setIsLoading(false);
     });
 
     return () => {
@@ -162,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user, 
         session, 
         profile,
-        isLoading, 
+        isLoading: isLoading || (!!user && !isProfileChecked), 
         isProfileComplete,
         signOut,
         refreshProfile
