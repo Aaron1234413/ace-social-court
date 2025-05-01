@@ -1,9 +1,11 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { isValidImage, isValidVideo } from '@/integrations/supabase/storage';
 
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
@@ -18,6 +20,8 @@ const MediaUploader = ({
 }: MediaUploaderProps) => {
   const { user } = useAuth(); // Get the authenticated user
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
 
@@ -25,15 +29,14 @@ const MediaUploader = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Reset states
+    setUploadError(null);
+    setUploadProgress(0);
+    
     // Check if user is authenticated
     if (!user) {
+      setUploadError('You must be logged in to upload files');
       toast.error('You must be logged in to upload files');
-      return;
-    }
-
-    // Check file size (200MB limit)
-    if (file.size > 200 * 1024 * 1024) {
-      toast.error('File is too large. Maximum size is 200MB.');
       return;
     }
 
@@ -46,7 +49,24 @@ const MediaUploader = ({
 
     // Check if file type is allowed
     if (!fileType || !allowedTypes.includes(fileType)) {
-      toast.error(`File type not supported. Allowed types: ${allowedTypes.join(', ')}`);
+      const errorMsg = `File type not supported. Allowed types: ${allowedTypes.join(', ')}`;
+      setUploadError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
+    // Validate file based on type
+    if (fileType === 'video' && !isValidVideo(file)) {
+      const errorMsg = 'Invalid video file. Maximum size is 200MB.';
+      setUploadError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
+    if (fileType === 'image' && !isValidImage(file)) {
+      const errorMsg = 'Invalid image file. Maximum size is 20MB.';
+      setUploadError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
@@ -61,11 +81,15 @@ const MediaUploader = ({
       // Create unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      console.log(`Starting upload to ${bucketName}/${filePath}`);
+      console.log(`File type: ${file.type}, size: ${file.size} bytes`);
       
       // Upload file to Supabase Storage with explicit owner
       const { data, error } = await supabase.storage
         .from(bucketName)
-        .upload(`${user.id}/${fileName}`, file, {
+        .upload(filePath, file, {
           cacheControl: '3600',
           contentType: file.type,
           upsert: false
@@ -73,22 +97,26 @@ const MediaUploader = ({
 
       if (error) {
         console.error('Upload error:', error);
+        setUploadError(`Upload failed: ${error.message}`);
         throw error;
       }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
-        .getPublicUrl(`${user.id}/${fileName}`);
+        .getPublicUrl(filePath);
 
+      console.log('File uploaded successfully:', publicUrl);
+      
       // Pass URL to parent component
       onMediaUpload(publicUrl, fileType);
-      console.log('File uploaded successfully:', publicUrl);
       toast.success('File uploaded successfully!');
       
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error(`Upload failed: ${error.message}`);
+      const errorMessage = `Upload failed: ${error.message || 'Unknown error'}`;
+      setUploadError(errorMessage);
+      toast.error(errorMessage);
       // Clear preview on error
       setPreview(null);
       setMediaType(null);
@@ -100,6 +128,7 @@ const MediaUploader = ({
   const clearPreview = () => {
     setPreview(null);
     setMediaType(null);
+    setUploadError(null);
   };
 
   return (
@@ -113,7 +142,7 @@ const MediaUploader = ({
                 ? 'Upload image or video (up to 2 mins)' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: 200MB</span>
+            <span className="text-xs text-gray-400">Maximum size: {allowedTypes.includes('video') ? '200MB' : '20MB'}</span>
             <input
               type="file"
               className="hidden"
@@ -138,6 +167,13 @@ const MediaUploader = ({
             >
               {isUploading ? 'Uploading...' : 'Select File'}
             </Button>
+            
+            {uploadError && (
+              <div className="mt-2 text-sm text-red-500 flex items-center gap-1">
+                <AlertTriangle className="h-4 w-4" />
+                {uploadError}
+              </div>
+            )}
           </label>
         </div>
       ) : (
