@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/components/AuthProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import LocationPickerDialog from '@/components/profile/LocationPickerDialog';
+import { LocationPickerDialog } from '@/components/location';
 
 const surfaceTypes = [
   { value: 'hard', label: 'Hard Court' },
