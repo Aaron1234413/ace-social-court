@@ -8,7 +8,7 @@ import { Loader2, ImagePlus, Send } from 'lucide-react';
 import MentionInput from './MentionInput';
 import MediaUploader from '../media/MediaUploader';
 import { toast } from 'sonner';
-import { ensureBucketExists } from '@/integrations/supabase/storage';
+import { ensureBucketExists, getUsableBucket } from '@/integrations/supabase/storage';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
@@ -22,17 +22,24 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [bucketReady, setBucketReady] = useState(false);
+  const [activeBucket, setActiveBucket] = useState('posts');
   const { createPost, isCreatingPost } = useCreatePost();
 
-  // Check and initialize the posts bucket when component mounts
+  // Check and initialize the storage bucket when component mounts
   useEffect(() => {
     const initBucket = async () => {
-      const exists = await ensureBucketExists('posts');
+      // First check if posts bucket exists, if not use media as fallback
+      const bucketToUse = await getUsableBucket('posts');
+      setActiveBucket(bucketToUse);
+      
+      // Ensure the bucket we're going to use exists
+      const exists = await ensureBucketExists(bucketToUse);
       setBucketReady(exists);
+      
       if (!exists) {
         toast.error("Storage not available. Some features may not work properly. Please try refreshing the page.");
       } else {
-        console.log("Posts bucket is ready for uploads");
+        console.log(`Using '${bucketToUse}' bucket for uploads`);
       }
     };
     
@@ -113,7 +120,7 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
             <div className="mt-3">
               <MediaUploader
                 onMediaUpload={handleMediaUpload}
-                bucketName="posts"
+                bucketName={activeBucket}
               />
             </div>
           )}

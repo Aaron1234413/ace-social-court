@@ -22,61 +22,77 @@ export const initializeStorage = async () => {
     const mediaBucketExists = buckets?.some(bucket => bucket.name === 'media');
     if (!mediaBucketExists) {
       console.log('Creating "media" bucket...');
-      const { data, error: createError } = await supabase.storage.createBucket('media', {
-        public: true,
-        fileSizeLimit: 1000000000, // 1GB - Pro tier support
-      });
-      
-      if (createError) {
-        console.error('Error creating media bucket:', createError);
-        return false;
+      try {
+        const { data, error: createError } = await supabase.storage.createBucket('media', {
+          public: true,
+          fileSizeLimit: 100000000, // 100MB - more reasonable limit
+        });
+        
+        if (createError) {
+          console.error('Error creating media bucket:', createError);
+        } else {
+          console.log('Created media bucket successfully:', data);
+        }
+      } catch (err) {
+        console.error('Exception creating media bucket:', err);
       }
-      console.log('Created media bucket successfully:', data);
     } else {
-      // Update existing media bucket with Pro tier size limit
-      console.log('Updating "media" bucket...');
-      const { data, error: updateError } = await supabase.storage.updateBucket('media', {
-        public: true,
-        fileSizeLimit: 1000000000, // 1GB - Pro tier support
-      });
-      
-      if (updateError) {
-        console.error('Error updating media bucket:', updateError);
-        return false;
+      // Update existing media bucket to ensure settings are correct
+      try {
+        const { data, error: updateError } = await supabase.storage.updateBucket('media', {
+          public: true,
+          fileSizeLimit: 100000000, // 100MB - more reasonable limit
+        });
+        
+        if (updateError) {
+          console.error('Error updating media bucket:', updateError);
+        } else {
+          console.log('Updated media bucket successfully:', data);
+        }
+      } catch (err) {
+        console.error('Exception updating media bucket:', err);
       }
-      console.log('Updated media bucket successfully:', data);
     }
     
     // Create posts bucket if it doesn't exist
     const postsBucketExists = buckets?.some(bucket => bucket.name === 'posts');
     if (!postsBucketExists) {
       console.log('Creating "posts" bucket...');
-      const { data, error: createError } = await supabase.storage.createBucket('posts', {
-        public: true,
-        fileSizeLimit: 1000000000, // 1GB - Pro tier support
-      });
-      
-      if (createError) {
-        console.error('Error creating posts bucket:', createError);
-        return false;
+      try {
+        const { data, error: createError } = await supabase.storage.createBucket('posts', {
+          public: true,
+          fileSizeLimit: 100000000, // 100MB - more reasonable limit
+        });
+        
+        if (createError) {
+          console.error('Error creating posts bucket:', createError);
+          // If posts bucket creation fails, we'll use media bucket as fallback
+          console.log('Will use "media" bucket as fallback for posts');
+        } else {
+          console.log('Created posts bucket successfully:', data);
+        }
+      } catch (err) {
+        console.error('Exception creating posts bucket:', err);
       }
-      console.log('Created posts bucket successfully:', data);
     } else {
-      // Update existing posts bucket with Pro tier size limit
-      console.log('Updating "posts" bucket...');
-      const { data, error: updateError } = await supabase.storage.updateBucket('posts', {
-        public: true,
-        fileSizeLimit: 1000000000, // 1GB - Pro tier support
-      });
-      
-      if (updateError) {
-        console.error('Error updating posts bucket:', updateError);
-        return false;
+      // Update existing posts bucket with correct settings
+      try {
+        const { data, error: updateError } = await supabase.storage.updateBucket('posts', {
+          public: true,
+          fileSizeLimit: 100000000, // 100MB - more reasonable limit
+        });
+        
+        if (updateError) {
+          console.error('Error updating posts bucket:', updateError);
+        } else {
+          console.log('Updated posts bucket successfully:', data);
+        }
+      } catch (err) {
+        console.error('Exception updating posts bucket:', err);
       }
-      console.log('Updated posts bucket successfully:', data);
     }
     
-    console.log('Storage initialization completed successfully!');
+    console.log('Storage initialization completed');
     return true;
   } catch (error) {
     console.error('Error initializing storage:', error);
@@ -150,20 +166,81 @@ export const ensureBucketExists = async (bucketName: string): Promise<boolean> =
     
     // Create bucket if it doesn't exist
     console.log(`Creating '${bucketName}' bucket...`);
-    const { error: createError } = await supabase.storage.createBucket(bucketName, {
-      public: true,
-      fileSizeLimit: 1000000000, // 1GB - Pro tier support
-    });
-    
-    if (createError) {
-      console.error(`Error creating '${bucketName}' bucket:`, createError);
+    try {
+      const { error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 100000000, // 100MB - more reasonable limit
+      });
+      
+      if (createError) {
+        console.error(`Error creating '${bucketName}' bucket:`, createError);
+        
+        // Check if "media" bucket exists as fallback
+        if (bucketName !== 'media') {
+          const mediaExists = buckets?.some(bucket => bucket.name === 'media');
+          if (mediaExists) {
+            console.log(`Will use "media" bucket as fallback for ${bucketName}`);
+            return true; // Return true since we have a fallback
+          }
+        }
+        return false;
+      }
+      
+      console.log(`Bucket '${bucketName}' created successfully`);
+      return true;
+    } catch (err) {
+      console.error(`Exception creating '${bucketName}' bucket:`, err);
+      
+      // Check if "media" bucket exists as fallback
+      if (bucketName !== 'media') {
+        const mediaExists = buckets?.some(bucket => bucket.name === 'media');
+        if (mediaExists) {
+          console.log(`Will use "media" bucket as fallback for ${bucketName}`);
+          return true; // Return true since we have a fallback
+        }
+      }
       return false;
     }
-    
-    console.log(`Bucket '${bucketName}' created successfully`);
-    return true;
   } catch (error) {
     console.error(`Error ensuring bucket '${bucketName}' exists:`, error);
     return false;
+  }
+};
+
+/**
+ * Get the appropriate bucket name to use for a given intended bucket
+ * Falls back to 'media' if the intended bucket doesn't exist
+ * @param intendedBucket The bucket name we want to use
+ * @returns The bucket name to actually use
+ */
+export const getUsableBucket = async (intendedBucket: string): Promise<string> => {
+  try {
+    // Check if the intended bucket exists
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error('Error listing buckets:', error);
+      return 'media'; // Default fallback
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === intendedBucket);
+    
+    if (bucketExists) {
+      return intendedBucket;
+    }
+    
+    // Check if media bucket exists as fallback
+    const mediaExists = buckets?.some(bucket => bucket.name === 'media');
+    
+    if (mediaExists) {
+      console.log(`Using "media" bucket as fallback for ${intendedBucket}`);
+      return 'media';
+    }
+    
+    // If neither exists, return the intended bucket name and let the caller handle errors
+    return intendedBucket;
+  } catch (error) {
+    console.error('Error getting usable bucket:', error);
+    return 'media'; // Default fallback
   }
 };

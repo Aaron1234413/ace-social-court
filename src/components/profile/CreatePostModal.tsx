@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { CreatePostForm } from './post/CreatePostForm';
 import { toast } from 'sonner';
+import { getUsableBucket } from '@/integrations/supabase/storage';
 
 interface CreatePostModalProps {
   open: boolean;
@@ -22,6 +23,20 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [activeBucket, setActiveBucket] = useState('posts');
+
+  useEffect(() => {
+    // Determine which bucket to use
+    async function checkBucket() {
+      const bucketToUse = await getUsableBucket('posts');
+      setActiveBucket(bucketToUse);
+      console.log(`CreatePostModal will use '${bucketToUse}' bucket`);
+    }
+    
+    if (open) {
+      checkBucket();
+    }
+  }, [open]);
 
   const resetState = () => {
     setCaption('');
@@ -81,19 +96,20 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       fileName: mediaFile.name,
       fileSize: mediaFile.size,
       fileType: mediaFile.type,
-      mediaType
+      mediaType,
+      bucketToUse: activeBucket
     });
 
     try {
       setIsUploading(true);
       
-      // Upload media file to storage
+      // Upload media file to storage using the active bucket
       const fileExt = mediaFile.name.split('.').pop();
       const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
       
       const { error: uploadError, data: uploadData } = await supabase
         .storage
-        .from('posts')
+        .from(activeBucket)
         .upload(filePath, mediaFile, {
           cacheControl: '3600',
           contentType: mediaFile.type,
@@ -110,7 +126,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       // Get public URL
       const { data: publicUrlData } = supabase
         .storage
-        .from('posts')
+        .from(activeBucket)
         .getPublicUrl(filePath);
 
       const mediaUrl = publicUrlData.publicUrl;
