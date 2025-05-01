@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { MessageSquare, Heart, Clock } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
+import { toast } from 'sonner';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -31,6 +32,7 @@ const Feed = () => {
         console.log("Storage initialized successfully");
       } else {
         console.error("Failed to initialize storage");
+        toast.error("Media storage initialization failed. Some features might be limited.");
       }
     };
     

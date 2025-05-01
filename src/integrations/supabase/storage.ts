@@ -1,3 +1,4 @@
+
 import { supabase } from "./client";
 
 /**
@@ -23,8 +24,16 @@ export const initializeStorage = async () => {
       return false;
     }
     
-    // Instead of trying to create buckets, just work with what we have
-    return true;
+    // Check specifically for media bucket
+    const mediaBucketExists = buckets.some(bucket => bucket.name === 'media');
+    
+    if (!mediaBucketExists) {
+      console.warn('Media bucket not found. Media uploads may not work properly.');
+    } else {
+      console.log('Media bucket found and will be used for all media uploads.');
+    }
+    
+    return mediaBucketExists;
   } catch (error) {
     console.error('Error initializing storage:', error);
     return false;
@@ -79,46 +88,44 @@ export const isValidImage = (file: File): boolean => {
  * @returns boolean indicating if the bucket exists or was created successfully
  */
 export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
+  // Always use 'media' bucket for all media uploads
+  const mediaBucketName = 'media';
+  
   try {
     // Check if bucket exists
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
     if (bucketsError) {
-      console.error(`Error listing buckets when checking for ${bucketName}:`, bucketsError);
+      console.error(`Error listing buckets when checking for ${mediaBucketName}:`, bucketsError);
       return false;
     }
     
     const existingBuckets = buckets?.map(b => b.name) || [];
     console.log(`Available buckets: ${existingBuckets.join(', ')}`);
     
-    // If the requested bucket exists, use it
-    if (existingBuckets.includes(bucketName)) {
-      console.log(`Bucket '${bucketName}' exists and will be used.`);
+    // If the media bucket exists, use it
+    if (existingBuckets.includes(mediaBucketName)) {
+      console.log(`Media bucket exists and will be used.`);
       return true;
     }
     
-    // If we have at least one bucket, we can use that as fallback
-    if (existingBuckets.length > 0) {
-      console.log(`Bucket '${bucketName}' not found, but will use '${existingBuckets[0]}' as fallback.`);
-      return true;
-    }
-    
-    // No buckets available at all
-    console.error('No storage buckets available in this project.');
+    console.error('Media bucket not found. Media uploads will not work.');
     return false;
   } catch (error) {
-    console.error(`Error ensuring bucket '${bucketName}' exists:`, error);
+    console.error(`Error ensuring media bucket exists:`, error);
     return false;
   }
 };
 
 /**
  * Get the appropriate bucket name to use for a given intended bucket
- * Falls back to any available bucket if the intended bucket doesn't exist
- * @param intendedBucket The bucket name we want to use
+ * Always returns 'media' bucket regardless of intended bucket
  * @returns The bucket name to actually use, or null if no buckets available
  */
-export const getUsableBucket = async (intendedBucket: string): Promise<string | null> => {
+export const getUsableBucket = async (): Promise<string | null> => {
+  // Always use 'media' bucket for all media uploads
+  const mediaBucketName = 'media';
+  
   try {
     // Check if any buckets exist
     const { data: buckets, error } = await supabase.storage.listBuckets();
@@ -133,17 +140,16 @@ export const getUsableBucket = async (intendedBucket: string): Promise<string | 
       return null;
     }
     
-    // Check if the intended bucket exists
-    const bucketExists = buckets.some(bucket => bucket.name === intendedBucket);
+    // Check if the media bucket exists
+    const mediaBucketExists = buckets.some(bucket => bucket.name === mediaBucketName);
     
-    if (bucketExists) {
-      return intendedBucket;
+    if (mediaBucketExists) {
+      console.log(`Using "${mediaBucketName}" bucket for all media uploads`);
+      return mediaBucketName;
     }
     
-    // Return the first bucket as fallback
-    const fallbackBucket = buckets[0].name;
-    console.log(`Using "${fallbackBucket}" bucket as fallback for ${intendedBucket}`);
-    return fallbackBucket;
+    console.error(`Media bucket not found. Media uploads will not work.`);
+    return null;
   } catch (error) {
     console.error('Error getting usable bucket:', error);
     return null;

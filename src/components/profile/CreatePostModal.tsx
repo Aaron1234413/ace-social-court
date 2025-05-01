@@ -23,12 +23,12 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeBucket, setActiveBucket] = useState('posts');
+  const [activeBucket, setActiveBucket] = useState<string | null>(null);
 
   useEffect(() => {
-    // Determine which bucket to use
+    // Always use 'media' bucket
     async function checkBucket() {
-      const bucketToUse = await getUsableBucket('posts');
+      const bucketToUse = await getUsableBucket();
       setActiveBucket(bucketToUse);
       console.log(`CreatePostModal will use '${bucketToUse}' bucket`);
     }
@@ -92,6 +92,11 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       return;
     }
 
+    if (!activeBucket) {
+      toast.error("Media storage is not available. Please try refreshing the page.");
+      return;
+    }
+
     console.log("Starting post creation with media:", {
       fileName: mediaFile.name,
       fileSize: mediaFile.size,
@@ -102,11 +107,16 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
 
     try {
       setIsUploading(true);
+      toast.info("Starting file upload, please wait...");
       
-      // Upload media file to storage using the active bucket
+      // Upload media file to storage using the media bucket
       const fileExt = mediaFile.name.split('.').pop();
       const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
       
+      console.log(`Starting upload to ${activeBucket}/${filePath}`);
+      console.log(`File type: ${mediaFile.type}, size: ${mediaFile.size} bytes`);
+      
+      // Upload file to Supabase Storage
       const { error: uploadError, data: uploadData } = await supabase
         .storage
         .from(activeBucket)

@@ -28,13 +28,13 @@ const CreatePostForm = ({ onSuccess, onPostCreated }: CreatePostFormProps) => {
   // Check and initialize the storage bucket when component mounts
   useEffect(() => {
     const initBucket = async () => {
-      // Check if any bucket can be used
-      const bucketToUse = await getUsableBucket('posts');
+      // Always use 'media' bucket
+      const bucketToUse = await getUsableBucket();
       setActiveBucket(bucketToUse);
       setBucketReady(!!bucketToUse);
       
       if (!bucketToUse) {
-        toast.error("Storage not available. Some features may not work properly. Please try refreshing the page.");
+        toast.error("Media storage not available. Please try refreshing the page.");
       } else {
         console.log(`Using '${bucketToUse}' bucket for uploads`);
       }

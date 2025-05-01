@@ -29,9 +29,13 @@ const Profile = () => {
 
     // Initialize storage buckets if needed
     if (user) {
-      initializeStorage().catch(err => {
+      initializeStorage().then(success => {
+        if (!success) {
+          console.error('Failed to initialize media storage');
+          toast.error('Media storage initialization failed. Media uploads may be limited.');
+        }
+      }).catch(err => {
         console.error('Failed to initialize storage:', err);
-        toast.error('Error initializing media storage');
       });
     }
   }, [user, navigate, id]);
