@@ -13,7 +13,6 @@ import Notifications from './pages/Notifications';
 import NotFound from './pages/NotFound';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import PostDetail from './pages/PostDetail';
-import { Toaster } from '@/components/ui/sonner';
 import VideoAnalysis from './pages/VideoAnalysis';
 import MainLayout from './components/layout/MainLayout';
 

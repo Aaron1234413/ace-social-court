@@ -1,4 +1,3 @@
-
 import React, { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/components/AuthProvider"
@@ -109,7 +108,7 @@ const Navigation = () => {
         
         {/* Logo/brand */}
         <Link to="/" className="text-xl font-bold mr-4">
-          Ace Social
+          rallypointx
         </Link>
 
         {/* Desktop navigation */}
@@ -128,6 +127,7 @@ const Navigation = () => {
           ))}
         </nav>
 
+        {/* Search form */}
         <div className="ml-auto flex items-center space-x-4">
           {/* Search form */}
           <form onSubmit={handleSearchSubmit} className="relative hidden sm:block">
