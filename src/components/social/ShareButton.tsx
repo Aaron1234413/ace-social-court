@@ -27,14 +27,14 @@ const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
   };
 
   const shareViaEmail = () => {
-    const subject = "Check out this post on AceSocial";
-    const body = `I thought you might be interested in this post: ${shareUrl}`;
+    const subject = "Check out this post on rallypointx";
+    const body = `I thought you might be interested in this tennis post: ${shareUrl}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     toast.success("Email client opened");
   };
 
   const shareViaTwitter = () => {
-    const text = "Check out this tennis post on AceSocial";
+    const text = "Check out this tennis post on rallypointx";
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(url, '_blank');
     toast.success("Sharing to Twitter");
@@ -116,7 +116,7 @@ const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Share this link with other AceSocial users
+            Share this link with other rallypointx users
           </p>
           <DialogFooter className="sm:justify-start">
             <Button
