@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { initializeStorage } from '@/integrations/supabase/storage';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 
 const VideoAnalysis = () => {
   const { user } = useAuth();

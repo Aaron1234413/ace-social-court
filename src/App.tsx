@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
@@ -48,42 +48,44 @@ function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <Router>
-        <Helmet>
-          <title>rallypointx</title>
-          <meta name="description" content="tennis. together." />
-          <meta property="og:title" content="rallypointx" />
-          <meta property="og:description" content="tennis. together." />
-          <meta property="og:type" content="website" />
-          <meta property="og:image" content={logoUrl} />
-          <meta property="og:url" content="https://rallypointx.app" />
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content="rallypointx" />
-          <meta name="twitter:description" content="tennis. together." />
-          <meta name="twitter:image" content={logoUrl} />
-        </Helmet>
-        
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/profile/edit" element={<ProfileEdit />} />
-            <Route path="/profile/:username" element={<Profile />} />
-            <Route path="/profile" element={<ProfileRedirect />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/map" element={<MapExplorer />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/messages/:recipientId" element={<Messages />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/post/:id" element={<PostDetail />} />
-            <Route path="/analysis" element={<VideoAnalysis />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </MainLayout>
-      </Router>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <Router>
+          <Helmet>
+            <title>rallypointx</title>
+            <meta name="description" content="tennis. together." />
+            <meta property="og:title" content="rallypointx" />
+            <meta property="og:description" content="tennis. together." />
+            <meta property="og:type" content="website" />
+            <meta property="og:image" content={logoUrl} />
+            <meta property="og:url" content="https://rallypointx.app" />
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content="rallypointx" />
+            <meta name="twitter:description" content="tennis. together." />
+            <meta name="twitter:image" content={logoUrl} />
+          </Helmet>
+          
+          <MainLayout>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/profile/edit" element={<ProfileEdit />} />
+              <Route path="/profile/:username" element={<Profile />} />
+              <Route path="/profile" element={<ProfileRedirect />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/map" element={<MapExplorer />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/messages/:recipientId" element={<Messages />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/post/:id" element={<PostDetail />} />
+              <Route path="/analysis" element={<VideoAnalysis />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </MainLayout>
+        </Router>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 
