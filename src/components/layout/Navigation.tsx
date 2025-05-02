@@ -1,198 +1,105 @@
-
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/components/AuthProvider';
-import { Button } from '@/components/ui/button';
+import React from "react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { useAuth } from "@/components/AuthProvider"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, Home, User, LayoutGrid, Search, Bell, MessageSquare, LogOut, Map } from 'lucide-react';
-import NotificationsPopover from '@/components/notifications/NotificationsPopover';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Search } from "lucide-react"
+import { Input } from "@/components/ui/input"
 
 const Navigation = () => {
-  const { user } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
-  const navigationLinks = [
-    {
-      name: 'Home',
-      path: '/',
-      icon: <Home className="h-4 w-4 md:h-5 md:w-5" />,
-      requiresAuth: false
-    },
-    {
-      name: 'Feed',
-      path: '/feed',
-      icon: <LayoutGrid className="h-4 w-4 md:h-5 md:w-5" />,
-      requiresAuth: true
-    },
-    {
-      name: 'Search',
-      path: '/search',
-      icon: <Search className="h-4 w-4 md:h-5 md:w-5" />,
-      requiresAuth: false
-    },
-    {
-      name: 'Messages',
-      path: '/messages',
-      icon: <MessageSquare className="h-4 w-4 md:h-5 md:w-5" />,
-      requiresAuth: true
-    },
-    {
-      name: 'Profile',
-      path: '/profile',
-      icon: <User className="h-4 w-4 md:h-5 md:w-5" />,
-      requiresAuth: true
-    },
-    {
-      name: 'Notifications',
-      path: '/notifications',
-      icon: <Bell className="h-4 w-4 md:h-5 md:w-5" />,
-      requiresAuth: true
-    },
-    {
-      name: 'Map',
-      path: '/map',
-      icon: <Map className="h-4 w-4 md:h-5 md:w-5" />,
-      requiresAuth: false
-    }
-  ];
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
 
-  const filteredLinks = navigationLinks.filter(
-    link => !link.requiresAuth || (link.requiresAuth && user)
-  );
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast.success("Signed out successfully");
-      navigate('/');
-    } catch (error) {
-      console.error("Sign out error:", error);
-      toast.error("Failed to sign out");
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim() !== "") {
+      navigate(`/search?q=${searchQuery}`);
     }
   };
 
-  function NavLinks() {
-    return (
-      <>
-        {filteredLinks.map((link) => (
-          <Link
-            key={link.path}
-            to={link.path}
-            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-              location.pathname === link.path || (link.path === '/messages' && location.pathname.startsWith('/messages/'))
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'hover:bg-accent hover:text-accent-foreground'
-            }`}
-            onClick={() => isMobile && setIsOpen(false)}
-          >
-            {link.icon}
-            <span>{link.name}</span>
-          </Link>
-        ))}
-      </>
-    );
-  }
-
-  function AuthButtons() {
-    return (
-      <>
-        {user ? (
-          <div className="flex items-center gap-3">
-            <NotificationsPopover />
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                {user.email?.charAt(0).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="flex items-center gap-1 text-muted-foreground hover:text-destructive"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden md:inline">Sign Out</span>
-            </Button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/auth">Log In</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/auth">Sign Up</Link>
-            </Button>
-          </div>
-        )}
-      </>
-    );
-  }
-
   return (
-    <>
-      {/* Desktop Navigation */}
-      <nav className="hidden md:flex w-full border-b bg-background">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="font-bold text-xl text-primary">
-              rallypointx
-            </Link>
-            <div className="flex items-center gap-1">
-              <NavLinks />
-            </div>
-          </div>
-          <AuthButtons />
-        </div>
-      </nav>
-
-      {/* Mobile Navigation */}
-      <nav className="md:hidden flex items-center justify-between p-4 border-b bg-background">
-        <Link to="/" className="font-bold text-xl text-primary">
-          rallypointx
-        </Link>
-
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle menu</span>
+    <div className="border-b">
+      <div className="flex h-16 items-center px-4">
+        <nav className="mx-6 flex items-center space-x-4 lg:space-x-6 hidden md:block">
+          <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
+            Home
+          </Link>
+          <Link to="/feed" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Feed
+          </Link>
+          <Link to="/map" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Map
+          </Link>
+          <Link to="/analysis" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            Video Analysis
+          </Link>
+        </nav>
+        <div className="ml-auto flex items-center space-x-4">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <Input
+              type="search"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="pr-10 rounded-full bg-gray-100 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+            <Button type="submit" variant="ghost" size="icon" className="absolute right-1 top-1">
+              <Search className="h-5 w-5" />
             </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="flex flex-col">
-            <div className="flex flex-col space-y-1 mt-6">
-              <NavLinks />
-            </div>
-            <div className="mt-auto py-4">
-              <AuthButtons />
-            </div>
-            {user && (
-              <Button 
-                variant="ghost" 
-                className="mt-2 flex justify-start text-muted-foreground hover:text-destructive"
-                onClick={() => {
-                  handleSignOut();
-                  setIsOpen(false);
-                }}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            )}
-          </SheetContent>
-        </Sheet>
-      </nav>
-    </>
+          </form>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
+                    <AvatarFallback>{profile?.full_name?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <Link to={`/profile/${user.id}`}>Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile/edit">Edit Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    signOut();
+                    navigate("/auth");
+                  }}
+                >
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            location.pathname !== "/auth" && (
+              <Link to="/auth">
+                <Button>Sign In</Button>
+              </Link>
+            )
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import { supabase } from "./client";
 
 /**
@@ -22,7 +21,7 @@ export const initializeStorage = async () => {
       try {
         const { error: createError } = await supabase.storage.createBucket('media', {
           public: true,
-          fileSizeLimit: 5000000000, // 5GB - Supabase's Pro tier limit
+          fileSizeLimit: 1000000000, // 1GB - more conservative limit
         });
         
         if (createError) {
@@ -39,7 +38,7 @@ export const initializeStorage = async () => {
       try {
         const { error: updateError } = await supabase.storage.updateBucket('media', {
           public: true,
-          fileSizeLimit: 5000000000, // 5GB
+          fileSizeLimit: 1000000000, // 1GB
         });
         
         if (updateError) {
@@ -59,7 +58,7 @@ export const initializeStorage = async () => {
       try {
         const { error: createError } = await supabase.storage.createBucket('posts', {
           public: true,
-          fileSizeLimit: 5000000000, // 5GB - Supabase's Pro tier limit
+          fileSizeLimit: 1000000000, // 1GB
         });
         
         if (createError) {
@@ -76,7 +75,7 @@ export const initializeStorage = async () => {
       try {
         const { error: updateError } = await supabase.storage.updateBucket('posts', {
           public: true,
-          fileSizeLimit: 5000000000, // 5GB
+          fileSizeLimit: 1000000000, // 1GB
         });
         
         if (updateError) {
@@ -86,6 +85,43 @@ export const initializeStorage = async () => {
         console.log('Updated posts bucket size limit successfully');
       } catch (err) {
         console.error('Exception updating posts bucket:', err);
+        return false;
+      }
+    }
+    
+    // Create analysis bucket if it doesn't exist
+    const analysisBucketExists = buckets?.some(bucket => bucket.name === 'analysis');
+    if (!analysisBucketExists) {
+      try {
+        const { error: createError } = await supabase.storage.createBucket('analysis', {
+          public: true,
+          fileSizeLimit: 1000000000, // 1GB
+        });
+        
+        if (createError) {
+          console.error('Error creating analysis bucket:', createError);
+          return false;
+        }
+        console.log('Created analysis bucket successfully');
+      } catch (err) {
+        console.error('Exception creating analysis bucket:', err);
+        return false;
+      }
+    } else {
+      // Update existing analysis bucket size limit
+      try {
+        const { error: updateError } = await supabase.storage.updateBucket('analysis', {
+          public: true,
+          fileSizeLimit: 1000000000, // 1GB
+        });
+        
+        if (updateError) {
+          console.error('Error updating analysis bucket:', updateError);
+          return false;
+        }
+        console.log('Updated analysis bucket size limit successfully');
+      } catch (err) {
+        console.error('Exception updating analysis bucket:', err);
         return false;
       }
     }

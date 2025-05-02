@@ -1,167 +1,70 @@
-
-import { useState, useEffect } from 'react';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  useLocation,
-  useNavigate
-} from 'react-router-dom';
-import { AuthProvider, useAuth } from './components/AuthProvider';
-import Index from './pages/Index';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Index from './pages';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
-import PostDetail from './pages/PostDetail';
-import Profile from './pages/Profile';
 import ProfileEdit from './pages/ProfileEdit';
-import Notifications from './pages/Notifications';
-import Messages from './pages/Messages';
+import Profile from './pages/Profile';
 import Search from './pages/Search';
-import NotFound from './pages/NotFound';
 import MapExplorer from './pages/MapExplorer';
-import { Loader2 } from 'lucide-react';
-import { initializeStorage } from './integrations/supabase/storage';
-import EnhancedNavigation from './components/layout/EnhancedNavigation';
-import { Toaster } from 'sonner';
-
-// A component that handles auth-protected routes
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, isProfileComplete } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    if (isLoading) return; // Don't do anything while still loading
-    
-    if (!user && location.pathname !== '/auth') {
-      console.log('User not authenticated, redirecting to auth page');
-      navigate('/auth');
-      return;
-    }
-
-    // If user is authenticated but profile is incomplete, redirect to profile edit
-    // Only redirect if they're not already on the profile edit page
-    // and only redirect new users (without a completed profile)
-    if (user && !isProfileComplete && location.pathname !== '/profile/edit') {
-      console.log('Profile incomplete, redirecting to profile edit');
-      navigate('/profile/edit', { state: { newUser: true } });
-    }
-  }, [user, isLoading, isProfileComplete, navigate, location.pathname]);
-
-  // Show loading indicator only while auth is being determined
-  if (isLoading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
-
-// Create a separate component for the routes to use the auth hook
-function AppRoutes() {
-  const { user, isLoading } = useAuth();
-  const location = useLocation();
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Initialize storage buckets when app loads
-  useEffect(() => {
-    if (user) {
-      initializeStorage().catch(console.error);
-    }
-  }, [user]);
-
-  // Handle initialization after checking auth status
-  useEffect(() => {
-    // Mark as initialized once we've checked auth status
-    if (!isLoading) {
-      setIsInitialized(true);
-    }
-  }, [isLoading]);
-
-  // Log auth state for debugging
-  useEffect(() => {
-    console.log("App Routes - Auth State:", { 
-      user: user ? `${user.id} (${user.email})` : 'No user', 
-      isLoading, 
-      currentPath: location.pathname
-    });
-  }, [user, isLoading, location.pathname]);
-
-  // Show loading indicator only during initial app load
-  if (isLoading || !isInitialized) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {/* Use Enhanced Navigation which handles auth state */}
-      <EnhancedNavigation />
-      
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/feed" element={
-          <ProtectedRoute>
-            <Feed />
-          </ProtectedRoute>
-        } />
-        <Route path="/post/:id" element={
-          <ProtectedRoute>
-            <PostDetail />
-          </ProtectedRoute>
-        } />
-        <Route path="/profile/:id?" element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } />
-        <Route path="/profile/edit" element={
-          <ProtectedRoute>
-            <ProfileEdit />
-          </ProtectedRoute>
-        } />
-        <Route path="/notifications" element={
-          <ProtectedRoute>
-            <Notifications />
-          </ProtectedRoute>
-        } />
-        <Route path="/messages/:chatId?" element={
-          <ProtectedRoute>
-            <Messages />
-          </ProtectedRoute>
-        } />
-        <Route path="/search" element={
-          <ProtectedRoute>
-            <Search />
-          </ProtectedRoute>
-        } />
-        <Route path="/map" element={
-          <ProtectedRoute>
-            <MapExplorer />
-          </ProtectedRoute>
-        } />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </>
-  );
-}
+import Messages from './pages/Messages';
+import Notifications from './pages/Notifications';
+import NotFound from './pages/NotFound';
+import EnhancedNavigation from './components/layout/Navigation';
+import { useAuth } from './components/AuthProvider';
+import PostDetail from './pages/PostDetail';
+import { Toaster } from '@/components/ui/sonner';
+import VideoAnalysis from './pages/VideoAnalysis';
 
 function App() {
+  const { isLoading } = useAuth();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <span className="loading loading-spinner text-primary"></span>
+      </div>
+    );
+  }
+
   return (
-    <div className="app min-h-screen bg-background">
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-          <Toaster position="top-center" />
-        </BrowserRouter>
-      </AuthProvider>
+    <div className="flex flex-col min-h-screen">
+      
+      <Router>
+        <EnhancedNavigation />
+        <div className="flex-grow">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/profile/edit" element={<ProfileEdit />} />
+            <Route path="/profile/:username" element={<Profile />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/map" element={<MapExplorer />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/messages/:recipientId" element={<Messages />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/analysis" element={<VideoAnalysis />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+        <Toaster />
+      </Router>
     </div>
   );
 }
