@@ -14,6 +14,7 @@ interface Profile {
   location_name?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  avatar_url?: string | null;  // Added this property
 }
 
 interface AuthContextType {
