@@ -1,4 +1,3 @@
-
 import * as tf from '@tensorflow/tfjs';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import { TechniqueDetection } from './VideoAnalysisService';
@@ -178,7 +177,6 @@ export function detectTennisTechnique(
 
 // Simple technique detection heuristics based on pose keypoints
 // These are simplified examples and would need refinement for production use
-
 function isForehand(pose: poseDetection.Pose): boolean {
   const keypoints = pose.keypoints;
   const rightWrist = keypoints[KEYPOINT_DICT.right_wrist];
