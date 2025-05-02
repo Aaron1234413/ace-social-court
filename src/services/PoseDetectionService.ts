@@ -1,3 +1,4 @@
+
 import * as tf from '@tensorflow/tfjs';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import { TechniqueDetection } from './VideoAnalysisService';
@@ -224,16 +225,18 @@ function isServe(pose: poseDetection.Pose): boolean {
   const rightWrist = keypoints[KEYPOINT_DICT.right_wrist];
   const leftWrist = keypoints[KEYPOINT_DICT.left_wrist];
   const rightShoulder = keypoints[KEYPOINT_DICT.right_shoulder];
+  const leftShoulder = keypoints[KEYPOINT_DICT.left_shoulder];
   
   // Serving typically involves:
   // - Right arm raised high (for right-handed player)
   // - Left arm extended upward for ball toss
-  if (rightWrist && leftWrist && rightShoulder) {
+  if (rightWrist && leftWrist && rightShoulder && leftShoulder) {
     // Check if right arm is raised high
     const isRightArmHigh = rightWrist.y < rightShoulder.y - 50;
     
     // Check if left arm is extended upward (for ball toss)
-    const isLeftArmUp = leftWrist.y < rightShoulder.y - 30; // Fixed the bug here
+    // Fixed bug: use leftShoulder instead of comparing leftWrist to itself
+    const isLeftArmUp = leftWrist.y < leftShoulder.y - 30;
     
     return isRightArmHigh || isLeftArmUp;
   }
