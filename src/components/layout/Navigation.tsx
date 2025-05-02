@@ -69,8 +69,8 @@ const Navigation = () => {
                   <Avatar className="h-8 w-8">
                     {profile && (
                       <>
-                        <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || ''} />
-                        <AvatarFallback>{profile.full_name?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || ''} />
+                        <AvatarFallback>{profile?.full_name?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                       </>
                     )}
                   </Avatar>

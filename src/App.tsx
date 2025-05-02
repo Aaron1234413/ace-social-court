@@ -11,7 +11,7 @@ import MapExplorer from './pages/MapExplorer';
 import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import NotFound from './pages/NotFound';
-import EnhancedNavigation from './components/layout/Navigation';
+import Navigation from './components/layout/Navigation';
 import { useAuth } from './components/AuthProvider';
 import PostDetail from './pages/PostDetail';
 import { Toaster } from '@/components/ui/sonner';
@@ -46,7 +46,7 @@ function App() {
     <div className="flex flex-col min-h-screen">
       
       <Router>
-        <EnhancedNavigation />
+        <Navigation />
         <div className="flex-grow">
           <Routes>
             <Route path="/" element={<Index />} />
