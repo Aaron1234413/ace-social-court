@@ -235,7 +235,7 @@ function isServe(pose: poseDetection.Pose): boolean {
     const isRightArmHigh = rightWrist.y < rightShoulder.y - 50;
     
     // Check if left arm is extended upward (for ball toss)
-    const isLeftArmUp = leftWrist.y < leftWrist.y - 30;
+    const isLeftArmUp = leftWrist.y < rightShoulder.y - 30; // Fixed the bug here
     
     return isRightArmHigh || isLeftArmUp;
   }

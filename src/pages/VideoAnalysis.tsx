@@ -62,10 +62,10 @@ const VideoAnalysis = () => {
     if (!analysisResult) return;
     
     // Update the local analysis result
-    const updatedResult = {
+    const updatedResult: VideoAnalysisResult = {
       ...analysisResult,
       techniques: detectedTechniques,
-      status: 'completed',
+      status: 'completed' as const, // Use const assertion to fix the type
       summary: generateAnalysisSummary(detectedTechniques),
       recommendedDrills: generateRecommendedDrills(detectedTechniques)
     };

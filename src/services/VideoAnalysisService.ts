@@ -1,4 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 export interface TechniqueDetection {
   techniqueType: 'forehand' | 'backhand' | 'serve' | 'volley' | 'smash';
@@ -163,11 +165,20 @@ export async function saveLocalAnalysisResults(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
     
+    // Convert techniques to JSON-compatible format
+    const techniquesJson: Json = techniques.map(technique => ({
+      techniqueType: technique.techniqueType,
+      confidence: technique.confidence,
+      timestamp: technique.timestamp,
+      boundingBox: technique.boundingBox || null,
+      notes: technique.notes || null
+    })) as Json;
+    
     // Update the techniques array in the database
     const { error } = await supabase
       .from('video_analyses')
       .update({
-        techniques: techniques,
+        techniques: techniquesJson,
         status: 'completed'
       })
       .eq('id', analysisId)
