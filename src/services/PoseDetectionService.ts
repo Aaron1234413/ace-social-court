@@ -13,7 +13,7 @@ export interface PoseDetectionResult {
 }
 
 // Default configuration for MoveNet model (fastest and lightweight)
-const DEFAULT_MODEL_CONFIG = {
+const DEFAULT_MODEL_CONFIG: PoseDetectionOptions = {
   modelType: 'movenet',
   modelConfig: {
     modelType: 'lightning',

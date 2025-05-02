@@ -29,9 +29,7 @@ export default defineConfig(({ mode }) => ({
     },
     rollupOptions: {
       // Ensure TensorFlow.js is properly bundled
-      external: [
-        // Add any modules that should be treated as external
-      ],
+      external: [],
     },
   }
 }));
