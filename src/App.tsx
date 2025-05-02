@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
@@ -12,10 +12,22 @@ import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import NotFound from './pages/NotFound';
 import Navigation from './components/layout/Navigation';
-import { AuthProvider } from './components/AuthProvider';
+import { AuthProvider, useAuth } from './components/AuthProvider';
 import PostDetail from './pages/PostDetail';
 import { Toaster } from '@/components/ui/sonner';
 import VideoAnalysis from './pages/VideoAnalysis';
+
+// Redirect component that sends users to their profile
+const ProfileRedirect = () => {
+  const { user, profile } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/auth" />;
+  }
+  
+  // Redirect to username if available, otherwise use user ID
+  return <Navigate to={`/profile/${profile?.username || user.id}`} />;
+};
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -45,6 +57,7 @@ function App() {
               <Route path="/feed" element={<Feed />} />
               <Route path="/profile/edit" element={<ProfileEdit />} />
               <Route path="/profile/:username" element={<Profile />} />
+              <Route path="/profile" element={<ProfileRedirect />} />
               <Route path="/search" element={<Search />} />
               <Route path="/map" element={<MapExplorer />} />
               <Route path="/messages" element={<Messages />} />
