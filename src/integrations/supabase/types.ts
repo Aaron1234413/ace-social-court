@@ -481,6 +481,42 @@ export type Database = {
         }
         Relationships: []
       }
+      video_analyses: {
+        Row: {
+          created_at: string | null
+          id: string
+          recommended_drills: string[] | null
+          status: string
+          summary: string | null
+          techniques: Json | null
+          updated_at: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          recommended_drills?: string[] | null
+          status?: string
+          summary?: string | null
+          techniques?: Json | null
+          updated_at?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          recommended_drills?: string[] | null
+          status?: string
+          summary?: string | null
+          techniques?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

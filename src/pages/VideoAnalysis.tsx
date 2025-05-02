@@ -67,7 +67,9 @@ const VideoAnalysis = () => {
       });
       
       // Clean up polling on component unmount
-      return () => cancelPolling();
+      return () => {
+        cancelPolling();
+      };
       
     } catch (error) {
       console.error('Analysis error:', error);
@@ -106,7 +108,19 @@ const VideoAnalysis = () => {
         
       if (error) throw error;
       
-      setPreviousAnalyses(data as VideoAnalysisResult[]);
+      // Transform data to match our interface
+      const analyses: VideoAnalysisResult[] = data.map((item: any) => ({
+        id: item.id,
+        videoId: item.video_id,
+        userId: item.user_id,
+        createdAt: item.created_at,
+        status: item.status,
+        techniques: item.techniques || [],
+        summary: item.summary,
+        recommendedDrills: item.recommended_drills,
+      }));
+      
+      setPreviousAnalyses(analyses);
     } catch (error) {
       console.error('Error loading analysis history:', error);
       toast.error('Failed to load analysis history');

@@ -71,7 +71,21 @@ export async function getVideoAnalysisResults(analysisId: string): Promise<Video
 
     if (error) throw error;
     
-    return data as VideoAnalysisResult;
+    // Map the database fields to our interface structure
+    if (data) {
+      return {
+        id: data.id,
+        videoId: data.video_id,
+        userId: data.user_id,
+        createdAt: data.created_at,
+        status: data.status as 'pending' | 'processing' | 'completed' | 'failed',
+        techniques: data.techniques || [],
+        summary: data.summary,
+        recommendedDrills: data.recommended_drills,
+      };
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error fetching analysis results:', error);
     return null;
