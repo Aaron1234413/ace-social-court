@@ -23,11 +23,16 @@ export interface VideoAnalysisResult {
 // Function to start analysis of an uploaded video
 export async function startVideoAnalysis(videoId: string, videoUrl: string): Promise<{ analysisId: string }> {
   try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
     // Create analysis record in database
     const { data: analysis, error: createError } = await supabase
       .from('video_analyses')
       .insert({
         video_id: videoId,
+        user_id: user.id, // Add the user_id from authenticated user
         status: 'pending',
         techniques: [],
       })
@@ -79,7 +84,8 @@ export async function getVideoAnalysisResults(analysisId: string): Promise<Video
         userId: data.user_id,
         createdAt: data.created_at,
         status: data.status as 'pending' | 'processing' | 'completed' | 'failed',
-        techniques: data.techniques || [],
+        // Explicitly cast the techniques as TechniqueDetection[] to ensure correct typing
+        techniques: (data.techniques || []) as TechniqueDetection[],
         summary: data.summary,
         recommendedDrills: data.recommended_drills,
       };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -46,8 +45,8 @@ const VideoAnalysis = () => {
         description: 'Your video is being processed. This may take a few moments.',
       });
       
-      // Start polling for results
-      const cancelPolling = pollAnalysisStatus(newAnalysisId, (result) => {
+      // Store the cleanup function returned by pollAnalysisStatus
+      const stopPolling = await pollAnalysisStatus(newAnalysisId, (result) => {
         setAnalysisResult(result);
         setIsAnalyzing(false);
         
@@ -66,9 +65,9 @@ const VideoAnalysis = () => {
         }
       });
       
-      // Clean up polling on component unmount
+      // Return cleanup function that stops polling
       return () => {
-        cancelPolling();
+        if (stopPolling) stopPolling();
       };
       
     } catch (error) {
@@ -115,7 +114,7 @@ const VideoAnalysis = () => {
         userId: item.user_id,
         createdAt: item.created_at,
         status: item.status,
-        techniques: item.techniques || [],
+        techniques: (item.techniques || []) as TechniqueDetection[],
         summary: item.summary,
         recommendedDrills: item.recommended_drills,
       }));
