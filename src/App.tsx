@@ -11,11 +11,11 @@ import MapExplorer from './pages/MapExplorer';
 import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import NotFound from './pages/NotFound';
-import Navigation from './components/layout/Navigation';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import PostDetail from './pages/PostDetail';
 import { Toaster } from '@/components/ui/sonner';
 import VideoAnalysis from './pages/VideoAnalysis';
+import MainLayout from './components/layout/MainLayout';
 
 // Redirect component that sends users to their profile
 const ProfileRedirect = () => {
@@ -47,30 +47,26 @@ function App() {
 
   return (
     <AuthProvider>
-      <div className="flex flex-col min-h-screen">
-        <Router>
-          <Navigation />
-          <div className="flex-grow">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/profile/edit" element={<ProfileEdit />} />
-              <Route path="/profile/:username" element={<Profile />} />
-              <Route path="/profile" element={<ProfileRedirect />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/map" element={<MapExplorer />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/messages/:recipientId" element={<Messages />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/post/:id" element={<PostDetail />} />
-              <Route path="/analysis" element={<VideoAnalysis />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-          <Toaster />
-        </Router>
-      </div>
+      <Router>
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/profile/edit" element={<ProfileEdit />} />
+            <Route path="/profile/:username" element={<Profile />} />
+            <Route path="/profile" element={<ProfileRedirect />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/map" element={<MapExplorer />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/messages/:recipientId" element={<Messages />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/analysis" element={<VideoAnalysis />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </MainLayout>
+      </Router>
     </AuthProvider>
   );
 }

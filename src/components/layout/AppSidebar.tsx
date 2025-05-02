@@ -1,0 +1,137 @@
+
+import React from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import { useAuth } from '@/components/AuthProvider';
+import { Bell, Home, MessageSquare, Search, Settings, User, Map, Video } from 'lucide-react';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { cn } from '@/lib/utils';
+
+export function AppSidebar() {
+  const location = useLocation();
+  const { user, profile } = useAuth();
+
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === path;
+    return location.pathname.startsWith(path);
+  };
+
+  const primaryNavItems = [
+    {
+      title: "Home",
+      url: "/",
+      icon: Home,
+    },
+    {
+      title: "Feed",
+      url: "/feed",
+      icon: Home,
+    },
+    {
+      title: "Map",
+      url: "/map",
+      icon: Map,
+    },
+    {
+      title: "Video Analysis",
+      url: "/analysis",
+      icon: Video,
+    },
+  ];
+
+  const userNavItems = user ? [
+    {
+      title: "Profile",
+      url: `/profile/${profile?.username || user.id}`,
+      icon: User,
+    },
+    {
+      title: "Messages",
+      url: "/messages",
+      icon: MessageSquare,
+    },
+    {
+      title: "Notifications",
+      url: "/notifications",
+      icon: Bell,
+    },
+    {
+      title: "Search",
+      url: "/search",
+      icon: Search,
+    },
+    {
+      title: "Settings",
+      url: "/profile/edit",
+      icon: Settings,
+    },
+  ] : [];
+
+  return (
+    <Sidebar collapsible="icon" variant="sidebar" className="hidden md:flex border-r">
+      <SidebarTrigger className="absolute top-4 right-[-14px] z-30 h-7 w-7" />
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {primaryNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    isActive={isActive(item.url)}
+                    asChild
+                    tooltip={item.title}
+                  >
+                    <Link to={item.url} className={cn(
+                      "flex items-center",
+                      isActive(item.url) && "font-medium"
+                    )}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {user && (
+          <SidebarGroup>
+            <SidebarGroupLabel>User</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {userNavItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      isActive={isActive(item.url)}
+                      asChild
+                      tooltip={item.title}
+                    >
+                      <Link to={item.url} className={cn(
+                        "flex items-center",
+                        isActive(item.url) && "font-medium"
+                      )}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+    </Sidebar>
+  );
+}
