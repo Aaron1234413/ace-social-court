@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Index from './pages';
+import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
 import ProfileEdit from './pages/ProfileEdit';

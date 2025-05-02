@@ -91,17 +91,13 @@ const VideoAnalysisUploader = ({
       
       console.log(`Starting upload to analysis/${filePath}`);
       
-      // Upload file to Supabase Storage
+      // Upload file to Supabase Storage - Fixed: removed onUploadProgress from options
       const { data, error } = await supabase.storage
         .from('analysis')
         .upload(filePath, file, {
           cacheControl: '3600',
           contentType: file.type,
-          upsert: false,
-          onUploadProgress: (event) => {
-            const progress = (event.loaded / event.total) * 100;
-            setUploadProgress(Math.round(progress));
-          }
+          upsert: false
         });
 
       if (error) {
@@ -132,6 +128,12 @@ const VideoAnalysisUploader = ({
     } finally {
       setIsUploading(false);
     }
+  };
+
+  // Custom progress tracking function
+  const trackUploadProgress = (event: ProgressEvent) => {
+    const progress = (event.loaded / event.total) * 100;
+    setUploadProgress(Math.round(progress));
   };
 
   const clearPreview = () => {

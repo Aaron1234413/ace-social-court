@@ -1,3 +1,4 @@
+
 import React from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/components/AuthProvider"
@@ -66,8 +67,12 @@ const Navigation = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={profile?.avatar_url} alt={profile?.full_name} />
-                    <AvatarFallback>{profile?.full_name?.charAt(0)}</AvatarFallback>
+                    {profile && (
+                      <>
+                        <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || ''} />
+                        <AvatarFallback>{profile.full_name?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                      </>
+                    )}
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
