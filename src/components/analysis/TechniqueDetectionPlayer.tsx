@@ -3,9 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { TechniqueDetection } from '@/services/VideoAnalysisService';
-import { Play, Pause, SkipBack, SkipForward, ActivitySquare } from 'lucide-react';
-import { initializeTensorFlow, detectPose, detectTennisTechnique } from '@/services/PoseDetectionService';
-import { toast } from 'sonner';
+import { Play, Pause, SkipBack, SkipForward } from 'lucide-react';
 
 interface TechniqueDetectionPlayerProps {
   videoUrl: string;
@@ -22,42 +20,9 @@ const TechniqueDetectionPlayer: React.FC<TechniqueDetectionPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isModelLoaded, setIsModelLoaded] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [detectedTechniques, setDetectedTechniques] = useState<TechniqueDetection[]>([...detections]);
   
   // Sort detections by timestamp
-  const sortedDetections = [...detectedTechniques].sort((a, b) => a.timestamp - b.timestamp);
-  
-  // Load TensorFlow.js and MoveNet model
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadModel = async () => {
-      try {
-        await initializeTensorFlow();
-        if (isMounted) {
-          setIsModelLoaded(true);
-          toast.success('Tennis analysis model loaded successfully', {
-            description: 'You can now analyze your techniques in real-time'
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load model:', error);
-        if (isMounted) {
-          toast.error('Failed to load tennis analysis model', {
-            description: 'Try refreshing the page'
-          });
-        }
-      }
-    };
-    
-    loadModel();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const sortedDetections = [...detections].sort((a, b) => a.timestamp - b.timestamp);
   
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -156,88 +121,6 @@ const TechniqueDetectionPlayer: React.FC<TechniqueDetectionPlayerProps> = ({
     }
   };
 
-  // Run real-time pose detection and tennis technique analysis
-  const handleAnalyze = async () => {
-    const video = videoRef.current;
-    if (!video || !isModelLoaded || isAnalyzing) return;
-    
-    setIsAnalyzing(true);
-    toast.info('Starting real-time technique analysis...', {
-      description: 'We\'ll analyze your tennis strokes as the video plays'
-    });
-    
-    // Pause video and reset to beginning
-    video.pause();
-    video.currentTime = 0;
-    
-    // Create a copy of existing detections
-    const newDetections: TechniqueDetection[] = [...detections];
-    
-    // Function to process frames at regular intervals
-    const processFrame = async () => {
-      if (!video) return;
-      
-      try {
-        // Get current timestamp
-        const timestamp = video.currentTime;
-        
-        // Detect pose in current frame
-        const poses = await detectPose(video);
-        
-        // Detect tennis technique from pose
-        const detectedTechnique = detectTennisTechnique(poses, timestamp);
-        
-        if (detectedTechnique) {
-          // Adjust bounding box based on video dimensions
-          if (detectedTechnique.boundingBox) {
-            detectedTechnique.boundingBox = {
-              ...detectedTechnique.boundingBox,
-              x: detectedTechnique.boundingBox.x / video.videoWidth,
-              y: detectedTechnique.boundingBox.y / video.videoHeight,
-              width: detectedTechnique.boundingBox.width / video.videoWidth,
-              height: detectedTechnique.boundingBox.height / video.videoHeight
-            };
-          }
-          
-          // Add to detections if we don't already have one at this timestamp
-          if (!newDetections.some(d => Math.abs(d.timestamp - timestamp) < 0.5)) {
-            newDetections.push(detectedTechnique);
-            setDetectedTechniques([...newDetections]);
-          }
-        }
-      } catch (error) {
-        console.error('Error in frame processing:', error);
-      }
-    };
-    
-    // Play video
-    await video.play();
-    
-    // Process frames every 500ms
-    const intervalId = setInterval(async () => {
-      if (!video || video.paused || video.ended) {
-        clearInterval(intervalId);
-        setIsAnalyzing(false);
-        toast.success('Analysis complete!', {
-          description: `Detected ${newDetections.length - detections.length} new techniques`
-        });
-        return;
-      }
-      
-      await processFrame();
-      
-    }, 500);
-    
-    // Stop if video ends
-    video.onended = () => {
-      clearInterval(intervalId);
-      setIsAnalyzing(false);
-      toast.success('Analysis complete!', {
-        description: `Detected ${newDetections.length - detections.length} new techniques`
-      });
-    };
-  };
-
   return (
     <div className="flex flex-col space-y-4">
       <div className="relative rounded-lg overflow-hidden bg-black">
@@ -260,55 +143,33 @@ const TechniqueDetectionPlayer: React.FC<TechniqueDetectionPlayerProps> = ({
         />
       </div>
       
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline" 
-            size="icon"
-            onClick={jumpToPrevTechnique}
-            disabled={!currentDetection || sortedDetections.indexOf(currentDetection) === 0}
-          >
-            <SkipBack className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline" 
-            size="icon"
-            onClick={togglePlay}
-          >
-            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="outline" 
-            size="icon"
-            onClick={jumpToNextTechnique}
-            disabled={!currentDetection || sortedDetections.indexOf(currentDetection) === sortedDetections.length - 1}
-          >
-            <SkipForward className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
-        </div>
-        
+      <div className="flex items-center space-x-2">
         <Button
-          variant="default"
-          size="sm"
-          onClick={handleAnalyze}
-          disabled={!isModelLoaded || isAnalyzing}
-          className="ml-auto"
+          variant="outline" 
+          size="icon"
+          onClick={jumpToPrevTechnique}
+          disabled={!currentDetection || sortedDetections.indexOf(currentDetection) === 0}
         >
-          {isAnalyzing ? (
-            <>
-              <ActivitySquare className="mr-2 h-4 w-4 animate-pulse" />
-              Analyzing...
-            </>
-          ) : (
-            <>
-              <ActivitySquare className="mr-2 h-4 w-4" />
-              Analyze Techniques
-            </>
-          )}
+          <SkipBack className="h-4 w-4" />
         </Button>
+        <Button
+          variant="outline" 
+          size="icon"
+          onClick={togglePlay}
+        >
+          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        </Button>
+        <Button
+          variant="outline" 
+          size="icon"
+          onClick={jumpToNextTechnique}
+          disabled={!currentDetection || sortedDetections.indexOf(currentDetection) === sortedDetections.length - 1}
+        >
+          <SkipForward className="h-4 w-4" />
+        </Button>
+        <span className="text-sm">
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </span>
       </div>
       
       <div className="pb-6">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -8,21 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Helmet } from 'react-helmet-async';
-import { 
-  startVideoAnalysis, 
-  pollAnalysisStatus, 
-  VideoAnalysisResult, 
-  TechniqueDetection,
-  generateAnalysisSummary,
-  generateRecommendedDrills,
-  saveLocalAnalysisResults
-} from '@/services/VideoAnalysisService';
-import { Loader2, ArrowLeft, Activity } from 'lucide-react';
+import { startVideoAnalysis, pollAnalysisStatus, VideoAnalysisResult, TechniqueDetection } from '@/services/VideoAnalysisService';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import TechniqueDetectionPlayer from '@/components/analysis/TechniqueDetectionPlayer';
 import TechniqueDetails from '@/components/analysis/TechniqueDetails';
 import AnalysisSummary from '@/components/analysis/AnalysisSummary';
 import { supabase } from '@/integrations/supabase/client';
-import { initializeTensorFlow } from '@/services/PoseDetectionService';
 
 const VideoAnalysis = () => {
   const { user } = useAuth();
@@ -34,52 +24,10 @@ const VideoAnalysis = () => {
   const [selectedTechnique, setSelectedTechnique] = useState<TechniqueDetection | null>(null);
   const [previousAnalyses, setPreviousAnalyses] = useState<VideoAnalysisResult[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [isModelLoaded, setIsModelLoaded] = useState(false);
-  const [isLocalAnalysis, setIsLocalAnalysis] = useState(false);
   
   const handleVideoUploaded = (url: string, fileId: string) => {
     setVideoUrl(url);
     setVideoId(fileId);
-  };
-
-  // Initialize TensorFlow.js in the background
-  useEffect(() => {
-    const loadModel = async () => {
-      try {
-        await initializeTensorFlow();
-        setIsModelLoaded(true);
-        console.log('TensorFlow model initialized');
-      } catch (error) {
-        console.error('Failed to initialize TensorFlow:', error);
-      }
-    };
-    
-    loadModel();
-  }, []);
-
-  // Helper function to handle detected techniques from the player
-  const handleTechniquesDetected = async (detectedTechniques: TechniqueDetection[]) => {
-    if (!analysisResult) return;
-    
-    // Update the local analysis result
-    const updatedResult: VideoAnalysisResult = {
-      ...analysisResult,
-      techniques: detectedTechniques,
-      status: 'completed' as const, // Use const assertion to fix the type
-      summary: generateAnalysisSummary(detectedTechniques),
-      recommendedDrills: generateRecommendedDrills(detectedTechniques)
-    };
-    
-    setAnalysisResult(updatedResult);
-    
-    // Save to database if we have an analysis ID
-    if (analysisId) {
-      try {
-        await saveLocalAnalysisResults(analysisId, detectedTechniques);
-      } catch (error) {
-        console.error('Failed to save detected techniques:', error);
-      }
-    }
   };
 
   const handleStartAnalysis = async () => {
@@ -89,78 +37,39 @@ const VideoAnalysis = () => {
     }
 
     setIsAnalyzing(true);
-    
     try {
-      // Check if we want to use server or local analysis
-      if (isModelLoaded && isLocalAnalysis) {
-        // Create analysis record for local processing
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-        
-        // Create analysis record in database
-        const { data: analysis, error } = await supabase
-          .from('video_analyses')
-          .insert({
-            video_id: videoId,
-            user_id: user.id,
-            status: 'processing',
-            techniques: [],
-          })
-          .select('id')
-          .single();
-          
-        if (error) throw error;
-        
-        // Set up for local analysis
-        setAnalysisId(analysis.id);
-        setAnalysisResult({
-          id: analysis.id,
-          videoId: videoId,
-          userId: user.id,
-          createdAt: new Date().toISOString(),
-          status: 'processing',
-          techniques: [],
-        });
-        
-        toast.success('Local analysis starting', {
-          description: 'We\'ll analyze your video in your browser using TensorFlow',
-        });
+      const { analysisId: newAnalysisId } = await startVideoAnalysis(videoId, videoUrl);
+      setAnalysisId(newAnalysisId);
+      
+      toast.success('Analysis started!', {
+        description: 'Your video is being processed. This may take a few moments.',
+      });
+      
+      // Store the cleanup function returned by pollAnalysisStatus
+      const stopPolling = await pollAnalysisStatus(newAnalysisId, (result) => {
+        setAnalysisResult(result);
         setIsAnalyzing(false);
         
-      } else {
-        // Use server-side analysis
-        const { analysisId: newAnalysisId } = await startVideoAnalysis(videoId, videoUrl);
-        setAnalysisId(newAnalysisId);
-        
-        toast.success('Analysis started!', {
-          description: 'Your video is being processed. This may take a few moments.',
-        });
-        
-        // Store the cleanup function returned by pollAnalysisStatus
-        const stopPolling = await pollAnalysisStatus(newAnalysisId, (result) => {
-          setAnalysisResult(result);
-          setIsAnalyzing(false);
-          
-          if (result.status === 'completed') {
-            toast.success('Analysis complete!', {
-              description: 'Your video has been analyzed successfully.',
-            });
-            // If techniques exist, select the first one
-            if (result.techniques && result.techniques.length > 0) {
-              setSelectedTechnique(result.techniques[0]);
-            }
-          } else if (result.status === 'failed') {
-            toast.error('Analysis failed', {
-              description: 'There was an error analyzing your video. Please try again.',
-            });
+        if (result.status === 'completed') {
+          toast.success('Analysis complete!', {
+            description: 'Your video has been analyzed successfully.',
+          });
+          // If techniques exist, select the first one
+          if (result.techniques && result.techniques.length > 0) {
+            setSelectedTechnique(result.techniques[0]);
           }
-        });
-        
-        // Return cleanup function that stops polling
-        return () => {
-          if (stopPolling) stopPolling();
-        };
-      }
+        } else if (result.status === 'failed') {
+          toast.error('Analysis failed', {
+            description: 'There was an error analyzing your video. Please try again.',
+          });
+        }
+      });
+      
+      // Return cleanup function that stops polling
+      return () => {
+        if (stopPolling) stopPolling();
+      };
+      
     } catch (error) {
       console.error('Analysis error:', error);
       toast.error('Failed to analyze video');
@@ -353,43 +262,21 @@ const VideoAnalysis = () => {
                   <VideoAnalysisUploader onVideoUploaded={handleVideoUploaded} maxDurationSeconds={120} />
                   
                   {videoUrl && (
-                    <>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="localAnalysis"
-                          checked={isLocalAnalysis && isModelLoaded}
-                          disabled={!isModelLoaded}
-                          onChange={() => setIsLocalAnalysis(!isLocalAnalysis)}
-                          className="h-4 w-4 text-primary border-gray-300 rounded"
-                        />
-                        <label htmlFor="localAnalysis" className="text-sm flex items-center">
-                          <Activity className="h-4 w-4 mr-1" /> 
-                          Use browser-based analysis
-                          {isModelLoaded ? (
-                            <span className="ml-1 text-xs text-green-600">(Available)</span>
-                          ) : (
-                            <span className="ml-1 text-xs text-gray-400">(Loading model...)</span>
-                          )}
-                        </label>
-                      </div>
-                      
-                      <div className="flex justify-end gap-3">
-                        <Button variant="outline" onClick={handleReset} disabled={isAnalyzing}>
-                          Reset
-                        </Button>
-                        <Button onClick={handleStartAnalysis} disabled={isAnalyzing || !videoUrl}>
-                          {isAnalyzing ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Analyzing...
-                            </>
-                          ) : (
-                            'Start Analysis'
-                          )}
-                        </Button>
-                      </div>
-                    </>
+                    <div className="flex justify-end gap-3">
+                      <Button variant="outline" onClick={handleReset} disabled={isAnalyzing}>
+                        Reset
+                      </Button>
+                      <Button onClick={handleStartAnalysis} disabled={isAnalyzing || !videoUrl}>
+                        {isAnalyzing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          'Start Analysis'
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
