@@ -84,7 +84,7 @@ const Navigation = () => {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuItem asChild>
-                  <Link to={`/profile/${user.id}`}>Profile</Link>
+                  <Link to={`/profile/${profile?.username || user.id}`}>Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/profile/edit">Edit Profile</Link>
