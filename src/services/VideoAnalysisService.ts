@@ -20,6 +20,44 @@ export interface VideoAnalysisResult {
   recommendedDrills?: string[];
 }
 
+// Helper function to safely convert JSON data to TechniqueDetection array
+function convertToTechniqueDetections(data: any): TechniqueDetection[] {
+  if (!data || !Array.isArray(data)) {
+    return [];
+  }
+  
+  return data.filter(item => {
+    // Validate that item has the required properties and is of correct type
+    return (
+      item &&
+      typeof item === 'object' &&
+      'techniqueType' in item &&
+      'confidence' in item &&
+      'timestamp' in item &&
+      typeof item.confidence === 'number' &&
+      typeof item.timestamp === 'number'
+    );
+  }).map(item => {
+    // Explicitly shape the data to match our interface
+    const detection: TechniqueDetection = {
+      techniqueType: item.techniqueType,
+      confidence: item.confidence,
+      timestamp: item.timestamp
+    };
+    
+    // Add optional fields if they exist
+    if ('boundingBox' in item && item.boundingBox) {
+      detection.boundingBox = item.boundingBox;
+    }
+    
+    if ('notes' in item && typeof item.notes === 'string') {
+      detection.notes = item.notes;
+    }
+    
+    return detection;
+  });
+}
+
 // Function to start analysis of an uploaded video
 export async function startVideoAnalysis(videoId: string, videoUrl: string): Promise<{ analysisId: string }> {
   try {
@@ -84,8 +122,8 @@ export async function getVideoAnalysisResults(analysisId: string): Promise<Video
         userId: data.user_id,
         createdAt: data.created_at,
         status: data.status as 'pending' | 'processing' | 'completed' | 'failed',
-        // Explicitly cast the techniques as TechniqueDetection[] to ensure correct typing
-        techniques: (data.techniques || []) as TechniqueDetection[],
+        // Use our safe conversion function
+        techniques: convertToTechniqueDetections(data.techniques),
         summary: data.summary,
         recommendedDrills: data.recommended_drills,
       };

@@ -92,6 +92,44 @@ const VideoAnalysis = () => {
     }
   };
 
+  // Helper function to safely convert JSON data to TechniqueDetection array
+  function convertToTechniqueDetections(data: any): TechniqueDetection[] {
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    
+    return data.filter(item => {
+      // Validate that item has the required properties and is of correct type
+      return (
+        item &&
+        typeof item === 'object' &&
+        'techniqueType' in item &&
+        'confidence' in item &&
+        'timestamp' in item &&
+        typeof item.confidence === 'number' &&
+        typeof item.timestamp === 'number'
+      );
+    }).map(item => {
+      // Explicitly shape the data to match our interface
+      const detection: TechniqueDetection = {
+        techniqueType: item.techniqueType,
+        confidence: item.confidence,
+        timestamp: item.timestamp
+      };
+      
+      // Add optional fields if they exist
+      if ('boundingBox' in item && item.boundingBox) {
+        detection.boundingBox = item.boundingBox;
+      }
+      
+      if ('notes' in item && typeof item.notes === 'string') {
+        detection.notes = item.notes;
+      }
+      
+      return detection;
+    });
+  }
+
   // Load previous analyses when tab changes to history
   const loadPreviousAnalyses = async () => {
     if (!user) return;
@@ -107,14 +145,14 @@ const VideoAnalysis = () => {
         
       if (error) throw error;
       
-      // Transform data to match our interface
+      // Transform data to match our interface using our safe conversion function
       const analyses: VideoAnalysisResult[] = data.map((item: any) => ({
         id: item.id,
         videoId: item.video_id,
         userId: item.user_id,
         createdAt: item.created_at,
         status: item.status,
-        techniques: (item.techniques || []) as TechniqueDetection[],
+        techniques: convertToTechniqueDetections(item.techniques), // Use the same helper function
         summary: item.summary,
         recommendedDrills: item.recommended_drills,
       }));
