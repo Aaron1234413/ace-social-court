@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Feed from './pages/Feed';
@@ -30,6 +31,8 @@ const ProfileRedirect = () => {
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const logoUrl = `${origin}/lovable-uploads/5c8dd227-ee47-4884-bb8c-f702433f7f2c.png`;
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -47,6 +50,20 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <Helmet>
+          <title>rallypointx</title>
+          <meta name="description" content="tennis. together." />
+          <meta property="og:title" content="rallypointx" />
+          <meta property="og:description" content="tennis. together." />
+          <meta property="og:type" content="website" />
+          <meta property="og:image" content={logoUrl} />
+          <meta property="og:url" content="https://rallypointx.app" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content="rallypointx" />
+          <meta name="twitter:description" content="tennis. together." />
+          <meta name="twitter:image" content={logoUrl} />
+        </Helmet>
+        
         <MainLayout>
           <Routes>
             <Route path="/" element={<Index />} />

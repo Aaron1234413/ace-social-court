@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import VideoAnalysisUploader from '@/components/analysis/VideoAnalysisUploader';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { initializeStorage } from '@/integrations/supabase/storage';
+import { Helmet } from 'react-helmet';
 
 const VideoAnalysis = () => {
   const { user } = useAuth();
@@ -68,67 +69,83 @@ const VideoAnalysis = () => {
     setupStorage();
   }, [user]);
 
+  // Get current origin for social meta tags
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const logoUrl = `${origin}/lovable-uploads/5c8dd227-ee47-4884-bb8c-f702433f7f2c.png`;
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-6">Video Analysis</h1>
+    <>
+      {/* Custom meta tags for this page */}
+      <Helmet>
+        <title>Video Analysis - rallypointx</title>
+        <meta name="description" content="Analyze your tennis skills with rallypointx" />
+        <meta property="og:title" content="Video Analysis - rallypointx" />
+        <meta property="og:description" content="Analyze your tennis skills with rallypointx" />
+        <meta property="og:image" content={logoUrl} />
+        <meta name="twitter:image" content={logoUrl} />
+      </Helmet>
       
-      {!user ? (
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="mb-4">Please log in to use the video analysis feature</p>
-            <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid grid-cols-2 w-full max-w-md">
-            <TabsTrigger value="upload">Upload</TabsTrigger>
-            <TabsTrigger value="history" disabled={!user}>History</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upload">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload Tennis Video</CardTitle>
-                <CardDescription>
-                  Upload a video of your tennis match or practice session for AI analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <VideoAnalysisUploader onVideoUploaded={handleVideoUploaded} maxDurationSeconds={120} />
-                
-                {videoUrl && (
-                  <div className="flex justify-end gap-3">
-                    <Button variant="outline" onClick={handleReset} disabled={isAnalyzing}>
-                      Reset
-                    </Button>
-                    <Button onClick={handleStartAnalysis} disabled={isAnalyzing || !videoUrl}>
-                      {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
-                    </Button>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 className="text-3xl font-bold mb-6">Video Analysis</h1>
+        
+        {!user ? (
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="mb-4">Please log in to use the video analysis feature</p>
+              <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Tabs defaultValue="upload" className="space-y-6">
+            <TabsList className="grid grid-cols-2 w-full max-w-md">
+              <TabsTrigger value="upload">Upload</TabsTrigger>
+              <TabsTrigger value="history" disabled={!user}>History</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="upload">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload Tennis Video</CardTitle>
+                  <CardDescription>
+                    Upload a video of your tennis match or practice session for AI analysis
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <VideoAnalysisUploader onVideoUploaded={handleVideoUploaded} maxDurationSeconds={120} />
+                  
+                  {videoUrl && (
+                    <div className="flex justify-end gap-3">
+                      <Button variant="outline" onClick={handleReset} disabled={isAnalyzing}>
+                        Reset
+                      </Button>
+                      <Button onClick={handleStartAnalysis} disabled={isAnalyzing || !videoUrl}>
+                        {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analysis History</CardTitle>
+                  <CardDescription>
+                    Your previous video analysis sessions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No previous analysis found</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analysis History</CardTitle>
-                <CardDescription>
-                  Your previous video analysis sessions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <p>No previous analysis found</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      )}
-    </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
+    </>
   );
 };
 
