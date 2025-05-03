@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { formatDistanceToNow } from 'date-fns';
 import { Loading } from '@/components/ui/loading';
 import { showErrorToast } from '@/hooks/use-toast';
+import CommentDisplay from '@/components/social/CommentDisplay';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 type Comment = {
   id: string;
@@ -11,7 +12,9 @@ type Comment = {
   created_at: string;
   user_id: string;
   author?: {
+    id: string;
     full_name: string | null;
+    username?: string | null;
     avatar_url: string | null;
   } | null;
 };
@@ -24,6 +27,7 @@ const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [groupedComments, setGroupedComments] = useState<{[key: string]: Comment[]}>({});
 
   const fetchComments = async () => {
     try {
@@ -45,7 +49,7 @@ const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
         
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, full_name, avatar_url')
+          .select('id, full_name, username, avatar_url')
           .in('id', userIds);
         
         if (profilesError) {
@@ -56,7 +60,9 @@ const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
         if (profilesData) {
           profilesData.forEach(profile => {
             profileMap.set(profile.id, {
+              id: profile.id,
               full_name: profile.full_name,
+              username: profile.username,
               avatar_url: profile.avatar_url
             });
           });
@@ -68,8 +74,22 @@ const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
         }));
         
         setComments(commentsWithAuthor);
+        
+        // Group comments by date for better organization
+        const grouped: {[key: string]: Comment[]} = {};
+        
+        commentsWithAuthor.forEach(comment => {
+          const date = new Date(comment.created_at).toLocaleDateString();
+          if (!grouped[date]) {
+            grouped[date] = [];
+          }
+          grouped[date].push(comment);
+        });
+        
+        setGroupedComments(grouped);
       } else {
         setComments([]);
+        setGroupedComments({});
       }
     } catch (error: any) {
       console.error('Error fetching comments:', error);
@@ -129,24 +149,59 @@ const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
     );
   }
 
+  // If we have comments but no grouping (should not happen, but just in case)
+  if (Object.keys(groupedComments).length === 0) {
+    return (
+      <div className="space-y-4 max-h-[400px] overflow-y-auto">
+        {comments.map(comment => (
+          <CommentDisplay 
+            key={comment.id} 
+            comment={{
+              id: comment.id,
+              content: comment.content,
+              created_at: comment.created_at,
+              user: {
+                id: comment.user_id,
+                username: comment.author?.username || undefined,
+                full_name: comment.author?.full_name || undefined,
+                avatar_url: comment.author?.avatar_url || undefined
+              }
+            }} 
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4 max-h-[400px] overflow-y-auto">
-      {comments.map(comment => (
-        <div key={comment.id} className="flex items-start space-x-3 pb-3 border-b">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-            {comment.author?.full_name?.charAt(0) || '?'}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">{comment.author?.full_name || 'Anonymous'}</span>
-              <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-              </span>
-            </div>
-            <p className="mt-1 text-sm whitespace-pre-wrap break-words">{comment.content}</p>
-          </div>
-        </div>
-      ))}
+    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+      <Accordion type="multiple" className="w-full">
+        {Object.entries(groupedComments).map(([date, dateComments], index) => (
+          <AccordionItem key={date} value={date} className={index === 0 ? "border-t border-b" : "border-b"}>
+            <AccordionTrigger className="py-2 text-sm text-muted-foreground hover:no-underline">
+              {date} ({dateComments.length})
+            </AccordionTrigger>
+            <AccordionContent className="space-y-2 pb-2">
+              {dateComments.map(comment => (
+                <CommentDisplay 
+                  key={comment.id} 
+                  comment={{
+                    id: comment.id,
+                    content: comment.content,
+                    created_at: comment.created_at,
+                    user: {
+                      id: comment.user_id,
+                      username: comment.author?.username || undefined,
+                      full_name: comment.author?.full_name || undefined,
+                      avatar_url: comment.author?.avatar_url || undefined
+                    }
+                  }} 
+                />
+              ))}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </div>
   );
 };
