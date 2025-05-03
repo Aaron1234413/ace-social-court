@@ -119,14 +119,19 @@ const LikeButton = ({
             (postContent.length > 30 ? postContent.substring(0, 30) + '...' : postContent) : 
             'your post';
             
-          await createNotification({
-            userIds: [postUserId],
-            type: 'like',
-            content: `Someone liked your post: "${contentPreview}"`,
-            senderId: user.id,
-            entityId: postId,
-            entityType: 'post'
-          });
+          try {
+            await createNotification({
+              userIds: [postUserId],
+              type: 'like',
+              content: `Someone liked your post: "${contentPreview}"`,
+              senderId: user.id,
+              entityId: postId,
+              entityType: 'post'
+            });
+          } catch (notifError) {
+            console.error('Error sending notification:', notifError);
+            // Don't rethrow, as like operation still succeeded
+          }
         }
       }
     } catch (error) {

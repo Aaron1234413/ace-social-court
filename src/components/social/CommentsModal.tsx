@@ -4,28 +4,60 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/components/AuthProvider';
+import { supabase } from '@/integrations/supabase/client';
+import { showErrorToast, showSuccessToast } from '@/hooks/use-toast';
 import CommentsDisplay from './CommentsDisplay';
+import { useNotifications } from '@/components/notifications/useNotifications';
+import CommentForm from './CommentForm';
 
 interface CommentsModalProps {
   isOpen: boolean;
   onClose: () => void;
   postId: string;
-  onSubmit: (content: string) => void;
+  postUserId: string;
 }
 
-const CommentsModal = ({ isOpen, onClose, postId, onSubmit }: CommentsModalProps) => {
-  const [comment, setComment] = useState('');
+const CommentsModal = ({ isOpen, onClose, postId, postUserId }: CommentsModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
+  const { createNotification } = useNotifications();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!comment.trim() || !user) return;
+  const handleCommentSubmit = async (content: string) => {
+    if (!content.trim() || !user) return;
 
     try {
       setIsSubmitting(true);
-      await onSubmit(comment);
-      setComment('');
+      
+      const { error, data } = await supabase
+        .from('comments')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content: content.trim()
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      
+      showSuccessToast('Comment added');
+      
+      // Notify post owner if it's not the user's own post
+      if (user.id !== postUserId) {
+        const contentPreview = content.length > 30 ? content.substring(0, 30) + '...' : content;
+        await createNotification({
+          userIds: [postUserId],
+          type: 'comment',
+          content: `Someone commented on your post: "${contentPreview}"`,
+          senderId: user.id,
+          entityId: postId,
+          entityType: 'post'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      showErrorToast('Failed to post comment');
     } finally {
       setIsSubmitting(false);
     }
@@ -33,31 +65,22 @@ const CommentsModal = ({ isOpen, onClose, postId, onSubmit }: CommentsModalProps
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Comments</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col space-y-4">
-          <CommentsDisplay postId={postId} />
+        <div className="flex flex-col space-y-4 flex-1 overflow-hidden">
+          <div className="overflow-y-auto flex-1">
+            <CommentsDisplay postId={postId} />
+          </div>
           
-          {user && (
-            <form onSubmit={handleSubmit} className="space-y-2">
-              <Textarea
-                placeholder="Add a comment..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="min-h-[80px]"
-              />
-              <DialogFooter>
-                <Button
-                  type="submit"
-                  disabled={!comment.trim() || isSubmitting}
-                >
-                  {isSubmitting ? 'Posting...' : 'Post comment'}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
+          <div className="pt-2 border-t sticky bottom-0 bg-background">
+            <CommentForm 
+              postId={postId} 
+              onCommentSubmit={handleCommentSubmit}
+              isSubmitting={isSubmitting}
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>
