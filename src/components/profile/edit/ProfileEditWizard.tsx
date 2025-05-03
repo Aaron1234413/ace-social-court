@@ -324,13 +324,37 @@ export const ProfileEditWizard = ({ isNewUser, profileData }: ProfileEditWizardP
           {/* Current step component */}
           <div className="space-y-6">
             {CurrentStepComponent && (
-              <CurrentStepComponent
-                control={form.control}
-                locationName={locationName}
-                isLocationPickerOpen={isLocationPickerOpen}
-                setIsLocationPickerOpen={setIsLocationPickerOpen}
-                handleSetLocation={handleSetLocation}
-              />
+              <>
+                {currentStep === 0 && (
+                  <WizardBasicInfo
+                    control={form.control}
+                  />
+                )}
+                {currentStep === 1 && (
+                  <WizardPlayingInfo
+                    control={form.control}
+                  />
+                )}
+                {currentStep === 2 && (
+                  <WizardLocationInfo
+                    control={form.control}
+                    locationName={locationName}
+                    isLocationPickerOpen={isLocationPickerOpen}
+                    setIsLocationPickerOpen={setIsLocationPickerOpen}
+                    handleSetLocation={handleSetLocation}
+                  />
+                )}
+                {currentStep === 3 && (
+                  <WizardAchievements
+                    control={form.control}
+                  />
+                )}
+                {currentStep === 4 && (
+                  <WizardCertifications
+                    control={form.control}
+                  />
+                )}
+              </>
             )}
           </div>
 
