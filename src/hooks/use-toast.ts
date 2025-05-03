@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -6,7 +7,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 5000 // Changed from 1000000 to 5000 (5 seconds)
 
 type ToasterToast = ToastProps & {
   id: string
@@ -187,5 +188,29 @@ function useToast() {
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }
+
+// Helper functions for consistent messaging
+export const showSuccessToast = (title: string, description?: string) => {
+  toast({
+    title,
+    description,
+    className: "bg-green-50 border-green-200 text-green-900",
+  });
+};
+
+export const showErrorToast = (title: string, description?: string) => {
+  toast({
+    title,
+    description,
+    variant: "destructive",
+  });
+};
+
+export const showInfoToast = (title: string, description?: string) => {
+  toast({
+    title,
+    description,
+  });
+};
 
 export { useToast, toast }

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { Loading } from '@/components/ui/loading';
+import { showErrorToast } from '@/hooks/use-toast';
 
 type Comment = {
   id: string;
@@ -22,10 +23,13 @@ interface CommentsDisplayProps {
 const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchComments = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      
       const { data, error } = await supabase
         .from('comments')
         .select('*')
@@ -67,8 +71,10 @@ const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
       } else {
         setComments([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching comments:', error);
+      setError(error.message || "Failed to load comments");
+      showErrorToast("Error loading comments", "Please try again later");
     } finally {
       setIsLoading(false);
     }
@@ -100,6 +106,19 @@ const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
 
   if (isLoading) {
     return <Loading variant="skeleton" count={2} text="Loading comments..." />;
+  }
+
+  if (error) {
+    return (
+      <Loading 
+        variant="error" 
+        error={{
+          message: "Couldn't load comments",
+          guidance: "There was a problem loading the comments. Please try again.",
+          onRetry: fetchComments
+        }}
+      />
+    );
   }
 
   if (comments.length === 0) {
