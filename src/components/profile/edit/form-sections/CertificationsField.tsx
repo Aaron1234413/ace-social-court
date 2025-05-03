@@ -22,8 +22,8 @@ export const CertificationsField = ({ control }: CertificationsFieldProps) => {
   
   const [dateOpen, setDateOpen] = useState<Record<string, boolean>>({});
 
-  const toggleDatePopover = (fieldId: string, dateType: string) => {
-    const key = `${fieldId}-${dateType}`;
+  const toggleDatePopover = (index: number, dateType: string) => {
+    const key = `${index}-${dateType}`;
     setDateOpen((prev) => ({
       ...prev,
       [key]: !prev[key],
@@ -92,8 +92,8 @@ export const CertificationsField = ({ control }: CertificationsFieldProps) => {
                     <FormItem>
                       <FormLabel>Issue Date</FormLabel>
                       <Popover 
-                        open={dateOpen[`${field.id}-issue`]} 
-                        onOpenChange={() => toggleDatePopover(field.id, 'issue')}
+                        open={dateOpen[`${index}-issue`]} 
+                        onOpenChange={() => toggleDatePopover(index, 'issue')}
                       >
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -114,7 +114,7 @@ export const CertificationsField = ({ control }: CertificationsFieldProps) => {
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
                               field.onChange(date ? date.toISOString() : '');
-                              toggleDatePopover(field.id, 'issue');
+                              toggleDatePopover(index, 'issue');
                             }}
                             initialFocus
                           />
@@ -132,8 +132,8 @@ export const CertificationsField = ({ control }: CertificationsFieldProps) => {
                     <FormItem>
                       <FormLabel>Expiry Date</FormLabel>
                       <Popover 
-                        open={dateOpen[`${field.id}-expiry`]} 
-                        onOpenChange={() => toggleDatePopover(field.id, 'expiry')}
+                        open={dateOpen[`${index}-expiry`]} 
+                        onOpenChange={() => toggleDatePopover(index, 'expiry')}
                       >
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -154,7 +154,7 @@ export const CertificationsField = ({ control }: CertificationsFieldProps) => {
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
                               field.onChange(date ? date.toISOString() : '');
-                              toggleDatePopover(field.id, 'expiry');
+                              toggleDatePopover(index, 'expiry');
                             }}
                             initialFocus
                           />
