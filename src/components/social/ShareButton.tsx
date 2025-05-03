@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Share, Instagram } from 'lucide-react';
+import { Share, Instagram, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface ShareButtonProps {
   postId: string;
@@ -19,25 +20,43 @@ interface ShareButtonProps {
 
 const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [justCopied, setJustCopied] = useState(false);
   const shareUrl = `${window.location.origin}/post/${postId}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
-    toast.success("Link copied to clipboard");
+    
+    // Visual feedback that copy worked
+    setJustCopied(true);
+    setTimeout(() => setJustCopied(false), 2000);
+    
+    // Toast confirmation
+    toast.success("Link copied to clipboard", {
+      description: "You can now paste the link anywhere",
+      icon: <Check className="h-4 w-4" />,
+    });
   };
 
   const shareViaEmail = () => {
     const subject = "Check out this post on rallypointx";
     const body = `I thought you might be interested in this tennis post: ${shareUrl}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-    toast.success("Email client opened");
+    
+    toast.success("Email client opened", {
+      description: "Share this post with your friends via email",
+      icon: <Check className="h-4 w-4" />,
+    });
   };
 
   const shareViaTwitter = () => {
     const text = "Check out this tennis post on rallypointx";
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(url, '_blank');
-    toast.success("Sharing to Twitter");
+    
+    toast.success("Sharing to Twitter", {
+      description: "Your browser has opened Twitter to share this post",
+      icon: <Check className="h-4 w-4" />,
+    });
   };
   
   const shareViaInstagram = () => {
@@ -62,6 +81,16 @@ const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
         }
       });
     }, 500);
+  };
+
+  const handleShareMessage = () => {
+    window.location.href = `/messages?share=${encodeURIComponent(shareUrl)}`;
+    setShareDialogOpen(false);
+    
+    toast.success("Opening messages", {
+      description: "You'll be able to choose who to share this post with",
+      icon: <Check className="h-4 w-4" />,
+    });
   };
 
   return (
@@ -111,8 +140,23 @@ const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
                 className="w-full"
               />
             </div>
-            <Button type="submit" size="sm" onClick={handleCopyLink}>
-              Copy
+            <Button 
+              type="button" 
+              size="sm" 
+              onClick={handleCopyLink}
+              className={cn(
+                "transition-all",
+                justCopied && "bg-green-500 text-white hover:bg-green-600"
+              )}
+            >
+              {justCopied ? (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  Copied!
+                </>
+              ) : (
+                "Copy"
+              )}
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -121,10 +165,7 @@ const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
           <DialogFooter className="sm:justify-start">
             <Button
               variant="secondary"
-              onClick={() => {
-                window.location.href = `/messages?share=${encodeURIComponent(shareUrl)}`;
-                setShareDialogOpen(false);
-              }}
+              onClick={handleShareMessage}
             >
               Choose Recipient
             </Button>
