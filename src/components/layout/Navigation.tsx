@@ -8,11 +8,13 @@ import MobileMenu from "./navigation/MobileMenu";
 import SearchForm from "./navigation/SearchForm";
 import QuickActions from "./navigation/QuickActions";
 import { navigationConfig } from "@/config/navigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
   const { user, profile } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Get primary nav links from shared config
   const navLinks = navigationConfig.primaryNavItems;
@@ -27,6 +29,9 @@ const Navigation = () => {
     }
     return item;
   }) : [];
+
+  // Only show main nav links on mobile, not on desktop (since desktop has sidebar)
+  const displayedNavLinks = isMobile ? navLinks : [];
 
   return (
     <div className="border-b sticky top-0 bg-background z-50">
@@ -45,9 +50,9 @@ const Navigation = () => {
           rallypointx
         </Link>
 
-        {/* Desktop navigation */}
-        <nav className="mx-6 flex items-center space-x-4 lg:space-x-6 hidden md:flex">
-          {navLinks.map((link) => (
+        {/* Desktop navigation - only visible on small screens since we have sidebar */}
+        <nav className="mx-6 flex items-center space-x-4 lg:space-x-6 md:hidden">
+          {displayedNavLinks.map((link) => (
             <Link 
               key={link.url}
               to={link.url} 

@@ -15,11 +15,15 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from '@/lib/utils';
 import { navigationConfig } from "@/config/navigation";
+import { Badge } from '@/components/ui/badge';
+import { useNotifications } from '@/components/notifications/useNotifications';
 
 export function AppSidebar() {
   const location = useLocation();
   const { user, profile } = useAuth();
+  const { unreadCount } = useNotifications();
 
+  // Check if current path matches the item
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === path;
     return location.pathname.startsWith(path);
@@ -84,7 +88,19 @@ export function AppSidebar() {
                         "flex items-center",
                         isActive(item.url) && "font-medium"
                       )}>
-                        <item.icon />
+                        <div className="relative">
+                          <item.icon />
+                          
+                          {/* Add notification badge for unread items */}
+                          {item.title === "Notifications" && unreadCount > 0 && (
+                            <Badge 
+                              variant="destructive" 
+                              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
+                            >
+                              {unreadCount > 9 ? "9+" : unreadCount}
+                            </Badge>
+                          )}
+                        </div>
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
