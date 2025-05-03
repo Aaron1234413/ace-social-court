@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -13,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -77,19 +77,32 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
-      <ProfileHeader userId={userId} isOwnProfile={isOwnProfile} />
-      <Separator />
-      <ProfileMediaGallery userId={userId} />
-      <Separator />
-      <AchievementsList userId={userId} />
-      {profile.user_type === 'coach' && (
-        <>
-          <Separator />
-          <CertificationsList userId={userId} />
-        </>
-      )}
-    </div>
+    <>
+      <Helmet>
+        <title>{profile.full_name || 'User'} - rallypointx</title>
+        <meta name="description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
+        <meta property="og:title" content={`${profile.full_name || 'User'} - rallypointx`} />
+        <meta property="og:description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
+        <meta property="og:type" content="profile" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={`${profile.full_name || 'User'} - rallypointx`} />
+        <meta name="twitter:description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
+      </Helmet>
+
+      <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
+        <ProfileHeader userId={userId} isOwnProfile={isOwnProfile} />
+        <Separator />
+        <ProfileMediaGallery userId={userId} />
+        <Separator />
+        <AchievementsList userId={userId} />
+        {profile.user_type === 'coach' && (
+          <>
+            <Separator />
+            <CertificationsList userId={userId} />
+          </>
+        )}
+      </div>
+    </>
   );
 };
 

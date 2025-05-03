@@ -183,10 +183,6 @@ const VideoAnalysis = () => {
     setupStorage();
   }, [user]);
 
-  // Get current origin for social meta tags
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const logoUrl = `${origin}/lovable-uploads/5c8dd227-ee47-4884-bb8c-f702433f7f2c.png`;
-
   return (
     <>
       {/* Custom meta tags for this page */}
@@ -195,8 +191,6 @@ const VideoAnalysis = () => {
         <meta name="description" content="Analyze your tennis skills with rallypointx" />
         <meta property="og:title" content="Video Analysis - rallypointx" />
         <meta property="og:description" content="Analyze your tennis skills with rallypointx" />
-        <meta property="og:image" content={logoUrl} />
-        <meta name="twitter:image" content={logoUrl} />
       </Helmet>
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">

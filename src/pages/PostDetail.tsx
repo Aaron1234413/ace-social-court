@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { useAuth } from '@/components/AuthProvider';
 import PostContent from '@/components/social/PostContent';
 import { PostActions } from '@/components/social/PostActions';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 
 const PostDetail = () => {
   const { id } = useParams();
@@ -96,68 +98,81 @@ const PostDetail = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Card className="overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                {post.author?.full_name?.charAt(0) || '?'}
+    <>
+      <Helmet>
+        <title>Post by {post.author?.full_name || 'Anonymous'} - rallypointx</title>
+        <meta name="description" content={post.content?.substring(0, 160) || 'A post on rallypointx'} />
+        <meta property="og:title" content={`Post by ${post.author?.full_name || 'Anonymous'} - rallypointx`} />
+        <meta property="og:description" content={post.content?.substring(0, 160) || 'A post on rallypointx'} />
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={`Post by ${post.author?.full_name || 'Anonymous'} - rallypointx`} />
+        <meta name="twitter:description" content={post.content?.substring(0, 160) || 'A post on rallypointx'} />
+      </Helmet>
+      
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card className="overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                  {post.author?.full_name?.charAt(0) || '?'}
+                </div>
+                <div className="ml-3">
+                  <h3 className="font-semibold">{post.author?.full_name || 'Anonymous'}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
+                      formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+                    }
+                  </p>
+                </div>
               </div>
-              <div className="ml-3">
-                <h3 className="font-semibold">{post.author?.full_name || 'Anonymous'}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
-                    formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
-                  }
-                </p>
+              
+              {/* Add post actions if the current user is the post creator */}
+              {user && user.id === post.user_id && (
+                <PostActions 
+                  post={post} 
+                  onEdit={() => refetch()} 
+                  onDelete={handlePostDelete}
+                />
+              )}
+            </div>
+
+            {post.content && (
+              <PostContent content={post.content} className="text-base break-words mb-4" />
+            )}
+
+            {post.media_url && (
+              <div className="rounded-lg overflow-hidden mt-2 border border-gray-100">
+                {post.media_type === 'image' ? (
+                  <img 
+                    src={post.media_url} 
+                    alt="Post media" 
+                    className="w-full object-contain max-h-96"
+                  />
+                ) : post.media_type === 'video' ? (
+                  <video 
+                    src={post.media_url} 
+                    controls 
+                    className="w-full max-h-96"
+                  />
+                ) : null}
               </div>
-            </div>
-            
-            {/* Add post actions if the current user is the post creator */}
-            {user && user.id === post.user_id && (
-              <PostActions 
-                post={post} 
-                onEdit={() => refetch()} 
-                onDelete={handlePostDelete}
-              />
             )}
-          </div>
 
-          {post.content && (
-            <PostContent content={post.content} className="text-base break-words mb-4" />
-          )}
-
-          {post.media_url && (
-            <div className="rounded-lg overflow-hidden mt-2 border border-gray-100">
-              {post.media_type === 'image' ? (
-                <img 
-                  src={post.media_url} 
-                  alt="Post media" 
-                  className="w-full object-contain max-h-96"
-                />
-              ) : post.media_type === 'video' ? (
-                <video 
-                  src={post.media_url} 
-                  controls 
-                  className="w-full max-h-96"
-                />
-              ) : null}
+            <div className="mt-6 pt-4 border-t flex justify-between">
+              {user && (
+                <>
+                  <LikeButton postId={post.id} postUserId={post.user_id} postContent={post.content} />
+                  <CommentButton postId={post.id} postUserId={post.user_id} />
+                  <ShareButton postId={post.id} postContent={post.content} />
+                </>
+              )}
             </div>
-          )}
-
-          <div className="mt-6 pt-4 border-t flex justify-between">
-            {user && (
-              <>
-                <LikeButton postId={post.id} postUserId={post.user_id} postContent={post.content} />
-                <CommentButton postId={post.id} postUserId={post.user_id} />
-                <ShareButton postId={post.id} postContent={post.content} />
-              </>
-            )}
           </div>
-        </div>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </>
   );
 };
 

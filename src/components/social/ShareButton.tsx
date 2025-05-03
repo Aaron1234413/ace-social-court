@@ -20,9 +20,6 @@ interface ShareButtonProps {
 const ShareButton = ({ postId, postContent }: ShareButtonProps) => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const shareUrl = `${window.location.origin}/post/${postId}`;
-  
-  // Full URL to the logo for social sharing
-  const logoUrl = `${window.location.origin}/lovable-uploads/5c8dd227-ee47-4884-bb8c-f702433f7f2c.png`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
