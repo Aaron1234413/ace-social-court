@@ -4,8 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FeatureCard from "@/components/FeatureCard";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { AppScreenshot } from "@/components/AppScreenshot";
 import { Testimonial } from "@/components/Testimonial";
 
 const Index = () => {
@@ -37,35 +35,6 @@ const Index = () => {
             <Button size="lg" onClick={() => navigate("/auth")}>Get Started</Button>
             <Button size="lg" variant="outline">Watch Demo</Button>
           </div>
-        </div>
-
-        {/* App Screenshots - Updated with tennis-related images */}
-        <div className="mb-24">
-          <Carousel className="w-full max-w-5xl mx-auto">
-            <CarouselContent>
-              <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                <AppScreenshot 
-                  src="https://images.unsplash.com/photo-1542144582-1ba00456b5e3"
-                  alt="Finding tennis partners nearby"
-                  title="Find Tennis Partners"
-                />
-              </CarouselItem>
-              <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                <AppScreenshot 
-                  src="https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0"
-                  alt="Tracking your tennis progress"
-                  title="Track Your Progress" 
-                />
-              </CarouselItem>
-              <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                <AppScreenshot 
-                  src="https://images.unsplash.com/photo-1592656094267-764a45160876"
-                  alt="Video analysis of tennis technique"
-                  title="Analyze Your Technique" 
-                />
-              </CarouselItem>
-            </CarouselContent>
-          </Carousel>
         </div>
 
         {/* Features Grid */}
