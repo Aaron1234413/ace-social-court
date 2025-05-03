@@ -50,22 +50,6 @@ const Navigation = () => {
           rallypointx
         </Link>
 
-        {/* Desktop navigation - only visible on small screens since we have sidebar */}
-        <nav className="mx-6 flex items-center space-x-4 lg:space-x-6 md:hidden">
-          {displayedNavLinks.map((link) => (
-            <Link 
-              key={link.url}
-              to={link.url} 
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                location.pathname === link.url ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              {link.title}
-            </Link>
-          ))}
-        </nav>
-
         {/* Search and user actions */}
         <div className="ml-auto flex items-center space-x-4">
           {/* Search form */}

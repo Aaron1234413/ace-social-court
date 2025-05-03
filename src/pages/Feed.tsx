@@ -80,7 +80,7 @@ const Feed = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <h1 className="text-2xl md:text-3xl font-bold">Home Feed</h1>
         
@@ -97,12 +97,12 @@ const Feed = () => {
       </div>
       
       {user && (
-        <div className="mb-5">
+        <div className="mb-5 overflow-x-auto pb-1">
           <ToggleGroup 
             type="single" 
             value={sortOption}
             onValueChange={handleSortChange}
-            className="justify-start"
+            className="justify-start whitespace-nowrap"
           >
             <ToggleGroupItem value="recent" aria-label="Sort by recent">
               <Clock className="h-4 w-4 mr-1" /> Recent

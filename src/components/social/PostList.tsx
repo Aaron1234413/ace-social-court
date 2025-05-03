@@ -62,8 +62,8 @@ const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListPr
   return (
     <div className="space-y-4 md:space-y-6">
       {posts.map(post => (
-        <Card key={post.id} className="overflow-hidden hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 p-4 md:p-6">
+        <Card key={post.id} className="overflow-hidden hover:shadow-md transition-shadow w-full">
+          <CardHeader className="pb-2 p-3 md:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Link to={`/profile/${post.user_id}`} className="hover:opacity-80 transition-opacity">
@@ -73,14 +73,14 @@ const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListPr
                     </AvatarFallback>
                   </Avatar>
                 </Link>
-                <div className="ml-3">
+                <div className="ml-3 max-w-[calc(100%-48px)]">
                   <Link 
                     to={`/profile/${post.user_id}`} 
-                    className="font-semibold text-sm md:text-base hover:underline"
+                    className="font-semibold text-sm md:text-base hover:underline truncate block"
                   >
                     {post.author?.full_name || 'Anonymous'}
                   </Link>
-                  <p className="text-xs md:text-sm text-muted-foreground">
+                  <p className="text-xs md:text-sm text-muted-foreground truncate">
                     {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
                       formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
                     }
@@ -103,24 +103,26 @@ const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListPr
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-4 md:p-6">
+          <CardContent className="p-3 md:p-6">
             {post.content && (
               <p className="text-sm md:text-base break-words mb-4">{post.content}</p>
             )}
 
             {post.media_url && (
-              <div className="rounded-lg overflow-hidden mt-2 border border-gray-100">
+              <div className="rounded-lg overflow-hidden mt-2 border border-gray-100 w-full">
                 {post.media_type === 'image' ? (
                   <img 
                     src={post.media_url} 
                     alt="Post media" 
                     className="w-full object-contain max-h-80"
+                    style={{ maxWidth: '100%' }}
                   />
                 ) : post.media_type === 'video' ? (
                   <video 
                     src={post.media_url} 
                     controls 
                     className="w-full max-h-80"
+                    style={{ maxWidth: '100%' }}
                   />
                 ) : null}
               </div>

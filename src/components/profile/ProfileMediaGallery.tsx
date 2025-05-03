@@ -47,7 +47,7 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-1 md:gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 md:gap-2">
         {[...Array(6)].map((_, i) => (
           <Skeleton key={i} className="aspect-square w-full" />
         ))}
@@ -75,7 +75,7 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
       </div>
 
       {mediaPosts.length > 0 ? (
-        <div className="grid grid-cols-3 gap-1 md:gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 md:gap-2">
           {mediaPosts.map((post) => (
             <button
               key={post.id}
@@ -104,7 +104,7 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
       )}
 
       <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden w-[95vw] sm:w-auto">
           {selectedPost && (
             <div className="flex flex-col">
               <div className="p-4 flex items-center justify-between border-b">
@@ -117,22 +117,26 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
                   />
                 )}
               </div>
-              {selectedPost?.media_type === 'image' ? (
-                <img
-                  src={selectedPost.media_url!}
-                  alt=""
-                  className="w-full h-auto max-h-[80vh] object-contain"
-                />
-              ) : selectedPost?.media_type === 'video' ? (
-                <video
-                  src={selectedPost.media_url!}
-                  controls
-                  className="w-full h-auto max-h-[80vh]"
-                />
-              ) : null}
+              <div className="max-w-full overflow-hidden">
+                {selectedPost?.media_type === 'image' ? (
+                  <img
+                    src={selectedPost.media_url!}
+                    alt=""
+                    className="w-full h-auto max-h-[80vh] object-contain"
+                    style={{ maxWidth: '100%' }}
+                  />
+                ) : selectedPost?.media_type === 'video' ? (
+                  <video
+                    src={selectedPost.media_url!}
+                    controls
+                    className="w-full h-auto max-h-[80vh]"
+                    style={{ maxWidth: '100%' }}
+                  />
+                ) : null}
+              </div>
               {selectedPost?.content && (
                 <div className="p-4 bg-background">
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{selectedPost.content}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap break-words">{selectedPost.content}</p>
                 </div>
               )}
             </div>
