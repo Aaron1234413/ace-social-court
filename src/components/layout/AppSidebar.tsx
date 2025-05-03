@@ -2,7 +2,6 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
-import { Bell, Home, MessageSquare, Search, Settings, User, Map, Video } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -15,6 +14,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { cn } from '@/lib/utils';
+import { navigationConfig } from "@/config/navigation";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -25,56 +25,19 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
-  const primaryNavItems = [
-    {
-      title: "Home",
-      url: "/",
-      icon: Home,
-    },
-    {
-      title: "Feed",
-      url: "/feed",
-      icon: Home,
-    },
-    {
-      title: "Map",
-      url: "/map",
-      icon: Map,
-    },
-    {
-      title: "Video Analysis",
-      url: "/analysis",
-      icon: Video,
-    },
-  ];
+  // Get primary nav items from shared config
+  const primaryNavItems = navigationConfig.primaryNavItems;
 
-  const userNavItems = user ? [
-    {
-      title: "Profile",
-      url: `/profile/${profile?.username || user.id}`,
-      icon: User,
-    },
-    {
-      title: "Messages",
-      url: "/messages",
-      icon: MessageSquare,
-    },
-    {
-      title: "Notifications",
-      url: "/notifications",
-      icon: Bell,
-    },
-    {
-      title: "Search",
-      url: "/search",
-      icon: Search,
-    },
-    {
-      title: "Settings",
-      url: "/profile/edit",
-      icon: Settings,
-    },
-  ] : [];
+  // Map user links with proper profile URL
+  const userNavItems = user ? navigationConfig.userNavItems.map(item => {
+    if (item.title === "Profile") {
+      return {
+        ...item,
+        url: `/profile/${profile?.username || user.id}`,
+      };
+    }
+    return item;
+  }) : [];
 
   return (
     <Sidebar collapsible="icon" variant="sidebar" className="hidden md:flex border-r">

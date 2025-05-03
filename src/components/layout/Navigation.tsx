@@ -3,33 +3,30 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
-import { Home, User, MessageSquare, Bell } from "lucide-react";
 import UserDropdown from "./navigation/UserDropdown";
 import MobileMenu from "./navigation/MobileMenu";
 import SearchForm from "./navigation/SearchForm";
 import QuickActions from "./navigation/QuickActions";
+import { navigationConfig } from "@/config/navigation";
 
 const Navigation = () => {
   const { user, profile } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleSignOut = () => {
-    // The actual sign out logic is moved to UserDropdown component
-  };
+  // Get primary nav links from shared config
+  const navLinks = navigationConfig.primaryNavItems;
 
-  const navLinks = [
-    { to: "/", label: "Home", icon: <Home className="h-5 w-5" /> },
-    { to: "/feed", label: "Feed", icon: null },
-    { to: "/map", label: "Map", icon: null },
-    { to: "/analysis", label: "Video Analysis", icon: null },
-  ];
-
-  const userLinks = user ? [
-    { to: `/profile/${profile?.username || user.id}`, label: "Profile", icon: <User className="h-5 w-5" /> },
-    { to: "/messages", label: "Messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { to: "/notifications", label: "Notifications", icon: <Bell className="h-5 w-5" /> },
-  ] : [];
+  // Map user links with proper profile URL
+  const userLinks = user ? navigationConfig.userNavItems.map(item => {
+    if (item.title === "Profile") {
+      return {
+        ...item,
+        url: `/profile/${profile?.username || user.id}`,
+      };
+    }
+    return item;
+  }) : [];
 
   return (
     <div className="border-b sticky top-0 bg-background z-50">
@@ -40,7 +37,7 @@ const Navigation = () => {
           userLinks={userLinks}
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
-          onSignOut={handleSignOut}
+          onSignOut={() => {}} // Actual sign-out is handled in UserDropdown
         />
         
         {/* Logo/brand */}
@@ -52,14 +49,14 @@ const Navigation = () => {
         <nav className="mx-6 flex items-center space-x-4 lg:space-x-6 hidden md:flex">
           {navLinks.map((link) => (
             <Link 
-              key={link.to}
-              to={link.to} 
+              key={link.url}
+              to={link.url} 
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
-                location.pathname === link.to ? "text-primary" : "text-muted-foreground"
+                location.pathname === link.url ? "text-primary" : "text-muted-foreground"
               )}
             >
-              {link.label}
+              {link.title}
             </Link>
           ))}
         </nav>
