@@ -1,6 +1,6 @@
 
 import { ProfileEditContainer } from '@/components/profile/edit/ProfileEditContainer';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { Loading } from '@/components/ui/loading';
@@ -11,7 +11,6 @@ const ProfileEdit = () => {
   const navigate = useNavigate();
   const isNewUser = location.state?.newUser;
   const { user, profile, isLoading } = useAuth();
-  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     // Show welcome message for new users
@@ -28,19 +27,6 @@ const ProfileEdit = () => {
   }, [isNewUser, user, profile, isLoading]);
   
   // Handle case when authentication fails
-  useEffect(() => {
-    if (!isLoading && !user) {
-      setError("Authentication required");
-    } else {
-      setError(null);
-    }
-  }, [user, isLoading]);
-  
-  const handleRetry = () => {
-    // Refresh the page to try loading again
-    window.location.reload();
-  };
-  
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center">
@@ -49,7 +35,7 @@ const ProfileEdit = () => {
     );
   }
   
-  if (error) {
+  if (!isLoading && !user) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Loading 

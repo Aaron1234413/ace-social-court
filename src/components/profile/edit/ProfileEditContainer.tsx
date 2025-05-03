@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import ProfileEditForm from './ProfileEditForm';
+import ProfileEditWizard from './ProfileEditWizard';
 import { Database } from '@/integrations/supabase/types';
 
 type UserType = Database['public']['Enums']['user_type'];
@@ -22,7 +22,7 @@ export interface ProfileData {
   location_name: string | null;
   latitude: number | null;
   longitude: number | null;
-  avatar_url: string | null; // Added to match the Profile interface
+  avatar_url: string | null;
 }
 
 interface ProfileEditContainerProps {
@@ -113,7 +113,7 @@ export const ProfileEditContainer = ({ isNewUser }: ProfileEditContainerProps) =
     );
   }
 
-  return <ProfileEditForm isNewUser={isNewUser} profileData={profileData} />;
+  return <ProfileEditWizard isNewUser={isNewUser} profileData={profileData} />;
 };
 
 export default ProfileEditContainer;
