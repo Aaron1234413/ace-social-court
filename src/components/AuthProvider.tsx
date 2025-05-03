@@ -14,7 +14,7 @@ interface Profile {
   location_name?: string | null;
   latitude?: number | null;
   longitude?: number | null;
-  avatar_url?: string | null;  // Added this property
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {
@@ -37,7 +37,8 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {}
 });
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+// Make sure this is a functional component
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
