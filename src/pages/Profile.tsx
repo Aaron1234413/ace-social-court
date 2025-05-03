@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -17,16 +18,27 @@ import { Helmet } from 'react-helmet-async';
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { id } = useParams();
-  const userId = id || user?.id;
-  const isOwnProfile = userId === user?.id;
+  const { username } = useParams();
+  
+  // Handle different types of identifiers in the URL (username or ID)
+  const [profileIdentifier, setProfileIdentifier] = useState<string | null>(null);
+  const isOwnProfile = user?.id === username || user?.id === profileIdentifier;
 
+  // Determine the correct profile identifier (user ID or username)
   useEffect(() => {
-    if (!user && !id) {
+    if (!username && !user) {
       navigate('/auth');
       return;
     }
-
+    
+    // If no username provided in URL, use current user's ID
+    if (!username && user) {
+      setProfileIdentifier(user.id);
+    } else {
+      // Use provided username/ID from the URL
+      setProfileIdentifier(username || null);
+    }
+    
     // Initialize storage buckets if needed
     if (user) {
       initializeStorage().catch(err => {
@@ -34,25 +46,41 @@ const Profile = () => {
         toast.error('Error initializing media storage');
       });
     }
-  }, [user, navigate, id]);
+  }, [user, navigate, username]);
 
+  // Query by username first, then by user ID if username not found
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['profile', userId],
+    queryKey: ['profile', profileIdentifier],
     queryFn: async () => {
-      if (!userId) return null;
-      const { data, error } = await supabase
+      if (!profileIdentifier) return null;
+      
+      // First try to find by username (for friendly URLs)
+      const { data: usernameData, error: usernameError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('username', profileIdentifier)
         .single();
       
-      if (error) throw error;
-      return data;
+      if (usernameData) return usernameData;
+      
+      // If not found by username, try by user ID
+      const { data: idData, error: idError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileIdentifier)
+        .single();
+      
+      if (idError && usernameError) {
+        console.error('Profile not found:', { usernameError, idError });
+        throw new Error('Profile not found');
+      }
+      
+      return idData;
     },
-    enabled: !!userId
+    enabled: !!profileIdentifier
   });
 
-  if (!userId) {
+  if (!profileIdentifier) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -90,15 +118,15 @@ const Profile = () => {
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
-        <ProfileHeader userId={userId} isOwnProfile={isOwnProfile} />
+        <ProfileHeader userId={profile.id} isOwnProfile={isOwnProfile} />
         <Separator />
-        <ProfileMediaGallery userId={userId} />
+        <ProfileMediaGallery userId={profile.id} />
         <Separator />
-        <AchievementsList userId={userId} />
+        <AchievementsList userId={profile.id} />
         {profile.user_type === 'coach' && (
           <>
             <Separator />
-            <CertificationsList userId={userId} />
+            <CertificationsList userId={profile.id} />
           </>
         )}
       </div>
