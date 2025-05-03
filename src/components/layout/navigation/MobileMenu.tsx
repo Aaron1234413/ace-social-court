@@ -7,9 +7,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
+interface NavItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
 interface MobileMenuProps {
-  navLinks: { to: string; label: string; icon: React.ReactNode }[];
-  userLinks: { to: string; label: string; icon: React.ReactNode }[];
+  navLinks: NavItem[];
+  userLinks: NavItem[];
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onSignOut: () => void;
@@ -38,13 +44,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             <h2 className="text-lg font-semibold mb-2">Navigation</h2>
             {navLinks.map((link) => (
               <Link
-                key={link.to}
-                to={link.to}
+                key={link.url}
+                to={link.url}
                 className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                {link.icon}
-                <span>{link.label}</span>
+                <link.icon className="h-5 w-5" />
+                <span>{link.title}</span>
               </Link>
             ))}
           </div>
@@ -54,13 +60,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               <h2 className="text-lg font-semibold mb-2">User</h2>
               {userLinks.map((link) => (
                 <Link
-                  key={link.to}
-                  to={link.to}
+                  key={link.url}
+                  to={link.url}
                   className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {link.icon}
-                  <span>{link.label}</span>
+                  <link.icon className="h-5 w-5" />
+                  <span>{link.title}</span>
                 </Link>
               ))}
               <Button
