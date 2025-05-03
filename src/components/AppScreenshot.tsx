@@ -20,7 +20,7 @@ export const AppScreenshot = ({ src, alt, title }: AppScreenshotProps) => {
             <div className="ml-2 text-xs text-muted-foreground font-medium">{title}</div>
           </div>
         </div>
-        <AspectRatio ratio={9/16} className="bg-muted rounded-sm overflow-hidden">
+        <AspectRatio ratio={16/9} className="bg-muted rounded-sm overflow-hidden">
           <img 
             src={src} 
             alt={alt}

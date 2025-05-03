@@ -39,27 +39,27 @@ const Index = () => {
           </div>
         </div>
 
-        {/* App Screenshots */}
+        {/* App Screenshots - Updated with tennis-related images */}
         <div className="mb-24">
           <Carousel className="w-full max-w-5xl mx-auto">
             <CarouselContent>
               <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                 <AppScreenshot 
-                  src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158"
+                  src="https://images.unsplash.com/photo-1542144582-1ba00456b5e3"
                   alt="Finding tennis partners nearby"
                   title="Find Tennis Partners"
                 />
               </CarouselItem>
               <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                 <AppScreenshot 
-                  src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
+                  src="https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0"
                   alt="Tracking your tennis progress"
                   title="Track Your Progress" 
                 />
               </CarouselItem>
               <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                 <AppScreenshot 
-                  src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6"
+                  src="https://images.unsplash.com/photo-1592656094267-764a45160876"
                   alt="Video analysis of tennis technique"
                   title="Analyze Your Technique" 
                 />
