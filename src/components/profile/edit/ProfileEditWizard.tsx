@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,24 +36,6 @@ export const ProfileEditWizard = ({ isNewUser, profileData }: ProfileEditWizardP
   const [certifications, setCertifications] = useState<any[]>([]);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   
-  // Form steps configuration
-  const steps = [
-    { label: 'Basic Info', component: WizardBasicInfo },
-    { label: 'Playing Details', component: WizardPlayingInfo },
-    { label: 'Location', component: WizardLocationInfo },
-    { label: 'Achievements', component: WizardAchievements },
-    { label: 'Certifications', component: WizardCertifications, 
-      condition: (values: ProfileFormValues) => values.user_type === 'coach' }
-  ];
-  
-  // Filter steps based on conditions
-  const activeSteps = steps.filter(step => 
-    !step.condition || step.condition(form.getValues())
-  );
-  
-  // Calculate progress percentage
-  const progressPercentage = ((currentStep + 1) / activeSteps.length) * 100;
-
   // Initialize form with validation
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -74,6 +57,24 @@ export const ProfileEditWizard = ({ isNewUser, profileData }: ProfileEditWizardP
 
   // Watch for user_type changes to update steps
   const userType = form.watch('user_type');
+  
+  // Form steps configuration
+  const steps = [
+    { label: 'Basic Info', component: WizardBasicInfo },
+    { label: 'Playing Details', component: WizardPlayingInfo },
+    { label: 'Location', component: WizardLocationInfo },
+    { label: 'Achievements', component: WizardAchievements },
+    { label: 'Certifications', component: WizardCertifications, 
+      condition: (values: ProfileFormValues) => values.user_type === 'coach' }
+  ];
+  
+  // Filter steps based on conditions
+  const activeSteps = steps.filter(step => 
+    !step.condition || step.condition(form.getValues())
+  );
+  
+  // Calculate progress percentage
+  const progressPercentage = ((currentStep + 1) / activeSteps.length) * 100;
 
   // Set location data
   const handleSetLocation = (lat: number, lng: number, address: string) => {
