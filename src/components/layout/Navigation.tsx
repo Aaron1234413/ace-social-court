@@ -1,3 +1,4 @@
+
 import React, { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/components/AuthProvider"
@@ -11,10 +12,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, Home, Menu, MessageSquare, Search, User } from "lucide-react"
+import { Bell, Home, LogOut, Menu, MessageSquare, Search, User } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 const Navigation = () => {
   const { user, profile, signOut } = useAuth();
@@ -32,6 +34,12 @@ const Navigation = () => {
     if (searchQuery.trim() !== "") {
       navigate(`/search?q=${searchQuery}`);
     }
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    navigate("/auth");
+    toast.success("Signed out successfully");
   };
 
   const navLinks = [
@@ -91,13 +99,13 @@ const Navigation = () => {
                   ))}
                   <Button
                     variant="ghost"
-                    className="w-full justify-start px-2 py-2 h-auto"
+                    className="w-full justify-start px-2 py-2 h-auto text-red-500 hover:text-red-600 hover:bg-red-50"
                     onClick={() => {
-                      signOut();
-                      navigate("/auth");
+                      handleSignOut();
                       setIsMobileMenuOpen(false);
                     }}
                   >
+                    <LogOut className="h-5 w-5 mr-2" />
                     <span>Sign Out</span>
                   </Button>
                 </div>
@@ -171,11 +179,11 @@ const Navigation = () => {
             </div>
           )}
 
-          {/* User dropdown */}
+          {/* User dropdown - Made more obvious with text label */}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
+                <Button variant="outline" className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
                     {profile && (
                       <>
@@ -189,30 +197,42 @@ const Navigation = () => {
                       </>
                     )}
                   </Avatar>
+                  <span className="hidden sm:inline">Account</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuItem asChild>
-                  <Link to={`/profile/${profile?.username || user.id}`}>Profile</Link>
+                  <Link to={`/profile/${profile?.username || user.id}`} className="flex items-center cursor-pointer">
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/profile/edit">Edit Profile</Link>
+                  <Link to="/profile/edit" className="flex items-center cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                    Edit Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/messages">Messages</Link>
+                  <Link to="/messages" className="flex items-center cursor-pointer">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Messages
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/notifications">Notifications</Link>
+                  <Link to="/notifications" className="flex items-center cursor-pointer">
+                    <Bell className="h-4 w-4 mr-2" />
+                    Notifications
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => {
-                    signOut();
-                    navigate("/auth");
-                  }}
+                  onClick={handleSignOut}
+                  className="text-red-500 hover:text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50"
                 >
+                  <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
