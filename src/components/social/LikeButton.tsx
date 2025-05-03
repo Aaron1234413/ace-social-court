@@ -67,10 +67,14 @@ const LikeButton = ({
           table: 'likes',
           filter: `post_id=eq.${postId}`
         }, 
-        () => {
-          supabase.rpc('get_likes_count', { post_id: postId })
-            .then(({ data }) => setLikeCount(data || 0))
-            .catch(err => console.error('Error updating like count:', err));
+        async () => {
+          try {
+            const { data, error } = await supabase.rpc('get_likes_count', { post_id: postId });
+            if (error) throw error;
+            setLikeCount(data || 0);
+          } catch (err) {
+            console.error('Error updating like count:', err);
+          }
         }
       )
       .subscribe();
