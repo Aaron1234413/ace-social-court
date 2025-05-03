@@ -9,7 +9,7 @@ import { Post } from '@/types/post';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loading } from '@/components/ui/loading';
 import { PostActions } from './PostActions';
 
 interface PostListProps {
@@ -22,33 +22,7 @@ interface PostListProps {
 
 const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListProps) => {
   if (isLoading) {
-    return (
-      <div className="space-y-4 md:space-y-6">
-        {[...Array(3)].map((_, index) => (
-          <Card key={index} className="overflow-hidden">
-            <CardHeader className="pb-2 p-4 md:p-6">
-              <div className="flex items-center">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="ml-3">
-                  <Skeleton className="h-4 w-24 mb-2" />
-                  <Skeleton className="h-3 w-32" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 md:p-6">
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-3/4 mb-4" />
-              <Skeleton className="h-40 w-full" />
-            </CardContent>
-            <CardFooter className="border-t p-2 md:p-4 flex justify-between">
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-8 w-16" />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    );
+    return <Loading variant="skeleton" count={3} text="Loading posts..." />;
   }
 
   if (posts.length === 0) {

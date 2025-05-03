@@ -3,6 +3,7 @@ import { ProfileEditContainer } from '@/components/profile/edit/ProfileEditConta
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
+import { Loading } from '@/components/ui/loading';
 
 const ProfileEdit = () => {
   const location = useLocation();
@@ -18,7 +19,7 @@ const ProfileEdit = () => {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center">
-        <div className="loading loading-spinner text-primary"></div>
+        <Loading variant="spinner" text="Loading profile data..." />
       </div>
     );
   }

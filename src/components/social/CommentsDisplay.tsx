@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { Loading } from '@/components/ui/loading';
 
 type Comment = {
   id: string;
@@ -99,19 +99,7 @@ const CommentsDisplay = ({ postId }: CommentsDisplayProps) => {
   }, [postId]);
 
   if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="flex items-start space-x-3">
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-4 w-1/4" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <Loading variant="skeleton" count={2} text="Loading comments..." />;
   }
 
   if (comments.length === 0) {

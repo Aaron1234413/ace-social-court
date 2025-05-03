@@ -11,6 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { MessageSquare, Heart, Clock } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { toast } from 'sonner';
+import { Loading } from '@/components/ui/loading';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -123,12 +124,16 @@ const Feed = () => {
             <CreatePostForm onPostCreated={fetchPosts} />
           </div>
           
-          <PostList 
-            posts={posts}
-            currentUserId={user.id}
-            isLoading={isLoading}
-            onPostUpdated={handlePostUpdated}
-          />
+          {isLoading ? (
+            <Loading variant="skeleton" count={3} text="Loading posts..." />
+          ) : (
+            <PostList 
+              posts={posts}
+              currentUserId={user.id}
+              isLoading={false}
+              onPostUpdated={handlePostUpdated}
+            />
+          )}
         </>
       ) : (
         <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
