@@ -15,11 +15,30 @@ import { AlertTriangle } from 'lucide-react';
 import { BasicInfoFields } from './form-sections/BasicInfoFields';
 import { PlayingInfoFields } from './form-sections/PlayingInfoFields';
 import { LocationField } from './form-sections/LocationField';
+import { AchievementsField } from './form-sections/AchievementsField';
+import { CertificationsField } from './form-sections/CertificationsField';
 import { Database } from '@/integrations/supabase/types';
 import { ProfileData } from './ProfileEditContainer';
 
 type UserType = Database['public']['Enums']['user_type'];
 type ExperienceLevel = Database['public']['Enums']['experience_level'];
+
+// Define achievement schema
+const achievementSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1, 'Title is required'),
+  date_achieved: z.string().optional(),
+  description: z.string().optional()
+});
+
+// Define certification schema
+const certificationSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1, 'Title is required'),
+  issuing_organization: z.string().min(1, 'Organization is required'),
+  issue_date: z.string().optional(),
+  expiry_date: z.string().optional()
+});
 
 // Define schema for form validation
 const profileSchema = z.object({
@@ -32,6 +51,8 @@ const profileSchema = z.object({
   location_name: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
+  achievements: z.array(achievementSchema).optional().default([]),
+  certifications: z.array(certificationSchema).optional().default([])
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -50,6 +71,8 @@ export const ProfileEditForm = ({ isNewUser, profileData }: ProfileEditFormProps
   const [locationName, setLocationName] = useState<string>(profileData?.location_name || '');
   const [formSubmitAttempt, setFormSubmitAttempt] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [certifications, setCertifications] = useState<any[]>([]);
 
   // Initialize form with validation mode set to onChange for better user experience
   const form = useForm<ProfileFormValues>({
@@ -65,8 +88,43 @@ export const ProfileEditForm = ({ isNewUser, profileData }: ProfileEditFormProps
       location_name: '',
       latitude: undefined,
       longitude: undefined,
+      achievements: [],
+      certifications: []
     }
   });
+
+  // Fetch user achievements and certifications
+  useEffect(() => {
+    if (user) {
+      const fetchUserData = async () => {
+        try {
+          // Fetch achievements
+          const { data: achievementsData, error: achievementsError } = await supabase
+            .from('achievements')
+            .select('*')
+            .eq('user_id', user.id);
+          
+          if (achievementsError) throw achievementsError;
+          setAchievements(achievementsData || []);
+          
+          // Fetch certifications
+          const { data: certificationsData, error: certificationsError } = await supabase
+            .from('certifications')
+            .select('*')
+            .eq('user_id', user.id);
+          
+          if (certificationsError) throw certificationsError;
+          setCertifications(certificationsData || []);
+          
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          toast.error('Failed to fetch user data');
+        }
+      };
+      
+      fetchUserData();
+    }
+  }, [user]);
 
   // Update form values when profile data is loaded
   useEffect(() => {
@@ -84,13 +142,15 @@ export const ProfileEditForm = ({ isNewUser, profileData }: ProfileEditFormProps
         location_name: profileData.location_name || '',
         latitude: profileData.latitude || undefined,
         longitude: profileData.longitude || undefined,
+        achievements: achievements,
+        certifications: certifications
       });
 
       if (profileData.location_name) {
         setLocationName(profileData.location_name);
       }
     }
-  }, [profileData, form]);
+  }, [profileData, form, achievements, certifications]);
 
   // Set location data
   const handleSetLocation = (lat: number, lng: number, address: string) => {
@@ -183,13 +243,81 @@ export const ProfileEditForm = ({ isNewUser, profileData }: ProfileEditFormProps
       
       console.log('Submitting profile data:', profileData);
       
-      const { error } = await supabase
+      // Update profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .upsert(profileData);
 
-      if (error) {
-        console.error('Error updating profile:', error);
-        throw error;
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        throw profileError;
+      }
+
+      // Update achievements
+      if (values.achievements && values.achievements.length > 0) {
+        // First delete all existing achievements for this user
+        const { error: deleteError } = await supabase
+          .from('achievements')
+          .delete()
+          .eq('user_id', user.id);
+        
+        if (deleteError) {
+          console.error('Error deleting achievements:', deleteError);
+          throw deleteError;
+        }
+        
+        // Then insert the new achievements
+        const achievementsToInsert = values.achievements.map(achievement => ({
+          user_id: user.id,
+          title: achievement.title,
+          date_achieved: achievement.date_achieved || null,
+          description: achievement.description || null
+        }));
+        
+        if (achievementsToInsert.length > 0) {
+          const { error: insertError } = await supabase
+            .from('achievements')
+            .insert(achievementsToInsert);
+          
+          if (insertError) {
+            console.error('Error inserting achievements:', insertError);
+            throw insertError;
+          }
+        }
+      }
+      
+      // Update certifications
+      if (values.certifications && values.certifications.length > 0) {
+        // First delete all existing certifications for this user
+        const { error: deleteError } = await supabase
+          .from('certifications')
+          .delete()
+          .eq('user_id', user.id);
+        
+        if (deleteError) {
+          console.error('Error deleting certifications:', deleteError);
+          throw deleteError;
+        }
+        
+        // Then insert the new certifications
+        const certificationsToInsert = values.certifications.map(certification => ({
+          user_id: user.id,
+          title: certification.title,
+          issuing_organization: certification.issuing_organization,
+          issue_date: certification.issue_date || null,
+          expiry_date: certification.expiry_date || null
+        }));
+        
+        if (certificationsToInsert.length > 0) {
+          const { error: insertError } = await supabase
+            .from('certifications')
+            .insert(certificationsToInsert);
+          
+          if (insertError) {
+            console.error('Error inserting certifications:', insertError);
+            throw insertError;
+          }
+        }
       }
 
       console.log('Profile updated successfully, refreshing profile data');
@@ -243,6 +371,18 @@ export const ProfileEditForm = ({ isNewUser, profileData }: ProfileEditFormProps
           openLocationPicker={openLocationPicker}
           onSelectLocation={handleSetLocation}
         />
+
+        {/* Add Achievements section */}
+        <div className="border-t pt-6 mt-6">
+          <AchievementsField control={form.control} />
+        </div>
+
+        {/* Add Certifications section - only show for coaches */}
+        {form.watch('user_type') === 'coach' && (
+          <div className="border-t pt-6 mt-6">
+            <CertificationsField control={form.control} />
+          </div>
+        )}
 
         <Button 
           type="submit" 
