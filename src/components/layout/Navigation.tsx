@@ -1,45 +1,21 @@
 
-import React, { useState } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { useAuth } from "@/components/AuthProvider"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Bell, Home, LogOut, Menu, MessageSquare, Search, User } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/components/AuthProvider";
+import { cn } from "@/lib/utils";
+import { Home, User, MessageSquare, Bell } from "lucide-react";
+import UserDropdown from "./navigation/UserDropdown";
+import MobileMenu from "./navigation/MobileMenu";
+import SearchForm from "./navigation/SearchForm";
+import QuickActions from "./navigation/QuickActions";
 
 const Navigation = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim() !== "") {
-      navigate(`/search?q=${searchQuery}`);
-    }
-  };
-
   const handleSignOut = () => {
-    signOut();
-    navigate("/auth");
-    toast.success("Signed out successfully");
+    // The actual sign out logic is moved to UserDropdown component
   };
 
   const navLinks = [
@@ -58,61 +34,14 @@ const Navigation = () => {
   return (
     <div className="border-b sticky top-0 bg-background z-50">
       <div className="flex h-16 items-center px-4">
-        {/* Mobile menu trigger */}
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-          <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon" className="mr-2">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[240px] sm:w-[300px]">
-            <div className="flex flex-col gap-4 py-4">
-              <div className="px-2 mb-2">
-                <h2 className="text-lg font-semibold mb-2">Navigation</h2>
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {link.icon}
-                    <span>{link.label}</span>
-                  </Link>
-                ))}
-              </div>
-              
-              {user && (
-                <div className="border-t pt-2 px-2">
-                  <h2 className="text-lg font-semibold mb-2">User</h2>
-                  {userLinks.map((link) => (
-                    <Link
-                      key={link.to}
-                      to={link.to}
-                      className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {link.icon}
-                      <span>{link.label}</span>
-                    </Link>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start px-2 py-2 h-auto text-red-500 hover:text-red-600 hover:bg-red-50"
-                    onClick={() => {
-                      handleSignOut();
-                      setIsMobileMenuOpen(false);
-                    }}
-                  >
-                    <LogOut className="h-5 w-5 mr-2" />
-                    <span>Sign Out</span>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
+        {/* Mobile menu */}
+        <MobileMenu 
+          navLinks={navLinks}
+          userLinks={userLinks}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          onSignOut={handleSignOut}
+        />
         
         {/* Logo/brand */}
         <Link to="/" className="text-xl font-bold mr-4">
@@ -135,115 +64,21 @@ const Navigation = () => {
           ))}
         </nav>
 
-        {/* Search form */}
+        {/* Search and user actions */}
         <div className="ml-auto flex items-center space-x-4">
           {/* Search form */}
-          <form onSubmit={handleSearchSubmit} className="relative hidden sm:block">
-            <Input
-              type="search"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="pr-10 rounded-full bg-gray-100 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 w-[200px] lg:w-[300px]"
-            />
-            <Button type="submit" variant="ghost" size="icon" className="absolute right-1 top-1">
-              <Search className="h-5 w-5" />
-            </Button>
-          </form>
+          <SearchForm />
 
           {/* Quick action links (desktop only) */}
           {user && (
-            <div className="hidden md:flex space-x-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => navigate("/notifications")}
-                className="relative"
-              >
-                <Bell className="h-5 w-5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate("/messages")}
-              >
-                <MessageSquare className="h-5 w-5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate(`/profile/${profile?.username || user.id}`)}
-              >
-                <User className="h-5 w-5" />
-              </Button>
-            </div>
+            <QuickActions 
+              userId={user.id} 
+              username={profile?.username}
+            />
           )}
 
-          {/* User dropdown - Made more obvious with text label */}
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    {profile && (
-                      <>
-                        <AvatarImage 
-                          src={profile.avatar_url || undefined} 
-                          alt={profile.full_name || ''} 
-                        />
-                        <AvatarFallback>
-                          {profile.full_name?.charAt(0) || user.email?.charAt(0)}
-                        </AvatarFallback>
-                      </>
-                    )}
-                  </Avatar>
-                  <span className="hidden sm:inline">Account</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <Link to={`/profile/${profile?.username || user.id}`} className="flex items-center cursor-pointer">
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/profile/edit" className="flex items-center cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                    Edit Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/messages" className="flex items-center cursor-pointer">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Messages
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/notifications" className="flex items-center cursor-pointer">
-                    <Bell className="h-4 w-4 mr-2" />
-                    Notifications
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="text-red-500 hover:text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            location.pathname !== "/auth" && (
-              <Link to="/auth">
-                <Button>Sign In</Button>
-              </Link>
-            )
-          )}
+          {/* User dropdown */}
+          <UserDropdown />
         </div>
       </div>
     </div>
