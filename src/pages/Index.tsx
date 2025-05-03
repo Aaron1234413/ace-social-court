@@ -33,7 +33,6 @@ const Index = () => {
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Button size="lg" onClick={() => navigate("/auth")}>Get Started</Button>
-            <Button size="lg" variant="outline">Watch Demo</Button>
           </div>
         </div>
 
