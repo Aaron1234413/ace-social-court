@@ -234,8 +234,11 @@ export const uploadFileWithProgress = async (
       xhr.addEventListener('error', () => reject(new Error('Upload failed')));
       xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
       
-      // Configure request
-      xhr.open('POST', `${supabase.storageUrl}/object/${bucketName}/${filePath}`);
+      // Configure request - FIX: Using proper URL construction instead of accessing protected storageUrl
+      const projectUrl = new URL(supabase.supabaseUrl);
+      const storageUrl = `${projectUrl.protocol}//${projectUrl.host}/storage/v1`;
+      xhr.open('POST', `${storageUrl}/object/${bucketName}/${filePath}`);
+      
       xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token}`);
       xhr.send(file);
     });
