@@ -10,7 +10,8 @@ export const configureRealtime = async () => {
     console.log('Checking realtime configuration for tables...');
     
     // First check if the tables are added to the realtime publication
-    const { data: publicationData, error: publicationError } = await supabase.rpc(
+    // Use type assertion to work around TypeScript errors
+    const { data: publicationData, error: publicationError } = await (supabase.rpc as any)(
       'is_table_in_publication',
       { 
         _table_name: 'ai_conversations',
@@ -28,7 +29,8 @@ export const configureRealtime = async () => {
       console.log('Configuring realtime for ai_conversations table...');
       
       // Execute the SQL to configure the tables
-      const { error: configError } = await supabase.rpc('configure_realtime_tables');
+      // Use type assertion to work around TypeScript errors
+      const { error: configError } = await (supabase.rpc as any)('configure_realtime_tables');
       
       if (configError) {
         console.error('Error configuring realtime:', configError);
@@ -53,7 +55,8 @@ export const configureRealtime = async () => {
  */
 export const checkRealtimeFunctions = async () => {
   try {
-    const { data, error } = await supabase.rpc('check_realtime_functions');
+    // Use type assertion to work around TypeScript errors
+    const { data, error } = await (supabase.rpc as any)('check_realtime_functions');
     
     if (error) {
       console.warn('Realtime helper functions not available:', error);
