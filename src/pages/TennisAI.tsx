@@ -7,7 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import MessageList from '@/components/tennis-ai/MessageList';
 import MessageInput from '@/components/tennis-ai/MessageInput';
 import ConversationSidebar from '@/components/tennis-ai/ConversationSidebar';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface Message {
   id: string;
@@ -32,6 +36,7 @@ const TennisAI = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Redirect to login if not authenticated
@@ -192,6 +197,16 @@ const TennisAI = () => {
     loadMessages(conversationId);
   };
 
+  const ConversationSidebarContent = () => (
+    <ConversationSidebar 
+      conversations={conversations}
+      currentConversation={currentConversation}
+      handleConversationClick={handleConversationClick}
+      handleStartNewConversation={handleStartNewConversation}
+      handleDeleteConversation={handleDeleteConversation}
+    />
+  );
+
   if (!user) {
     return <div className="p-8 text-center">Please sign in to use the Tennis AI</div>;
   }
@@ -201,15 +216,26 @@ const TennisAI = () => {
       <h1 className="text-3xl font-bold mb-6">Tennis AI Assistant</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Conversation sidebar - visible on desktop only */}
+        {/* Mobile sidebar drawer */}
+        {isMobile && (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="lg:hidden mb-4 flex items-center">
+                <Menu className="mr-2 h-4 w-4" />
+                Conversations
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[80%] sm:w-[350px]">
+              <div className="h-full py-4">
+                <ConversationSidebarContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
+
+        {/* Desktop sidebar - visible on larger screens */}
         <div className="hidden lg:block">
-          <ConversationSidebar 
-            conversations={conversations}
-            currentConversation={currentConversation}
-            handleConversationClick={handleConversationClick}
-            handleStartNewConversation={handleStartNewConversation}
-            handleDeleteConversation={handleDeleteConversation}
-          />
+          <ConversationSidebarContent />
         </div>
 
         {/* Chat area - takes up most of the space */}

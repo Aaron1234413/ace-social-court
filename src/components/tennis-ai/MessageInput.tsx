@@ -28,11 +28,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
-    
-    // Auto-resize textarea
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -45,19 +40,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <form onSubmit={handleSendMessage} className="flex gap-2">
+    <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
       <Textarea
         ref={textareaRef}
         value={message}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder="Ask about tennis techniques, strategies, or training..."
-        className="resize-none min-h-10 max-h-40"
+        className="resize-none min-h-[50px] max-h-[150px] rounded-xl"
         disabled={isLoading}
       />
       <Button 
         type="submit" 
         size="icon" 
+        className="rounded-full h-10 w-10 flex-shrink-0"
         disabled={isLoading || !message.trim()}
       >
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
