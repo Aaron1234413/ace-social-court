@@ -14,6 +14,8 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user } = useAuth();
   
+  console.log("MainLayout rendering, user:", user ? "authenticated" : "unauthenticated");
+  
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full">
@@ -28,7 +30,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </main>
           
           {/* Bottom navigation for mobile */}
-          <BottomNav />
+          {user && <BottomNav />}
           
           <Toaster />
         </div>

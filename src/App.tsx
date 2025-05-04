@@ -45,6 +45,9 @@ function App() {
     };
   }, []);
 
+  // Output to console for debugging
+  console.log('App rendering, online status:', isOnline);
+
   return (
     <HelmetProvider>
       <AuthProvider>

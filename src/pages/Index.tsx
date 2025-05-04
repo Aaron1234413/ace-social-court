@@ -10,14 +10,21 @@ const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Add console log for debugging
+  console.log("Index page rendering, user:", user);
+
   useEffect(() => {
     if (user) {
+      console.log("User is authenticated, redirecting to feed");
       navigate('/feed');
     }
   }, [user, navigate]);
 
   // If user is authenticated, don't render anything while redirecting
-  if (user) return null;
+  if (user) {
+    console.log("User authenticated, returning null while redirecting");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">

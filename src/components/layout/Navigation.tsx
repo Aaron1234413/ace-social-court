@@ -33,17 +33,21 @@ const Navigation = () => {
   // Only show main nav links on mobile, not on desktop (since desktop has sidebar)
   const displayedNavLinks = isMobile ? navLinks : [];
 
+  console.log("Navigation component rendering, path:", location.pathname);
+
   return (
     <div className="border-b sticky top-0 bg-background z-50">
       <div className="flex h-16 items-center px-4">
-        {/* Mobile menu */}
-        <MobileMenu 
-          navLinks={navLinks}
-          userLinks={userLinks}
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-          onSignOut={() => {}} // Actual sign-out is handled in UserDropdown
-        />
+        {/* Mobile menu - only show when user is logged in */}
+        {user && (
+          <MobileMenu 
+            navLinks={navLinks}
+            userLinks={userLinks}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+            onSignOut={() => {}} // Actual sign-out is handled in UserDropdown
+          />
+        )}
         
         {/* Logo/brand */}
         <Link to="/" className="text-xl font-bold mr-4">
@@ -52,8 +56,8 @@ const Navigation = () => {
 
         {/* Search and user actions */}
         <div className="ml-auto flex items-center space-x-4">
-          {/* Search form */}
-          <SearchForm />
+          {/* Search form - only show when user is logged in */}
+          {user && <SearchForm />}
 
           {/* Quick action links (desktop only) */}
           {user && (
