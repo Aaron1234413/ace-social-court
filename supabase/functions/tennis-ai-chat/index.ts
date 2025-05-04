@@ -121,9 +121,31 @@ serve(async (req) => {
 
     if (insertError) throw insertError;
 
+    // Get user profile information (for future personalization)
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    // Prepare for personalization (will be expanded in the future)
+    let systemPrompt = TENNIS_SYSTEM_PROMPT;
+    
+    // In the future, we can enhance the prompt with user information
+    if (userProfile && !profileError) {
+      const profileInfo = [];
+      if (userProfile.experience_level) profileInfo.push(`Player experience level: ${userProfile.experience_level}`);
+      if (userProfile.playing_style) profileInfo.push(`Playing style: ${userProfile.playing_style}`);
+      
+      // Only add personalization if we have data
+      if (profileInfo.length > 0) {
+        systemPrompt += `\n\nUSER INFORMATION (use to personalize your advice):\n${profileInfo.join('\n')}`;
+      }
+    }
+
     // Format message history for OpenAI chat completion
     const messages = [
-      { role: "system", content: TENNIS_SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
     ];
 
     // Add conversation history
@@ -220,6 +242,16 @@ serve(async (req) => {
       });
 
     if (saveResponseError) throw saveResponseError;
+
+    // Track user interactions for future personalization (placeholder)
+    try {
+      // In the future, we can analyze the conversation to identify skills, techniques, or topics
+      // discussed and store them for personalization
+      console.log("Will track conversation insights for future personalization");
+    } catch (trackingError) {
+      // Don't fail the request if tracking fails
+      console.error("Error tracking conversation insights:", trackingError);
+    }
 
     // Return the response
     return new Response(
