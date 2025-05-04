@@ -18,6 +18,7 @@ interface ConversationSidebarProps {
   handleConversationClick: (id: string) => void;
   handleStartNewConversation: () => void;
   handleDeleteConversation?: (id: string) => void;
+  isLoading?: boolean;
 }
 
 const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
@@ -25,8 +26,24 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   currentConversation,
   handleConversationClick,
   handleStartNewConversation,
-  handleDeleteConversation
+  handleDeleteConversation,
+  isLoading = false
 }) => {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full">
+        <h2 className="text-lg font-medium mb-3">Conversations</h2>
+        <Skeleton className="h-10 w-full mb-4" />
+        <Separator className="mb-4" />
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <h2 className="text-lg font-medium mb-3">Conversations</h2>

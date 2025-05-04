@@ -19,12 +19,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Focus textarea on component mount
+  // Focus textarea on component mount and after messages are sent
   useEffect(() => {
-    if (textareaRef.current) {
+    if (textareaRef.current && !isLoading) {
       textareaRef.current.focus();
     }
-  }, []);
+  }, [isLoading]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);

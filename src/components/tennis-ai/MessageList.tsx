@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Message {
   id: string;
@@ -15,6 +16,7 @@ interface MessageListProps {
 }
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
+  // Display suggestion prompts when no messages
   if (messages.length === 0 && !isLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-6">
@@ -35,6 +37,24 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
     );
   }
 
+  // Display loading skeletons
+  if (messages.length === 0 && isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={`loading-${i}`} className="flex justify-start mb-4">
+            <div className="flex max-w-[80%] flex-row">
+              <Skeleton className="h-8 w-8 rounded-full mr-2" />
+              <div>
+                <Skeleton className="h-24 w-[250px] rounded-2xl" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {messages.map((msg) => (
@@ -43,6 +63,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
             {/* Avatar for AI messages */}
             {msg.is_from_ai && (
               <Avatar className="h-8 w-8 mr-2 flex-shrink-0">
+                <AvatarImage src="/lovable-uploads/ee9cb25f-ea48-42bf-bd4d-2f6b06aa30ed.png" alt="AI" />
                 <AvatarFallback className="bg-primary text-primary-foreground text-sm">AI</AvatarFallback>
               </Avatar>
             )}
@@ -64,10 +85,11 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
       ))}
       
       {/* Typing indicator */}
-      {isLoading && (
+      {isLoading && messages.length > 0 && (
         <div className="flex justify-start mb-4">
           <div className="flex max-w-[80%] flex-row">
             <Avatar className="h-8 w-8 mr-2 flex-shrink-0">
+              <AvatarImage src="/lovable-uploads/ee9cb25f-ea48-42bf-bd4d-2f6b06aa30ed.png" alt="AI" />
               <AvatarFallback className="bg-primary text-primary-foreground text-sm">AI</AvatarFallback>
             </Avatar>
             

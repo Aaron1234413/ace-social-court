@@ -38,14 +38,18 @@ const TennisAI = () => {
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!user) {
       console.log("User not authenticated, redirecting to auth page");
+      toast.error("Please sign in to use the Tennis AI");
       navigate('/auth');
     } else {
-      loadConversations();
+      setLoadingConversations(true);
+      loadConversations().finally(() => setLoadingConversations(false));
     }
   }, [user, navigate]);
 
@@ -53,6 +57,50 @@ const TennisAI = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Set up real-time subscription for messages
+  useEffect(() => {
+    if (!currentConversation || !user) return;
+
+    const channel = supabase
+      .channel(`tennis-ai-messages-${currentConversation}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'ai_messages',
+        filter: `conversation_id=eq.${currentConversation}`
+      }, (payload) => {
+        console.log('New message:', payload);
+        loadMessages(currentConversation);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentConversation, user]);
+
+  // Set up real-time subscription for conversations
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`tennis-ai-conversations-${user.id}`)
+      .on('postgres_changes', {
+        event: '*', // INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'ai_conversations',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('Conversation change:', payload);
+        loadConversations();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,7 +112,7 @@ const TennisAI = () => {
         .from('ai_conversations')
         .select('*')
         .order('updated_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (error) throw error;
       setConversations(data || []);
@@ -72,11 +120,15 @@ const TennisAI = () => {
       // If there are conversations and no current conversation selected, select the most recent one
       if (data && data.length > 0 && !currentConversation) {
         setCurrentConversation(data[0].id);
-        loadMessages(data[0].id);
+        setLoadingMessages(true);
+        loadMessages(data[0].id).finally(() => setLoadingMessages(false));
       }
+      
+      return data;
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast.error('Failed to load conversations');
+      return [];
     }
   };
 
@@ -90,9 +142,11 @@ const TennisAI = () => {
 
       if (error) throw error;
       setMessages(data || []);
+      return data;
     } catch (error) {
       console.error('Error loading messages:', error);
       toast.error('Failed to load messages');
+      return [];
     }
   };
 
@@ -160,13 +214,15 @@ const TennisAI = () => {
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, optimisticUserMessage]);
+      
+      const trimmedMessage = message.trim();
       setMessage('');
 
       // Call the edge function
       const { data, error } = await supabase.functions.invoke('tennis-ai-chat', {
         body: {
           conversationId: currentConversation,
-          message: message.trim(),
+          message: trimmedMessage,
           userId: user.id
         }
       });
@@ -193,8 +249,12 @@ const TennisAI = () => {
   };
 
   const handleConversationClick = (conversationId: string) => {
+    if (conversationId === currentConversation) return;
+    
     setCurrentConversation(conversationId);
-    loadMessages(conversationId);
+    setLoadingMessages(true);
+    setMessages([]);
+    loadMessages(conversationId).finally(() => setLoadingMessages(false));
   };
 
   const ConversationSidebarContent = () => (
@@ -243,7 +303,10 @@ const TennisAI = () => {
           <div className="bg-card rounded-lg border shadow-sm h-[70vh] flex flex-col">
             {/* Chat history */}
             <div className="flex-1 overflow-y-auto p-4">
-              <MessageList messages={messages} isLoading={isLoading} />
+              <MessageList 
+                messages={messages} 
+                isLoading={isLoading || loadingMessages} 
+              />
               <div ref={messagesEndRef} />
             </div>
 
