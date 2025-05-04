@@ -68,6 +68,53 @@ const TennisAI = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Set up real-time subscription for conversations
+  useEffect(() => {
+    if (!user) return;
+    
+    console.log("Setting up realtime channel for conversations");
+    
+    const channel = supabase
+      .channel(`tennis-ai-conversations-${user.id}`)
+      .on('postgres_changes', {
+        event: '*', // Listen for all changes (INSERT, UPDATE, DELETE)
+        schema: 'public',
+        table: 'ai_conversations',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('Conversation change detected:', payload);
+        
+        // Handle different types of changes
+        if (payload.eventType === 'DELETE') {
+          console.log('Conversation deleted from database:', payload.old);
+          // Remove the deleted conversation from local state
+          setConversations(prev => {
+            const filtered = prev.filter(c => c.id !== payload.old.id);
+            console.log('Updated conversations after DELETE event:', filtered);
+            return filtered;
+          });
+          
+          // Reset current conversation if it was the one deleted
+          if (currentConversation === payload.old.id) {
+            console.log('Current conversation was deleted, resetting state');
+            setCurrentConversation(null);
+            setMessages([]);
+          }
+        } else {
+          // For INSERT and UPDATE, just refresh the conversations list
+          loadConversations();
+        }
+      })
+      .subscribe((status) => {
+        console.log('Conversation channel status:', status);
+      });
+
+    return () => {
+      console.log('Removing conversation channel');
+      supabase.removeChannel(channel);
+    };
+  }, [user, currentConversation]);
+
   // Set up real-time subscription for messages
   useEffect(() => {
     if (!currentConversation || !user) return;
@@ -111,28 +158,6 @@ const TennisAI = () => {
     };
   }, [currentConversation, user]);
 
-  // Set up real-time subscription for conversations
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel(`tennis-ai-conversations-${user.id}`)
-      .on('postgres_changes', {
-        event: '*', // INSERT, UPDATE, DELETE
-        schema: 'public',
-        table: 'ai_conversations',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        console.log('Conversation change:', payload);
-        loadConversations();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -140,25 +165,30 @@ const TennisAI = () => {
   const loadConversations = async () => {
     try {
       setApiError(null);
+      console.log("Loading conversations from database...");
+      
       const { data, error } = await supabase
         .from('ai_conversations')
         .select('*')
+        .eq('user_id', user?.id)
         .order('updated_at', { ascending: false })
-        .limit(30); // Increased limit for better history
+        .limit(30);
 
       if (error) throw error;
       
-      console.log('Loaded conversations:', data);
+      console.log(`Loaded ${data?.length || 0} conversations:`, data);
       setConversations(data || []);
 
       // If there are conversations and no current conversation selected, select the most recent one
       if (data && data.length > 0 && !currentConversation) {
+        console.log(`Selecting first conversation: ${data[0].id}`);
         setCurrentConversation(data[0].id);
         setLoadingMessages(true);
         loadMessages(data[0].id).finally(() => setLoadingMessages(false));
       } else if (data && data.length === 0 && currentConversation) {
         // If no conversations left but we have a current conversation ID
         // (this might happen after deleting the last conversation)
+        console.log("No conversations left, resetting current conversation");
         setCurrentConversation(null);
         setMessages([]);
       }
@@ -181,6 +211,8 @@ const TennisAI = () => {
   const loadMessages = async (conversationId: string) => {
     try {
       setApiError(null);
+      console.log(`Loading messages for conversation: ${conversationId}`);
+      
       const { data, error } = await supabase
         .from('ai_messages')
         .select('*')
@@ -188,6 +220,8 @@ const TennisAI = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
+      
+      console.log(`Loaded ${data?.length || 0} messages`);
       setMessages(data || []);
       return data;
     } catch (error) {
@@ -219,45 +253,71 @@ const TennisAI = () => {
     if (!conversationToDelete) return;
     
     try {
-      // Delete messages first (foreign key constraint)
-      const { error: messagesError } = await supabase
-        .from('ai_messages')
-        .delete()
-        .eq('conversation_id', conversationToDelete);
+      console.log(`Starting deletion process for conversation: ${conversationToDelete}`);
       
-      if (messagesError) throw messagesError;
-      
-      // Then delete the conversation
-      const { error: conversationError } = await supabase
-        .from('ai_conversations')
-        .delete()
-        .eq('id', conversationToDelete);
-      
-      if (conversationError) throw conversationError;
-      
-      console.log('Deleted conversation:', conversationToDelete);
-      
-      // Update local state immediately
+      // Optimistically update UI immediately
+      // Update local state before making the API call for instant UI feedback
       setConversations(prev => {
         const filtered = prev.filter(conv => conv.id !== conversationToDelete);
-        console.log('Updated conversations after delete:', filtered);
+        console.log('Optimistically updated conversations list:', filtered);
         return filtered;
       });
       
       // If the current conversation was deleted, reset state
       if (currentConversation === conversationToDelete) {
+        console.log('Current conversation is being deleted, resetting state');
         setCurrentConversation(null);
         setMessages([]);
       }
       
+      // Delete messages first (foreign key constraint)
+      console.log(`Deleting messages for conversation: ${conversationToDelete}`);
+      const { error: messagesError } = await supabase
+        .from('ai_messages')
+        .delete()
+        .eq('conversation_id', conversationToDelete);
+      
+      if (messagesError) {
+        console.error('Error deleting messages:', messagesError);
+        throw messagesError;
+      }
+      
+      // Then delete the conversation
+      console.log(`Deleting conversation: ${conversationToDelete}`);
+      const { error: conversationError } = await supabase
+        .from('ai_conversations')
+        .delete()
+        .eq('id', conversationToDelete);
+      
+      if (conversationError) {
+        console.error('Error deleting conversation:', conversationError);
+        throw conversationError;
+      }
+      
+      console.log(`Successfully deleted conversation: ${conversationToDelete}`);
       toast.success('Conversation deleted');
       
-      // Force refresh conversations from the database
+      // Force refresh conversations from the database to ensure UI is in sync
+      setLoadingConversations(true);
+      await loadConversations();
+      setLoadingConversations(false);
+      
+      // Select the first available conversation if any
+      if (conversations.length > 0 && !currentConversation) {
+        const firstConversation = conversations[0];
+        console.log(`Selecting first available conversation: ${firstConversation.id}`);
+        setCurrentConversation(firstConversation.id);
+        setLoadingMessages(true);
+        await loadMessages(firstConversation.id);
+        setLoadingMessages(false);
+      }
+    } catch (error) {
+      console.error('Error during deletion process:', error);
+      toast.error('Failed to delete conversation');
+      
+      // Reload conversations to restore correct state
       setLoadingConversations(true);
       loadConversations().finally(() => setLoadingConversations(false));
-    } catch (error) {
-      console.error('Error deleting conversation:', error);
-      toast.error('Failed to delete conversation');
     } finally {
       setDeleteDialogOpen(false);
       setConversationToDelete(null);
@@ -269,6 +329,8 @@ const TennisAI = () => {
     if (!user || !id || !newTitle.trim()) return;
     
     try {
+      console.log(`Renaming conversation ${id} to "${newTitle}"`);
+      
       const { error } = await supabase
         .from('ai_conversations')
         .update({ title: newTitle })
@@ -343,6 +405,7 @@ const TennisAI = () => {
 
       // If this created a new conversation, update the current conversation ID
       if (data.conversationId !== currentConversation) {
+        console.log(`New conversation created: ${data.conversationId}`);
         setCurrentConversation(data.conversationId);
         await loadConversations(); // Refresh the conversation list
       }
