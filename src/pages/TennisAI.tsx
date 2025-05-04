@@ -2,12 +2,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Send } from 'lucide-react';
+import MessageList from '@/components/tennis-ai/MessageList';
+import MessageInput from '@/components/tennis-ai/MessageInput';
+import ConversationSidebar from '@/components/tennis-ai/ConversationSidebar';
 
 interface Message {
   id: string;
@@ -31,7 +30,6 @@ const TennisAI = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -112,11 +110,6 @@ const TennisAI = () => {
       setMessages(prev => [...prev, optimisticUserMessage]);
       setMessage('');
 
-      // Adjust textarea height
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-
       // Call the edge function
       const { data, error } = await supabase.functions.invoke('tennis-ai-chat', {
         body: {
@@ -147,25 +140,9 @@ const TennisAI = () => {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage(e as unknown as React.FormEvent);
-    }
-  };
-
   const handleConversationClick = (conversationId: string) => {
     setCurrentConversation(conversationId);
     loadMessages(conversationId);
-  };
-
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-    
-    // Auto-resize textarea
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
   if (!user) {
@@ -179,36 +156,12 @@ const TennisAI = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Conversation sidebar - visible on desktop only */}
         <div className="hidden lg:block">
-          <div className="bg-card rounded-lg border shadow-sm p-4">
-            <h2 className="text-lg font-medium mb-3">Conversations</h2>
-            <Button 
-              variant="outline" 
-              className="w-full mb-4" 
-              onClick={handleStartNewConversation}
-            >
-              New Conversation
-            </Button>
-            <Separator className="mb-4" />
-            <div className="space-y-2">
-              {conversations.map(conversation => (
-                <div 
-                  key={conversation.id}
-                  className={`p-2 rounded cursor-pointer text-sm hover:bg-accent ${currentConversation === conversation.id ? 'bg-accent' : ''}`}
-                  onClick={() => handleConversationClick(conversation.id)}
-                >
-                  <div className="font-medium truncate">{conversation.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(conversation.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-              ))}
-              {conversations.length === 0 && (
-                <div className="text-sm text-muted-foreground text-center py-6">
-                  No conversations yet
-                </div>
-              )}
-            </div>
-          </div>
+          <ConversationSidebar 
+            conversations={conversations}
+            currentConversation={currentConversation}
+            handleConversationClick={handleConversationClick}
+            handleStartNewConversation={handleStartNewConversation}
+          />
         </div>
 
         {/* Chat area - takes up most of the space */}
@@ -216,64 +169,19 @@ const TennisAI = () => {
           <div className="bg-card rounded-lg border shadow-sm h-[70vh] flex flex-col">
             {/* Chat history */}
             <div className="flex-1 overflow-y-auto p-4">
-              {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-6">
-                  <h3 className="text-lg font-medium mb-2">Tennis AI Assistant</h3>
-                  <p className="mb-4">Ask me anything about tennis techniques, strategies, or training.</p>
-                  <div className="max-w-md text-sm space-y-2">
-                    <div className="bg-accent/30 p-3 rounded-lg">
-                      "What's the proper technique for a one-handed backhand?"
-                    </div>
-                    <div className="bg-accent/30 p-3 rounded-lg">
-                      "How should I approach playing on clay courts?"
-                    </div>
-                    <div className="bg-accent/30 p-3 rounded-lg">
-                      "What exercises help improve serve power?"
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {messages.map((msg) => (
-                    <div key={msg.id} className={`mb-4 ${msg.is_from_ai ? '' : 'text-right'}`}>
-                      <div className={`inline-block max-w-[80%] px-4 py-2 rounded-lg ${
-                        msg.is_from_ai 
-                          ? 'bg-accent/30 text-left rounded-tl-none' 
-                          : 'bg-primary text-primary-foreground rounded-tr-none'
-                      }`}>
-                        <div className="whitespace-pre-wrap">{msg.content}</div>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </>
-              )}
+              <MessageList messages={messages} isLoading={isLoading} />
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Message input */}
-            <form onSubmit={handleSendMessage} className="border-t p-4">
-              <div className="flex gap-2">
-                <Textarea
-                  ref={textareaRef}
-                  value={message}
-                  onChange={handleTextareaChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask about tennis techniques, strategies, or training..."
-                  className="resize-none min-h-10 max-h-40"
-                  disabled={isLoading}
-                />
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  disabled={isLoading || !message.trim()}
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-            </form>
+            <div className="border-t p-4">
+              <MessageInput
+                message={message}
+                setMessage={setMessage}
+                handleSendMessage={handleSendMessage}
+                isLoading={isLoading}
+              />
+            </div>
           </div>
         </div>
       </div>
