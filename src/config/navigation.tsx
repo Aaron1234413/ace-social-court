@@ -1,5 +1,5 @@
 
-import { Bell, Home, Map, MessageSquare, Search, Settings, User, Video } from "lucide-react";
+import { Bell, Home, Map, MessageSquare, Search, Settings, User, Video, HelpCircle } from "lucide-react";
 
 // Shared navigation configuration to be used by both the top navigation bar and sidebar
 export const navigationConfig = {
@@ -24,6 +24,11 @@ export const navigationConfig = {
       title: "Video Analysis",
       url: "/analysis",
       icon: Video,
+    },
+    {
+      title: "Tennis AI",
+      url: "/tennis-ai",
+      icon: HelpCircle,
     },
   ],
   

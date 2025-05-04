@@ -15,6 +15,7 @@ import NotFound from './pages/NotFound';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import PostDetail from './pages/PostDetail';
 import VideoAnalysis from './pages/VideoAnalysis';
+import TennisAI from './pages/TennisAI';
 import MainLayout from './components/layout/MainLayout';
 
 // Redirect component that sends users to their profile
@@ -79,6 +80,7 @@ function App() {
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/post/:id" element={<PostDetail />} />
               <Route path="/analysis" element={<VideoAnalysis />} />
+              <Route path="/tennis-ai" element={<TennisAI />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MainLayout>
