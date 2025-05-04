@@ -2,15 +2,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, PlusCircle, MessageSquare, MoreVertical } from 'lucide-react';
+import { Trash2, PlusCircle, MessageSquare } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 
 interface Conversation {
   id: string;
@@ -75,13 +69,14 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             {conversations.map(conversation => (
               <div 
                 key={conversation.id}
-                className={`p-3 rounded-lg cursor-pointer transition-all hover:bg-accent group relative ${
-                  currentConversation === conversation.id ? 'bg-accent shadow-sm' : 'hover:shadow-sm'
+                className={`rounded-lg border transition-all ${
+                  currentConversation === conversation.id ? 'bg-accent border-primary' : 'border-border hover:border-primary/50'
                 }`}
               >
-                <div className="flex justify-between items-center">
+                <div className="flex items-center p-2">
+                  {/* Conversation title and date - clickable area */}
                   <div 
-                    className="truncate flex-1"
+                    className="flex-1 p-2 cursor-pointer"
                     onClick={() => handleConversationClick(conversation.id)}
                   >
                     <div className={`font-medium truncate ${currentConversation === conversation.id ? 'text-primary' : ''}`}>
@@ -97,23 +92,21 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     </div>
                   </div>
                   
+                  {/* Delete button - always visible with improved design */}
                   {handleDeleteConversation && (
-                    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                      {/* Always visible delete button */}
-                      <Button
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 flex justify-center items-center text-muted-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteConversation(conversation.id);
-                        }}
-                        title="Delete conversation"
-                      >
-                        <Trash2 className="h-4 w-4 hover:text-destructive transition-colors" />
-                        <span className="sr-only">Delete conversation</span>
-                      </Button>
-                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex items-center mr-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteConversation(conversation.id);
+                      }}
+                      title="Delete conversation"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only md:not-sr-only md:ml-2">Delete</span>
+                    </Button>
                   )}
                 </div>
               </div>
