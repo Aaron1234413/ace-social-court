@@ -234,11 +234,13 @@ export const uploadFileWithProgress = async (
       xhr.addEventListener('error', () => reject(new Error('Upload failed')));
       xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
       
-      // Configure request - FIX: Using proper URL construction instead of accessing protected storageUrl
-      const projectUrl = new URL(supabase.supabaseUrl);
-      const storageUrl = `${projectUrl.protocol}//${projectUrl.host}/storage/v1`;
-      xhr.open('POST', `${storageUrl}/object/${bucketName}/${filePath}`);
+      // Use the getPublicUrl method to get the base URL, then manually construct the upload endpoint
+      // This avoids accessing protected properties of the Supabase client
+      const { data } = supabase.storage.from(bucketName).getPublicUrl('');
+      const baseUrl = new URL(data.publicUrl);
+      const storageUrl = `${baseUrl.protocol}//${baseUrl.host}/storage/v1`;
       
+      xhr.open('POST', `${storageUrl}/object/${bucketName}/${filePath}`);
       xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token}`);
       xhr.send(file);
     });
