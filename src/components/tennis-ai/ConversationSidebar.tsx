@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Trash2 } from 'lucide-react';
 
 interface Conversation {
   id: string;
@@ -14,13 +15,15 @@ interface ConversationSidebarProps {
   currentConversation: string | null;
   handleConversationClick: (id: string) => void;
   handleStartNewConversation: () => void;
+  handleDeleteConversation?: (id: string) => void;
 }
 
 const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   conversations,
   currentConversation,
   handleConversationClick,
-  handleStartNewConversation
+  handleStartNewConversation,
+  handleDeleteConversation
 }) => {
   return (
     <div className="bg-card rounded-lg border shadow-sm p-4">
@@ -37,12 +40,33 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         {conversations.map(conversation => (
           <div 
             key={conversation.id}
-            className={`p-2 rounded cursor-pointer text-sm hover:bg-accent ${currentConversation === conversation.id ? 'bg-accent' : ''}`}
-            onClick={() => handleConversationClick(conversation.id)}
+            className={`p-2 rounded cursor-pointer text-sm hover:bg-accent group relative ${currentConversation === conversation.id ? 'bg-accent' : ''}`}
           >
-            <div className="font-medium truncate">{conversation.title}</div>
-            <div className="text-xs text-muted-foreground">
-              {new Date(conversation.created_at).toLocaleDateString()}
+            <div 
+              className="flex justify-between items-center"
+              onClick={() => handleConversationClick(conversation.id)}
+            >
+              <div className="truncate flex-1">
+                <div className="font-medium truncate">{conversation.title}</div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(conversation.created_at).toLocaleDateString()}
+                </div>
+              </div>
+              
+              {handleDeleteConversation && (
+                <Button
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteConversation(conversation.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="sr-only">Delete conversation</span>
+                </Button>
+              )}
             </div>
           </div>
         ))}

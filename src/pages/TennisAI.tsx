@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import MessageList from '@/components/tennis-ai/MessageList';
 import MessageInput from '@/components/tennis-ai/MessageInput';
 import ConversationSidebar from '@/components/tennis-ai/ConversationSidebar';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface Message {
   id: string;
@@ -29,6 +30,8 @@ const TennisAI = () => {
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Redirect to login if not authenticated
@@ -56,7 +59,7 @@ const TennisAI = () => {
         .from('ai_conversations')
         .select('*')
         .order('updated_at', { ascending: false })
-        .limit(5);
+        .limit(10);
 
       if (error) throw error;
       setConversations(data || []);
@@ -91,6 +94,50 @@ const TennisAI = () => {
   const handleStartNewConversation = () => {
     setCurrentConversation(null);
     setMessages([]);
+  };
+
+  const handleDeleteConversation = (id: string) => {
+    setConversationToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+    
+    try {
+      // Delete messages first (foreign key constraint)
+      const { error: messagesError } = await supabase
+        .from('ai_messages')
+        .delete()
+        .eq('conversation_id', conversationToDelete);
+      
+      if (messagesError) throw messagesError;
+      
+      // Then delete the conversation
+      const { error: conversationError } = await supabase
+        .from('ai_conversations')
+        .delete()
+        .eq('id', conversationToDelete);
+      
+      if (conversationError) throw conversationError;
+      
+      // Update local state
+      setConversations(prev => prev.filter(conv => conv.id !== conversationToDelete));
+      
+      // If the current conversation was deleted, reset state
+      if (currentConversation === conversationToDelete) {
+        setCurrentConversation(null);
+        setMessages([]);
+      }
+      
+      toast.success('Conversation deleted');
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast.error('Failed to delete conversation');
+    } finally {
+      setDeleteDialogOpen(false);
+      setConversationToDelete(null);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -161,6 +208,7 @@ const TennisAI = () => {
             currentConversation={currentConversation}
             handleConversationClick={handleConversationClick}
             handleStartNewConversation={handleStartNewConversation}
+            handleDeleteConversation={handleDeleteConversation}
           />
         </div>
 
@@ -185,6 +233,27 @@ const TennisAI = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog 
+        open={deleteDialogOpen} 
+        onOpenChange={setDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this conversation? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteConversation} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
