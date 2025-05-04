@@ -2,9 +2,15 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, PlusCircle, MessageSquare } from 'lucide-react';
+import { Trash2, PlusCircle, MessageSquare, MoreVertical } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 interface Conversation {
   id: string;
@@ -92,18 +98,58 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                   </div>
                   
                   {handleDeleteConversation && (
-                    <Button
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteConversation(conversation.id);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
-                      <span className="sr-only">Delete conversation</span>
-                    </Button>
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                      {/* Mobile-friendly always visible delete button */}
+                      <Button
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 md:hidden"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConversation(conversation.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
+                        <span className="sr-only">Delete conversation</span>
+                      </Button>
+                      
+                      {/* Desktop hover-to-reveal delete button */}
+                      <Button
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConversation(conversation.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
+                        <span className="sr-only">Delete conversation</span>
+                      </Button>
+                      
+                      {/* Alternative dropdown for more actions (can be expanded later) */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">More options</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            className="text-destructive flex items-center cursor-pointer"
+                            onClick={() => handleDeleteConversation(conversation.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   )}
                 </div>
               </div>
