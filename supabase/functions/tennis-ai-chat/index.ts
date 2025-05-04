@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Tennis coaching system prompt
+// Enhanced tennis coaching system prompt with improved instruction and examples
 const TENNIS_SYSTEM_PROMPT = `You are an expert tennis coach and analyst with years of experience. 
 You provide friendly, detailed advice on tennis techniques, strategies, training regimens, and equipment.
 
@@ -28,6 +28,18 @@ When giving advice:
 4. Use clear, concise descriptions of physical movements
 5. Provide specific, actionable advice that can be implemented immediately
 6. Reference relevant professional players as examples when appropriate
+7. Keep responses focused and to-the-point, in the 50-200 word range unless detailed explanations are requested
+8. Use bullet points for clarity when listing multiple recommendations or steps
+
+When asked about equipment:
+- Always consider the player's skill level, playing style, and physical attributes
+- Avoid overly promoting specific brands unless the user asks for brand recommendations
+- Focus on the technical aspects and benefits of equipment choices
+
+When asked about training:
+- Suggest exercises appropriate to the player's described level
+- Include a balance of technique, fitness, and mental components
+- Recommend appropriate progression paths based on skill development
 
 IMPORTANT: If you don't know the answer to something, admit it rather than making up information. Suggest resources where the user might find more information or recommend consulting with a local tennis professional for personalized advice.`;
 
@@ -61,10 +73,11 @@ serve(async (req) => {
     let currentConversationId = conversationId;
 
     if (!currentConversationId) {
-      // Create new conversation
+      // Create new conversation with a more descriptive title
+      const titleText = message.length > 40 ? message.substring(0, 40) + '...' : message;
       const { data: newConversation, error: createError } = await supabase
         .from('ai_conversations')
-        .insert({ user_id: userId, title: message.substring(0, 40) + '...' })
+        .insert({ user_id: userId, title: titleText })
         .select()
         .single();
 
@@ -115,7 +128,9 @@ serve(async (req) => {
 
     // Add conversation history
     if (messageHistory && messageHistory.length > 0) {
-      messageHistory.forEach(msg => {
+      // Limit context window to prevent token limits
+      const recentMessages = messageHistory.slice(-10); // Use only the 10 most recent messages
+      recentMessages.forEach(msg => {
         messages.push({
           role: msg.is_from_ai ? "assistant" : "user",
           content: msg.content
@@ -126,30 +141,74 @@ serve(async (req) => {
     // Add the current message
     messages.push({ role: "user", content: message });
 
-    // Call OpenAI API
-    console.log(`Sending ${messages.length} messages to OpenAI`);
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 1000
-      })
-    });
+    // Call OpenAI API with retry logic
+    let openaiResponse;
+    let retries = 0;
+    const maxRetries = 2;
+    
+    while (retries <= maxRetries) {
+      try {
+        console.log(`Attempt ${retries + 1}: Sending ${messages.length} messages to OpenAI`);
+        openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 1000
+          })
+        });
+        
+        if (openaiResponse.ok) break;
+        
+        const errorData = await openaiResponse.json();
+        console.error(`Attempt ${retries + 1} failed:`, errorData);
+        
+        // If we're rate limited, wait a bit and try again
+        if (openaiResponse.status === 429 && retries < maxRetries) {
+          const backoff = Math.pow(2, retries) * 1000; // Exponential backoff
+          console.log(`Rate limited. Retrying in ${backoff}ms...`);
+          await new Promise(resolve => setTimeout(resolve, backoff));
+          retries++;
+          continue;
+        }
+        
+        throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      } catch (error) {
+        if (retries >= maxRetries) throw error;
+        retries++;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simple delay for network errors
+      }
+    }
 
     if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      throw new Error(`OpenAI API final failure after ${retries} retries`);
     }
 
     const responseData = await openaiResponse.json();
     const aiMessage = responseData.choices[0].message.content;
+
+    // Update conversation title if this is the first message
+    if (messageHistory.length === 0) {
+      // Generate a more descriptive title (first ~30 chars of the AI response)
+      let titleText = aiMessage.split('.')[0];
+      if (titleText.length > 30) titleText = titleText.substring(0, 27) + '...';
+      
+      await supabase
+        .from('ai_conversations')
+        .update({ title: titleText })
+        .eq('id', currentConversationId);
+    }
+
+    // Update conversation's updated_at timestamp
+    await supabase
+      .from('ai_conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', currentConversationId);
 
     // Save AI response to the database
     const { error: saveResponseError } = await supabase

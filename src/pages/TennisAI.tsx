@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Loading } from '@/components/ui/loading';
 
 interface Message {
   id: string;
@@ -40,6 +41,14 @@ const TennisAI = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [apiError, setApiError] = useState<{message: string; retry?: () => void} | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const realtimeChannelRef = useRef<any>(null);
+  
+  // Auto-retry for API failures
+  const maxRetries = 3;
+  const retryIntervalMs = 3000;
+  const [retryCount, setRetryCount] = useState(0);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -61,22 +70,43 @@ const TennisAI = () => {
   // Set up real-time subscription for messages
   useEffect(() => {
     if (!currentConversation || !user) return;
+    
+    // Clean up any existing subscription
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+    }
 
-    const channel = supabase
-      .channel(`tennis-ai-messages-${currentConversation}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'ai_messages',
-        filter: `conversation_id=eq.${currentConversation}`
-      }, (payload) => {
-        console.log('New message:', payload);
-        loadMessages(currentConversation);
-      })
-      .subscribe();
-
+    const setupChannel = () => {
+      console.log(`Setting up realtime channel for conversation: ${currentConversation}`);
+      const channel = supabase
+        .channel(`tennis-ai-messages-${currentConversation}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ai_messages',
+          filter: `conversation_id=eq.${currentConversation}`
+        }, (payload) => {
+          console.log('New message received:', payload);
+          loadMessages(currentConversation);
+        })
+        .subscribe((status) => {
+          console.log('Channel status:', status);
+          if (status !== 'SUBSCRIBED') {
+            console.warn('Channel subscription failed, will retry');
+            setTimeout(() => setupChannel(), 5000); // Retry after 5 seconds
+          }
+        });
+        
+      realtimeChannelRef.current = channel;
+    };
+    
+    setupChannel();
+    
     return () => {
-      supabase.removeChannel(channel);
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
+      }
     };
   }, [currentConversation, user]);
 
@@ -108,11 +138,12 @@ const TennisAI = () => {
 
   const loadConversations = async () => {
     try {
+      setApiError(null);
       const { data, error } = await supabase
         .from('ai_conversations')
         .select('*')
         .order('updated_at', { ascending: false })
-        .limit(20);
+        .limit(30); // Increased limit for better history
 
       if (error) throw error;
       setConversations(data || []);
@@ -128,12 +159,20 @@ const TennisAI = () => {
     } catch (error) {
       console.error('Error loading conversations:', error);
       toast.error('Failed to load conversations');
+      setApiError({
+        message: 'Failed to load conversations. Please try again.',
+        retry: () => {
+          setLoadingConversations(true);
+          loadConversations().finally(() => setLoadingConversations(false));
+        }
+      });
       return [];
     }
   };
 
   const loadMessages = async (conversationId: string) => {
     try {
+      setApiError(null);
       const { data, error } = await supabase
         .from('ai_messages')
         .select('*')
@@ -146,6 +185,13 @@ const TennisAI = () => {
     } catch (error) {
       console.error('Error loading messages:', error);
       toast.error('Failed to load messages');
+      setApiError({
+        message: 'Failed to load messages. Please try again.',
+        retry: () => {
+          setLoadingMessages(true);
+          loadMessages(conversationId).finally(() => setLoadingMessages(false));
+        }
+      });
       return [];
     }
   };
@@ -153,6 +199,7 @@ const TennisAI = () => {
   const handleStartNewConversation = () => {
     setCurrentConversation(null);
     setMessages([]);
+    setApiError(null);
   };
 
   const handleDeleteConversation = (id: string) => {
@@ -199,12 +246,13 @@ const TennisAI = () => {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || isLoading || !user) return;
 
     try {
       setIsLoading(true);
+      setApiError(null);
       
       // Optimistically add the message to the UI
       const optimisticUserMessage = {
@@ -227,7 +275,27 @@ const TennisAI = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // If error, retry up to maxRetries times
+        if (retryCount < maxRetries) {
+          setRetryCount(retryCount + 1);
+          toast.warning(`Connection issue, retrying (${retryCount + 1}/${maxRetries})...`);
+          // Use exponential backoff
+          const backoffTime = retryIntervalMs * Math.pow(2, retryCount);
+          
+          setIsReconnecting(true);
+          setTimeout(() => {
+            setIsReconnecting(false);
+            handleSendMessage(e);
+          }, backoffTime);
+          return;
+        } else {
+          throw error;
+        }
+      }
+
+      // Reset retry count on successful request
+      setRetryCount(0);
 
       // If this created a new conversation, update the current conversation ID
       if (data.conversationId !== currentConversation) {
@@ -243,10 +311,15 @@ const TennisAI = () => {
       
       // Remove the optimistic message on error
       setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
+      
+      setApiError({
+        message: 'Failed to get response from Tennis AI. Please try again.',
+        retry: () => handleSendMessage(e)
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [message, isLoading, user, currentConversation, retryCount]);
 
   const handleConversationClick = (conversationId: string) => {
     if (conversationId === currentConversation) return;
@@ -254,6 +327,7 @@ const TennisAI = () => {
     setCurrentConversation(conversationId);
     setLoadingMessages(true);
     setMessages([]);
+    setApiError(null);
     loadMessages(conversationId).finally(() => setLoadingMessages(false));
   };
 
@@ -264,6 +338,7 @@ const TennisAI = () => {
       handleConversationClick={handleConversationClick}
       handleStartNewConversation={handleStartNewConversation}
       handleDeleteConversation={handleDeleteConversation}
+      isLoading={loadingConversations}
     />
   );
 
@@ -303,10 +378,21 @@ const TennisAI = () => {
           <div className="bg-card rounded-lg border shadow-sm h-[70vh] flex flex-col">
             {/* Chat history */}
             <div className="flex-1 overflow-y-auto p-4">
-              <MessageList 
-                messages={messages} 
-                isLoading={isLoading || loadingMessages} 
-              />
+              {isReconnecting ? (
+                <div className="h-full flex items-center justify-center">
+                  <Loading 
+                    variant="spinner" 
+                    text="Reconnecting..." 
+                    className="max-w-md mx-auto"
+                  />
+                </div>
+              ) : (
+                <MessageList 
+                  messages={messages} 
+                  isLoading={isLoading || loadingMessages}
+                  error={apiError}
+                />
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -316,7 +402,7 @@ const TennisAI = () => {
                 message={message}
                 setMessage={setMessage}
                 handleSendMessage={handleSendMessage}
-                isLoading={isLoading}
+                isLoading={isLoading || isReconnecting}
               />
             </div>
           </div>

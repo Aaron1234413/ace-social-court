@@ -2,7 +2,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, AlertTriangle } from 'lucide-react';
 
 interface MessageInputProps {
   message: string;
@@ -40,7 +40,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
+    <form onSubmit={handleSendMessage} className="flex gap-2 items-end" data-testid="message-input-form">
       <Textarea
         ref={textareaRef}
         value={message}
@@ -49,12 +49,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
         placeholder="Ask about tennis techniques, strategies, or training..."
         className="resize-none min-h-[50px] max-h-[150px] rounded-xl"
         disabled={isLoading}
+        aria-label="Message input"
+        data-testid="message-textarea"
       />
       <Button 
         type="submit" 
         size="icon" 
         className="rounded-full h-10 w-10 flex-shrink-0"
         disabled={isLoading || !message.trim()}
+        aria-label="Send message"
+        data-testid="send-button"
       >
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
       </Button>

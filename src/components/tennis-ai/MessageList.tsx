@@ -2,6 +2,7 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorAlert } from '@/components/ui/error-alert';
 
 interface Message {
   id: string;
@@ -13,9 +14,26 @@ interface Message {
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
+  error?: { message: string; retry?: () => void };
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, error }) => {
+  // Display error message if there's an API failure
+  if (error) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-4">
+        <ErrorAlert 
+          title="Communication Error"
+          message={error.message}
+          guidance="The connection to the Tennis AI service was interrupted. Please try again."
+          onRetry={error.retry}
+          severity="error"
+          className="max-w-md mx-auto"
+        />
+      </div>
+    );
+  }
+
   // Display suggestion prompts when no messages
   if (messages.length === 0 && !isLoading) {
     return (
@@ -31,6 +49,12 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
           </div>
           <div className="bg-accent/30 p-3 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
             "What exercises help improve serve power?"
+          </div>
+          <div className="bg-accent/30 p-3 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
+            "Can you analyze why my second serve is inconsistent?"
+          </div>
+          <div className="bg-accent/30 p-3 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
+            "What's a good training routine for a 3.5 NTRP player?"
           </div>
         </div>
       </div>
