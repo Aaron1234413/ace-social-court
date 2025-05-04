@@ -176,3 +176,91 @@ export const isValidImage = (file: File): boolean => {
   
   return true;
 };
+
+/**
+ * Upload a file to Supabase Storage with progress tracking
+ * @param file The file to upload
+ * @param bucketName The storage bucket to upload to
+ * @param userId The user ID for the file path prefix
+ * @param onProgress Optional callback for upload progress
+ * @returns The public URL of the uploaded file
+ */
+export const uploadFileWithProgress = async (
+  file: File,
+  bucketName: string,
+  userId: string,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
+  // Create unique filename
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+  const filePath = `${userId}/${fileName}`;
+  
+  console.log(`Starting upload to ${bucketName}/${filePath}`);
+
+  // Manual progress tracking with fetch
+  if (onProgress) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Get token for authenticated upload
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Use fetch to manually track upload progress
+    const xhr = new XMLHttpRequest();
+    
+    // Create a promise to handle the upload
+    const uploadPromise = new Promise<string>((resolve, reject) => {
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = (event.loaded / event.total) * 100;
+          onProgress(progress);
+        }
+      });
+      
+      xhr.addEventListener('load', async () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // Get public URL after successful upload
+          const { data: { publicUrl } } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(filePath);
+          
+          resolve(publicUrl);
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      });
+      
+      xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+      
+      // Configure request
+      xhr.open('POST', `${supabase.storageUrl}/object/${bucketName}/${filePath}`);
+      xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token}`);
+      xhr.send(file);
+    });
+    
+    return uploadPromise;
+  } else {
+    // Standard upload without progress tracking
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        contentType: file.type,
+        upsert: false,
+      });
+    
+    if (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+    
+    return publicUrl;
+  }
+};

@@ -2,10 +2,9 @@
 import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from '@/integrations/supabase/client';
 import { Upload, X, AlertTriangle, Video, Image } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { isValidImage, isValidVideo } from '@/integrations/supabase/storage';
+import { isValidImage, isValidVideo, uploadFileWithProgress } from '@/integrations/supabase/storage';
 
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
@@ -34,12 +33,6 @@ const MediaUploader = ({
   const updateProgress = (progress: number) => {
     setUploadProgress(progress);
     onProgress?.(progress);
-  };
-
-  // Custom progress tracking function
-  const trackUploadProgress = (event: ProgressEvent) => {
-    const progress = (event.loaded / event.total) * 100;
-    updateProgress(Math.round(progress));
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,39 +97,14 @@ const MediaUploader = ({
       setPreview(objectUrl);
       setMediaType(fileType);
 
-      // Create unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      // Use the new uploadFileWithProgress function from storage.ts
+      const publicUrl = await uploadFileWithProgress(
+        file,
+        bucketName,
+        user.id,
+        updateProgress
+      );
       
-      console.log(`Starting upload to ${bucketName}/${filePath}`);
-      
-      // Create an XMLHttpRequest to track upload progress
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', trackUploadProgress);
-      
-      // Use Supabase storage upload with the custom XHR
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          contentType: file.type,
-          upsert: false,
-          // Use XHR adapter for progress tracking
-          xhr
-        });
-
-      if (error) {
-        console.error('Upload error:', error);
-        setUploadError(`Upload failed: ${error.message}`);
-        throw error;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-
       console.log('File uploaded successfully:', publicUrl);
       updateProgress(100);
       
