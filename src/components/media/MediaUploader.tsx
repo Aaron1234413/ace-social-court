@@ -1,29 +1,46 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, X, AlertTriangle } from 'lucide-react';
+import { Upload, X, AlertTriangle, Video, Image } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { isValidImage, isValidVideo } from '@/integrations/supabase/storage';
 
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
+  onProgress?: (progress: number) => void;
+  onValidateFile?: (file: File) => Promise<boolean> | boolean;
   allowedTypes?: ('image' | 'video')[];
   bucketName?: string;
 }
 
 const MediaUploader = ({ 
   onMediaUpload, 
+  onProgress,
+  onValidateFile,
   allowedTypes = ['image', 'video'],
   bucketName = 'media'
 }: MediaUploaderProps) => {
-  const { user } = useAuth(); // Get the authenticated user
+  const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const updateProgress = (progress: number) => {
+    setUploadProgress(progress);
+    onProgress?.(progress);
+  };
+
+  // Custom progress tracking function
+  const trackUploadProgress = (event: ProgressEvent) => {
+    const progress = (event.loaded / event.total) * 100;
+    updateProgress(Math.round(progress));
+  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -31,7 +48,7 @@ const MediaUploader = ({
 
     // Reset states
     setUploadError(null);
-    setUploadProgress(0);
+    updateProgress(0);
     
     // Check if user is authenticated
     if (!user) {
@@ -55,19 +72,28 @@ const MediaUploader = ({
       return;
     }
 
-    // Validate file based on type
-    if (fileType === 'video' && !isValidVideo(file)) {
-      const errorMsg = 'Invalid video file. Maximum size is 5GB with Supabase Pro tier.';
-      setUploadError(errorMsg);
-      toast.error(errorMsg);
-      return;
-    }
+    // Run additional validation if provided
+    if (onValidateFile) {
+      const isValid = await onValidateFile(file);
+      if (!isValid) {
+        // Error already handled in validate function
+        return;
+      }
+    } else {
+      // Default validations
+      if (fileType === 'video' && !isValidVideo(file)) {
+        const errorMsg = 'Invalid video file. Maximum size is 100MB.';
+        setUploadError(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
 
-    if (fileType === 'image' && !isValidImage(file)) {
-      const errorMsg = 'Invalid image file. Maximum size is 100MB.';
-      setUploadError(errorMsg);
-      toast.error(errorMsg);
-      return;
+      if (fileType === 'image' && !isValidImage(file)) {
+        const errorMsg = 'Invalid image file. Maximum size is 20MB.';
+        setUploadError(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
     }
 
     try {
@@ -84,15 +110,20 @@ const MediaUploader = ({
       const filePath = `${user.id}/${fileName}`;
       
       console.log(`Starting upload to ${bucketName}/${filePath}`);
-      console.log(`File type: ${file.type}, size: ${file.size} bytes`);
       
-      // Upload file to Supabase Storage with explicit owner
+      // Create an XMLHttpRequest to track upload progress
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', trackUploadProgress);
+      
+      // Use Supabase storage upload with the custom XHR
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {
           cacheControl: '3600',
           contentType: file.type,
-          upsert: false
+          upsert: false,
+          // Use XHR adapter for progress tracking
+          xhr
         });
 
       if (error) {
@@ -107,6 +138,7 @@ const MediaUploader = ({
         .getPublicUrl(filePath);
 
       console.log('File uploaded successfully:', publicUrl);
+      updateProgress(100);
       
       // Pass URL to parent component
       onMediaUpload(publicUrl, fileType);
@@ -129,21 +161,44 @@ const MediaUploader = ({
     setPreview(null);
     setMediaType(null);
     setUploadError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const triggerFileSelect = (type?: 'image' | 'video') => {
+    if (fileInputRef.current) {
+      if (type === 'image') {
+        fileInputRef.current.accept = 'image/*';
+      } else if (type === 'video') {
+        fileInputRef.current.accept = 'video/*';
+      } else {
+        fileInputRef.current.accept = allowedTypes.map(type => 
+          type === 'image' ? 'image/*' : 'video/*'
+        ).join(',');
+      }
+      fileInputRef.current.click();
+    }
   };
 
   return (
     <div className="w-full">
       {!preview ? (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-          <label className="cursor-pointer flex flex-col items-center justify-center gap-2">
+          <div className="cursor-pointer flex flex-col items-center justify-center gap-2">
             <Upload className="h-8 w-8 text-gray-400" />
             <span className="text-sm text-gray-500">
               {allowedTypes.length > 1 
-                ? 'Upload image or video (up to 5GB with Supabase Pro)' 
+                ? 'Upload image or video' 
                 : `Upload ${allowedTypes[0]}`}
             </span>
-            <span className="text-xs text-gray-400">Maximum size: {allowedTypes.includes('video') ? '5GB' : '100MB'}</span>
+            <span className="text-xs text-gray-400">
+              {allowedTypes.includes('video') 
+                ? 'Videos: max 100MB, 60 seconds' 
+                : 'Images: max 20MB'}
+            </span>
             <input
+              ref={fileInputRef}
               type="file"
               className="hidden"
               accept={allowedTypes.map(type => 
@@ -152,21 +207,36 @@ const MediaUploader = ({
               onChange={handleFileChange}
               disabled={isUploading}
             />
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
-              className="mt-2"
-              onClick={(e) => {
-                e.preventDefault();
-                // Trigger the hidden file input
-                const fileInput = e.currentTarget.previousElementSibling as HTMLInputElement;
-                fileInput.click();
-              }}
-              disabled={isUploading}
-            >
-              {isUploading ? 'Uploading...' : 'Select File'}
-            </Button>
+            
+            <div className="flex gap-2 mt-2">
+              {allowedTypes.includes('image') && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-1"
+                  onClick={() => triggerFileSelect('image')}
+                  disabled={isUploading}
+                >
+                  <Image className="h-4 w-4 mr-1" />
+                  Image
+                </Button>
+              )}
+              
+              {allowedTypes.includes('video') && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-1"
+                  onClick={() => triggerFileSelect('video')}
+                  disabled={isUploading}
+                >
+                  <Video className="h-4 w-4 mr-1" />
+                  Video
+                </Button>
+              )}
+            </div>
             
             {uploadError && (
               <div className="mt-2 text-sm text-red-500 flex items-center gap-1">
@@ -174,7 +244,7 @@ const MediaUploader = ({
                 {uploadError}
               </div>
             )}
-          </label>
+          </div>
         </div>
       ) : (
         <div className="relative rounded-lg overflow-hidden border border-gray-200">
@@ -189,6 +259,7 @@ const MediaUploader = ({
           ) : (
             <div className="flex items-center justify-center bg-gray-100">
               <video 
+                ref={videoRef}
                 src={preview} 
                 controls 
                 className="max-h-48 max-w-full"
