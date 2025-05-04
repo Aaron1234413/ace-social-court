@@ -79,11 +79,11 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                   currentConversation === conversation.id ? 'bg-accent shadow-sm' : 'hover:shadow-sm'
                 }`}
               >
-                <div 
-                  className="flex justify-between items-center"
-                  onClick={() => handleConversationClick(conversation.id)}
-                >
-                  <div className="truncate flex-1">
+                <div className="flex justify-between items-center">
+                  <div 
+                    className="truncate flex-1"
+                    onClick={() => handleConversationClick(conversation.id)}
+                  >
                     <div className={`font-medium truncate ${currentConversation === conversation.id ? 'text-primary' : ''}`}>
                       {conversation.title}
                     </div>
@@ -98,57 +98,21 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                   </div>
                   
                   {handleDeleteConversation && (
-                    <div onClick={(e) => e.stopPropagation()} className="flex items-center">
-                      {/* Mobile-friendly always visible delete button */}
+                    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                      {/* Always visible delete button */}
                       <Button
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 md:hidden"
+                        className="h-8 w-8 flex justify-center items-center text-muted-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteConversation(conversation.id);
                         }}
+                        title="Delete conversation"
                       >
-                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
+                        <Trash2 className="h-4 w-4 hover:text-destructive transition-colors" />
                         <span className="sr-only">Delete conversation</span>
                       </Button>
-                      
-                      {/* Desktop hover-to-reveal delete button */}
-                      <Button
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteConversation(conversation.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
-                        <span className="sr-only">Delete conversation</span>
-                      </Button>
-                      
-                      {/* Alternative dropdown for more actions (can be expanded later) */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                            <span className="sr-only">More options</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            className="text-destructive flex items-center cursor-pointer"
-                            onClick={() => handleDeleteConversation(conversation.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   )}
                 </div>
