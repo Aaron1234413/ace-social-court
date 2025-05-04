@@ -2,7 +2,7 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ErrorAlert } from '@/components/ui/error-alert';
+import APIErrorDisplay from '@/components/tennis-ai/APIErrorDisplay';
 
 interface Message {
   id: string;
@@ -14,7 +14,11 @@ interface Message {
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
-  error?: { message: string; retry?: () => void };
+  error?: { 
+    message: string; 
+    type?: string;
+    retry?: () => void; 
+  };
 }
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, error }) => {
@@ -22,12 +26,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, error })
   if (error) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-4">
-        <ErrorAlert 
-          title="Communication Error"
-          message={error.message}
-          guidance="The connection to the Tennis AI service was interrupted. Please try again."
-          onRetry={error.retry}
-          severity="error"
+        <APIErrorDisplay 
+          error={error}
           className="max-w-md mx-auto"
         />
       </div>

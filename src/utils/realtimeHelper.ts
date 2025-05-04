@@ -69,3 +69,81 @@ export const checkRealtimeFunctions = async () => {
     return false;
   }
 };
+
+/**
+ * Enhanced helper function to check realtime service health and connection status
+ * This can be used to diagnose realtime connection issues
+ */
+export const checkRealtimeHealth = async () => {
+  try {
+    let status = {
+      functionsAvailable: false,
+      channelConnected: false,
+      error: null as string | null
+    };
+    
+    // Check if the necessary functions are available
+    status.functionsAvailable = await checkRealtimeFunctions();
+    
+    // Try to establish a test channel connection
+    const channel = supabase.channel('realtime-health-check');
+    
+    // Create a promise that resolves when the channel connects or fails
+    const connectionPromise = new Promise<boolean>((resolve) => {
+      let resolved = false;
+      
+      // Set a timeout for connection attempt
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          console.warn('Realtime connection timeout after 5 seconds');
+          resolved = true;
+          resolve(false);
+        }
+      }, 5000);
+      
+      channel
+        .on('system', { event: '*' }, (payload) => {
+          console.log('Realtime system event:', payload);
+          
+          if (payload.event === 'presence_join') {
+            clearTimeout(timeout);
+            if (!resolved) {
+              resolved = true;
+              resolve(true);
+            }
+          }
+        })
+        .subscribe((status) => {
+          console.log('Test channel status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            clearTimeout(timeout);
+            if (!resolved) {
+              resolved = true;
+              resolve(true);
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            clearTimeout(timeout);
+            if (!resolved) {
+              resolved = true;
+              resolve(false);
+            }
+          }
+        });
+    });
+    
+    status.channelConnected = await connectionPromise;
+    
+    // Clean up the test channel
+    supabase.removeChannel(channel);
+    
+    return status;
+  } catch (error) {
+    console.error('Error in realtime health check:', error);
+    return {
+      functionsAvailable: false,
+      channelConnected: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+};

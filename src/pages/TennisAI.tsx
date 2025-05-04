@@ -7,6 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import MessageList from '@/components/tennis-ai/MessageList';
 import MessageInput from '@/components/tennis-ai/MessageInput';
 import ConversationSidebar from '@/components/tennis-ai/ConversationSidebar';
+import ErrorBoundary from '@/components/tennis-ai/ErrorBoundary';
+import ConnectionStatus from '@/components/tennis-ai/ConnectionStatus';
+import { checkRealtimeHealth, configureRealtime } from '@/utils/realtimeHelper';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu } from 'lucide-react';
@@ -42,8 +45,9 @@ const TennisAI = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [apiError, setApiError] = useState<{message: string; retry?: () => void} | null>(null);
+  const [apiError, setApiError] = useState<{message: string; type?: string; retry?: () => void} | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const realtimeChannelRef = useRef<any>(null);
   
   // Auto-retry for API failures
@@ -60,8 +64,32 @@ const TennisAI = () => {
     } else {
       setLoadingConversations(true);
       loadConversations().finally(() => setLoadingConversations(false));
+      
+      // Check realtime configuration during initialization
+      checkAndConfigureRealtime();
     }
   }, [user, navigate]);
+
+  // Check and configure realtime
+  const checkAndConfigureRealtime = async () => {
+    try {
+      const healthStatus = await checkRealtimeHealth();
+      setConnectionStatus(healthStatus.channelConnected ? 'connected' : 'disconnected');
+      
+      if (!healthStatus.channelConnected) {
+        console.log('Realtime connection issues detected, attempting to configure...');
+        const configResult = await configureRealtime();
+        console.log('Realtime configuration result:', configResult);
+        
+        // Re-check health after configuration
+        const newStatus = await checkRealtimeHealth();
+        setConnectionStatus(newStatus.channelConnected ? 'connected' : 'disconnected');
+      }
+    } catch (error) {
+      console.error('Error during realtime configuration check:', error);
+      setConnectionStatus('disconnected');
+    }
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -107,6 +135,12 @@ const TennisAI = () => {
       })
       .subscribe((status) => {
         console.log('Conversation channel status:', status);
+        setConnectionStatus(status === 'SUBSCRIBED' ? 'connected' : 'connecting');
+        
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.warn('Conversation channel subscription failed, will retry');
+          setConnectionStatus('disconnected');
+        }
       });
 
     return () => {
@@ -157,6 +191,39 @@ const TennisAI = () => {
       }
     };
   }, [currentConversation, user]);
+
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    setConnectionStatus('connecting');
+    
+    try {
+      // Check realtime health
+      const healthStatus = await checkRealtimeHealth();
+      setConnectionStatus(healthStatus.channelConnected ? 'connected' : 'disconnected');
+      
+      // Force refresh conversations
+      await loadConversations();
+      
+      // Reset any API errors
+      setApiError(null);
+      
+      // If we have a current conversation, reload its messages
+      if (currentConversation) {
+        await loadMessages(currentConversation);
+      }
+      
+      // Reset retry count
+      setRetryCount(0);
+      
+      toast.success('Reconnected successfully');
+    } catch (error) {
+      console.error('Reconnection failed:', error);
+      setConnectionStatus('disconnected');
+      toast.error('Failed to reconnect. Please try again.');
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -324,7 +391,7 @@ const TennisAI = () => {
     }
   };
 
-  // New function to handle renaming conversations
+  // Function to handle renaming conversations
   const handleRenameConversation = async (id: string, newTitle: string) => {
     if (!user || !id || !newTitle.trim()) return;
     
@@ -382,7 +449,24 @@ const TennisAI = () => {
       });
 
       if (error) {
-        // If error, retry up to maxRetries times
+        // Check if error is about OpenAI quota
+        const isQuotaError = error.message?.includes('quota') || 
+                             error.message?.includes('exceeded') || 
+                             error.message?.includes('OpenAI API');
+                             
+        if (isQuotaError) {
+          console.error('OpenAI API quota exceeded:', error);
+          setApiError({
+            message: 'OpenAI API quota exceeded. Please check your billing details or contact the administrator.',
+            type: 'quota_exceeded'
+          });
+          
+          // Remove the optimistic message on quota error
+          setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
+          return;
+        }
+        
+        // For other errors, try to retry
         if (retryCount < maxRetries) {
           setRetryCount(retryCount + 1);
           toast.warning(`Connection issue, retrying (${retryCount + 1}/${maxRetries})...`);
@@ -414,15 +498,30 @@ const TennisAI = () => {
       await loadMessages(data.conversationId);
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
       
-      // Remove the optimistic message on error
-      setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
+      // Show specific error message based on the error type
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
       
-      setApiError({
-        message: 'Failed to get response from Tennis AI. Please try again.',
-        retry: () => handleSendMessage(e)
-      });
+      // Check if error is related to conversation not found
+      if (errorMessage.includes('Conversation not found')) {
+        toast.error('Conversation not found or was deleted');
+        
+        // Reset conversation state and reload conversations
+        setCurrentConversation(null);
+        setMessages([]);
+        loadConversations();
+        
+      } else {
+        toast.error('Failed to send message');
+        
+        // Remove the optimistic message on error
+        setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
+        
+        setApiError({
+          message: errorMessage,
+          retry: () => handleSendMessage(e)
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -456,7 +555,14 @@ const TennisAI = () => {
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Tennis AI Assistant</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Tennis AI Assistant</h1>
+        
+        <ConnectionStatus 
+          onReconnect={handleReconnect} 
+          className="ml-2" 
+        />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Mobile sidebar drawer */}
@@ -485,24 +591,31 @@ const TennisAI = () => {
         <div className="lg:col-span-3">
           <div className="bg-card rounded-lg border shadow-sm h-[70vh] flex flex-col">
             {/* Chat history */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {isReconnecting ? (
-                <div className="h-full flex items-center justify-center">
-                  <Loading 
-                    variant="spinner" 
-                    text="Reconnecting..." 
-                    className="max-w-md mx-auto"
+            <ErrorBoundary 
+              onReset={() => {
+                setApiError(null);
+                setIsReconnecting(false);
+              }}
+            >
+              <div className="flex-1 overflow-y-auto p-4">
+                {isReconnecting ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Loading 
+                      variant="spinner" 
+                      text="Reconnecting..." 
+                      className="max-w-md mx-auto"
+                    />
+                  </div>
+                ) : (
+                  <MessageList 
+                    messages={messages} 
+                    isLoading={isLoading || loadingMessages}
+                    error={apiError}
                   />
-                </div>
-              ) : (
-                <MessageList 
-                  messages={messages} 
-                  isLoading={isLoading || loadingMessages}
-                  error={apiError}
-                />
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </ErrorBoundary>
 
             {/* Message input */}
             <div className="border-t p-4">
