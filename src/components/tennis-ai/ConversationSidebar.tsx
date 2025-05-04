@@ -1,10 +1,18 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, PlusCircle, MessageSquare } from 'lucide-react';
+import { Trash2, PlusCircle, MessageSquare, Pencil } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { TennisAIConversation } from './types';
 
 interface Conversation {
   id: string;
@@ -18,6 +26,7 @@ interface ConversationSidebarProps {
   handleConversationClick: (id: string) => void;
   handleStartNewConversation: () => void;
   handleDeleteConversation?: (id: string) => void;
+  handleRenameConversation?: (id: string, newTitle: string) => void;
   isLoading?: boolean;
 }
 
@@ -27,8 +36,48 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   handleConversationClick,
   handleStartNewConversation,
   handleDeleteConversation,
+  handleRenameConversation,
   isLoading = false
 }) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+
+  const startEditing = (conversation: Conversation) => {
+    setEditingId(conversation.id);
+    setEditTitle(conversation.title);
+  };
+
+  const saveTitle = (id: string) => {
+    if (handleRenameConversation && editTitle.trim()) {
+      handleRenameConversation(id, editTitle.trim());
+    }
+    setEditingId(null);
+  };
+
+  // Format conversation titles to be more concise
+  const formatTitle = (title: string) => {
+    // If title is already short, return it
+    if (title.length < 25) return title;
+    
+    // Check if it starts with common AI conversation beginnings
+    if (title.toLowerCase().startsWith("hi there") || 
+        title.toLowerCase().startsWith("hello") || 
+        title.toLowerCase().startsWith("hey")) {
+      return "Tennis Conversation";
+    }
+    
+    // Extract key topics by looking for keywords like backhand, forehand, serve, etc.
+    const tennisTerms = ["backhand", "forehand", "serve", "volley", "smash", "tennis", "stroke", "technique", "training"];
+    for (const term of tennisTerms) {
+      if (title.toLowerCase().includes(term)) {
+        return `${term.charAt(0).toUpperCase() + term.slice(1)} Discussion`;
+      }
+    }
+    
+    // Default fallback - take first few words
+    return title.split(' ').slice(0, 3).join(' ') + '...';
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col h-full">
@@ -73,42 +122,94 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                   currentConversation === conversation.id ? 'bg-accent border-primary' : 'border-border hover:border-primary/50'
                 }`}
               >
-                <div className="flex items-center p-2">
-                  {/* Conversation title and date - clickable area */}
-                  <div 
-                    className="flex-1 p-2 cursor-pointer"
-                    onClick={() => handleConversationClick(conversation.id)}
-                  >
-                    <div className={`font-medium truncate ${currentConversation === conversation.id ? 'text-primary' : ''}`}>
-                      {conversation.title}
+                {editingId === conversation.id ? (
+                  <div className="p-2 flex">
+                    <Input 
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveTitle(conversation.id);
+                        if (e.key === 'Escape') setEditingId(null);
+                      }}
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button 
+                      size="sm" 
+                      className="ml-2"
+                      onClick={() => saveTitle(conversation.id)}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="p-2">
+                    {/* Clickable area for selecting conversation */}
+                    <div 
+                      className="cursor-pointer p-2"
+                      onClick={() => handleConversationClick(conversation.id)}
+                    >
+                      <div className={`font-medium truncate ${currentConversation === conversation.id ? 'text-primary' : ''}`}>
+                        {formatTitle(conversation.title)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(conversation.created_at).toLocaleDateString(undefined, { 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'  
+                        })}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(conversation.created_at).toLocaleDateString(undefined, { 
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'  
-                      })}
+
+                    {/* Actions row with edit and delete buttons */}
+                    <div className="flex justify-end mt-1 space-x-2">
+                      {handleRenameConversation && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditing(conversation);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Rename</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Rename conversation</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      
+                      {handleDeleteConversation && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteConversation(conversation.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Delete</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete conversation</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Delete button - always visible with improved design */}
-                  {handleDeleteConversation && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="flex items-center mr-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteConversation(conversation.id);
-                      }}
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only md:not-sr-only md:ml-2">Delete</span>
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
             ))}
           </div>

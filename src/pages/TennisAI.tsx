@@ -12,6 +12,7 @@ import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Loading } from '@/components/ui/loading';
+import { TennisAIConversation } from '@/components/tennis-ai/types';
 
 interface Message {
   id: string;
@@ -245,6 +246,32 @@ const TennisAI = () => {
     }
   };
 
+  // New function to handle renaming conversations
+  const handleRenameConversation = async (id: string, newTitle: string) => {
+    if (!user || !id || !newTitle.trim()) return;
+    
+    try {
+      const { error } = await supabase
+        .from('ai_conversations')
+        .update({ title: newTitle })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === id ? { ...conv, title: newTitle } : conv
+        )
+      );
+      
+      toast.success('Conversation renamed');
+    } catch (error) {
+      console.error('Error renaming conversation:', error);
+      toast.error('Failed to rename conversation');
+    }
+  };
+
   const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || isLoading || !user) return;
@@ -337,6 +364,7 @@ const TennisAI = () => {
       handleConversationClick={handleConversationClick}
       handleStartNewConversation={handleStartNewConversation}
       handleDeleteConversation={handleDeleteConversation}
+      handleRenameConversation={handleRenameConversation}
       isLoading={loadingConversations}
     />
   );
