@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -146,6 +147,8 @@ const TennisAI = () => {
         .limit(30); // Increased limit for better history
 
       if (error) throw error;
+      
+      console.log('Loaded conversations:', data);
       setConversations(data || []);
 
       // If there are conversations and no current conversation selected, select the most recent one
@@ -153,6 +156,11 @@ const TennisAI = () => {
         setCurrentConversation(data[0].id);
         setLoadingMessages(true);
         loadMessages(data[0].id).finally(() => setLoadingMessages(false));
+      } else if (data && data.length === 0 && currentConversation) {
+        // If no conversations left but we have a current conversation ID
+        // (this might happen after deleting the last conversation)
+        setCurrentConversation(null);
+        setMessages([]);
       }
       
       return data;
@@ -227,8 +235,14 @@ const TennisAI = () => {
       
       if (conversationError) throw conversationError;
       
-      // Update local state
-      setConversations(prev => prev.filter(conv => conv.id !== conversationToDelete));
+      console.log('Deleted conversation:', conversationToDelete);
+      
+      // Update local state immediately
+      setConversations(prev => {
+        const filtered = prev.filter(conv => conv.id !== conversationToDelete);
+        console.log('Updated conversations after delete:', filtered);
+        return filtered;
+      });
       
       // If the current conversation was deleted, reset state
       if (currentConversation === conversationToDelete) {
@@ -237,6 +251,10 @@ const TennisAI = () => {
       }
       
       toast.success('Conversation deleted');
+      
+      // Force refresh conversations from the database
+      setLoadingConversations(true);
+      loadConversations().finally(() => setLoadingConversations(false));
     } catch (error) {
       console.error('Error deleting conversation:', error);
       toast.error('Failed to delete conversation');
