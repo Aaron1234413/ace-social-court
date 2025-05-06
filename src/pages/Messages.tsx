@@ -17,7 +17,7 @@ const Messages = () => {
   const location = useLocation();
   const { chatId } = useParams<{ chatId?: string }>();
   
-  // Get the selectedUserId from the URL parameters - ensure it's valid and not 'undefined' string
+  // Ensure we have a valid selectedUserId, explicitly set to null if invalid
   const selectedUserId = chatId && chatId !== 'undefined' ? chatId : null;
   
   console.log("Messages page - extracted selectedUserId:", selectedUserId);
@@ -34,8 +34,9 @@ const Messages = () => {
 
   // Ensure components re-render when route changes
   useEffect(() => {
+    console.log("Messages page - Current location:", location.pathname);
     console.log("Messages page - selectedUserId from params:", selectedUserId);
-    console.log("Current location:", location.pathname);
+    
     // Clear any previous errors when route changes
     setError(null);
   }, [selectedUserId, location]);
@@ -51,6 +52,11 @@ const Messages = () => {
   const handleError = (errorMessage: string) => {
     console.error("Messaging error:", errorMessage);
     setError(errorMessage);
+  };
+
+  const handleConversationSelect = (userId: string) => {
+    console.log(`Selecting conversation: ${userId}`);
+    navigate(`/messages/${userId}`, { replace: true });
   };
 
   return (
@@ -97,6 +103,7 @@ const Messages = () => {
                     <ConversationsList 
                       selectedUserId={selectedUserId} 
                       onError={handleError}
+                      onSelectConversation={handleConversationSelect}
                     />
                   </ErrorBoundary>
                 </div>
@@ -126,6 +133,7 @@ const Messages = () => {
               <ConversationsList 
                 selectedUserId={selectedUserId} 
                 onError={handleError}
+                onSelectConversation={handleConversationSelect}
               />
             </ErrorBoundary>
           </div>

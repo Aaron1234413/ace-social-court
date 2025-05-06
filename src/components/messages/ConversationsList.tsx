@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
@@ -12,10 +13,11 @@ import { ErrorAlert } from '@/components/ui/error-alert';
 interface ConversationsListProps {
   selectedUserId?: string | null;
   onError?: (error: string) => void;
+  onSelectConversation?: (userId: string) => void;
 }
 
-const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) => {
-  const { conversations, isLoadingConversations, error } = useConversations();
+const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: ConversationsListProps) => {
+  const { conversations, isLoadingConversations, error, refetch } = useConversations();
   const navigate = useNavigate();
   const location = useLocation();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
@@ -34,19 +36,24 @@ const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) 
   useEffect(() => {
     const handleRefresh = () => {
       console.log("Conversations list refresh triggered");
-      // The query client will handle the actual refresh
+      refetch();
     };
 
     window.addEventListener('conversations-refresh', handleRefresh);
     return () => {
       window.removeEventListener('conversations-refresh', handleRefresh);
     };
-  }, []);
+  }, [refetch]);
 
   const handleConversationClick = (userId: string | undefined) => {
-    if (userId) {
-      console.log("Navigating to conversation:", userId);
-      // Use navigate with replace option to avoid navigation stack issues
+    if (!userId) return;
+    
+    console.log("Conversation clicked:", userId);
+    
+    if (onSelectConversation) {
+      onSelectConversation(userId);
+    } else {
+      // Fallback to direct navigation if no handler provided
       navigate(`/messages/${userId}`, { replace: location.pathname.includes(userId) });
     }
   };
@@ -74,7 +81,7 @@ const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) 
           title="Failed to load conversations"
           message={error.message}
           severity="error"
-          onRetry={() => window.dispatchEvent(new Event('conversations-refresh'))}
+          onRetry={() => refetch()}
         />
         <Button 
           variant="outline" 
@@ -118,8 +125,8 @@ const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) 
       ) : (
         <div className="space-y-1">
           {conversations.map((conversation) => {
-            // Check if this conversation is currently selected - compare as strings to ensure consistent comparison
-            const isSelected = selectedUserId === conversation.other_user?.id;
+            // Check if this conversation is currently selected - convert both to strings for consistent comparison
+            const isSelected = String(selectedUserId) === String(conversation.other_user?.id);
             
             console.log(
               `Conversation with ${conversation.other_user?.username}:`, 
@@ -136,7 +143,7 @@ const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) 
                 key={conversation.id}
                 className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${
                   isSelected 
-                    ? 'bg-primary/10' 
+                    ? 'bg-primary/10 border border-primary/30' 
                     : 'hover:bg-accent'
                 }`}
                 onClick={() => handleConversationClick(conversation.other_user?.id)}
@@ -157,7 +164,7 @@ const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) 
                 
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-baseline">
-                    <p className="font-medium truncate">
+                    <p className={`font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
                       {conversation.other_user?.full_name || 
                        conversation.other_user?.username || 'Unknown User'}
                     </p>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +10,7 @@ export const useConversations = () => {
   const queryClient = useQueryClient();
   const [error, setError] = useState<{message: string} | null>(null);
 
-  const { data: conversations, isLoading: isLoadingConversations } = useQuery({
+  const { data: conversations, isLoading: isLoadingConversations, refetch } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
       if (!user) return [];
@@ -102,7 +101,8 @@ export const useConversations = () => {
   return {
     conversations: conversations || [],
     isLoadingConversations,
-    error
+    error,
+    refetch
   };
 };
 

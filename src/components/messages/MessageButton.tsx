@@ -24,27 +24,22 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
       setIsCreating(true);
       console.log(`Starting conversation with user: ${userId}`);
       
-      // First, try to navigate directly. This will work if the conversation already exists
+      // First, navigate directly to the messages route with this user ID
       navigate(`/messages/${userId}`);
       
-      // Then try to create the conversation in case it doesn't exist yet
+      // Then attempt to create a conversation record if it doesn't exist yet
       createConversation(userId, {
-        onSuccess: (data) => {
-          console.log("Conversation created successfully");
-          // We're already navigating above, so no need to navigate again here
+        onSuccess: () => {
+          console.log("Conversation created or found successfully");
         },
         onError: (error) => {
-          console.error('Error creating conversation:', error);
-          
+          // Only show errors for non-duplicate key issues
+          // (duplicate errors are expected since we may already have this conversation)
           if (error instanceof Error && 
-             (error.message.includes('duplicate key') || 
-              error.message.includes('constraint'))) {
+             !(error.message.includes('duplicate key') || 
+               error.message.includes('constraint'))) {
             
-            console.log("Conversation already exists, already navigated to it.");
-            // No need to navigate again, we did it above
-          } else {
-            // Only show error for non-duplicate key errors
-            toast.error("Failed to start conversation", {
+            toast.error("Failed to create conversation", {
               description: error instanceof Error ? error.message : "Please try again later"
             });
           }
