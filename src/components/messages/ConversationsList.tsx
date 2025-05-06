@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -48,7 +48,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
     };
   }, [refetch]);
 
-  const handleConversationClick = (userId: string | undefined) => {
+  const handleConversationClick = useCallback((userId: string | undefined) => {
     if (!userId) return;
     
     console.log("Conversation clicked:", userId);
@@ -59,8 +59,101 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
       // Fallback to direct navigation if no handler provided
       navigate(`/messages/${userId}`, { replace: location.pathname.includes(userId) });
     }
-  };
+  }, [onSelectConversation, navigate, location.pathname]);
+  
+  // Memoize the rendering of conversations to prevent unnecessary re-renders
+  const renderConversations = useMemo(() => {
+    if (conversations.length === 0) {
+      return (
+        <div className="py-8 text-center text-muted-foreground">
+          No conversations yet
+        </div>
+      );
+    }
 
+    return (
+      <div className="space-y-1">
+        {conversations.map((conversation) => {
+          // Check if this conversation is currently selected - convert both to strings for consistent comparison
+          const isSelected = String(selectedUserId) === String(conversation.other_user?.id);
+          
+          console.log(
+            `Conversation with ${conversation.other_user?.username}:`, 
+            `selected=${isSelected}`,
+            `(selected=${selectedUserId}, this=${conversation.other_user?.id})`
+          );
+          
+          const hasUnread = conversation.last_message && 
+            !conversation.last_message.read && 
+            conversation.last_message.sender_id !== conversation.other_user?.id;
+
+          return (
+            <button
+              key={conversation.id}
+              className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${
+                isSelected 
+                  ? 'bg-primary/10 border border-primary/30' 
+                  : 'hover:bg-accent'
+              }`}
+              onClick={() => handleConversationClick(conversation.other_user?.id)}
+              aria-selected={isSelected}
+            >
+              <div className="relative">
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  {conversation.other_user?.avatar_url && (
+                    <img 
+                      src={conversation.other_user.avatar_url} 
+                      alt={conversation.other_user?.username || 'User'} 
+                    />
+                  )}
+                  <AvatarFallback>
+                    {conversation.other_user?.full_name?.charAt(0) || 
+                     conversation.other_user?.username?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                
+                {hasUnread && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                    <Eye className="h-3 w-3 text-primary-foreground" />
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex-1 overflow-hidden">
+                <div className="flex justify-between items-baseline">
+                  <p className={`font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
+                    {conversation.other_user?.full_name || 
+                     conversation.other_user?.username || 'Unknown User'}
+                  </p>
+                  {conversation.last_message_at && (
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: true })}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  {conversation.last_message && (
+                    <p className={`text-sm truncate ${hasUnread ? 'font-medium' : 'text-muted-foreground'}`}>
+                      {conversation.last_message.content}
+                    </p>
+                  )}
+                  
+                  {hasUnread && (
+                    <Badge variant="default" className="ml-1 py-0 px-1.5 text-xs h-5">
+                      new
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }, [conversations, selectedUserId, handleConversationClick]);
+
+  // Handle loading state
   if (isLoadingConversations) {
     return (
       <div className="space-y-4">
@@ -77,6 +170,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
     );
   }
 
+  // Handle error state with retry capability
   if (error) {
     return (
       <div className="py-4">
@@ -121,92 +215,9 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
         onError={onError}
       />
       
-      {conversations.length === 0 ? (
-        <div className="py-8 text-center text-muted-foreground">
-          No conversations yet
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {conversations.map((conversation) => {
-            // Check if this conversation is currently selected - convert both to strings for consistent comparison
-            const isSelected = String(selectedUserId) === String(conversation.other_user?.id);
-            
-            console.log(
-              `Conversation with ${conversation.other_user?.username}:`, 
-              `selected=${isSelected}`,
-              `(selected=${selectedUserId}, this=${conversation.other_user?.id})`
-            );
-            
-            const hasUnread = conversation.last_message && 
-              !conversation.last_message.read && 
-              conversation.last_message.sender_id !== conversation.other_user?.id;
-
-            return (
-              <button
-                key={conversation.id}
-                className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${
-                  isSelected 
-                    ? 'bg-primary/10 border border-primary/30' 
-                    : 'hover:bg-accent'
-                }`}
-                onClick={() => handleConversationClick(conversation.other_user?.id)}
-                aria-selected={isSelected}
-              >
-                <div className="relative">
-                  <Avatar className="h-10 w-10 flex-shrink-0">
-                    {conversation.other_user?.avatar_url && (
-                      <img 
-                        src={conversation.other_user.avatar_url} 
-                        alt={conversation.other_user?.username || 'User'} 
-                      />
-                    )}
-                    <AvatarFallback>
-                      {conversation.other_user?.full_name?.charAt(0) || 
-                       conversation.other_user?.username?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  {hasUnread && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                      <Eye className="h-3 w-3 text-primary-foreground" />
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex-1 overflow-hidden">
-                  <div className="flex justify-between items-baseline">
-                    <p className={`font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
-                      {conversation.other_user?.full_name || 
-                       conversation.other_user?.username || 'Unknown User'}
-                    </p>
-                    {conversation.last_message_at && (
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: true })}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    {conversation.last_message && (
-                      <p className={`text-sm truncate ${hasUnread ? 'font-medium' : 'text-muted-foreground'}`}>
-                        {conversation.last_message.content}
-                      </p>
-                    )}
-                    
-                    {hasUnread && (
-                      <Badge variant="default" className="ml-1 py-0 px-1.5 text-xs h-5">
-                        new
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {renderConversations}
     </div>
   );
 };
 
-export default ConversationsList;
+export default memo(ConversationsList);

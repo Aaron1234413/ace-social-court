@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -95,7 +96,8 @@ export const useConversations = () => {
       }
     },
     retry: 2,
-    staleTime: 10000 // 10 seconds
+    staleTime: 30000, // Increase stale time to 30 seconds to reduce network requests
+    gcTime: 300000, // Cache for 5 minutes
   });
 
   return {
@@ -112,7 +114,7 @@ export const useMessages = (otherUserId?: string) => {
   const [newMessage, setNewMessage] = useState('');
   const [error, setError] = useState<{message: string} | null>(null);
 
-  const { data: messages, isLoading: isLoadingMessages } = useQuery({
+  const { data: messages, isLoading: isLoadingMessages, refetch } = useQuery({
     queryKey: ['messages', otherUserId],
     queryFn: async () => {
       if (!user || !otherUserId) return [];
@@ -178,6 +180,9 @@ export const useMessages = (otherUserId?: string) => {
               }
             })
           );
+          
+          // After marking messages as read, invalidate conversations to update badges
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
         }
 
         return messagesWithSenders;
@@ -194,7 +199,9 @@ export const useMessages = (otherUserId?: string) => {
         setError({ message: error.message });
       }
     },
-    retry: 2
+    retry: 3, // Increase retries for better error resilience
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000), // Exponential backoff
+    staleTime: 10000, // 10 seconds stale time to reduce frequent refetches
   });
 
   const sendMessageMutation = useMutation({
@@ -230,14 +237,21 @@ export const useMessages = (otherUserId?: string) => {
       toast.error('Failed to send message');
       console.error('Error sending message:', error);
       setError({ message: error instanceof Error ? error.message : 'Failed to send message' });
-    }
+    },
+    retry: 2, // Retry sending message up to 2 times
   });
 
-  const sendMessage = () => {
+  const sendMessage = useCallback(() => {
     if (newMessage.trim()) {
       sendMessageMutation.mutate(newMessage);
     }
-  };
+  }, [newMessage, sendMessageMutation]);
+  
+  // Function to retry loading messages when there's an error
+  const retryLoadMessages = useCallback(() => {
+    setError(null);
+    refetch();
+  }, [refetch]);
 
   return {
     messages: messages || [],
@@ -246,6 +260,7 @@ export const useMessages = (otherUserId?: string) => {
     newMessage,
     setNewMessage,
     sendMessage,
+    retryLoadMessages,
     isSending: sendMessageMutation.isPending
   };
 };
@@ -289,7 +304,8 @@ export const useCreateConversation = () => {
     onError: (error) => {
       // Don't show toast here, handled by the component
       console.error('Error creating conversation:', error);
-    }
+    },
+    retry: 1, // Retry once before failing
   });
 
   return {

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import ConversationsList from '@/components/messages/ConversationsList';
@@ -20,7 +20,9 @@ const Messages = () => {
   const isMobile = useIsMobile();
   
   // Ensure we have a valid selectedUserId, explicitly set to null if invalid
-  const selectedUserId = chatId && chatId !== 'undefined' ? chatId : null;
+  const selectedUserId = useMemo(() => {
+    return chatId && chatId !== 'undefined' ? chatId : null;
+  }, [chatId]);
   
   console.log("Messages page - extracted selectedUserId:", selectedUserId);
   
@@ -44,6 +46,24 @@ const Messages = () => {
     setError(null);
   }, [selectedUserId, location]);
 
+  const handleError = useCallback((errorMessage: string) => {
+    console.error("Messaging error:", errorMessage);
+    setError(errorMessage);
+  }, []);
+
+  const handleConversationSelect = useCallback((userId: string) => {
+    console.log(`Selecting conversation: ${userId}`);
+    navigate(`/messages/${userId}`, { replace: true });
+    // Close the sidebar on mobile after selecting a conversation
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [navigate, isMobile]);
+
+  // Determine which view to show based on screen size and selected conversation
+  const showConversationsList = useMemo(() => !isMobile || !selectedUserId, [isMobile, selectedUserId]);
+  const showChatInterface = useMemo(() => !isMobile || selectedUserId, [isMobile, selectedUserId]);
+
   if (!user) {
     return (
       <div className="container max-w-6xl mx-auto px-4 py-8 text-center">
@@ -51,24 +71,6 @@ const Messages = () => {
       </div>
     );
   }
-
-  const handleError = (errorMessage: string) => {
-    console.error("Messaging error:", errorMessage);
-    setError(errorMessage);
-  };
-
-  const handleConversationSelect = (userId: string) => {
-    console.log(`Selecting conversation: ${userId}`);
-    navigate(`/messages/${userId}`, { replace: true });
-    // Close the sidebar on mobile after selecting a conversation
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
-  };
-
-  // Determine which view to show based on screen size and selected conversation
-  const showConversationsList = !isMobile || !selectedUserId;
-  const showChatInterface = !isMobile || selectedUserId;
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useCreateConversation } from '@/hooks/use-messages';
@@ -19,7 +19,7 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
   const { createConversation } = useCreateConversation();
   const isMobile = useIsMobile();
   
-  const handleClick = async () => {
+  const handleClick = useCallback(async () => {
     if (isCreating || !userId) return;
     
     try {
@@ -61,7 +61,7 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
       setIsCreating(false);
       toast.error("An unexpected error occurred");
     }
-  };
+  }, [userId, isCreating, navigate, createConversation, isMobile]);
   
   // On mobile, use a more compact button when compact prop is true
   const buttonSize = isMobile && compact ? 'icon' : compact ? 'icon' : 'sm';
@@ -88,4 +88,4 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
   );
 };
 
-export default MessageButton;
+export default memo(MessageButton);
