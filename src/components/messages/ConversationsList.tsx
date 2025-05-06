@@ -21,6 +21,9 @@ const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) 
   const location = useLocation();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
 
+  console.log("ConversationsList - selectedUserId:", selectedUserId);
+  console.log("ConversationsList - available conversations:", conversations.map(c => c.other_user?.id));
+
   // Handle errors
   useEffect(() => {
     if (error && onError) {
@@ -116,7 +119,15 @@ const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) 
       ) : (
         <div className="space-y-1">
           {conversations.map((conversation) => {
+            // Check if this conversation is currently selected
             const isSelected = selectedUserId === conversation.other_user?.id;
+            
+            console.log(
+              `Conversation with ${conversation.other_user?.username}:`, 
+              `selected=${isSelected}`,
+              `(selected=${selectedUserId}, this=${conversation.other_user?.id})`
+            );
+            
             const hasUnread = conversation.last_message && 
               !conversation.last_message.read && 
               conversation.last_message.sender_id !== conversation.other_user?.id;

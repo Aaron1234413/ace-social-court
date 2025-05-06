@@ -18,14 +18,15 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
   const { createConversation } = useCreateConversation();
   
   const handleClick = async () => {
-    if (isCreating) return;
+    if (isCreating || !userId) return;
     
     try {
       setIsCreating(true);
       console.log(`Starting conversation with user: ${userId}`);
       
       createConversation(userId, {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          console.log("Conversation created successfully, navigating to:", userId);
           navigate(`/messages/${userId}`);
         },
         onError: (error) => {
@@ -33,8 +34,8 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
           
           // Check if error is due to duplicate key (conversation already exists)
           if (error instanceof Error && 
-              error.message.includes('duplicate key') || 
-              error.message.includes('constraint')) {
+              (error.message.includes('duplicate key') || 
+               error.message.includes('constraint'))) {
             
             console.log("Conversation already exists, navigating to it...");
             // If conversation already exists, just navigate to it

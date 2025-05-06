@@ -15,7 +15,13 @@ const Messages = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { chatId: selectedUserId } = useParams<{ chatId?: string }>();
+  const params = useParams<{ chatId?: string }>();
+  
+  // Get the selectedUserId from the URL parameters
+  const selectedUserId = params.chatId;
+  
+  console.log("Messages page - extracted selectedUserId:", selectedUserId);
+  
   const [newMessageOpen, setNewMessageOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -28,7 +34,7 @@ const Messages = () => {
 
   // Ensure components re-render when route changes
   useEffect(() => {
-    console.log("Messages page - selectedUserId:", selectedUserId);
+    console.log("Messages page - selectedUserId from params:", selectedUserId);
     console.log("Current location:", location.pathname);
     // Clear any previous errors when route changes
     setError(null);

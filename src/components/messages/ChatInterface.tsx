@@ -20,13 +20,20 @@ interface ChatInterfaceProps {
 }
 
 const ChatInterface = ({ onError }: ChatInterfaceProps) => {
-  const { chatId: otherUserId } = useParams<{ chatId: string }>();
+  const { chatId } = useParams<{ chatId: string }>();
+  const otherUserId = chatId; // Use the chatId directly from params
+  
+  console.log("ChatInterface - using otherUserId:", otherUserId);
+  
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Check if we have a valid otherUserId
+  const validConversation = !!otherUserId && otherUserId !== 'undefined';
   
   const { 
     messages, 
@@ -36,7 +43,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
     setNewMessage, 
     sendMessage,
     isSending
-  } = useMessages(otherUserId);
+  } = useMessages(validConversation ? otherUserId : undefined);
   
   // Handle any errors
   useEffect(() => {
@@ -53,10 +60,19 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
     console.log("Chat interface loaded for user:", otherUserId);
   }, [otherUserId]);
 
+  // Display warning if no valid otherUserId
+  useEffect(() => {
+    if (!validConversation) {
+      console.warn("No valid conversation ID found in URL parameters");
+    }
+  }, [validConversation]);
+
   const { data: otherUser, isLoading: isLoadingUser, error: userError } = useQuery({
     queryKey: ['user', otherUserId],
     queryFn: async () => {
-      if (!otherUserId) return null;
+      if (!otherUserId || otherUserId === 'undefined') {
+        throw new Error("No valid user ID provided");
+      }
       
       const { data, error } = await supabase
         .from('profiles')
@@ -66,12 +82,11 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
       
       if (error) {
         console.error("Error fetching user:", error);
-        toast.error("Failed to load user information");
         throw error;
       }
       return data;
     },
-    enabled: !!otherUserId
+    enabled: validConversation
   });
 
   // Handle user data error
@@ -83,7 +98,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
 
   // Subscribe to realtime updates for new messages
   useEffect(() => {
-    if (!otherUserId || !user) return;
+    if (!validConversation || !user) return;
     
     console.log("Setting up realtime subscription for messages");
     
@@ -118,6 +133,11 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
+    if (!validConversation) {
+      if (onError) onError("Cannot send message: Invalid conversation");
+      return;
+    }
+    
     if (newMessage.trim()) {
       try {
         sendMessage();
@@ -128,16 +148,16 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
         }
       }
     }
-  }, [newMessage, sendMessage, onError]);
+  }, [newMessage, sendMessage, onError, validConversation]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (newMessage.trim()) {
+      if (newMessage.trim() && validConversation) {
         sendMessage();
       }
     }
-  }, [newMessage, sendMessage]);
+  }, [newMessage, sendMessage, validConversation]);
   
   const handleMessageClick = useCallback((messageId: string) => {
     setSelectedMessage(messageId === selectedMessage ? null : messageId);
@@ -147,6 +167,20 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   const handleBackClick = useCallback(() => {
     navigate('/messages');
   }, [navigate]);
+
+  // Display error if no valid conversation
+  if (!validConversation) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-4 text-center">
+        <ErrorAlert
+          title="Invalid conversation"
+          message="No valid conversation ID was found"
+          severity="warning"
+          onRetry={() => navigate('/messages')}
+        />
+      </div>
+    );
+  }
 
   const renderMessages = () => {
     if (isLoadingMessages) {
@@ -263,14 +297,6 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
       </>
     );
   };
-
-  if (!otherUserId) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-4 text-center">
-        <p className="text-muted-foreground">Select a conversation or start a new one</p>
-      </div>
-    );
-  }
 
   return (
     <div className="h-full flex flex-col">
