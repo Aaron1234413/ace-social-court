@@ -13,8 +13,13 @@ import { Message } from '@/components/messages/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Send, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorAlert } from '@/components/ui/error-alert';
 
-const ChatInterface = () => {
+interface ChatInterfaceProps {
+  onError?: (error: string) => void;
+}
+
+const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   const { chatId: otherUserId } = useParams<{ chatId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -26,12 +31,20 @@ const ChatInterface = () => {
   const { 
     messages, 
     isLoadingMessages,
+    error: messagesError,
     newMessage, 
     setNewMessage, 
     sendMessage,
     isSending
   } = useMessages(otherUserId);
   
+  // Handle any errors
+  useEffect(() => {
+    if (messagesError && onError) {
+      onError(messagesError.message);
+    }
+  }, [messagesError, onError]);
+
   // Focus input field when component mounts or otherUserId changes
   useEffect(() => {
     if (inputRef.current) {
@@ -40,7 +53,7 @@ const ChatInterface = () => {
     console.log("Chat interface loaded for user:", otherUserId);
   }, [otherUserId]);
 
-  const { data: otherUser, isLoading: isLoadingUser } = useQuery({
+  const { data: otherUser, isLoading: isLoadingUser, error: userError } = useQuery({
     queryKey: ['user', otherUserId],
     queryFn: async () => {
       if (!otherUserId) return null;
@@ -61,6 +74,13 @@ const ChatInterface = () => {
     enabled: !!otherUserId
   });
 
+  // Handle user data error
+  useEffect(() => {
+    if (userError && onError) {
+      onError("Failed to load user information: " + (userError instanceof Error ? userError.message : String(userError)));
+    }
+  }, [userError, onError]);
+
   // Subscribe to realtime updates for new messages
   useEffect(() => {
     if (!otherUserId || !user) return;
@@ -79,9 +99,12 @@ const ChatInterface = () => {
         queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Channel status:", status);
+      });
     
     return () => {
+      console.log("Removing realtime subscription");
       supabase.removeChannel(channel);
     };
   }, [otherUserId, user, queryClient]);
@@ -96,9 +119,16 @@ const ChatInterface = () => {
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim()) {
-      sendMessage();
+      try {
+        sendMessage();
+      } catch (error) {
+        console.error("Error sending message:", error);
+        if (error instanceof Error && onError) {
+          onError("Failed to send message: " + error.message);
+        }
+      }
     }
-  }, [newMessage, sendMessage]);
+  }, [newMessage, sendMessage, onError]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -130,6 +160,19 @@ const ChatInterface = () => {
               </div>
             </div>
           ))}
+        </div>
+      );
+    }
+
+    if (messagesError) {
+      return (
+        <div className="py-4 px-4">
+          <ErrorAlert
+            title="Failed to load messages"
+            message={messagesError.message}
+            severity="error"
+            onRetry={() => queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] })}
+          />
         </div>
       );
     }
@@ -248,6 +291,8 @@ const ChatInterface = () => {
             <Skeleton className="h-10 w-10 rounded-full" />
             <Skeleton className="h-5 w-[100px]" />
           </div>
+        ) : userError ? (
+          <div className="text-destructive text-sm">Failed to load user</div>
         ) : (
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">

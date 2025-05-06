@@ -2,6 +2,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface Props {
   children: ReactNode;
@@ -30,8 +31,14 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // You can also log the error to an error reporting service
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    // Log error to console with additional details
+    console.error('Error caught by ErrorBoundary:', error);
+    console.error('Component stack:', errorInfo.componentStack);
+    
+    // Notify user with toast for better visibility
+    toast.error("An error occurred in the application", {
+      description: error.message
+    });
   }
 
   resetErrorBoundary = (): void => {
@@ -53,8 +60,13 @@ class ErrorBoundary extends Component<Props, State> {
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
           <h3 className="text-xl font-semibold mb-2">Something went wrong</h3>
           <p className="text-muted-foreground mb-6 max-w-md text-center">
-            {this.state.error?.message || 'An unexpected error occurred in the Tennis AI chat interface.'}
+            {this.state.error?.message || 'An unexpected error occurred.'}
           </p>
+          <div className="text-xs text-muted-foreground mb-6 max-w-md text-center overflow-auto max-h-[200px]">
+            <pre className="whitespace-pre-wrap">
+              {this.state.error?.stack}
+            </pre>
+          </div>
           <Button 
             onClick={this.resetErrorBoundary} 
             className="flex items-center gap-2"

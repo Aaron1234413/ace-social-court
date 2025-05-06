@@ -9,20 +9,22 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Search, UserPlus } from 'lucide-react';
+import { Loader2, Search, UserPlus, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface NewMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onError?: (error: string) => void;
 }
 
-const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
+const NewMessageDialog = ({ open, onOpenChange, onError }: NewMessageDialogProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
   const { createConversation, isCreating } = useCreateConversation();
   
-  const { data: users, isLoading } = useQuery({
+  const { data: users, isLoading, error } = useQuery({
     queryKey: ['user-search', searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 2) return [];
@@ -36,6 +38,7 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
         
       if (error) {
         console.error('Error searching users:', error);
+        if (onError) onError(`Error searching users: ${error.message}`);
         return [];
       }
       
@@ -45,12 +48,35 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
   });
   
   const handleStartConversation = (userId: string) => {
-    createConversation(userId, {
-      onSuccess: () => {
-        onOpenChange(false);
-        navigate(`/messages/${userId}`);
-      }
-    });
+    try {
+      createConversation(userId, {
+        onSuccess: () => {
+          onOpenChange(false);
+          navigate(`/messages/${userId}`);
+        },
+        onError: (error) => {
+          console.error('Error creating conversation:', error);
+          
+          // If the error is a duplicate key error, the conversation already exists
+          if (error instanceof Error && 
+              (error.message.includes('duplicate key') || 
+               error.message.includes('constraint'))) {
+            console.log("Conversation already exists, navigating to it");
+            onOpenChange(false);
+            navigate(`/messages/${userId}`);
+          } else {
+            // Show the error
+            toast.error("Failed to create conversation");
+            if (onError) onError(error instanceof Error ? error.message : String(error));
+          }
+        }
+      });
+    } catch (err) {
+      console.error('Unexpected error in NewMessageDialog:', err);
+      // Try to navigate anyway
+      onOpenChange(false);
+      navigate(`/messages/${userId}`);
+    }
   };
   
   return (
@@ -76,6 +102,13 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
           </div>
           
           <div className="min-h-[200px] max-h-[300px] overflow-y-auto">
+            {error && (
+              <div className="flex items-center gap-2 text-destructive p-4 bg-destructive/10 rounded-md">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <p className="text-sm">Error searching users: {error instanceof Error ? error.message : String(error)}</p>
+              </div>
+            )}
+            
             {isLoading ? (
               <div className="flex items-center justify-center h-full py-8">
                 <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
@@ -94,7 +127,7 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
                     disabled={isCreating}
                     onClick={() => handleStartConversation(user.id)}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-full">
                       <Avatar className="h-10 w-10">
                         {user.avatar_url && (
                           <img 
@@ -108,7 +141,7 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
                         </AvatarFallback>
                       </Avatar>
                       
-                      <div className="text-left">
+                      <div className="text-left flex-1">
                         <p className="font-medium text-foreground">
                           {user.full_name || user.username || 'Unknown User'}
                         </p>
@@ -118,6 +151,8 @@ const NewMessageDialog = ({ open, onOpenChange }: NewMessageDialogProps) => {
                           </p>
                         )}
                       </div>
+                      
+                      <UserPlus className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Button>
                 ))}

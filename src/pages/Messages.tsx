@@ -8,6 +8,8 @@ import NewMessageDialog from '@/components/messages/NewMessageDialog';
 import { MessageSquare, MessageSquarePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { ErrorAlert } from '@/components/ui/error-alert';
+import ErrorBoundary from '@/components/tennis-ai/ErrorBoundary';
 
 const Messages = () => {
   const { user } = useAuth();
@@ -15,6 +17,7 @@ const Messages = () => {
   const location = useLocation();
   const { chatId: selectedUserId } = useParams<{ chatId?: string }>();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -27,6 +30,8 @@ const Messages = () => {
   useEffect(() => {
     console.log("Messages page - selectedUserId:", selectedUserId);
     console.log("Current location:", location.pathname);
+    // Clear any previous errors when route changes
+    setError(null);
   }, [selectedUserId, location]);
 
   if (!user) {
@@ -36,6 +41,11 @@ const Messages = () => {
       </div>
     );
   }
+
+  const handleError = (errorMessage: string) => {
+    console.error("Messaging error:", errorMessage);
+    setError(errorMessage);
+  };
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -77,7 +87,12 @@ const Messages = () => {
                     <MessageSquarePlus className="h-4 w-4" />
                     <span>New Message</span>
                   </Button>
-                  <ConversationsList selectedUserId={selectedUserId} />
+                  <ErrorBoundary>
+                    <ConversationsList 
+                      selectedUserId={selectedUserId} 
+                      onError={handleError}
+                    />
+                  </ErrorBoundary>
                 </div>
               </SheetContent>
             </Sheet>
@@ -85,6 +100,15 @@ const Messages = () => {
         )}
       </div>
       
+      {error && (
+        <ErrorAlert 
+          message={error}
+          severity="error"
+          onRetry={() => setError(null)}
+          className="mb-6"
+        />
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(80vh-120px)]">
         {/* Conversations List - Hidden on mobile when a conversation is selected */}
         <div className={`border rounded-md overflow-hidden ${selectedUserId ? 'hidden md:block' : 'block'}`}>
@@ -92,7 +116,12 @@ const Messages = () => {
             <h2 className="font-medium">Conversations</h2>
           </div>
           <div className="p-4 h-[calc(80vh-190px)] overflow-y-auto">
-            <ConversationsList selectedUserId={selectedUserId} />
+            <ErrorBoundary>
+              <ConversationsList 
+                selectedUserId={selectedUserId} 
+                onError={handleError}
+              />
+            </ErrorBoundary>
           </div>
         </div>
         
@@ -100,23 +129,25 @@ const Messages = () => {
         <div className={`border rounded-md overflow-hidden ${
           selectedUserId ? 'block md:col-span-2' : 'hidden md:block md:col-span-2'
         }`}>
-          {selectedUserId ? (
-            <ChatInterface key={selectedUserId} />
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
-              <MessageSquare className="h-16 w-16 mb-4 opacity-20" />
-              <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
-              <p>Select a conversation from the list or start a new one.</p>
-              <Button 
-                variant="outline"
-                className="mt-6 gap-2"
-                onClick={() => setNewMessageOpen(true)}
-              >
-                <MessageSquarePlus className="h-4 w-4" />
-                <span>New Message</span>
-              </Button>
-            </div>
-          )}
+          <ErrorBoundary>
+            {selectedUserId ? (
+              <ChatInterface key={selectedUserId} onError={handleError} />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
+                <MessageSquare className="h-16 w-16 mb-4 opacity-20" />
+                <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
+                <p>Select a conversation from the list or start a new one.</p>
+                <Button 
+                  variant="outline"
+                  className="mt-6 gap-2"
+                  onClick={() => setNewMessageOpen(true)}
+                >
+                  <MessageSquarePlus className="h-4 w-4" />
+                  <span>New Message</span>
+                </Button>
+              </div>
+            )}
+          </ErrorBoundary>
         </div>
       </div>
       
@@ -132,6 +163,7 @@ const Messages = () => {
             }, 100);
           }
         }} 
+        onError={handleError}
       />
     </div>
   );

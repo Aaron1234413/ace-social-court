@@ -8,12 +8,25 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquarePlus } from 'lucide-react';
 import NewMessageDialog from './NewMessageDialog';
+import { ErrorAlert } from '@/components/ui/error-alert';
 
-const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
-  const { conversations, isLoadingConversations } = useConversations();
+interface ConversationsListProps {
+  selectedUserId?: string;
+  onError?: (error: string) => void;
+}
+
+const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) => {
+  const { conversations, isLoadingConversations, error } = useConversations();
   const navigate = useNavigate();
   const location = useLocation();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
+
+  // Handle errors
+  useEffect(() => {
+    if (error && onError) {
+      onError(error.message);
+    }
+  }, [error, onError]);
 
   // Force refresh when conversations-refresh event is triggered
   useEffect(() => {
@@ -52,6 +65,33 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="py-4">
+        <ErrorAlert
+          title="Failed to load conversations"
+          message={error.message}
+          severity="error"
+          onRetry={() => window.dispatchEvent(new Event('conversations-refresh'))}
+        />
+        <Button 
+          variant="outline" 
+          className="w-full gap-2 mt-4" 
+          onClick={() => setNewMessageOpen(true)}
+        >
+          <MessageSquarePlus className="h-4 w-4" />
+          Start New Message
+        </Button>
+        
+        <NewMessageDialog 
+          open={newMessageOpen} 
+          onOpenChange={setNewMessageOpen}
+          onError={onError}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Button 
@@ -65,7 +105,8 @@ const ConversationsList = ({ selectedUserId }: { selectedUserId?: string }) => {
       
       <NewMessageDialog 
         open={newMessageOpen} 
-        onOpenChange={setNewMessageOpen} 
+        onOpenChange={setNewMessageOpen}
+        onError={onError}
       />
       
       {conversations.length === 0 ? (

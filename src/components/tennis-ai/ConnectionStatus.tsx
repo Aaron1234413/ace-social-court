@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Wifi, WifiOff } from 'lucide-react';
 import { 
   Tooltip,
@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { checkRealtimeHealth } from '@/utils/realtimeHelper';
+import { toast } from 'sonner';
 
 interface ConnectionStatusProps {
   onReconnect?: () => void;
@@ -20,8 +21,9 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ onReconnect, classN
   const [status, setStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const [checking, setChecking] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
 
-  const checkConnection = async () => {
+  const checkConnection = useCallback(async () => {
     // Debounce check to avoid spamming
     const now = Date.now();
     if (now - lastCheckTime < 1000) {
@@ -38,6 +40,8 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ onReconnect, classN
       
       if (health && health.channelConnected) {
         setStatus('connected');
+        // Reset retry count on successful connection
+        setRetryCount(0);
       } else {
         setStatus('disconnected');
       }
@@ -47,7 +51,24 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ onReconnect, classN
     } finally {
       setChecking(false);
     }
-  };
+  }, [lastCheckTime]);
+
+  // Auto-retry connection at increasing intervals
+  useEffect(() => {
+    if (status === 'disconnected' && !checking && retryCount < 5) {
+      const retryDelay = Math.min(2000 * Math.pow(2, retryCount), 30000); // Exponential backoff with max 30s
+      
+      console.log(`Auto-reconnect attempt ${retryCount + 1} scheduled in ${retryDelay}ms`);
+      
+      const timer = setTimeout(() => {
+        console.log(`Executing auto-reconnect attempt ${retryCount + 1}`);
+        handleReconnect();
+        setRetryCount(prev => prev + 1);
+      }, retryDelay);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [status, checking, retryCount]);
 
   useEffect(() => {
     // Initialize status check
@@ -60,11 +81,13 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ onReconnect, classN
     // Check online/offline status
     const handleOnline = () => {
       console.log("Device is online, checking connection...");
+      toast.info("Network connection restored");
       checkConnection();
     };
     
     const handleOffline = () => {
       console.log("Device is offline, setting disconnected status");
+      toast.error("Network connection lost");
       setStatus('disconnected');
     };
     
@@ -76,7 +99,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ onReconnect, classN
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [checkConnection]);
 
   const handleReconnect = async () => {
     try {
