@@ -15,23 +15,33 @@ interface APIErrorDisplayProps {
 
 const APIErrorDisplay: React.FC<APIErrorDisplayProps> = ({ error, className }) => {
   // Check if the error is related to OpenAI quota
-  const isQuotaError = error.message.includes('quota') || 
-    error.message.includes('exceeded') || 
-    error.message.includes('billing') ||
-    error.message.includes('OpenAI API');
+  const isQuotaError = error.message?.toLowerCase().includes('quota') || 
+    error.message?.toLowerCase().includes('exceeded') || 
+    error.message?.toLowerCase().includes('billing') ||
+    error.message?.toLowerCase().includes('openai api') ||
+    error.message?.toLowerCase().includes('api key');
+
+  // Check for connection errors
+  const isConnectionError = error.message?.toLowerCase().includes('network') ||
+    error.message?.toLowerCase().includes('connect') ||
+    error.message?.toLowerCase().includes('timeout') ||
+    error.message?.toLowerCase().includes('offline');
+
+  console.log("Rendering APIErrorDisplay with error:", error);
 
   return (
     <Alert variant="destructive" className={className}>
       <AlertCircle className="h-5 w-5 mr-2" />
       <AlertTitle className="text-base font-medium mb-2">
-        {isQuotaError ? 'API Quota Exceeded' : 'Connection Error'}
+        {isQuotaError ? 'API Quota Exceeded' : 
+          isConnectionError ? 'Connection Error' : 'Error'}
       </AlertTitle>
       <AlertDescription className="space-y-4">
-        <p>{error.message}</p>
+        <p>{error.message || "An unknown error occurred"}</p>
         
         {isQuotaError ? (
           <div className="mt-4 space-y-2">
-            <p className="text-sm">The OpenAI API quota has been exceeded. Please check your billing details or contact the administrator.</p>
+            <p className="text-sm">The OpenAI API quota has been exceeded or there's an issue with the API key. Please check your billing details or contact the administrator.</p>
             <div className="flex flex-wrap gap-2 mt-2">
               <a 
                 href="https://platform.openai.com/account/billing" 

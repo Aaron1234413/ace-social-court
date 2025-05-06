@@ -24,14 +24,18 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI
+    console.log("Error caught in ErrorBoundary getDerivedStateFromError:", error);
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // You can also log the error to an error reporting service
     console.error('Error caught by ErrorBoundary:', error, errorInfo);
   }
 
   resetErrorBoundary = (): void => {
+    console.log("Resetting error boundary");
     this.setState({ hasError: false, error: null });
     if (this.props.onReset) {
       this.props.onReset();

@@ -19,21 +19,28 @@ interface ConnectionStatusProps {
 const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ onReconnect, className }) => {
   const [status, setStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const [checking, setChecking] = useState(false);
-
-  useEffect(() => {
-    checkConnection();
-    
-    // Check connection status periodically
-    const interval = setInterval(checkConnection, 30000); // every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, []);
+  const [lastCheckTime, setLastCheckTime] = useState(0);
 
   const checkConnection = async () => {
+    // Debounce check to avoid spamming
+    const now = Date.now();
+    if (now - lastCheckTime < 1000) {
+      return;
+    }
+    
+    setLastCheckTime(now);
+    
     try {
       setChecking(true);
+      console.log("Checking realtime connection status...");
       const health = await checkRealtimeHealth();
-      setStatus(health.channelConnected ? 'connected' : 'disconnected');
+      console.log("Realtime health check result:", health);
+      
+      if (health && health.channelConnected) {
+        setStatus('connected');
+      } else {
+        setStatus('disconnected');
+      }
     } catch (error) {
       console.error('Error checking connection:', error);
       setStatus('disconnected');
@@ -42,8 +49,38 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ onReconnect, classN
     }
   };
 
+  useEffect(() => {
+    // Initialize status check
+    console.log("ConnectionStatus component mounted");
+    checkConnection();
+    
+    // Check connection status periodically
+    const interval = setInterval(checkConnection, 30000); // every 30 seconds
+    
+    // Check online/offline status
+    const handleOnline = () => {
+      console.log("Device is online, checking connection...");
+      checkConnection();
+    };
+    
+    const handleOffline = () => {
+      console.log("Device is offline, setting disconnected status");
+      setStatus('disconnected');
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const handleReconnect = async () => {
     try {
+      console.log("Attempting to reconnect...");
       setStatus('connecting');
       if (onReconnect) {
         onReconnect();
