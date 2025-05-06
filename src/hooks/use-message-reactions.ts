@@ -78,7 +78,9 @@ export const useMessageReactions = (otherUserId?: string) => {
   });
 
   return {
-    addReaction: addReactionMutation.mutate,
-    removeReaction: removeReactionMutation.mutate
+    addReaction: (messageId: string, type: MessageReaction['reaction_type']) => 
+      addReactionMutation.mutate({ messageId, reactionType: type }),
+    removeReaction: (messageId: string, reactionId: string) => 
+      removeReactionMutation.mutate({ messageId, reactionId })
   };
 };
