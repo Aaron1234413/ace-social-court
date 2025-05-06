@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMessages } from '@/hooks/use-messages';
@@ -9,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Message } from '@/components/messages/types';
-import { formatDistanceToNow } from 'date-fns';
-import { Send, ArrowLeft } from 'lucide-react';
+import { format, formatDistanceToNow, isToday, isYesterday, isSameDay } from 'date-fns';
+import { Send, ArrowLeft, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorAlert } from '@/components/ui/error-alert';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatInterfaceProps {
   onError?: (error: string) => void;
@@ -30,6 +32,9 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Check if we have a valid otherUserId
   const validConversation = !!otherUserId && otherUserId !== 'undefined';
@@ -95,6 +100,25 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
     }
   }, [userError, onError]);
 
+  // Simulate typing indicator effect
+  const simulateTypingIndicator = useCallback(() => {
+    // Only show typing indicator occasionally to make it feel more natural
+    if (Math.random() > 0.7 && messages.length > 0) {
+      setIsTyping(true);
+      
+      // Clear previous timeout if exists
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Set random duration for typing indicator (between 2-5 seconds)
+      const duration = Math.floor(Math.random() * 3000) + 2000;
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+      }, duration);
+    }
+  }, [messages.length]);
+
   // Subscribe to realtime updates for new messages
   useEffect(() => {
     if (!validConversation || !user) return;
@@ -112,6 +136,9 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
         console.log("Realtime message received:", payload);
         queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        
+        // Show typing indicator before new message comes in
+        simulateTypingIndicator();
       })
       .subscribe((status) => {
         console.log("Channel status:", status);
@@ -120,15 +147,20 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
     return () => {
       console.log("Removing realtime subscription");
       supabase.removeChannel(channel);
+      
+      // Clear typing timeout if component unmounts
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
-  }, [otherUserId, user, queryClient]);
+  }, [otherUserId, user, queryClient, simulateTypingIndicator]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +198,17 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   const handleBackClick = useCallback(() => {
     navigate('/messages');
   }, [navigate]);
+
+  // Helper function to format date for message grouping
+  const formatMessageDate = useCallback((date: Date) => {
+    if (isToday(date)) {
+      return 'Today';
+    } else if (isYesterday(date)) {
+      return 'Yesterday';
+    } else {
+      return format(date, 'EEEE, MMMM d, yyyy');
+    }
+  }, []);
 
   // Display error if no valid conversation
   if (!validConversation) {
@@ -220,78 +263,178 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
 
     // Group messages by date
     const messagesByDate = messages.reduce((groups: Record<string, Message[]>, message) => {
-      const date = new Date(message.created_at).toLocaleDateString();
+      const date = formatMessageDate(new Date(message.created_at));
       if (!groups[date]) {
         groups[date] = [];
       }
       groups[date].push(message);
       return groups;
     }, {});
+    
+    // Further group messages by sender in consecutive sequences
+    const groupMessagesBySender = (messages: Message[]) => {
+      const groups: { messages: Message[], sender_id: string }[] = [];
+      
+      messages.forEach((message) => {
+        const lastGroup = groups[groups.length - 1];
+        
+        if (lastGroup && lastGroup.sender_id === message.sender_id) {
+          // Add to the existing group if same sender and within 2 minutes
+          const lastMessage = lastGroup.messages[lastGroup.messages.length - 1];
+          const timeDiff = new Date(message.created_at).getTime() - new Date(lastMessage.created_at).getTime();
+          
+          if (timeDiff < 2 * 60 * 1000) { // 2 minutes in milliseconds
+            lastGroup.messages.push(message);
+          } else {
+            // Create new group if time difference is too large
+            groups.push({
+              sender_id: message.sender_id,
+              messages: [message]
+            });
+          }
+        } else {
+          // Create new group for new sender
+          groups.push({
+            sender_id: message.sender_id,
+            messages: [message]
+          });
+        }
+      });
+      
+      return groups;
+    };
 
     return (
       <>
-        {Object.keys(messagesByDate).map((date) => (
-          <div key={date} className="space-y-4">
-            <div className="flex justify-center my-2">
-              <div className="px-3 py-1 bg-accent rounded-full text-xs">
-                {new Date(date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'short',
-                  day: 'numeric'
-                })}
-              </div>
-            </div>
-            
-            {messagesByDate[date].map((message) => (
-              <div 
-                key={message.id} 
-                className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-              >
-                <div 
-                  className={`flex items-end gap-2 max-w-[80%] ${
-                    message.sender_id === user?.id ? 'flex-row-reverse' : 'flex-row'
-                  } cursor-pointer hover:opacity-90 transition-opacity`}
-                  onClick={() => handleMessageClick(message.id)}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={selectedMessage === message.id}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      handleMessageClick(message.id);
-                    }
-                  }}
-                >
-                  <Avatar className="h-8 w-8">
-                    {message.sender?.avatar_url && (
-                      <img 
-                        src={message.sender.avatar_url} 
-                        alt={message.sender?.username || 'User'} 
-                      />
-                    )}
-                    <AvatarFallback>
-                      {message.sender_id === user?.id 
-                        ? user.email?.charAt(0).toUpperCase() || 'Y'
-                        : message.sender?.username?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="space-y-1">
-                    <div className={`px-4 py-2 rounded-xl ${
-                      message.sender_id === user?.id 
-                        ? 'bg-primary text-primary-foreground rounded-br-none' 
-                        : 'bg-accent rounded-bl-none'
-                    } ${selectedMessage === message.id ? 'ring-2 ring-offset-2 ring-primary' : ''}`}>
-                      <p>{message.content}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground mx-2">
-                      {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
+        {Object.keys(messagesByDate).map((date) => {
+          const messageGroups = groupMessagesBySender(messagesByDate[date]);
+          
+          return (
+            <div key={date} className="space-y-6">
+              <div className="flex justify-center my-4">
+                <div className="px-3 py-1 bg-accent rounded-full text-xs">
+                  {date}
                 </div>
               </div>
-            ))}
+              
+              {messageGroups.map((group, groupIndex) => {
+                const isCurrentUser = group.sender_id === user?.id;
+                
+                return (
+                  <div 
+                    key={`${date}-${groupIndex}`} 
+                    className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-2`}
+                  >
+                    <div 
+                      className={`flex items-start gap-2 max-w-[80%] ${
+                        isCurrentUser ? 'flex-row-reverse' : 'flex-row'
+                      }`}
+                    >
+                      {/* Only show avatar once per group */}
+                      <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
+                        {group.messages[0].sender?.avatar_url && (
+                          <img 
+                            src={group.messages[0].sender.avatar_url} 
+                            alt={group.messages[0].sender?.username || 'User'} 
+                          />
+                        )}
+                        <AvatarFallback>
+                          {group.sender_id === user?.id 
+                            ? user.email?.charAt(0).toUpperCase() || 'Y'
+                            : group.messages[0].sender?.username?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="space-y-1">
+                        {group.messages.map((message, msgIndex) => {
+                          const isFirstInGroup = msgIndex === 0;
+                          const isLastInGroup = msgIndex === group.messages.length - 1;
+                          
+                          // Determine border radius based on position in group
+                          let borderRadiusClass = 'rounded-xl';
+                          if (isCurrentUser) {
+                            if (group.messages.length > 1) {
+                              if (isFirstInGroup) borderRadiusClass = 'rounded-xl rounded-br-sm';
+                              else if (isLastInGroup) borderRadiusClass = 'rounded-xl rounded-tr-sm';
+                              else borderRadiusClass = 'rounded-xl rounded-r-sm';
+                            } else {
+                              borderRadiusClass = 'rounded-xl rounded-br-none';
+                            }
+                          } else {
+                            if (group.messages.length > 1) {
+                              if (isFirstInGroup) borderRadiusClass = 'rounded-xl rounded-bl-sm';
+                              else if (isLastInGroup) borderRadiusClass = 'rounded-xl rounded-tl-sm';
+                              else borderRadiusClass = 'rounded-xl rounded-l-sm';
+                            } else {
+                              borderRadiusClass = 'rounded-xl rounded-bl-none';
+                            }
+                          }
+                          
+                          return (
+                            <div key={message.id} className="space-y-1">
+                              <div 
+                                className={`px-4 py-2 ${borderRadiusClass} ${
+                                  isCurrentUser 
+                                    ? 'bg-primary text-primary-foreground' 
+                                    : 'bg-accent'
+                                } ${selectedMessage === message.id ? 'ring-2 ring-offset-2 ring-primary' : ''}`}
+                                onClick={() => handleMessageClick(message.id)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    handleMessageClick(message.id);
+                                  }
+                                }}
+                              >
+                                <p>{message.content}</p>
+                              </div>
+                              
+                              {/* Only show time for last message in a group */}
+                              {isLastInGroup && (
+                                <div className={`flex items-center text-xs text-muted-foreground ${isCurrentUser ? 'justify-end' : 'justify-start'} px-1`}>
+                                  <span>{format(new Date(message.created_at), 'h:mm a')}</span>
+                                  {isCurrentUser && message.read && (
+                                    <Check className="h-3 w-3 ml-1 text-primary" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+        
+        {/* Typing indicator */}
+        {isTyping && (
+          <div className="flex justify-start my-2">
+            <div className="flex items-start gap-2 max-w-[80%]">
+              <Avatar className="h-8 w-8 mt-1">
+                {otherUser?.avatar_url && (
+                  <img src={otherUser.avatar_url} alt={otherUser?.username || 'User'} />
+                )}
+                <AvatarFallback>
+                  {otherUser?.full_name?.charAt(0) || otherUser?.username?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="px-4 py-2 bg-accent rounded-xl rounded-bl-none">
+                <div className="flex items-center h-6 space-x-1">
+                  <div className="w-2 h-2 rounded-full bg-current animate-bounce" />
+                  <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '0.4s' }} />
+                </div>
+              </div>
+            </div>
           </div>
-        ))}
+        )}
+        
         <div ref={messagesEndRef} />
       </>
     );
@@ -300,7 +443,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="border-b px-4 py-3 flex items-center">
+      <div className="border-b px-4 py-3 flex items-center bg-background sticky top-0 z-10">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -344,7 +487,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
       </div>
       
       {/* Message Input */}
-      <div className="border-t p-4">
+      <div className="border-t p-4 bg-background sticky bottom-0 z-10">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             placeholder="Type a message..."
@@ -360,6 +503,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
             type="submit"
             size="icon"
             disabled={!newMessage.trim() || isSending}
+            className="rounded-full h-10 w-10"
           >
             <Send className="h-4 w-4" />
             <span className="sr-only">Send message</span>

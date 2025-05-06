@@ -5,10 +5,12 @@ import { useConversations } from '@/hooks/use-messages';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageSquarePlus } from 'lucide-react';
+import { MessageSquarePlus, Eye } from 'lucide-react';
 import NewMessageDialog from './NewMessageDialog';
 import { ErrorAlert } from '@/components/ui/error-alert';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ConversationsListProps {
   selectedUserId?: string | null;
@@ -21,6 +23,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
   const navigate = useNavigate();
   const location = useLocation();
   const [newMessageOpen, setNewMessageOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   console.log("ConversationsList - selectedUserId:", selectedUserId);
   console.log("ConversationsList - available conversations:", conversations.map(c => c.other_user?.id));
@@ -149,18 +152,26 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
                 onClick={() => handleConversationClick(conversation.other_user?.id)}
                 aria-selected={isSelected}
               >
-                <Avatar className="h-10 w-10 flex-shrink-0">
-                  {conversation.other_user?.avatar_url && (
-                    <img 
-                      src={conversation.other_user.avatar_url} 
-                      alt={conversation.other_user?.username || 'User'} 
-                    />
+                <div className="relative">
+                  <Avatar className="h-10 w-10 flex-shrink-0">
+                    {conversation.other_user?.avatar_url && (
+                      <img 
+                        src={conversation.other_user.avatar_url} 
+                        alt={conversation.other_user?.username || 'User'} 
+                      />
+                    )}
+                    <AvatarFallback>
+                      {conversation.other_user?.full_name?.charAt(0) || 
+                       conversation.other_user?.username?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  {hasUnread && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                      <Eye className="h-3 w-3 text-primary-foreground" />
+                    </span>
                   )}
-                  <AvatarFallback>
-                    {conversation.other_user?.full_name?.charAt(0) || 
-                     conversation.other_user?.username?.charAt(0) || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                </div>
                 
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-baseline">
@@ -175,16 +186,20 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
                     )}
                   </div>
                   
-                  {conversation.last_message && (
-                    <p className={`text-sm truncate ${hasUnread ? 'font-medium' : 'text-muted-foreground'}`}>
-                      {conversation.last_message.content}
-                    </p>
-                  )}
+                  <div className="flex justify-between items-center">
+                    {conversation.last_message && (
+                      <p className={`text-sm truncate ${hasUnread ? 'font-medium' : 'text-muted-foreground'}`}>
+                        {conversation.last_message.content}
+                      </p>
+                    )}
+                    
+                    {hasUnread && (
+                      <Badge variant="default" className="ml-1 py-0 px-1.5 text-xs h-5">
+                        new
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                
-                {hasUnread && (
-                  <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-                )}
               </button>
             );
           })}

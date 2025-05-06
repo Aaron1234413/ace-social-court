@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCreateConversation } from '@/hooks/use-messages';
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MessageButtonProps {
   userId: string;
@@ -16,6 +17,7 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
   const { createConversation } = useCreateConversation();
+  const isMobile = useIsMobile();
   
   const handleClick = async () => {
     if (isCreating || !userId) return;
@@ -31,6 +33,12 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
       createConversation(userId, {
         onSuccess: () => {
           console.log("Conversation created or found successfully");
+          if (isMobile) {
+            // On mobile, show a toast to confirm
+            toast.success("Conversation opened", {
+              description: "You can now start messaging"
+            });
+          }
         },
         onError: (error) => {
           // Only show errors for non-duplicate key issues
@@ -55,12 +63,16 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
     }
   };
   
+  // On mobile, use a more compact button when compact prop is true
+  const buttonSize = isMobile && compact ? 'icon' : compact ? 'icon' : 'sm';
+  
   return (
     <Button
       variant={variant}
-      size={compact ? 'icon' : 'sm'}
+      size={buttonSize}
       onClick={handleClick}
       disabled={isCreating}
+      className={compact ? 'rounded-full' : 'rounded-md'}
     >
       {isCreating ? (
         <Loader2 className="h-4 w-4 animate-spin" />
