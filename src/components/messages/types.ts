@@ -14,7 +14,7 @@ export interface Message {
   } | null;
   media_url?: string | null;
   media_type?: 'image' | 'video' | null;
-  reactions?: MessageReaction[];
+  reactions?: MessageReaction[] | null;
   is_deleted?: boolean;
 }
 

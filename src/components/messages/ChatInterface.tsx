@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Message, MessageReaction } from '@/components/messages/types';
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
-import { Send, ArrowLeft, Check, Image as ImageIcon, Video } from 'lucide-react';
+import { Send, ArrowLeft, Check, Image as ImageIcon, Video, Heart, ThumbsUp, Laugh, Frown } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorAlert } from '@/components/ui/error-alert';
 import { useIsMobile } from '@/hooks/use-mobile';
