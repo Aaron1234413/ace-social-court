@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
@@ -11,7 +10,7 @@ import NewMessageDialog from './NewMessageDialog';
 import { ErrorAlert } from '@/components/ui/error-alert';
 
 interface ConversationsListProps {
-  selectedUserId?: string;
+  selectedUserId?: string | null;
   onError?: (error: string) => void;
 }
 
@@ -119,7 +118,7 @@ const ConversationsList = ({ selectedUserId, onError }: ConversationsListProps) 
       ) : (
         <div className="space-y-1">
           {conversations.map((conversation) => {
-            // Check if this conversation is currently selected
+            // Check if this conversation is currently selected - compare as strings to ensure consistent comparison
             const isSelected = selectedUserId === conversation.other_user?.id;
             
             console.log(

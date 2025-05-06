@@ -15,10 +15,10 @@ const Messages = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const params = useParams<{ chatId?: string }>();
+  const { chatId } = useParams<{ chatId?: string }>();
   
-  // Get the selectedUserId from the URL parameters
-  const selectedUserId = params.chatId;
+  // Get the selectedUserId from the URL parameters - ensure it's valid and not 'undefined' string
+  const selectedUserId = chatId && chatId !== 'undefined' ? chatId : null;
   
   console.log("Messages page - extracted selectedUserId:", selectedUserId);
   
