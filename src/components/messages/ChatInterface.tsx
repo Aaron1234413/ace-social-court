@@ -9,12 +9,15 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Message } from '@/components/messages/types';
-import { format, formatDistanceToNow, isToday, isYesterday, isSameDay } from 'date-fns';
-import { Send, ArrowLeft, Check } from 'lucide-react';
+import { Message, MessageReaction } from '@/components/messages/types';
+import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
+import { Send, ArrowLeft, Check, Image as ImageIcon, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorAlert } from '@/components/ui/error-alert';
 import { useIsMobile } from '@/hooks/use-mobile';
+import MessageMediaPreview from './MessageMediaPreview';
+import MessageActions from './MessageActions';
+import { Progress } from '@/components/ui/progress';
 
 interface ChatInterfaceProps {
   onError?: (error: string) => void;
@@ -22,9 +25,7 @@ interface ChatInterfaceProps {
 
 const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   const { chatId } = useParams<{ chatId: string }>();
-  const otherUserId = chatId; // Use the chatId directly from params
-  
-  console.log("ChatInterface - using otherUserId:", otherUserId);
+  const otherUserId = chatId;
   
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,7 +48,16 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
     newMessage, 
     setNewMessage, 
     sendMessage,
-    isSending
+    isSending,
+    mediaPreview,
+    mediaFile,
+    mediaType,
+    uploadProgress,
+    handleMediaSelect,
+    clearMedia,
+    addReaction,
+    removeReaction,
+    deleteMessage
   } = useMessages(validConversation ? otherUserId : undefined);
   
   // Handle any errors
@@ -169,7 +180,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
       return;
     }
     
-    if (newMessage.trim()) {
+    if (newMessage.trim() || mediaFile) {
       try {
         sendMessage();
       } catch (error) {
@@ -179,16 +190,16 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
         }
       }
     }
-  }, [newMessage, sendMessage, onError, validConversation]);
+  }, [newMessage, mediaFile, sendMessage, onError, validConversation]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (newMessage.trim() && validConversation) {
+      if ((newMessage.trim() || mediaFile) && validConversation) {
         sendMessage();
       }
     }
-  }, [newMessage, sendMessage, validConversation]);
+  }, [newMessage, mediaFile, sendMessage, validConversation]);
   
   const handleMessageClick = useCallback((messageId: string) => {
     setSelectedMessage(messageId === selectedMessage ? null : messageId);
@@ -209,6 +220,54 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
       return format(date, 'EEEE, MMMM d, yyyy');
     }
   }, []);
+  
+  // Helper to handle file selection
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+    
+    // Validate file
+    if (fileType === 'image' && file.size > 5 * 1024 * 1024) {
+      toast.error("Image file is too large (max 5MB)");
+      return;
+    }
+    
+    if (fileType === 'video' && file.size > 20 * 1024 * 1024) {
+      toast.error("Video file is too large (max 20MB)");
+      return;
+    }
+    
+    handleMediaSelect(file, fileType);
+    
+    // Reset input value so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [handleMediaSelect]);
+  
+  // Helper to trigger file input click
+  const triggerFileInput = useCallback((type: 'image' | 'video') => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = type === 'image' ? 'image/*' : 'video/*';
+      fileInputRef.current.click();
+    }
+  }, []);
+  
+  // Helper to handle reactions
+  const handleAddReaction = useCallback((messageId: string, reactionType: MessageReaction['reaction_type']) => {
+    addReaction({ messageId, reactionType });
+  }, [addReaction]);
+  
+  const handleRemoveReaction = useCallback((messageId: string, reactionId: string) => {
+    removeReaction({ messageId, reactionId });
+  }, [removeReaction]);
+  
+  // Helper to handle message deletion
+  const handleDeleteMessage = useCallback((messageId: string) => {
+    deleteMessage(messageId);
+  }, [deleteMessage]);
 
   // Display error if no valid conversation
   if (!validConversation) {
@@ -349,6 +408,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
                         {group.messages.map((message, msgIndex) => {
                           const isFirstInGroup = msgIndex === 0;
                           const isLastInGroup = msgIndex === group.messages.length - 1;
+                          const isDeleted = message.is_deleted;
                           
                           // Determine border radius based on position in group
                           let borderRadiusClass = 'rounded-xl';
@@ -370,10 +430,13 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
                             }
                           }
                           
+                          // Get all reactions for this message
+                          const messageReactions = message.reactions || [];
+                          
                           return (
                             <div key={message.id} className="space-y-1">
                               <div 
-                                className={`px-4 py-2 ${borderRadiusClass} ${
+                                className={`${borderRadiusClass} ${
                                   isCurrentUser 
                                     ? 'bg-primary text-primary-foreground' 
                                     : 'bg-accent'
@@ -387,16 +450,67 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
                                   }
                                 }}
                               >
-                                <p>{message.content}</p>
+                                {/* Message with media */}
+                                {message.media_url && message.media_type && !isDeleted && (
+                                  <div className="mb-1">
+                                    <MessageMediaPreview 
+                                      url={message.media_url} 
+                                      type={message.media_type}
+                                      className="w-full max-w-[300px]" 
+                                    />
+                                  </div>
+                                )}
+                                
+                                {/* Message text */}
+                                {(!isDeleted || message.content) && (
+                                  <div className={`px-4 py-2 ${isDeleted ? 'italic text-muted-foreground' : ''}`}>
+                                    <p>{message.content}</p>
+                                  </div>
+                                )}
                               </div>
                               
-                              {/* Only show time for last message in a group */}
-                              {isLastInGroup && (
-                                <div className={`flex items-center text-xs text-muted-foreground ${isCurrentUser ? 'justify-end' : 'justify-start'} px-1`}>
-                                  <span>{format(new Date(message.created_at), 'h:mm a')}</span>
-                                  {isCurrentUser && message.read && (
-                                    <Check className="h-3 w-3 ml-1 text-primary" />
-                                  )}
+                              {/* Message actions and reactions */}
+                              <div className={`flex items-center gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                                <MessageActions 
+                                  messageId={message.id}
+                                  senderId={message.sender_id}
+                                  reactions={messageReactions}
+                                  onAddReaction={handleAddReaction}
+                                  onRemoveReaction={handleRemoveReaction}
+                                  onDelete={handleDeleteMessage}
+                                />
+                                
+                                {/* Only show time and read receipt for last message in a group */}
+                                {isLastInGroup && (
+                                  <div className={`flex items-center text-xs text-muted-foreground ${isCurrentUser ? 'justify-end' : 'justify-start'} px-1`}>
+                                    <span>{format(new Date(message.created_at), 'h:mm a')}</span>
+                                    {isCurrentUser && message.read && (
+                                      <Check className="h-3 w-3 ml-1 text-primary" />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Display reactions if any */}
+                              {messageReactions.length > 0 && (
+                                <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                                  <div className="flex bg-background rounded-full border px-2 py-0.5 gap-1">
+                                    {Object.entries(reactionCounts => {
+                                      const counts = messageReactions.reduce((acc, reaction) => {
+                                        acc[reaction.reaction_type] = (acc[reaction.reaction_type] || 0) + 1;
+                                        return acc;
+                                      }, {} as Record<string, number>);
+                                      return counts;
+                                    }).map(([type, count]) => (
+                                      <div key={type} className="flex items-center text-xs">
+                                        {type === 'like' && <ThumbsUp className="h-3 w-3 text-primary mr-1" />}
+                                        {type === 'heart' && <Heart className="h-3 w-3 text-red-500 mr-1" />}
+                                        {type === 'laugh' && <Laugh className="h-3 w-3 text-yellow-500 mr-1" />}
+                                        {type === 'sad' && <Frown className="h-3 w-3 text-blue-500 mr-1" />}
+                                        {count}
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -486,28 +600,97 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
         {renderMessages()}
       </div>
       
+      {/* Media Preview */}
+      {mediaPreview && (
+        <div className="px-4 pb-2">
+          <div className="relative bg-accent/20 rounded-md p-2 flex items-center">
+            {mediaType === 'image' ? (
+              <img 
+                src={mediaPreview} 
+                alt="Upload preview" 
+                className="h-16 object-cover rounded-md" 
+              />
+            ) : (
+              <video 
+                src={mediaPreview} 
+                className="h-16 object-cover rounded-md"
+              />
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-2 text-muted-foreground hover:text-destructive"
+              onClick={clearMedia}
+            >
+              Remove
+            </Button>
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="absolute bottom-0 left-0 right-0 px-2">
+                <Progress value={uploadProgress} className="h-1" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* Message Input */}
       <div className="border-t p-4 bg-background sticky bottom-0 z-10">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={isSending}
-            className="flex-1"
-            ref={inputRef}
-            aria-label="Message input"
-          />
-          <Button 
-            type="submit"
-            size="icon"
-            disabled={!newMessage.trim() || isSending}
-            className="rounded-full h-10 w-10"
-          >
-            <Send className="h-4 w-4" />
-            <span className="sr-only">Send message</span>
-          </Button>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isSending}
+              className="flex-1"
+              ref={inputRef}
+              aria-label="Message input"
+            />
+            <Button 
+              type="submit"
+              size="icon"
+              disabled={(!newMessage.trim() && !mediaFile) || isSending}
+              className="rounded-full h-10 w-10"
+            >
+              <Send className="h-4 w-4" />
+              <span className="sr-only">Send message</span>
+            </Button>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => triggerFileInput('image')}
+              disabled={isSending}
+              className="rounded-md h-8 px-2 text-xs flex gap-1 text-muted-foreground"
+            >
+              <ImageIcon className="h-3 w-3" />
+              Add image
+            </Button>
+            
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => triggerFileInput('video')}
+              disabled={isSending}
+              className="rounded-md h-8 px-2 text-xs flex gap-1 text-muted-foreground"
+            >
+              <Video className="h-3 w-3" />
+              Add video
+            </Button>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*,video/*"
+              onChange={handleFileSelect}
+            />
+          </div>
         </form>
       </div>
     </div>

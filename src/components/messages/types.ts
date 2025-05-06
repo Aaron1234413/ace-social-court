@@ -12,6 +12,18 @@ export interface Message {
     username: string | null;
     full_name: string | null;
   } | null;
+  media_url?: string | null;
+  media_type?: 'image' | 'video' | null;
+  reactions?: MessageReaction[];
+  is_deleted?: boolean;
+}
+
+export interface MessageReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  reaction_type: 'like' | 'heart' | 'laugh' | 'sad' | 'thumbs_up';
+  created_at: string;
 }
 
 export interface Conversation {
