@@ -81,6 +81,8 @@ export const useMessageReactions = (otherUserId?: string) => {
     addReaction: (messageId: string, type: MessageReaction['reaction_type']) => 
       addReactionMutation.mutate({ messageId, reactionType: type }),
     removeReaction: (messageId: string, reactionId: string) => 
-      removeReactionMutation.mutate({ messageId, reactionId })
+      removeReactionMutation.mutate({ messageId, reactionId }),
+    isAddingReaction: addReactionMutation.isPending,
+    isRemovingReaction: removeReactionMutation.isPending
   };
 };
