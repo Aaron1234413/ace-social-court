@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -25,12 +25,32 @@ const MessageMediaPreview = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Add debug logging
+  useEffect(() => {
+    console.log('MessageMediaPreview rendering:', {
+      url,
+      type,
+      isUploading,
+      uploadProgress,
+      isLoading,
+      error
+    });
+    
+    // Validate URL
+    if (!url) {
+      console.error('MessageMediaPreview received empty URL');
+      setError('Missing media URL');
+    }
+  }, [url, type, isUploading, uploadProgress, isLoading, error]);
+
   const handleLoad = () => {
+    console.log('Media loaded successfully:', url);
     setIsLoading(false);
     setError(null);
   };
 
-  const handleError = () => {
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement | HTMLVideoElement>) => {
+    console.error('Error loading media:', url, e);
     setIsLoading(false);
     setError('Failed to load media');
   };
@@ -94,7 +114,7 @@ const MessageMediaPreview = ({
           alt="Message attachment" 
           className="w-full h-full object-cover"
           onLoad={handleLoad}
-          onError={handleError}
+          onError={handleError as React.ReactEventHandler<HTMLImageElement>}
         />
       ) : (
         <video 
@@ -102,8 +122,10 @@ const MessageMediaPreview = ({
           controls 
           className="w-full h-full"
           onLoadedData={handleLoad}
-          onError={handleError}
-        />
+          onError={handleError as React.ReactEventHandler<HTMLVideoElement>}
+        >
+          Your browser does not support the video tag.
+        </video>
       )}
     </div>
   );

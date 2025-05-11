@@ -6,6 +6,8 @@ import { Loading } from '@/components/ui/loading';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import MainLayout from './components/layout/MainLayout';
 import ErrorBoundary from './components/tennis-ai/ErrorBoundary';
+import AppErrorFallback from './components/AppErrorFallback';
+import { toast } from 'sonner';
 
 // Lazy load pages to improve initial load time
 const Index = React.lazy(() => import('./pages/Index'));
@@ -43,40 +45,78 @@ const PageLoader = () => (
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success("You're back online!");
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error("You're offline. Some features may be unavailable.");
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    
+    // Mark as loaded after initial render
+    const timer = setTimeout(() => setHasLoaded(true), 500);
 
+    // Output to console for debugging
+    console.log('App mounting, online status:', isOnline);
+    
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  // Handle any uncaught errors
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Uncaught error:', event.error);
+      toast.error("An error occurred", {
+        description: event.error?.message || "Something went wrong"
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
     };
   }, []);
 
   // Output to console for debugging
-  console.log('App rendering, online status:', isOnline);
+  console.log('App rendering, online status:', isOnline, 'hasLoaded:', hasLoaded);
+
+  if (!hasLoaded) {
+    return <PageLoader />;
+  }
 
   return (
     <HelmetProvider>
-      <AuthProvider>
-        <Router>
-          <Helmet>
-            <title>rallypointx</title>
-            <meta name="description" content="tennis. together." />
-            <meta property="og:title" content="rallypointx" />
-            <meta property="og:description" content="tennis. together." />
-            <meta property="og:type" content="website" />
-            <meta property="og:url" content="https://rallypointx.app" />
-            <meta name="twitter:card" content="summary" />
-            <meta name="twitter:title" content="rallypointx" />
-            <meta name="twitter:description" content="tennis. together." />
-          </Helmet>
-          
-          <ErrorBoundary>
+      <ErrorBoundary 
+        fallback={({ error, resetErrorBoundary }) => (
+          <AppErrorFallback error={error} resetErrorBoundary={resetErrorBoundary} />
+        )}
+      >
+        <AuthProvider>
+          <Router>
+            <Helmet>
+              <title>rallypointx</title>
+              <meta name="description" content="tennis. together." />
+              <meta property="og:title" content="rallypointx" />
+              <meta property="og:description" content="tennis. together." />
+              <meta property="og:type" content="website" />
+              <meta property="og:url" content="https://rallypointx.app" />
+              <meta name="twitter:card" content="summary" />
+              <meta name="twitter:title" content="rallypointx" />
+              <meta name="twitter:description" content="tennis. together." />
+            </Helmet>
+            
             <MainLayout>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
@@ -98,9 +138,9 @@ function App() {
                 </Routes>
               </Suspense>
             </MainLayout>
-          </ErrorBoundary>
-        </Router>
-      </AuthProvider>
+          </Router>
+        </AuthProvider>
+      </ErrorBoundary>
     </HelmetProvider>
   );
 }

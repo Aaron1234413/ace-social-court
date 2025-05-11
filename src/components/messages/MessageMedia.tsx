@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import MessageMediaPreview from './MessageMediaPreview';
 import { Loading } from '@/components/ui/loading';
 
@@ -21,8 +21,21 @@ const MessageMedia = ({
   error = null
 }: MessageMediaProps) => {
   
+  // Add debug logging
+  useEffect(() => {
+    console.log('MessageMedia rendering:', {
+      url,
+      type,
+      isLoading,
+      isUploading,
+      uploadProgress,
+      error
+    });
+  }, [url, type, isLoading, isUploading, uploadProgress, error]);
+  
   // Show error state if there's an error
   if (error) {
+    console.log('MessageMedia showing error state:', error);
     return (
       <div className="w-full max-w-[300px]">
         <Loading 
@@ -39,6 +52,7 @@ const MessageMedia = ({
   
   // Show loading state while loading
   if (isLoading && !url) {
+    console.log('MessageMedia showing loading state');
     return (
       <div className="w-full max-w-[300px]">
         <Loading 
