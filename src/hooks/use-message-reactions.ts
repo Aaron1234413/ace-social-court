@@ -83,6 +83,9 @@ export const useMessageReactions = (otherUserId?: string) => {
     removeReaction: (messageId: string, reactionId: string) => 
       removeReactionMutation.mutate({ messageId, reactionId }),
     isAddingReaction: addReactionMutation.isPending,
-    isRemovingReaction: removeReactionMutation.isPending
+    isRemovingReaction: removeReactionMutation.isPending,
+    isError: addReactionMutation.isError || removeReactionMutation.isError,
+    addError: addReactionMutation.error,
+    removeError: removeReactionMutation.error
   };
 };

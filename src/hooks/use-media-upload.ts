@@ -9,6 +9,7 @@ export const useMediaUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Function to handle media file selection
   const handleMediaSelect = useCallback((file: File, type: 'image' | 'video') => {
@@ -17,6 +18,7 @@ export const useMediaUpload = () => {
     setMediaType(type);
     setError(null);
     setUploadProgress(0);
+    setIsLoading(true);
     
     // Validate file size
     const maxSize = type === 'image' ? 5 * 1024 * 1024 : 20 * 1024 * 1024; // 5MB for images, 20MB for videos
@@ -30,6 +32,7 @@ export const useMediaUpload = () => {
       // Clear the invalid file
       setMediaFile(null);
       setMediaType(null);
+      setIsLoading(false);
       return;
     }
     
@@ -37,6 +40,11 @@ export const useMediaUpload = () => {
     const reader = new FileReader();
     reader.onloadend = () => {
       setMediaPreview(reader.result as string);
+      setIsLoading(false);
+    };
+    reader.onerror = () => {
+      setError("Failed to load media preview");
+      setIsLoading(false);
     };
     reader.readAsDataURL(file);
   }, []);
@@ -49,6 +57,7 @@ export const useMediaUpload = () => {
     setUploadProgress(0);
     setIsUploading(false);
     setError(null);
+    setIsLoading(false);
   }, []);
 
   return {
@@ -61,6 +70,7 @@ export const useMediaUpload = () => {
     setUploadProgress,
     error,
     setError,
+    isLoading,
     handleMediaSelect,
     clearMedia
   };

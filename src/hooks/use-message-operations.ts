@@ -39,6 +39,8 @@ export const useMessageOperations = (otherUserId?: string) => {
 
   return {
     deleteMessage: (messageId: string) => deleteMessageMutation.mutate(messageId),
-    isDeletingMessage: deleteMessageMutation.isPending
+    isDeletingMessage: deleteMessageMutation.isPending,
+    isError: deleteMessageMutation.isError,
+    error: deleteMessageMutation.error
   };
 };
