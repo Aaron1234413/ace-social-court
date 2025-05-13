@@ -64,7 +64,7 @@ export const useLocationSearch = () => {
     searchResults,
     searchError,
     handleSearch,
-    // Also include these aliases for backward compatibility with existing components:
+    // For backward compatibility (these are now deprecated)
     results: searchResults,
     searchLocations: handleSearch
   };

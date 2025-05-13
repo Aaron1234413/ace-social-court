@@ -14,27 +14,24 @@ const LocationSearchBox: React.FC<LocationSearchBoxProps> = ({
   onLocationSelect
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const { searchLocations, results, isSearching, searchResults } = useLocationSearch();
+  const { isSearching, searchResults, searchError, handleSearch } = useLocationSearch();
 
-  const handleSearch = () => {
+  const performSearch = () => {
     if (searchQuery.trim()) {
-      searchLocations(searchQuery);
+      handleSearch();
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSearch();
+      performSearch();
     }
   };
 
   const handleLocationClick = (location: LocationResult) => {
     onLocationSelect(location);
   };
-
-  // Use either results or searchResults (whichever is available)
-  const locationResults = results || searchResults || [];
 
   return (
     <div className="space-y-3">
@@ -50,7 +47,7 @@ const LocationSearchBox: React.FC<LocationSearchBoxProps> = ({
           />
         </div>
         <Button 
-          onClick={handleSearch} 
+          onClick={performSearch} 
           disabled={isSearching || !searchQuery.trim()}
           type="button"
         >
@@ -58,9 +55,9 @@ const LocationSearchBox: React.FC<LocationSearchBoxProps> = ({
         </Button>
       </div>
 
-      {locationResults.length > 0 && (
+      {searchResults.length > 0 && (
         <ul className="bg-background border rounded-md divide-y max-h-60 overflow-auto">
-          {locationResults.map((result, index) => (
+          {searchResults.map((result, index) => (
             <li 
               key={`${result.id || `${result.lat}-${result.lng}-${index}`}`} 
               className="p-2 hover:bg-muted cursor-pointer text-sm"
