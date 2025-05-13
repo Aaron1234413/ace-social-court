@@ -14,7 +14,7 @@ const LocationSearchBox: React.FC<LocationSearchBoxProps> = ({
   onLocationSelect
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const { searchLocations, results, isSearching } = useLocationSearch();
+  const { searchLocations, results, isSearching, searchResults } = useLocationSearch();
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -32,6 +32,9 @@ const LocationSearchBox: React.FC<LocationSearchBoxProps> = ({
   const handleLocationClick = (location: LocationResult) => {
     onLocationSelect(location);
   };
+
+  // Use either results or searchResults (whichever is available)
+  const locationResults = results || searchResults || [];
 
   return (
     <div className="space-y-3">
@@ -55,11 +58,11 @@ const LocationSearchBox: React.FC<LocationSearchBoxProps> = ({
         </Button>
       </div>
 
-      {results.length > 0 && (
+      {locationResults.length > 0 && (
         <ul className="bg-background border rounded-md divide-y max-h-60 overflow-auto">
-          {results.map((result, index) => (
+          {locationResults.map((result, index) => (
             <li 
-              key={`${result.lat}-${result.lng}-${index}`} 
+              key={`${result.id || `${result.lat}-${result.lng}-${index}`}`} 
               className="p-2 hover:bg-muted cursor-pointer text-sm"
               onClick={() => handleLocationClick(result)}
             >

@@ -35,8 +35,17 @@ export const useLocationSearch = () => {
       
       const data = await response.json();
       if (data.features && data.features.length > 0) {
-        setSearchResults(data.features);
-        console.log('Search results:', data.features);
+        // Transform Mapbox results to our LocationResult format
+        const formattedResults = data.features.map((feature: any) => ({
+          id: feature.id,
+          lat: feature.center[1],
+          lng: feature.center[0],
+          address: feature.place_name,
+          place_name: feature.place_name
+        }));
+        
+        setSearchResults(formattedResults);
+        console.log('Search results:', formattedResults);
       } else {
         setSearchError('No locations found. Please try a different search term.');
       }
@@ -54,6 +63,9 @@ export const useLocationSearch = () => {
     isSearching,
     searchResults,
     searchError,
-    handleSearch
+    handleSearch,
+    // Also include these aliases for backward compatibility with existing components:
+    results: searchResults,
+    searchLocations: handleSearch
   };
 };

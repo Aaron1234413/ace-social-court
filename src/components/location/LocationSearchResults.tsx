@@ -32,14 +32,14 @@ const LocationSearchResults: React.FC<LocationSearchResultsProps> = ({
   return (
     <div className="bg-background border rounded-md max-h-[300px] overflow-y-auto">
       <ul>
-        {searchResults.map((result) => (
+        {searchResults.map((result, index) => (
           <li 
-            key={result.id}
+            key={result.id || `${result.lat}-${result.lng}-${index}`}
             className="p-3 hover:bg-muted cursor-pointer border-b last:border-0 flex items-center gap-2"
             onClick={() => onSelectResult(result)}
           >
             <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm">{result.place_name}</span>
+            <span className="text-sm">{result.place_name || result.address}</span>
           </li>
         ))}
       </ul>

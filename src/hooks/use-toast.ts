@@ -6,7 +6,7 @@ export type ToastProps = {
   id?: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
-  action?: React.ReactNode;
+  action?: React.ReactElement;
   variant?: "default" | "destructive" | "success" | "info" | "warning";
 };
 
@@ -38,9 +38,22 @@ type UseToastReturnType = {
 
 const TOAST_LIMIT = 20;
 
-// Mutable array to store toasts
-// Using a ref-like pattern but with a regular variable since we're not in a component
-let toastStore: ToasterToast[] = [];
+// Using a ref pattern for the toast store
+const toastStore = {
+  data: [] as ToasterToast[],
+  listeners: new Set<() => void>(),
+  subscribe(listener: () => void) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  },
+  notify() {
+    this.listeners.forEach((listener) => listener());
+  },
+  update(toasts: ToasterToast[]) {
+    this.data = toasts;
+    this.notify();
+  },
+};
 
 const generateId = () => {
   return Math.random().toString(36).substring(2, 9);
@@ -49,43 +62,40 @@ const generateId = () => {
 function addToast(props: ToastProps): Toast {
   const id = props.id || generateId();
 
+  // Ensure action is a valid React element or undefined
+  const safeAction = props.action && React.isValidElement(props.action) 
+    ? props.action as ToastActionElement 
+    : undefined;
+
   const newToast: ToasterToast = {
     ...props,
     id,
+    action: safeAction,
     open: true,
     remove: () => removeToast(id),
   };
 
   // Update the store
-  if (toastStore.length >= TOAST_LIMIT) {
-    removeToast(toastStore[0].id);
+  if (toastStore.data.length >= TOAST_LIMIT) {
+    removeToast(toastStore.data[0].id);
   }
-  toastStore = [...toastStore, newToast];
-
-  // Trigger event to notify any listeners
-  const event = new CustomEvent("toast-change", { detail: { toasts: toastStore } });
-  window.dispatchEvent(event);
-
+  
+  toastStore.update([...toastStore.data, newToast]);
   return newToast;
 }
 
 function removeToast(id: string) {
-  toastStore = toastStore.filter((t) => t.id !== id);
-  
-  // Trigger event to notify any listeners
-  const event = new CustomEvent("toast-change", { detail: { toasts: toastStore } });
-  window.dispatchEvent(event);
+  toastStore.update(toastStore.data.filter((t) => t.id !== id));
 }
 
 function useToast(): UseToastReturnType {
-  const [state, setState] = React.useState<ToasterToast[]>(toastStore);
+  const [state, setState] = React.useState<ToasterToast[]>(toastStore.data);
 
   React.useEffect(() => {
-    const listener = (e: CustomEvent) => {
-      setState(e.detail?.toasts || []);
-    };
-    window.addEventListener("toast-change" as any, listener as any);
-    return () => window.removeEventListener("toast-change" as any, listener as any);
+    const unsubscribe = toastStore.subscribe(() => {
+      setState([...toastStore.data]);
+    });
+    return unsubscribe;
   }, []);
 
   return {
