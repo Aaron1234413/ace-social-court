@@ -30,6 +30,10 @@ const MediaUploader = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Maximum file sizes with upgraded storage
+  const MAX_IMAGE_SIZE_MB = 100; // 100MB for images
+  const MAX_VIDEO_SIZE_MB = 5000; // 5GB for videos
+
   const updateProgress = (progress: number) => {
     setUploadProgress(progress);
     onProgress?.(progress);
@@ -65,24 +69,41 @@ const MediaUploader = ({
       return;
     }
 
+    // Check file size
+    const fileSizeInMB = file.size / (1024 * 1024);
+    const maxSizeMB = fileType === 'image' ? MAX_IMAGE_SIZE_MB : MAX_VIDEO_SIZE_MB;
+    
+    if (fileSizeInMB > maxSizeMB) {
+      const errorMsg = `File size exceeds the ${maxSizeMB}MB limit for ${fileType}s`;
+      setUploadError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
     // Run additional validation if provided
     if (onValidateFile) {
-      const isValid = await onValidateFile(file);
-      if (!isValid) {
-        // Error already handled in validate function
+      try {
+        const isValid = await onValidateFile(file);
+        if (!isValid) {
+          // Error should have been handled in validate function
+          return;
+        }
+      } catch (error: any) {
+        setUploadError(`Validation error: ${error.message || 'Unknown error'}`);
+        toast.error('File validation failed');
         return;
       }
     } else {
       // Default validations
       if (fileType === 'video' && !isValidVideo(file)) {
-        const errorMsg = 'Invalid video file. Maximum size is 100MB.';
+        const errorMsg = `Invalid video file. Maximum size is ${MAX_VIDEO_SIZE_MB}MB.`;
         setUploadError(errorMsg);
         toast.error(errorMsg);
         return;
       }
 
       if (fileType === 'image' && !isValidImage(file)) {
-        const errorMsg = 'Invalid image file. Maximum size is 20MB.';
+        const errorMsg = `Invalid image file. Maximum size is ${MAX_IMAGE_SIZE_MB}MB.`;
         setUploadError(errorMsg);
         toast.error(errorMsg);
         return;
@@ -97,7 +118,9 @@ const MediaUploader = ({
       setPreview(objectUrl);
       setMediaType(fileType);
 
-      // Use the new uploadFileWithProgress function from storage.ts
+      console.log(`Uploading ${fileType} file to ${bucketName}: ${file.name}, size: ${fileSizeInMB.toFixed(2)}MB`);
+
+      // Use the uploadFileWithProgress function from storage.ts
       const publicUrl = await uploadFileWithProgress(
         file,
         bucketName,
@@ -162,8 +185,8 @@ const MediaUploader = ({
             </span>
             <span className="text-xs text-gray-400">
               {allowedTypes.includes('video') 
-                ? 'Videos: max 100MB, 60 seconds' 
-                : 'Images: max 20MB'}
+                ? `Videos: max ${MAX_VIDEO_SIZE_MB/1000}GB` 
+                : `Images: max ${MAX_IMAGE_SIZE_MB}MB`}
             </span>
             <input
               ref={fileInputRef}
@@ -240,9 +263,25 @@ const MediaUploader = ({
             className="absolute top-2 right-2 rounded-full w-6 h-6 bg-gray-800/60 hover:bg-gray-800"
             onClick={clearPreview}
             type="button"
+            disabled={isUploading}
           >
             <X className="h-3 w-3 text-white" />
           </Button>
+        </div>
+      )}
+
+      {isUploading && uploadProgress > 0 && (
+        <div className="mt-3 text-xs">
+          <div className="flex justify-between items-center">
+            <span>Uploading {mediaType}...</span>
+            <span>{Math.round(uploadProgress)}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+            <div 
+              className="bg-blue-500 h-1.5 rounded-full" 
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
         </div>
       )}
     </div>

@@ -20,7 +20,7 @@ smtp_port = 54325
 pop3_port = 54326
 
 [storage]
-file_size_limit = "50MiB"
+file_size_limit = "5GiB"
 
 [auth]
 site_url = "http://localhost:3000"

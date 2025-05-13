@@ -24,6 +24,9 @@ const VideoAnalysisUploader = ({
   const [preview, setPreview] = useState<string | null>(null);
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
 
+  // Maximum file size for videos with upgraded storage
+  const MAX_VIDEO_SIZE_GB = 5; // 5GB for videos
+
   const checkVideoDuration = (file: File): Promise<number> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
@@ -58,9 +61,20 @@ const VideoAnalysisUploader = ({
       return;
     }
 
-    // Validate video file
-    if (!isValidVideo(file)) {
-      const errorMsg = 'Invalid video file. Maximum size is 5GB.';
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      const errorMsg = 'Please upload a video file.';
+      setUploadError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
+    // Check file size
+    const fileSizeInMB = file.size / (1024 * 1024);
+    const fileSizeInGB = fileSizeInMB / 1024;
+    
+    if (fileSizeInGB > MAX_VIDEO_SIZE_GB) {
+      const errorMsg = `Video file too large. Maximum size is ${MAX_VIDEO_SIZE_GB}GB.`;
       setUploadError(errorMsg);
       toast.error(errorMsg);
       return;
@@ -89,32 +103,61 @@ const VideoAnalysisUploader = ({
       const fileName = `analysis_${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
       
-      console.log(`Starting upload to analysis/${filePath}`);
+      console.log(`Starting upload to analysis/${filePath}, size: ${fileSizeInGB.toFixed(2)}GB`);
       
-      // Upload file to Supabase Storage - Fixed: removed onUploadProgress from options
-      const { data, error } = await supabase.storage
-        .from('analysis')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          contentType: file.type,
-          upsert: false
+      // Create upload xhr request for progress tracking
+      const xhr = new XMLHttpRequest();
+      const uploadPromise = new Promise<{path: string}>((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            setUploadProgress(Math.round(progress));
+            console.log(`Upload progress: ${progress.toFixed(2)}%`);
+          }
         });
-
-      if (error) {
-        console.error('Upload error:', error);
-        setUploadError(`Upload failed: ${error.message}`);
-        throw error;
-      }
+        
+        xhr.onreadystatechange = async function() {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const response = JSON.parse(xhr.responseText);
+                resolve({path: filePath}); // We'll use the path we created
+              } catch (e) {
+                reject(new Error('Failed to parse response'));
+              }
+            } else {
+              console.error(`Upload failed with status ${xhr.status}:`, xhr.responseText);
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          }
+        };
+        
+        // Get token for authenticated upload
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) {
+            reject(new Error('Authentication required'));
+            return;
+          }
+          
+          const url = `https://sdrndqcaskaitzcwgnaw.supabase.co/storage/v1/object/analysis/${filePath}`;
+          xhr.open('POST', url, true);
+          xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+          xhr.setRequestHeader('x-upsert', 'true');
+          xhr.send(file);
+        }).catch(reject);
+      });
+      
+      const { path } = await uploadPromise;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('analysis')
-        .getPublicUrl(filePath);
+        .getPublicUrl(path);
 
       console.log('Video uploaded successfully:', publicUrl);
       
       // Pass URL and file ID to parent component
-      onVideoUploaded(publicUrl, data.path);
+      onVideoUploaded(publicUrl, path);
       toast.success('Video uploaded successfully!');
       
     } catch (error: any) {
@@ -128,12 +171,6 @@ const VideoAnalysisUploader = ({
     } finally {
       setIsUploading(false);
     }
-  };
-
-  // Custom progress tracking function
-  const trackUploadProgress = (event: ProgressEvent) => {
-    const progress = (event.loaded / event.total) * 100;
-    setUploadProgress(Math.round(progress));
   };
 
   const clearPreview = () => {
@@ -152,7 +189,7 @@ const VideoAnalysisUploader = ({
               Upload a tennis video for analysis
             </span>
             <span className="text-sm text-gray-500">
-              Maximum {maxDurationSeconds} seconds, up to 5GB with Supabase Pro
+              Maximum {maxDurationSeconds} seconds, up to {MAX_VIDEO_SIZE_GB}GB with upgraded storage
             </span>
             <input
               type="file"

@@ -21,12 +21,14 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const resetState = () => {
     setCaption('');
     setMediaFile(null);
     setMediaPreview(null);
     setMediaType(null);
+    setUploadProgress(0);
   };
 
   const handleClose = () => {
@@ -49,20 +51,21 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       return;
     }
 
-    // Check file size (5GB max for video with Pro tier, 100MB max for image)
-    const maxSize = fileType === 'video' ? 5000000000 : 100000000;
+    // Check file size with updated limits for upgraded storage
+    const maxSize = fileType === 'video' ? 5000000000 : 100000000; // 5GB for video, 100MB for images
     if (file.size > maxSize) {
       toast({
         title: "File too large",
-        description: `File size should be less than ${fileType === 'video' ? '5GB (Supabase Pro tier)' : '100MB'}`,
+        description: `File size should be less than ${fileType === 'video' ? '5GB' : '100MB'}`,
         variant: "destructive",
       });
       return;
     }
 
+    // Set file and track progress during upload
     setMediaFile(file);
     setMediaType(fileType as 'image' | 'video');
-
+    
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -92,27 +95,59 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
 
     try {
       setIsUploading(true);
+      setUploadProgress(0);
+      
+      console.log(`Starting ${mediaType} upload: ${mediaFile.name}, size: ${mediaFile.size / (1024 * 1024)} MB`);
       
       // Upload media file to storage
       const fileExt = mediaFile.name.split('.').pop();
       const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
       
-      const { error: uploadError } = await supabase
-        .storage
-        .from('posts')
-        .upload(filePath, mediaFile);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: publicUrlData } = supabase
-        .storage
-        .from('posts')
-        .getPublicUrl(filePath);
-
-      const mediaUrl = publicUrlData.publicUrl;
+      // Use XMLHttpRequest for progress tracking
+      const xhr = new XMLHttpRequest();
+      const uploadPromise = new Promise<string>((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            setUploadProgress(Math.round(progress));
+            console.log(`Upload progress: ${progress.toFixed(2)}%`);
+          }
+        });
+        
+        xhr.onreadystatechange = async function() {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              // Get public URL after successful upload
+              const { data: publicUrlData } = supabase
+                .storage
+                .from('posts')
+                .getPublicUrl(filePath);
+              
+              resolve(publicUrlData.publicUrl);
+            } else {
+              console.error(`Upload failed with status ${xhr.status}:`, xhr.responseText);
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          }
+        };
+        
+        // Get token for authenticated upload
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) {
+            reject(new Error('Authentication required'));
+            return;
+          }
+          
+          const url = `https://sdrndqcaskaitzcwgnaw.supabase.co/storage/v1/object/posts/${filePath}`;
+          xhr.open('POST', url, true);
+          xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+          xhr.setRequestHeader('x-upsert', 'true');
+          xhr.send(mediaFile);
+        }).catch(reject);
+      });
+      
+      const mediaUrl = await uploadPromise;
+      console.log('Media uploaded successfully:', mediaUrl);
 
       // Create post in database
       const { error: postError } = await supabase
@@ -122,9 +157,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
           content: caption,
           media_url: mediaUrl,
           media_type: mediaType,
-        })
-        .select()
-        .single();
+        });
 
       if (postError) {
         throw postError;
@@ -137,11 +170,22 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       
       onPostCreated();
       handleClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating post:', error);
+      
+      let errorMessage = 'An error occurred while creating your post';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.code === '23505') {
+        errorMessage = 'A duplicate post was detected';
+      } else if (error.code === '23503') {
+        errorMessage = 'Related content was not found';
+      }
+      
       toast({
         title: "Failed to create post",
-        description: "An error occurred while creating your post",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -153,6 +197,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     setMediaFile(null);
     setMediaPreview(null);
     setMediaType(null);
+    setUploadProgress(0);
   };
 
   return (
@@ -161,7 +206,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         <DialogHeader>
           <DialogTitle>Create New Post</DialogTitle>
           <DialogDescription>
-            Share your tennis moments with images (up to 100MB) or videos (up to 5GB with Supabase Pro)
+            Share your tennis moments with images (up to 100MB) or videos (up to 5GB with upgraded storage)
           </DialogDescription>
         </DialogHeader>
         
@@ -172,6 +217,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
           mediaPreview={mediaPreview}
           mediaType={mediaType}
           isUploading={isUploading}
+          uploadProgress={uploadProgress}
           onMediaSelect={handleFileChange}
           onSubmit={handleSubmit}
           onCancel={handleClose}

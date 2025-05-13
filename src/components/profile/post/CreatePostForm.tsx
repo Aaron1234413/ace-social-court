@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import { Loader2 } from 'lucide-react';
 import { PostMediaPreview } from './PostMediaPreview';
 import { MediaUploadPlaceholder } from './MediaUploadPlaceholder';
@@ -13,6 +14,7 @@ interface CreatePostFormProps {
   mediaPreview: string | null;
   mediaType: 'image' | 'video' | null;
   isUploading: boolean;
+  uploadProgress?: number;
   onMediaSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: () => void;
   onCancel: () => void;
@@ -26,6 +28,7 @@ export const CreatePostForm = ({
   mediaPreview,
   mediaType,
   isUploading,
+  uploadProgress = 0,
   onMediaSelect,
   onSubmit,
   onCancel,
@@ -63,8 +66,18 @@ export const CreatePostForm = ({
         />
       </div>
 
+      {isUploading && uploadProgress > 0 && (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Uploading {mediaType}...</span>
+            <span>{uploadProgress}%</span>
+          </div>
+          <Progress value={uploadProgress} className="h-1.5" />
+        </div>
+      )}
+
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel} disabled={isUploading}>
           Cancel
         </Button>
         <Button onClick={onSubmit} disabled={!mediaFile || isUploading}>
