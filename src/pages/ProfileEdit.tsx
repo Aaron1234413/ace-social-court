@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { Loading } from '@/components/ui/loading';
-import { showInfoToast } from '@/hooks/use-toast';
+import { showInfoToast } from '@/components/ui/use-toast';
 
 const ProfileEdit = () => {
   const location = useLocation();

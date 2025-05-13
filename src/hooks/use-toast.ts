@@ -6,7 +6,7 @@ type ToastProps = {
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
-  variant?: "default" | "destructive";
+  variant?: "default" | "destructive" | "success" | "info" | "warning";
 };
 
 type ToastActionElement = React.ReactElement<{
@@ -45,11 +45,14 @@ function generateId() {
 function addToast(props: ToastProps): Toast {
   const id = props.id || generateId();
 
+  // Ensure action is a React element if provided
   const newToast: ToasterToast = {
     ...props,
     id,
     open: true,
     remove: () => removeToast(id),
+    // Ensure action is of the correct type or undefined
+    action: props.action as ToastActionElement | undefined,
   };
 
   // Update the state
@@ -119,30 +122,49 @@ export function useToast() {
 
 // Helper functions for showing different types of toasts
 export function showSuccessToast(title: string, description?: string) {
-  toast({
+  toastFunction({
     title,
     description,
-    variant: "default",
+    variant: "success",
   });
 }
 
 export function showErrorToast(title: string, description?: string) {
-  toast({
+  toastFunction({
     title,
     description,
     variant: "destructive",
   });
 }
 
-// Standalone toast function
+export function showInfoToast(title: string, description?: string) {
+  toastFunction({
+    title,
+    description,
+    variant: "info",
+  });
+}
+
+export function showWarningToast(title: string, description?: string) {
+  toastFunction({
+    title,
+    description,
+    variant: "warning",
+  });
+}
+
+// Standalone toast function that can be imported directly
+export const toastFunction = (props: ToastProps) => addToast(props);
+
+// Export for compatibility with existing code
 export const toast = {
   dismiss: (id: string) => removeToast(id),
   success: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
-    addToast({ title, variant: "default", ...props }),
+    addToast({ title, variant: "success", ...props }),
   error: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
     addToast({ title, variant: "destructive", ...props }),
   warning: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
-    addToast({ title, variant: "default", ...props }),
+    addToast({ title, variant: "warning", ...props }),
   info: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
-    addToast({ title, variant: "default", ...props }),
+    addToast({ title, variant: "info", ...props }),
 };
