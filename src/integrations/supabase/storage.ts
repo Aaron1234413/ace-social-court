@@ -16,104 +16,65 @@ export const initializeStorage = async () => {
       return false;
     }
     
-    // Create or update media bucket
-    if (!buckets?.some(bucket => bucket.name === 'media')) {
-      try {
-        const { error } = await supabase.storage.createBucket('media', {
-          public: true,
-          fileSizeLimit: 5000000000, // 5GB - increased limit for upgraded storage
-        });
-        
-        if (error) throw error;
-        console.log('Created media bucket successfully');
-      } catch (err) {
-        console.error('Exception creating media bucket:', err);
-        // Continue execution even if one bucket fails
-      }
-    } else {
-      try {
-        const { error } = await supabase.storage.updateBucket('media', {
-          public: true,
-          fileSizeLimit: 5000000000, // 5GB - increased limit
-        });
-        
-        if (error) {
-          console.error('Error updating media bucket:', error);
-          // Continue execution even if update fails
-        } else {
-          console.log('Updated media bucket size limit successfully');
-        }
-      } catch (err) {
-        console.error('Exception updating media bucket:', err);
-        // Continue execution even if update fails
-      }
-    }
+    // Log current bucket configurations
+    console.log('Current buckets:', buckets?.map(b => ({ name: b.name, public: b.public })));
     
-    // Create or update posts bucket
-    if (!buckets?.some(bucket => bucket.name === 'posts')) {
+    const initBucket = async (bucketName: string) => {
       try {
-        const { error } = await supabase.storage.createBucket('posts', {
-          public: true,
-          fileSizeLimit: 5000000000, // 5GB - increased limit
-        });
-        
-        if (error) throw error;
-        console.log('Created posts bucket successfully');
-      } catch (err) {
-        console.error('Exception creating posts bucket:', err);
-        // Continue execution
-      }
-    } else {
-      try {
-        const { error } = await supabase.storage.updateBucket('posts', {
-          public: true,
-          fileSizeLimit: 5000000000, // 5GB - increased limit
-        });
-        
-        if (error) {
-          console.error('Error updating posts bucket:', error);
-          // Continue execution
+        if (!buckets?.some(bucket => bucket.name === bucketName)) {
+          console.log(`Creating ${bucketName} bucket with 5GB limit...`);
+          const { data, error } = await supabase.storage.createBucket(bucketName, {
+            public: true,
+            fileSizeLimit: 5000000000, // 5GB
+          });
+          
+          if (error) {
+            console.error(`Error creating ${bucketName} bucket:`, error);
+            // Try without specifying the file size limit as fallback
+            console.log(`Retrying ${bucketName} bucket creation without size limit...`);
+            const { error: retryError } = await supabase.storage.createBucket(bucketName, {
+              public: true,
+            });
+            
+            if (retryError) {
+              console.error(`Failed to create ${bucketName} bucket on retry:`, retryError);
+            } else {
+              console.log(`Created ${bucketName} bucket successfully without size limit`);
+            }
+          } else {
+            console.log(`Created ${bucketName} bucket successfully with 5GB limit`);
+          }
         } else {
-          console.log('Updated posts bucket size limit successfully');
+          console.log(`Updating ${bucketName} bucket to 5GB limit...`);
+          try {
+            const { error } = await supabase.storage.updateBucket(bucketName, {
+              public: true,
+              fileSizeLimit: 5000000000, // 5GB
+            });
+            
+            if (error) {
+              console.error(`Error updating ${bucketName} bucket:`, error);
+              
+              // Check if the error is related to fileSizeLimit
+              if (error.message && error.message.includes('fileSizeLimit')) {
+                console.log(`${bucketName} bucket might already have a limit or cannot be updated via API`);
+              }
+            } else {
+              console.log(`Updated ${bucketName} bucket successfully`);
+            }
+          } catch (err) {
+            console.error(`Exception updating ${bucketName} bucket:`, err);
+          }
         }
       } catch (err) {
-        console.error('Exception updating posts bucket:', err);
-        // Continue execution
+        console.error(`Error handling ${bucketName} bucket:`, err);
       }
-    }
+    };
     
-    // Create or update analysis bucket
-    if (!buckets?.some(bucket => bucket.name === 'analysis')) {
-      try {
-        const { error } = await supabase.storage.createBucket('analysis', {
-          public: true,
-          fileSizeLimit: 5000000000, // 5GB - increased limit
-        });
-        
-        if (error) throw error;
-        console.log('Created analysis bucket successfully');
-      } catch (err) {
-        console.error('Exception creating analysis bucket:', err);
-        // Continue execution
-      }
-    } else {
-      try {
-        const { error } = await supabase.storage.updateBucket('analysis', {
-          public: true,
-          fileSizeLimit: 5000000000, // 5GB - increased limit
-        });
-        
-        if (error) {
-          console.error('Error updating analysis bucket:', error);
-          // Continue execution
-        } else {
-          console.log('Updated analysis bucket size limit successfully');
-        }
-      } catch (err) {
-        console.error('Exception updating analysis bucket:', err);
-        // Continue execution
-      }
-    }
+    // Initialize all required buckets
+    await initBucket('media');
+    await initBucket('posts');
+    await initBucket('analysis');
     
     console.log('Storage initialization completed');
     return true;
@@ -142,6 +103,13 @@ export const isValidVideo = (file: File): boolean => {
     return false;
   }
   
+  // Log file details for debugging
+  console.log('Valid video file:', {
+    name: file.name,
+    type: file.type,
+    size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+  });
+  
   return true;
 };
 
@@ -163,6 +131,13 @@ export const isValidImage = (file: File): boolean => {
     console.log('Image file too large:', file.size, 'Max size:', maxSizeBytes);
     return false;
   }
+  
+  // Log file details for debugging
+  console.log('Valid image file:', {
+    name: file.name,
+    type: file.type,
+    size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+  });
   
   return true;
 };
@@ -186,12 +161,20 @@ export const uploadFileWithProgress = async (
   const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
   const filePath = `${userId}/${fileName}`;
   
-  console.log(`Starting upload to ${bucketName}/${filePath}`, { fileSize: file.size });
+  console.log(`Starting upload to ${bucketName}/${filePath}`, { 
+    fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+    fileType: file.type
+  });
 
   try {
     if (onProgress) {
       // Get token for authenticated upload
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Authentication error: ' + sessionError.message);
+      }
+      
       if (!session) {
         throw new Error('No active session');
       }
@@ -220,14 +203,29 @@ export const uploadFileWithProgress = async (
             
             resolve(publicUrl);
           } else {
-            console.error(`Upload failed with status ${xhr.status}:`, xhr.responseText);
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+            const errorMessage = `Upload failed with status ${xhr.status}`;
+            console.error(errorMessage, xhr.responseText);
+            
+            try {
+              // Try to parse response for better error details
+              const responseData = JSON.parse(xhr.responseText);
+              console.error('Response details:', responseData);
+              
+              if (responseData.error) {
+                reject(new Error(`${errorMessage}: ${responseData.error}`));
+              } else {
+                reject(new Error(errorMessage));
+              }
+            } catch (e) {
+              // If we can't parse the response, just use the status
+              reject(new Error(errorMessage));
+            }
           }
         });
         
         // Handle errors
-        xhr.addEventListener('error', () => {
-          console.error('Upload failed due to network or CORS error');
+        xhr.addEventListener('error', (e) => {
+          console.error('Upload failed due to network or CORS error:', e);
           reject(new Error('Upload failed due to network error'));
         });
         
@@ -239,15 +237,32 @@ export const uploadFileWithProgress = async (
         // Construct the Storage API URL
         const storageUrl = `https://sdrndqcaskaitzcwgnaw.supabase.co/storage/v1/object/${bucketName}/${filePath}`;
         
+        console.log(`Sending upload request to: ${storageUrl}`);
+        
         xhr.open('POST', storageUrl);
         xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
         xhr.setRequestHeader('x-upsert', 'true'); // Enable upsert
+        
+        // Log request headers for debugging
+        console.log('Upload headers:', {
+          'Authorization': `Bearer ${session.access_token.substring(0, 10)}...`, // Only log part of the token
+          'x-upsert': 'true'
+        });
+        
+        // Try a smaller chunk size for large files
+        const MAX_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+        if (file.size > MAX_CHUNK_SIZE) {
+          console.log(`Large file detected (${(file.size / (1024 * 1024)).toFixed(2)} MB), would be better to use chunked upload`);
+          // For now, we'll still try with the full file
+        }
         
         // Upload the file
         xhr.send(file);
       });
     } else {
       // Standard upload without progress tracking
+      console.log('Using standard upload method (no progress tracking)');
+      
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, {

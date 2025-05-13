@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Upload, X, AlertTriangle, Video, Image } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { isValidImage, isValidVideo, uploadFileWithProgress } from '@/integrations/supabase/storage';
+import { ErrorAlert } from '@/components/ui/error-alert';
 
 interface MediaUploaderProps {
   onMediaUpload: (url: string, type: 'image' | 'video') => void;
@@ -27,6 +28,7 @@ const MediaUploader = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [fileDetails, setFileDetails] = useState<{name: string, size: string, type: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -47,10 +49,21 @@ const MediaUploader = ({
     setUploadError(null);
     updateProgress(0);
     
+    // Record file details for debugging
+    const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+    const details = {
+      name: file.name,
+      size: `${fileSizeInMB} MB`,
+      type: file.type
+    };
+    setFileDetails(details);
+    console.log('Selected file:', details);
+    
     // Check if user is authenticated
     if (!user) {
-      setUploadError('You must be logged in to upload files');
-      toast.error('You must be logged in to upload files');
+      const errorMsg = 'You must be logged in to upload files';
+      setUploadError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
@@ -137,9 +150,20 @@ const MediaUploader = ({
       
     } catch (error: any) {
       console.error('Upload error:', error);
-      const errorMessage = `Upload failed: ${error.message || 'Unknown error'}`;
+      let errorMessage = `Upload failed: ${error.message || 'Unknown error'}`;
+      
+      // Enhanced error messages for common issues
+      if (error.message?.includes('413') || error.message?.includes('too large')) {
+        errorMessage = `File too large for server. Check Supabase storage limits (maximum file size allowed: image=${MAX_IMAGE_SIZE_MB}MB, video=${MAX_VIDEO_SIZE_MB}MB)`;
+      } else if (error.message?.includes('401') || error.message?.includes('403')) {
+        errorMessage = 'Authorization error. Please log out and log back in.';
+      } else if (error.message?.includes('CORS')) {
+        errorMessage = 'Cross-origin request blocked. This may be a server configuration issue.';
+      }
+      
       setUploadError(errorMessage);
       toast.error(errorMessage);
+      
       // Clear preview on error
       setPreview(null);
       setMediaType(null);
@@ -152,6 +176,7 @@ const MediaUploader = ({
     setPreview(null);
     setMediaType(null);
     setUploadError(null);
+    setFileDetails(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -169,6 +194,14 @@ const MediaUploader = ({
         ).join(',');
       }
       fileInputRef.current.click();
+    }
+  };
+
+  const retryUpload = () => {
+    if (fileInputRef.current && fileInputRef.current.files && fileInputRef.current.files.length > 0) {
+      handleFileChange({ target: { files: fileInputRef.current.files } } as React.ChangeEvent<HTMLInputElement>);
+    } else {
+      setUploadError(null);
     }
   };
 
@@ -230,10 +263,14 @@ const MediaUploader = ({
             </div>
             
             {uploadError && (
-              <div className="mt-2 text-sm text-red-500 flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4" />
-                {uploadError}
-              </div>
+              <ErrorAlert 
+                title="Upload Error"
+                message={uploadError}
+                guidance="Please check your file size and try again. If the problem persists, try with a smaller file or contact support."
+                onRetry={retryUpload}
+                severity="error"
+                className="mt-3"
+              />
             )}
           </div>
         </div>
@@ -257,6 +294,15 @@ const MediaUploader = ({
               />
             </div>
           )}
+          
+          {/* File details */}
+          {fileDetails && (
+            <div className="p-2 bg-gray-50 text-xs text-gray-600">
+              <p>{fileDetails.name}</p>
+              <p>Size: {fileDetails.size} | Type: {fileDetails.type}</p>
+            </div>
+          )}
+          
           <Button
             variant="secondary"
             size="icon"
@@ -283,6 +329,17 @@ const MediaUploader = ({
             ></div>
           </div>
         </div>
+      )}
+      
+      {uploadError && isUploading && (
+        <ErrorAlert 
+          title="Upload Failed"
+          message={uploadError}
+          guidance="The upload has encountered an error. You can try again with a smaller file or a different format."
+          onRetry={retryUpload}
+          severity="error"
+          className="mt-3"
+        />
       )}
     </div>
   );

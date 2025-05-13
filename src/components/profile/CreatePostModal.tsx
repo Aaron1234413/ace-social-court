@@ -1,11 +1,13 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { CreatePostForm } from './post/CreatePostForm';
+import { ErrorAlert } from '@/components/ui/error-alert';
+import { initializeStorage } from '@/integrations/supabase/storage';
 
 interface CreatePostModalProps {
   open: boolean;
@@ -22,6 +24,22 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Initialize storage buckets when the component mounts
+  useEffect(() => {
+    if (open) {
+      const initStorage = async () => {
+        try {
+          await initializeStorage();
+        } catch (error) {
+          console.error('Failed to initialize storage buckets:', error);
+        }
+      };
+      
+      initStorage();
+    }
+  }, [open]);
 
   const resetState = () => {
     setCaption('');
@@ -29,6 +47,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     setMediaPreview(null);
     setMediaType(null);
     setUploadProgress(0);
+    setUploadError(null);
   };
 
   const handleClose = () => {
@@ -40,9 +59,13 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Clear any previous errors
+    setUploadError(null);
+    
     // Check file type
     const fileType = file.type.split('/')[0];
     if (fileType !== 'image' && fileType !== 'video') {
+      setUploadError("Unsupported file type. Please upload an image or video file");
       toast({
         title: "Unsupported file type",
         description: "Please upload an image or video file",
@@ -54,6 +77,8 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     // Check file size with updated limits for upgraded storage
     const maxSize = fileType === 'video' ? 5000000000 : 100000000; // 5GB for video, 100MB for images
     if (file.size > maxSize) {
+      const sizeLimit = fileType === 'video' ? '5GB' : '100MB';
+      setUploadError(`File too large. Maximum size for ${fileType} is ${sizeLimit}`);
       toast({
         title: "File too large",
         description: `File size should be less than ${fileType === 'video' ? '5GB' : '100MB'}`,
@@ -72,6 +97,13 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       setMediaPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+    
+    // Log details for debugging
+    console.log('Selected file:', {
+      name: file.name,
+      type: file.type,
+      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+    });
   };
 
   const handleSubmit = async () => {
@@ -96,8 +128,9 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     try {
       setIsUploading(true);
       setUploadProgress(0);
+      setUploadError(null);
       
-      console.log(`Starting ${mediaType} upload: ${mediaFile.name}, size: ${mediaFile.size / (1024 * 1024)} MB`);
+      console.log(`Starting ${mediaType} upload: ${mediaFile.name}, size: ${(mediaFile.size / (1024 * 1024)).toFixed(2)} MB`);
       
       // Upload media file to storage
       const fileExt = mediaFile.name.split('.').pop();
@@ -125,8 +158,17 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
               
               resolve(publicUrlData.publicUrl);
             } else {
-              console.error(`Upload failed with status ${xhr.status}:`, xhr.responseText);
-              reject(new Error(`Upload failed with status ${xhr.status}`));
+              let errorDetails = '';
+              try {
+                const errorResponse = JSON.parse(xhr.responseText);
+                errorDetails = `: ${errorResponse.error || errorResponse.message || ''}`;
+              } catch (e) {
+                // Ignore parse errors
+              }
+              
+              const error = new Error(`Upload failed with status ${xhr.status}${errorDetails}`);
+              console.error('Upload error:', error, xhr.responseText);
+              reject(error);
             }
           }
         };
@@ -142,6 +184,15 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
           xhr.open('POST', url, true);
           xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
           xhr.setRequestHeader('x-upsert', 'true');
+          
+          // Log request details for debugging
+          console.log('Upload request:', {
+            url,
+            method: 'POST',
+            contentType: mediaFile.type,
+            fileSize: `${(mediaFile.size / (1024 * 1024)).toFixed(2)} MB`
+          });
+          
           xhr.send(mediaFile);
         }).catch(reject);
       });
@@ -177,12 +228,21 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       
       if (error.message) {
         errorMessage = error.message;
+        
+        // More user-friendly error messages
+        if (error.message.includes('413') || error.message.includes('too large') || 
+            error.message.includes('exceeded the maximum allowed size')) {
+          errorMessage = 'The file size exceeds the storage limit. Please try with a smaller file.';
+        } else if (error.message.includes('401') || error.message.includes('403')) {
+          errorMessage = 'Authorization error. Please try logging out and back in.';
+        }
       } else if (error.code === '23505') {
         errorMessage = 'A duplicate post was detected';
       } else if (error.code === '23503') {
         errorMessage = 'Related content was not found';
       }
       
+      setUploadError(errorMessage);
       toast({
         title: "Failed to create post",
         description: errorMessage,
@@ -198,6 +258,15 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     setMediaPreview(null);
     setMediaType(null);
     setUploadProgress(0);
+    setUploadError(null);
+  };
+
+  const handleRetry = () => {
+    setUploadError(null);
+    
+    if (mediaFile) {
+      handleSubmit();
+    }
   };
 
   return (
@@ -209,6 +278,16 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
             Share your tennis moments with images (up to 100MB) or videos (up to 5GB with upgraded storage)
           </DialogDescription>
         </DialogHeader>
+        
+        {uploadError && (
+          <ErrorAlert
+            title="Upload Error"
+            message={uploadError}
+            guidance="Please try again with a smaller file or a different format."
+            onRetry={handleRetry}
+            severity="error"
+          />
+        )}
         
         <CreatePostForm
           caption={caption}
