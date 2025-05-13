@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
+  fallback?: React.ReactNode | ((props: { error: Error; resetErrorBoundary: () => void }) => React.ReactNode);
   onReset?: () => void;
 }
 
@@ -52,6 +52,13 @@ class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (this.state.hasError) {
       if (this.props.fallback) {
+        // Handle both ReactNode and function fallbacks
+        if (typeof this.props.fallback === 'function') {
+          return this.props.fallback({
+            error: this.state.error as Error,
+            resetErrorBoundary: this.resetErrorBoundary
+          });
+        }
         return this.props.fallback;
       }
 
