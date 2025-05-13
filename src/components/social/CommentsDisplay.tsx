@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loading } from '@/components/ui/loading';
-import { showErrorToast } from '@/hooks/use-toast';
+import { showErrorToast } from '@/components/ui/use-toast';
 import CommentDisplay from '@/components/social/CommentDisplay';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 

@@ -42,11 +42,11 @@ function generateId() {
 }
 
 // Functions to actually store and remove toasts
-function addToast(toast: Toast) {
-  const id = toast.id || generateId();
+function addToast(props: ToastProps): Toast {
+  const id = props.id || generateId();
 
-  const newToast = {
-    ...toast,
+  const newToast: ToasterToast = {
+    ...props,
     id,
     open: true,
     remove: () => removeToast(id),
@@ -111,22 +111,38 @@ export function useToast() {
   }, []);
 
   return {
-    toast: addToast,
+    toast: (props: ToastProps) => addToast(props),
     toasts: state.toasts,
     dismiss: (id: string) => removeToast(id),
   };
 }
 
+// Helper functions for showing different types of toasts
+export function showSuccessToast(title: string, description?: string) {
+  toast({
+    title,
+    description,
+    variant: "default",
+  });
+}
+
+export function showErrorToast(title: string, description?: string) {
+  toast({
+    title,
+    description,
+    variant: "destructive",
+  });
+}
+
 // Standalone toast function
 export const toast = {
-  ...addToast,
   dismiss: (id: string) => removeToast(id),
-  success: (title: string, props?: Omit<ToastProps, "title">) =>
+  success: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
     addToast({ title, variant: "default", ...props }),
-  error: (title: string, props?: Omit<ToastProps, "title">) =>
+  error: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
     addToast({ title, variant: "destructive", ...props }),
-  warning: (title: string, props?: Omit<ToastProps, "title">) =>
+  warning: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
     addToast({ title, variant: "default", ...props }),
-  info: (title: string, props?: Omit<ToastProps, "title">) =>
+  info: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
     addToast({ title, variant: "default", ...props }),
 };

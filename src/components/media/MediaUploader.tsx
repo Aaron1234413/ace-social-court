@@ -49,11 +49,14 @@ const MediaUploader = ({
     setUploadError(null);
     updateProgress(0);
     
+    // Calculate file size in MB for display and checks
+    const fileSizeMB = (file.size / (1024 * 1024));
+    const formattedSize = fileSizeMB.toFixed(2);
+    
     // Record file details for debugging
-    const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2);
     const details = {
       name: file.name,
-      size: `${fileSizeInMB} MB`,
+      size: `${formattedSize} MB`,
       type: file.type
     };
     setFileDetails(details);
@@ -83,10 +86,9 @@ const MediaUploader = ({
     }
 
     // Check file size
-    const fileSizeInMB = file.size / (1024 * 1024);
     const maxSizeMB = fileType === 'image' ? MAX_IMAGE_SIZE_MB : MAX_VIDEO_SIZE_MB;
     
-    if (fileSizeInMB > maxSizeMB) {
+    if (fileSizeMB > maxSizeMB) {
       const errorMsg = `File size exceeds the ${maxSizeMB}MB limit for ${fileType}s`;
       setUploadError(errorMsg);
       toast.error(errorMsg);
@@ -131,7 +133,7 @@ const MediaUploader = ({
       setPreview(objectUrl);
       setMediaType(fileType);
 
-      console.log(`Uploading ${fileType} file to ${bucketName}: ${file.name}, size: ${fileSizeInMB.toFixed(2)}MB`);
+      console.log(`Uploading ${fileType} file to ${bucketName}: ${file.name}, size: ${formattedSize}MB`);
 
       // Use the uploadFileWithProgress function from storage.ts
       const publicUrl = await uploadFileWithProgress(

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -66,11 +65,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     const fileType = file.type.split('/')[0];
     if (fileType !== 'image' && fileType !== 'video') {
       setUploadError("Unsupported file type. Please upload an image or video file");
-      toast({
-        title: "Unsupported file type",
-        description: "Please upload an image or video file",
-        variant: "destructive",
-      });
+      toast.error("Unsupported file type. Please upload an image or video file");
       return;
     }
 
@@ -79,11 +74,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     if (file.size > maxSize) {
       const sizeLimit = fileType === 'video' ? '5GB' : '100MB';
       setUploadError(`File too large. Maximum size for ${fileType} is ${sizeLimit}`);
-      toast({
-        title: "File too large",
-        description: `File size should be less than ${fileType === 'video' ? '5GB' : '100MB'}`,
-        variant: "destructive",
-      });
+      toast.error(`File size should be less than ${fileType === 'video' ? '5GB' : '100MB'}`);
       return;
     }
 
@@ -108,20 +99,12 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
 
   const handleSubmit = async () => {
     if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to create a post",
-        variant: "destructive",
-      });
+      toast.error("Authentication required. Please sign in to create a post");
       return;
     }
 
     if (!mediaFile) {
-      toast({
-        title: "Media required",
-        description: "Please upload an image or video",
-        variant: "destructive",
-      });
+      toast.error("Media required. Please upload an image or video");
       return;
     }
 
@@ -214,10 +197,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         throw postError;
       }
 
-      toast({
-        title: "Post created",
-        description: "Your post has been published successfully",
-      });
+      toast.success("Your post has been published successfully");
       
       onPostCreated();
       handleClose();
@@ -243,11 +223,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       }
       
       setUploadError(errorMessage);
-      toast({
-        title: "Failed to create post",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }

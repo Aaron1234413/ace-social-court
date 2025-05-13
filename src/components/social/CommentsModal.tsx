@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { showErrorToast, showSuccessToast } from '@/hooks/use-toast';
+import { showErrorToast, showSuccessToast } from '@/components/ui/use-toast';
 import CommentsDisplay from './CommentsDisplay';
 import { useNotifications } from '@/components/notifications/useNotifications';
 import CommentForm from './CommentForm';
