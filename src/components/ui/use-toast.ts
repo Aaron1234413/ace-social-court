@@ -1,7 +1,7 @@
 
 import { 
   useToast as useToastHook, 
-  toast as toastFunction, 
+  toast,
   showSuccessToast, 
   showErrorToast, 
   showInfoToast,
@@ -10,8 +10,8 @@ import {
 
 // Re-export the toast hook and functions
 export const useToast = useToastHook;
-export const toast = toastFunction;
 export { 
+  toast, 
   showSuccessToast, 
   showErrorToast, 
   showInfoToast,

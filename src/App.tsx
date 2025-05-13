@@ -42,6 +42,7 @@ const PageLoader = () => (
   </div>
 );
 
+// Small fix to ensure no initial rendering issues
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [hasLoaded, setHasLoaded] = useState(false);

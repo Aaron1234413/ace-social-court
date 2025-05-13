@@ -1,7 +1,8 @@
 
-import React from "react";
+import * as React from "react";
+import { toast as sonnerToast } from "sonner";
 
-type ToastProps = {
+export type ToastProps = {
   id?: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
@@ -9,162 +10,131 @@ type ToastProps = {
   variant?: "default" | "destructive" | "success" | "info" | "warning";
 };
 
-type ToastActionElement = React.ReactElement<{
+export type ToastActionElement = React.ReactElement<{
   altText: string;
   onClick?: () => void;
   className?: string;
 }>;
 
-interface Toast extends ToastProps {
+type Toast = {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
-}
-
-const TOAST_REMOVE_DELAY = 3000;
+  variant?: "default" | "destructive" | "success" | "info" | "warning";
+};
 
 type ToasterToast = Toast & {
+  id: string;
   open: boolean;
   remove: () => void;
 };
 
-type ToasterState = {
+type UseToastReturnType = {
   toasts: ToasterToast[];
+  toast: (props: ToastProps) => void;
+  dismiss: (id: string) => void;
 };
 
-const toasterState: ToasterState = {
-  toasts: [],
-};
+const TOAST_LIMIT = 20;
+const TOAST_REMOVE_DELAY = 1000;
 
-function generateId() {
-  return Math.random().toString(36).substring(2, 9);
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const actionTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const toasts = React.createRef<ToasterToast[]>();
+if (!toasts.current) {
+  toasts.current = [];
 }
 
-// Functions to actually store and remove toasts
+const generateId = () => {
+  return Math.random().toString(36).substring(2, 9);
+};
+
 function addToast(props: ToastProps): Toast {
   const id = props.id || generateId();
 
-  // Ensure action is a React element if provided
   const newToast: ToasterToast = {
     ...props,
     id,
     open: true,
     remove: () => removeToast(id),
-    // Ensure action is of the correct type or undefined
-    action: props.action as ToastActionElement | undefined,
   };
 
   // Update the state
-  toasterState.toasts = [...toasterState.toasts, newToast];
-
-  // Dispatch event so any listeners can update
-  dispatchToastEvent();
+  if (toasts.current) {
+    if (toasts.current.length >= TOAST_LIMIT) {
+      removeToast(toasts.current[0].id);
+    }
+    toasts.current = [...toasts.current, newToast];
+  }
 
   return newToast;
 }
 
 function removeToast(id: string) {
-  // Update the state
-  toasterState.toasts = toasterState.toasts.map((toast) =>
-    toast.id === id
-      ? {
-          ...toast,
-          open: false,
-        }
-      : toast
-  );
+  if (toastTimeouts.has(id)) {
+    clearTimeout(toastTimeouts.get(id));
+    toastTimeouts.delete(id);
+  }
 
-  // Dispatch event so any listeners can update
-  dispatchToastEvent();
+  if (actionTimeouts.has(id)) {
+    clearTimeout(actionTimeouts.get(id));
+    actionTimeouts.delete(id);
+  }
 
-  // Actually remove the toast after delay
-  setTimeout(() => {
-    toasterState.toasts = toasterState.toasts.filter((t) => t.id !== id);
-    dispatchToastEvent();
-  }, TOAST_REMOVE_DELAY);
+  if (toasts.current) {
+    toasts.current = toasts.current.filter((t) => t.id !== id);
+  }
 }
 
-const listeners: Array<(state: ToasterState) => void> = [];
-
-// Dispatch event to listeners
-function dispatchToastEvent() {
-  listeners.forEach((listener) => {
-    listener(toasterState);
-  });
-}
-
-// Hook to use the toast functionality
-export function useToast() {
-  const [state, setState] = React.useState<ToasterState>(toasterState);
+function useToast(): UseToastReturnType {
+  const [state, setState] = React.useState<ToasterToast[]>([]);
 
   React.useEffect(() => {
-    const listener = (newState: ToasterState) => {
-      setState({ ...newState });
-    };
-
-    listeners.push(listener);
-    
-    return () => {
-      const index = listeners.indexOf(listener);
-      if (index > -1) {
-        listeners.splice(index, 1);
-      }
-    };
+    if (toasts.current) {
+      setState(toasts.current);
+      const listener = () => {
+        setState([...toasts.current!]);
+      };
+      window.addEventListener("toast-change", listener);
+      return () => window.removeEventListener("toast-change", listener);
+    }
+    return undefined;
   }, []);
 
   return {
+    toasts: state,
     toast: (props: ToastProps) => addToast(props),
-    toasts: state.toasts,
     dismiss: (id: string) => removeToast(id),
   };
 }
 
 // Helper functions for showing different types of toasts
 export function showSuccessToast(title: string, description?: string) {
-  toastFunction({
-    title,
-    description,
-    variant: "success",
+  sonnerToast.success(title, {
+    description
   });
 }
 
 export function showErrorToast(title: string, description?: string) {
-  toastFunction({
-    title,
-    description,
-    variant: "destructive",
+  sonnerToast.error(title, {
+    description
   });
 }
 
 export function showInfoToast(title: string, description?: string) {
-  toastFunction({
-    title,
-    description,
-    variant: "info",
+  sonnerToast.info(title, {
+    description
   });
 }
 
 export function showWarningToast(title: string, description?: string) {
-  toastFunction({
-    title,
-    description,
-    variant: "warning",
+  sonnerToast.warning(title, {
+    description
   });
 }
 
-// Standalone toast function that can be imported directly
-export const toastFunction = (props: ToastProps) => addToast(props);
+// Export the toast function from sonner directly to avoid type conflicts
+export const toast = sonnerToast;
 
-// Export for compatibility with existing code
-export const toast = {
-  dismiss: (id: string) => removeToast(id),
-  success: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
-    addToast({ title, variant: "success", ...props }),
-  error: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
-    addToast({ title, variant: "destructive", ...props }),
-  warning: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
-    addToast({ title, variant: "warning", ...props }),
-  info: (title: string, props?: Omit<ToastProps, "title" | "variant">) =>
-    addToast({ title, variant: "info", ...props }),
-};
+export { useToast };

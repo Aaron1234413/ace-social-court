@@ -1,60 +1,41 @@
 
+import React, { useState, useEffect } from 'react';
 import { ProfileEditContainer } from '@/components/profile/edit/ProfileEditContainer';
-import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { Loading } from '@/components/ui/loading';
-import { showInfoToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 const ProfileEdit = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isNewUser = location.state?.newUser;
-  const { user, profile, isLoading } = useAuth();
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   
+  // Check if the user is logged in
   useEffect(() => {
-    // Show welcome message for new users
-    if (isNewUser) {
-      showInfoToast(
-        "Welcome to Tennis Connect!", 
-        "Please complete your profile to get started"
-      );
-    }
+    const checkAuth = async () => {
+      if (!user) {
+        // Redirect to login if not authenticated
+        toast.info('Please login to edit your profile');
+        navigate('/auth', { state: { from: location.pathname } });
+      } else {
+        setIsLoading(false);
+      }
+    };
     
-    // Log whether this is a new user flow or not
-    console.log("Profile Edit: New user flow?", isNewUser ? "Yes" : "No");
-    console.log("Auth state:", { user, profile, isLoading });
-  }, [isNewUser, user, profile, isLoading]);
+    checkAuth();
+  }, [user, navigate, location.pathname]);
   
-  // Handle case when authentication fails
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 flex justify-center">
-        <Loading variant="spinner" text="Loading profile data..." />
+      <div className="flex justify-center items-center min-h-screen">
+        <Loading size="lg" />
       </div>
     );
   }
   
-  if (!isLoading && !user) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Loading 
-          variant="error"
-          error={{
-            message: "Unable to access profile editor",
-            guidance: "You must be logged in to edit your profile. Please log in and try again.",
-            onRetry: () => navigate('/auth', { replace: true })
-          }}
-        />
-      </div>
-    );
-  }
-  
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <ProfileEditContainer isNewUser={Boolean(isNewUser)} />
-    </div>
-  );
+  return <ProfileEditContainer />;
 };
 
 export default ProfileEdit;
