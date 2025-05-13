@@ -3,7 +3,7 @@ import { Control } from 'react-hook-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
-import { LocationPickerDialog } from '@/components/location';
+import { LocationPickerDialog, LocationResult } from '@/components/location';
 import type { ProfileFormValues } from '../profileSchema';
 
 interface WizardLocationInfoProps {
@@ -21,6 +21,10 @@ export const WizardLocationInfo = ({
   setIsLocationPickerOpen,
   handleSetLocation
 }: WizardLocationInfoProps) => {
+  const handleLocationSelect = (location: LocationResult) => {
+    handleSetLocation(location.lat, location.lng, location.address);
+  };
+  
   return (
     <>
       <Card>
@@ -49,15 +53,11 @@ export const WizardLocationInfo = ({
         </CardContent>
       </Card>
 
-      {isLocationPickerOpen && (
-        <LocationPickerDialog 
-          isOpen={isLocationPickerOpen}
-          onClose={() => setIsLocationPickerOpen(false)}
-          onSelectLocation={handleSetLocation}
-          initialLatitude={undefined}
-          initialLongitude={undefined}
-        />
-      )}
+      <LocationPickerDialog 
+        open={isLocationPickerOpen}
+        onOpenChange={setIsLocationPickerOpen}
+        onLocationSelect={handleLocationSelect}
+      />
     </>
   );
 };

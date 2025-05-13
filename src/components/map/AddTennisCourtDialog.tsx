@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/components/AuthProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LocationPickerDialog } from '@/components/location';
+import { LocationPickerDialog, LocationResult } from '@/components/location';
 
 const surfaceTypes = [
   { value: 'hard', label: 'Hard Court' },
@@ -100,8 +100,8 @@ const AddTennisCourtDialog = () => {
     setShowLocationPicker(false);
   };
 
-  const handleLocationPickerSelect = (lat: number, lng: number, address: string) => {
-    console.log("Location selected:", lat, lng, address);
+  const handleLocationPickerSelect = (location: LocationResult) => {
+    console.log("Location selected:", location.lat, location.lng, location.address);
     
     // Parse the address to extract city, state, country if possible
     let city = '';
@@ -109,7 +109,7 @@ const AddTennisCourtDialog = () => {
     let country = 'USA'; // Default
     
     // Simple parsing of the address string
-    const parts = address.split(', ');
+    const parts = location.address.split(', ');
     if (parts.length >= 3) {
       // Assuming format like "Street, City, State ZIP, Country"
       city = parts[1] || '';
@@ -125,9 +125,9 @@ const AddTennisCourtDialog = () => {
 
     setFormData((prev) => ({
       ...prev,
-      latitude: lat,
-      longitude: lng,
-      address: address.split(',')[0] || '', // First part is typically street address
+      latitude: location.lat,
+      longitude: location.lng,
+      address: location.address.split(',')[0] || '', // First part is typically street address
       city,
       state,
       country
@@ -385,11 +385,9 @@ const AddTennisCourtDialog = () => {
       </Dialog>
 
       <LocationPickerDialog 
-        isOpen={showLocationPicker}
-        onClose={handleLocationPickerClose}
-        onSelectLocation={handleLocationPickerSelect}
-        initialLatitude={formData.latitude !== 0 ? formData.latitude : undefined}
-        initialLongitude={formData.longitude !== 0 ? formData.longitude : undefined}
+        open={showLocationPicker}
+        onOpenChange={setShowLocationPicker}
+        onLocationSelect={handleLocationPickerSelect}
       />
     </>
   );

@@ -37,14 +37,10 @@ type UseToastReturnType = {
 };
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000;
 
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-const actionTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-const toasts = React.createRef<ToasterToast[]>();
-if (!toasts.current) {
-  toasts.current = [];
-}
+// Mutable array to store toasts
+// Using a ref-like pattern but with a regular variable since we're not in a component
+let toastStore: ToasterToast[] = [];
 
 const generateId = () => {
   return Math.random().toString(36).substring(2, 9);
@@ -60,46 +56,36 @@ function addToast(props: ToastProps): Toast {
     remove: () => removeToast(id),
   };
 
-  // Update the state
-  if (toasts.current) {
-    if (toasts.current.length >= TOAST_LIMIT) {
-      removeToast(toasts.current[0].id);
-    }
-    toasts.current = [...toasts.current, newToast];
+  // Update the store
+  if (toastStore.length >= TOAST_LIMIT) {
+    removeToast(toastStore[0].id);
   }
+  toastStore = [...toastStore, newToast];
+
+  // Trigger event to notify any listeners
+  const event = new CustomEvent("toast-change", { detail: { toasts: toastStore } });
+  window.dispatchEvent(event);
 
   return newToast;
 }
 
 function removeToast(id: string) {
-  if (toastTimeouts.has(id)) {
-    clearTimeout(toastTimeouts.get(id));
-    toastTimeouts.delete(id);
-  }
-
-  if (actionTimeouts.has(id)) {
-    clearTimeout(actionTimeouts.get(id));
-    actionTimeouts.delete(id);
-  }
-
-  if (toasts.current) {
-    toasts.current = toasts.current.filter((t) => t.id !== id);
-  }
+  toastStore = toastStore.filter((t) => t.id !== id);
+  
+  // Trigger event to notify any listeners
+  const event = new CustomEvent("toast-change", { detail: { toasts: toastStore } });
+  window.dispatchEvent(event);
 }
 
 function useToast(): UseToastReturnType {
-  const [state, setState] = React.useState<ToasterToast[]>([]);
+  const [state, setState] = React.useState<ToasterToast[]>(toastStore);
 
   React.useEffect(() => {
-    if (toasts.current) {
-      setState(toasts.current);
-      const listener = () => {
-        setState([...toasts.current!]);
-      };
-      window.addEventListener("toast-change", listener);
-      return () => window.removeEventListener("toast-change", listener);
-    }
-    return undefined;
+    const listener = (e: CustomEvent) => {
+      setState(e.detail?.toasts || []);
+    };
+    window.addEventListener("toast-change" as any, listener as any);
+    return () => window.removeEventListener("toast-change" as any, listener as any);
   }, []);
 
   return {

@@ -3,7 +3,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
-import { LocationPickerDialog } from '@/components/location';
+import { LocationPickerDialog, LocationResult } from '@/components/location';
 import type { ProfileFormValues } from '../ProfileEditForm';
 
 interface LocationFieldProps {
@@ -23,6 +23,10 @@ export const LocationField = ({
   openLocationPicker,
   onSelectLocation
 }: LocationFieldProps) => {
+  const handleLocationSelect = (location: LocationResult) => {
+    onSelectLocation(location.lat, location.lng, location.address);
+  };
+  
   return (
     <>
       <Card className="border border-muted">
@@ -75,15 +79,11 @@ export const LocationField = ({
         </CardContent>
       </Card>
 
-      {isLocationPickerOpen && (
-        <LocationPickerDialog 
-          isOpen={isLocationPickerOpen}
-          onClose={() => setIsLocationPickerOpen(false)}
-          onSelectLocation={onSelectLocation}
-          initialLatitude={form.watch('latitude')}
-          initialLongitude={form.watch('longitude')}
-        />
-      )}
+      <LocationPickerDialog 
+        open={isLocationPickerOpen}
+        onOpenChange={setIsLocationPickerOpen}
+        onLocationSelect={handleLocationSelect}
+      />
     </>
   );
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -75,15 +74,25 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         throw postError;
       }
       
-      // Create a notification for followers
-      const { error: notificationError } = await supabase.rpc('notify_followers_of_post', { 
-        post_author_id: user.id,
-        post_id: postId
-      });
-      
-      if (notificationError) {
-        console.error('Error creating notifications:', notificationError);
-        // Don't throw here, just log the error since notifications are not critical
+      // Try to create notifications but handle errors gracefully
+      try {
+        const { error: notifyError } = await supabase
+          .from('notifications')
+          .insert([
+            {
+              user_id: user.id,
+              type: 'new_post',
+              content: 'New post created',
+              entity_id: postId,
+              entity_type: 'post'
+            }
+          ]);
+        
+        if (notifyError) {
+          console.error('Error creating notifications:', notifyError);
+        }
+      } catch (notifyError) {
+        console.error('Error in notification process:', notifyError);
       }
       
       toast.success('Post created successfully!');

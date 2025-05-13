@@ -30,12 +30,12 @@ const ProfileEdit = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loading size="lg" />
+        <Loading />
       </div>
     );
   }
   
-  return <ProfileEditContainer />;
+  return <ProfileEditContainer isNewUser={false} />;
 };
 
 export default ProfileEdit;
