@@ -1,19 +1,20 @@
 
-import { Bell, Home, Map, MessageSquare, Search, Settings, User, Video, HelpCircle } from "lucide-react";
+import { 
+  Home, MessageSquare, Bell, User, Search, Map, Video, 
+  Settings, HelpCircle, LogOut, Plus, BookOpen, Clipboard
+} from "lucide-react";
 
-// Shared navigation configuration to be used by both the top navigation bar and sidebar
 export const navigationConfig = {
-  // Primary navigation links shown in both components
   primaryNavItems: [
     {
       title: "Home",
-      url: "/",
+      url: "/feed",
       icon: Home,
     },
     {
-      title: "Feed",
-      url: "/feed",
-      icon: Home,
+      title: "Explore",
+      url: "/search",
+      icon: Search,
     },
     {
       title: "Map",
@@ -21,22 +22,25 @@ export const navigationConfig = {
       icon: Map,
     },
     {
-      title: "Video Analysis",
+      title: "Analysis",
       url: "/analysis",
       icon: Video,
     },
     {
       title: "Tennis AI",
       url: "/tennis-ai",
-      icon: HelpCircle,
+      icon: BookOpen,
+    },
+    {
+      title: "User Testing",
+      url: "/tests",
+      icon: Clipboard,
     },
   ],
-  
-  // User-specific navigation items that require authentication
   userNavItems: [
     {
       title: "Profile",
-      url: "/profile/", // Will be appended with username or ID
+      url: "/profile",
       icon: User,
     },
     {
@@ -46,18 +50,25 @@ export const navigationConfig = {
     },
     {
       title: "Notifications",
-      url: "/notifications", 
+      url: "/notifications",
       icon: Bell,
     },
     {
-      title: "Search",
-      url: "/search",
-      icon: Search,
-    },
-    {
       title: "Settings",
-      url: "/profile/edit",
+      url: "/settings",
       icon: Settings,
     },
-  ]
+    {
+      title: "Help",
+      url: "/help",
+      icon: HelpCircle,
+    },
+  ],
+  additionalActions: [
+    {
+      title: "New Post",
+      url: "/create-post",
+      icon: Plus,
+    },
+  ],
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
@@ -22,6 +23,7 @@ const NotFound = React.lazy(() => import('./pages/NotFound'));
 const PostDetail = React.lazy(() => import('./pages/PostDetail'));
 const VideoAnalysis = React.lazy(() => import('./pages/VideoAnalysis'));
 const TennisAI = React.lazy(() => import('./pages/TennisAI'));
+const UserTest = React.lazy(() => import('./pages/UserTest'));
 
 // Redirect component that sends users to their profile
 const ProfileRedirect = () => {
@@ -134,6 +136,7 @@ function App() {
                   <Route path="/post/:id" element={<PostDetail />} />
                   <Route path="/analysis" element={<VideoAnalysis />} />
                   <Route path="/tennis-ai" element={<TennisAI />} />
+                  <Route path="/tests" element={<UserTest />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
