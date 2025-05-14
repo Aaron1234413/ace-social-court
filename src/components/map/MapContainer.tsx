@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card } from '@/components/ui/card';
-import { Loader2, RefreshCw, Locate, AlertTriangle } from 'lucide-react';
+import { Loader2, RefreshCw, Locate, AlertTriangle, Bug } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -49,6 +49,7 @@ const MapContainer = ({
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [userPosition, setUserPosition] = useState<{lng: number, lat: number} | null>(null);
   const [locationWarning, setLocationWarning] = useState<string | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
 
   const initializeMap = (token: string) => {
     if (!mapContainerRef.current) {
@@ -60,6 +61,10 @@ const MapContainer = ({
 
     try {
       console.log("Starting map initialization with token:", token.substring(0, 10) + '...');
+      console.log("Map container dimensions:", 
+                 mapContainerRef.current.offsetWidth, 
+                 mapContainerRef.current.offsetHeight);
+                 
       mapboxgl.accessToken = token;
       
       // Clean up existing map instance if it exists
@@ -68,19 +73,25 @@ const MapContainer = ({
         mapInstanceRef.current = null;
       }
       
-      // Create new map instance
+      // Create new map instance with explicit dimensions
       mapInstanceRef.current = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/streets-v12',
         center: [-98.5795, 39.8283], // Center of the US
         zoom: 3,
         attributionControl: true,
-        preserveDrawingBuffer: true // Allows for image export
+        preserveDrawingBuffer: true, // Allows for image export
+        width: mapContainerRef.current.offsetWidth || 800,
+        height: mapContainerRef.current.offsetHeight || 600
       });
 
       // Listen for map load event to confirm success
       mapInstanceRef.current.on('load', () => {
         console.log("Map loaded successfully");
+        console.log("Map container visible after load:", 
+                   mapContainerRef.current?.offsetWidth, 
+                   mapContainerRef.current?.offsetHeight);
+        
         setLoading(false);
         setMapError(null);
         mapInitializedRef.current = true;
@@ -115,6 +126,14 @@ const MapContainer = ({
         } catch (error) {
           console.warn("Could not add geolocation control:", error);
         }
+        
+        // Force a resize to ensure the map renders properly
+        setTimeout(() => {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.resize();
+            console.log("Forced map resize");
+          }
+        }, 300);
         
         // Callback to parent component when map is initialized
         if (onMapInitialized && mapInstanceRef.current) {
@@ -304,6 +323,13 @@ const MapContainer = ({
       console.log("Attempting map initialization...");
       console.log("Map container exists:", !!mapContainerRef.current);
       
+      if (mapContainerRef.current) {
+        console.log("Container dimensions:", 
+                   mapContainerRef.current.offsetWidth, 
+                   mapContainerRef.current.offsetHeight,
+                   "Style:", window.getComputedStyle(mapContainerRef.current).display);
+      }
+      
       if (!mapInitializedRef.current) {
         // Try user token first
         const userTokenSuccess = initializeMap(USER_MAPBOX_TOKEN);
@@ -320,7 +346,18 @@ const MapContainer = ({
       }
     }, 100); // Short delay to ensure DOM is ready
     
+    // Add window resize handler to make the map responsive
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        console.log("Window resized, resizing map");
+        mapInstanceRef.current.resize();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
     return () => {
+      window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
       if (mapInstanceRef.current) {
         console.log("Cleaning up map instance");
@@ -349,6 +386,30 @@ const MapContainer = ({
     }
   };
 
+  const toggleDebugMode = () => {
+    setDebugMode(!debugMode);
+    console.log("Debug mode:", !debugMode);
+    
+    // Log map container state
+    if (mapContainerRef.current) {
+      console.log("Map container:", mapContainerRef.current);
+      console.log("Map container dimensions:", 
+                 mapContainerRef.current.offsetWidth, 
+                 mapContainerRef.current.offsetHeight);
+      console.log("Map container style:", 
+                 window.getComputedStyle(mapContainerRef.current));
+    }
+    
+    // Log map instance state
+    console.log("Map instance:", mapInstanceRef.current);
+    
+    if (mapInstanceRef.current) {
+      // Force resize
+      mapInstanceRef.current.resize();
+      console.log("Forced map resize");
+    }
+  };
+
   return (
     <Card className={`${className || ''} ${height} relative overflow-hidden`}>
       {loading && (
@@ -363,21 +424,34 @@ const MapContainer = ({
           <p className="text-red-500 mb-4 text-center">{mapError}</p>
           <Button 
             onClick={handleRetry}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 mb-2"
           >
             <RefreshCw className="h-4 w-4" />
             Retry Loading Map
           </Button>
+          
+          <p className="text-sm text-muted-foreground mt-4">
+            Note: Make sure you have allowed location access in your browser
+          </p>
         </div>
       )}
       
-      <div ref={mapContainerRef} className="absolute inset-0" id="map-container" />
+      <div 
+        ref={mapContainerRef} 
+        className="absolute inset-0" 
+        id="map-container" 
+        style={{
+          width: '100%',
+          height: '100%',
+          background: '#e5e7eb' // Light gray background to make container visible
+        }}
+      />
       
       {/* Render children (map layers, markers, etc.) */}
       {!loading && !mapError && children}
       
       {!loading && !mapError && (
-        <div className="absolute bottom-4 left-4 z-10">
+        <div className="absolute bottom-4 left-4 z-10 flex flex-col space-y-2">
           <Button 
             onClick={findUserLocation}
             variant="default"
@@ -387,11 +461,35 @@ const MapContainer = ({
             Find my location
           </Button>
           
+          <Button
+            onClick={toggleDebugMode}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 bg-white/80"
+          >
+            <Bug className="h-3 w-3" />
+            {debugMode ? 'Hide Debug Info' : 'Debug Map'}
+          </Button>
+          
           {locationWarning && (
             <div className="mt-2 bg-amber-50 border border-amber-200 p-2 rounded-md text-xs text-amber-800 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3 flex-shrink-0" />
               <span>{locationWarning}</span>
             </div>
+          )}
+        </div>
+      )}
+      
+      {debugMode && (
+        <div className="absolute top-4 right-4 z-10 bg-white/90 p-2 rounded shadow-md text-xs">
+          <h4 className="font-bold">Map Debug Info</h4>
+          <p>Map loaded: {mapInitializedRef.current ? 'Yes' : 'No'}</p>
+          <p>Container: {mapContainerRef.current ? 'Exists' : 'Missing'}</p>
+          {mapContainerRef.current && (
+            <>
+              <p>Width: {mapContainerRef.current.offsetWidth}px</p>
+              <p>Height: {mapContainerRef.current.offsetHeight}px</p>
+            </>
           )}
         </div>
       )}

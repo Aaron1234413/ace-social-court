@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import MapContainer from '@/components/map/MapContainer';
 import NearbyUsersLayer from '@/components/map/NearbyUsersLayer';
 import TennisCourtsLayer from '@/components/map/TennisCourtsLayer';
