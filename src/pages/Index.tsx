@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FeatureCard from "@/components/FeatureCard";
 import { Testimonial } from "@/components/Testimonial";
+import { ChevronRight } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -30,16 +31,22 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4">
-        <div className="py-16 md:py-24 text-center space-y-6">
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+        <div className="py-20 md:py-32 text-center space-y-8">
+          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-primary via-blue-600 to-indigo-500 bg-clip-text text-transparent animate-fade-in">
             Tennis. Together.
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
             Connect with players and coaches nearby, improve your game with AI analysis,
             and join a community passionate about tennis.
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Button size="lg" onClick={() => navigate("/auth")}>Get Started</Button>
+          <div className="flex justify-center">
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/auth")}
+              className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all"
+            >
+              Get Started <ChevronRight className="ml-1" />
+            </Button>
           </div>
         </div>
 
@@ -92,7 +99,13 @@ const Index = () => {
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold mb-4">Ready to elevate your tennis experience?</h2>
             <p className="mb-8 text-lg">Join thousands of players and coaches who are already using rallypointx to connect and improve.</p>
-            <Button size="lg" onClick={() => navigate("/auth")}>Join Now</Button>
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/auth")}
+              className="bg-primary hover:bg-primary/90 text-lg px-8"
+            >
+              Join Our Community
+            </Button>
           </div>
         </div>
       </main>
