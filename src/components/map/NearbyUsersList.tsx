@@ -58,29 +58,35 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
   // Available skill levels
   const skillLevels = ['Beginner', 'Intermediate', 'Advanced', 'Pro'];
   
+  // Get user type badge color
+  const getUserTypeColor = (type: string) => {
+    if (type === 'coach') return 'bg-gradient-to-r from-purple-500 to-purple-600 border-none text-white';
+    return 'bg-gradient-to-r from-tennis-blue to-blue-500 border-none text-white';
+  };
+  
   return (
-    <div className="bg-background rounded-lg border shadow-sm p-4 w-full">
+    <div className="bg-card rounded-xl border shadow-sm p-4 w-full">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold">Nearby Tennis Community</h3>
+        <h3 className="font-semibold text-lg">Nearby Tennis Community</h3>
         <div className="flex gap-2">
           <Badge 
             variant={selectedType === 'all' ? "default" : "outline"}
             onClick={() => setSelectedType('all')}
-            className="cursor-pointer"
+            className={`cursor-pointer transition-all duration-200 ${selectedType === 'all' ? 'bg-gradient-to-r from-tennis-blue to-tennis-green border-none text-white' : ''}`}
           >
             All
           </Badge>
           <Badge 
             variant={selectedType === 'player' ? "default" : "outline"}
             onClick={() => setSelectedType('player')}
-            className="cursor-pointer flex gap-1 items-center"
+            className={`cursor-pointer transition-all duration-200 flex gap-1 items-center ${selectedType === 'player' ? 'bg-gradient-to-r from-tennis-blue to-blue-600 border-none text-white' : ''}`}
           >
             <Users className="h-3 w-3" /> Players
           </Badge>
           <Badge 
             variant={selectedType === 'coach' ? "default" : "outline"}
             onClick={() => setSelectedType('coach')}
-            className="cursor-pointer flex gap-1 items-center"
+            className={`cursor-pointer transition-all duration-200 flex gap-1 items-center ${selectedType === 'coach' ? 'bg-gradient-to-r from-purple-500 to-purple-700 border-none text-white' : ''}`}
           >
             <UserCog className="h-3 w-3" /> Coaches
           </Badge>
@@ -88,14 +94,14 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
       </div>
       
       {/* Add skill level filter */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 bg-muted/50 p-2 rounded-md">
         <Filter className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm">Skill Level:</span>
         <Select
           value={filters.skillLevel || ''}
           onValueChange={(value) => handleFilterChange('skillLevel', value || null)}
         >
-          <SelectTrigger className="h-8 text-xs w-[120px]">
+          <SelectTrigger className="h-8 text-xs w-[120px] bg-background">
             <SelectValue placeholder="Any level" />
           </SelectTrigger>
           <SelectContent>
@@ -111,29 +117,38 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
       
       <ScrollArea className="h-[240px] pr-3">
         {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">
-            Finding nearby players and coaches...
+          <div className="py-16 text-center">
+            <div className="inline-block p-3 bg-muted rounded-full animate-pulse mb-3">
+              <Users className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground animate-pulse">Finding nearby players and coaches...</p>
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            {users.length === 0 
-              ? "No players or coaches found nearby" 
-              : `No ${selectedType === 'all' ? 'users' : selectedType + 's'} found${filters.skillLevel ? ` with ${filters.skillLevel} skill level` : ''} nearby`
-            }
+          <div className="py-16 text-center">
+            <div className="inline-block p-3 bg-muted rounded-full mb-3">
+              <Users className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground">
+              {users.length === 0 
+                ? "No players or coaches found nearby" 
+                : `No ${selectedType === 'all' ? 'users' : selectedType + 's'} found${filters.skillLevel ? ` with ${filters.skillLevel} skill level` : ''}`
+              }
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredUsers.map(user => (
+            {filteredUsers.map((user, index) => (
               <div 
                 key={user.id}
-                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors cursor-pointer animate-slide-up"
+                style={{ animationDelay: `${index * 50}ms` }}
                 onClick={() => onUserSelect(user)}
               >
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
                   {user.avatar_url ? (
                     <AvatarImage src={user.avatar_url} alt={user.full_name || "User"} />
                   ) : (
-                    <AvatarFallback>
+                    <AvatarFallback className={user.user_type === 'coach' ? "bg-gradient-to-br from-purple-100 to-purple-200 text-purple-700" : "bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700"}>
                       {user.full_name?.charAt(0) || user.username?.charAt(0) || '?'}
                     </AvatarFallback>
                   )}
@@ -142,11 +157,11 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{user.full_name || user.username}</p>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={user.user_type === 'coach' ? "default" : "secondary"} className="text-xs">
+                    <Badge variant="default" className={`text-xs ${getUserTypeColor(user.user_type)}`}>
                       {user.user_type === 'coach' ? 'Coach' : 'Player'}
                     </Badge>
                     {user.skill_level && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs bg-gradient-to-r from-muted/30 to-muted/10">
                         {user.skill_level}
                       </Badge>
                     )}
@@ -160,7 +175,7 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
                   <Button 
                     size="sm" 
                     variant="ghost" 
-                    className="h-8 w-8 p-0" 
+                    className="h-8 w-8 p-0 rounded-full hover:bg-background hover:text-primary transition-colors" 
                     onClick={(e) => {
                       e.stopPropagation();
                       viewProfile(user.id);
