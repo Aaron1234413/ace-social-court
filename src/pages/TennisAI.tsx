@@ -118,7 +118,7 @@ const TennisAI = () => {
     }
   }, [user, preferences, isLoadingPreferences]);
   
-  // Redirect to login if not authenticated - FIXED AUTH CHECK
+  // Redirect to login if not authenticated - IMPROVED AUTH CHECK
   useEffect(() => {
     console.log('TennisAI: Auth check effect running', { 
       user: user ? 'exists' : 'null',
@@ -127,8 +127,14 @@ const TennisAI = () => {
     });
     
     // Only run this check once after initial auth load is complete
-    if (isAuthLoading || authCheckedRef.current) {
-      console.log('TennisAI: Auth is still loading or check already performed, waiting...');
+    if (isAuthLoading) {
+      console.log('TennisAI: Auth is still loading, waiting...');
+      return;
+    }
+    
+    // If auth check has already been performed, don't do it again
+    if (authCheckedRef.current) {
+      console.log('TennisAI: Auth check already performed');
       return;
     }
     
@@ -140,12 +146,17 @@ const TennisAI = () => {
       toast.error("Please sign in to use the Tennis AI");
       navigate('/auth');
     } else {
-      console.log("TennisAI: User is authenticated, loading conversations");
+      console.log("TennisAI: User is authenticated, continuing");
       
       // Check realtime configuration during initialization
       checkAndConfigureRealtime();
+      
+      // Load conversations if user is authenticated
+      if (!loadingConversations && conversations.length === 0) {
+        loadConversations();
+      }
     }
-  }, [user, navigate, isAuthLoading, checkAndConfigureRealtime]);
+  }, [user, navigate, isAuthLoading, checkAndConfigureRealtime, loadConversations, conversations.length, loadingConversations]);
   
   const handleApiErrorReset = () => {
     setApiError(null);
