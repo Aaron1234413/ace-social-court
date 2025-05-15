@@ -91,10 +91,16 @@ export const saveTechniqueMemory = async (
     
     // If technique exists, update it
     if (existingData) {
-      // Get existing key points
-      const existingPoints: string[] = Array.isArray(existingData.key_points) 
-        ? existingData.key_points 
-        : [];
+      // Handle key_points from database, ensuring it's treated as string[]
+      // This ensures we handle potential type mismatches from the JSON data
+      let existingPoints: string[] = [];
+      
+      if (Array.isArray(existingData.key_points)) {
+        // Map each item to ensure they're all strings
+        existingPoints = existingData.key_points.map(point => 
+          typeof point === 'string' ? point : String(point)
+        );
+      }
       
       // Merge existing and new points, removing duplicates
       const allPoints = [...existingPoints, ...newPoints];
