@@ -23,6 +23,7 @@ const NotFound = React.lazy(() => import('./pages/NotFound'));
 const PostDetail = React.lazy(() => import('./pages/PostDetail'));
 const VideoAnalysis = React.lazy(() => import('./pages/VideoAnalysis'));
 const TennisAI = React.lazy(() => import('./pages/TennisAI'));
+const TennisPreferences = React.lazy(() => import('./pages/TennisPreferences'));
 const UserTest = React.lazy(() => import('./pages/UserTest'));
 
 // Redirect component that sends users to their profile
@@ -136,6 +137,7 @@ function App() {
                   <Route path="/post/:id" element={<PostDetail />} />
                   <Route path="/analysis" element={<VideoAnalysis />} />
                   <Route path="/tennis-ai" element={<TennisAI />} />
+                  <Route path="/tennis-preferences" element={<TennisPreferences />} />
                   <Route path="/tests" element={<UserTest />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

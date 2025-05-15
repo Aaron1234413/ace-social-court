@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -17,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Loading } from '@/components/ui/loading';
 import { TennisAIConversation } from '@/components/tennis-ai/types';
+import { PreferencesDialog } from '@/components/tennis-ai/PreferencesDialog';
+import { useTennisPreferences } from '@/hooks/use-tennis-preferences';
 
 interface Message {
   id: string;
@@ -32,6 +33,7 @@ interface Conversation {
 }
 
 const TennisAI = () => {
+  
   const { user } = useAuth();
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
@@ -50,6 +52,24 @@ const TennisAI = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const realtimeChannelRef = useRef<any>(null);
   
+  // Add new states for preferences
+  const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
+  const { preferences, isLoadingPreferences } = useTennisPreferences();
+  
+  // Show preferences dialog if user has no preferences
+  useEffect(() => {
+    if (user && preferences === null && !isLoadingPreferences) {
+      // Wait a moment before showing the dialog to avoid immediate popup on page load
+      const timer = setTimeout(() => {
+        setShowPreferencesDialog(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, preferences, isLoadingPreferences]);
+  
+  
+
   // Auto-retry for API failures
   const maxRetries = 3;
   const retryIntervalMs = 3000;
@@ -555,16 +575,35 @@ const TennisAI = () => {
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
+      {/* Preferences Dialog */}
+      <PreferencesDialog 
+        open={showPreferencesDialog} 
+        onOpenChange={setShowPreferencesDialog} 
+      />
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Tennis AI Assistant</h1>
         
-        <ConnectionStatus 
-          onReconnect={handleReconnect} 
-          className="ml-2" 
-        />
+        <div className="flex items-center">
+          <Button
+            variant="outline"
+            size="sm"
+            className="mr-2"
+            onClick={() => setShowPreferencesDialog(true)}
+          >
+            Preferences
+          </Button>
+          <ConnectionStatus 
+            onReconnect={handleReconnect} 
+            className="ml-2" 
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        
+        
         {/* Mobile sidebar drawer */}
         {isMobile && (
           <Sheet>
