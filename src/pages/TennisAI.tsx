@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -25,8 +25,10 @@ const TennisAI = () => {
   });
   
   const navigate = useNavigate();
+  const location = useLocation();
   const [apiError, setApiError] = useState<{message: string; type?: string; retry?: () => void} | null>(null);
   const authCheckedRef = useRef(false);
+  const initCompletedRef = useRef(false);
   
   // Add new states for preferences
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
@@ -118,45 +120,75 @@ const TennisAI = () => {
     }
   }, [user, preferences, isLoadingPreferences]);
   
-  // Redirect to login if not authenticated - IMPROVED AUTH CHECK
+  // Enhanced authentication check with better safeguards
   useEffect(() => {
-    console.log('TennisAI: Auth check effect running', { 
+    console.warn('[Debug Redirect] Auth check effect running', { 
       user: user ? 'exists' : 'null',
       isAuthLoading,
-      authChecked: authCheckedRef.current
+      authChecked: authCheckedRef.current,
+      currentPath: location.pathname
     });
     
-    // Only run this check once after initial auth load is complete
+    // Skip if we're already on the auth page to prevent loops
+    if (location.pathname === '/auth') {
+      console.warn('[Debug Redirect] Already on auth page, skipping auth check');
+      return;
+    }
+    
+    // If auth is still loading, wait for it to complete
     if (isAuthLoading) {
-      console.log('TennisAI: Auth is still loading, waiting...');
+      console.warn('[Debug Redirect] Auth is still loading, waiting...');
       return;
     }
     
-    // If auth check has already been performed, don't do it again
-    if (authCheckedRef.current) {
-      console.log('TennisAI: Auth check already performed');
-      return;
-    }
-    
-    // Mark auth check as performed to prevent repeated redirects
-    authCheckedRef.current = true;
-    
-    if (!user) {
-      console.log("TennisAI: User not authenticated, redirecting to auth page");
-      toast.error("Please sign in to use the Tennis AI");
-      navigate('/auth');
-    } else {
-      console.log("TennisAI: User is authenticated, continuing");
+    // Only perform the full initialization once
+    if (!initCompletedRef.current && user) {
+      console.warn('[Debug Redirect] User is authenticated, initializing app...');
+      
+      // Mark initialization as completed to prevent redundant calls
+      initCompletedRef.current = true;
       
       // Check realtime configuration during initialization
       checkAndConfigureRealtime();
       
       // Load conversations if user is authenticated
       if (!loadingConversations && conversations.length === 0) {
+        console.warn('[Debug Redirect] Loading initial conversations');
         loadConversations();
       }
+      
+      // No need to redirect, we're good to go
+      return;
     }
-  }, [user, navigate, isAuthLoading, checkAndConfigureRealtime, loadConversations, conversations.length, loadingConversations]);
+    
+    // If auth check has already been performed, don't do it again
+    if (authCheckedRef.current) {
+      console.warn('[Debug Redirect] Auth check already performed');
+      return;
+    }
+    
+    // Mark auth check as performed to prevent repeated redirects
+    authCheckedRef.current = true;
+    
+    // Only redirect to auth if user is definitely not authenticated
+    // after the auth loading process has completed
+    if (!user) {
+      console.warn('[Debug Redirect] User not authenticated, redirecting to auth');
+      toast.error("Please sign in to use the Tennis AI");
+      navigate('/auth');
+    } else {
+      console.warn('[Debug Redirect] User is authenticated, continuing');
+    }
+  }, [
+    user, 
+    navigate, 
+    isAuthLoading, 
+    location.pathname,
+    checkAndConfigureRealtime, 
+    loadConversations, 
+    conversations.length, 
+    loadingConversations
+  ]);
   
   const handleApiErrorReset = () => {
     setApiError(null);
