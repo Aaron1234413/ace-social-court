@@ -73,16 +73,15 @@ const MapContainer = ({
         mapInstanceRef.current = null;
       }
       
-      // Create new map instance with explicit dimensions
+      // Create new map instance without the explicit width/height properties
+      // as they're not part of the MapOptions type
       mapInstanceRef.current = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/streets-v12',
         center: [-98.5795, 39.8283], // Center of the US
         zoom: 3,
         attributionControl: true,
-        preserveDrawingBuffer: true, // Allows for image export
-        width: mapContainerRef.current.offsetWidth || 800,
-        height: mapContainerRef.current.offsetHeight || 600
+        preserveDrawingBuffer: true // Allows for image export
       });
 
       // Listen for map load event to confirm success
