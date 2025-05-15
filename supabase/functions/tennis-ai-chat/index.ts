@@ -7,6 +7,140 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Common tennis techniques to detect in conversations
+const COMMON_TENNIS_TECHNIQUES = [
+  'forehand',
+  'backhand',
+  'serve',
+  'volley',
+  'overhead',
+  'slice',
+  'approach shot',
+  'lob',
+  'drop shot',
+  'footwork',
+  'groundstroke',
+  'topspin',
+  'flat serve',
+  'kick serve',
+  'slice serve',
+  'return of serve',
+  'continental grip',
+  'eastern grip',
+  'semi-western grip',
+  'western grip',
+  'split step',
+  'follow through',
+  'court positioning',
+  'net play',
+  'baseline play',
+  'two-handed backhand',
+  'one-handed backhand'
+];
+
+// Function to detect tennis techniques in text
+const detectTechniques = (text: string): string[] => {
+  const lowerText = text.toLowerCase();
+  
+  return COMMON_TENNIS_TECHNIQUES.filter(technique => 
+    lowerText.includes(technique.toLowerCase())
+  );
+};
+
+// Extract key points about a technique from a conversation
+const extractKeyPoints = (text: string, technique: string): string[] => {
+  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+  
+  const relevantSentences = sentences.filter(sentence => {
+    const lowerSentence = sentence.toLowerCase();
+    return (
+      lowerSentence.includes(technique.toLowerCase()) && 
+      (
+        lowerSentence.includes('should') || 
+        lowerSentence.includes('try to') || 
+        lowerSentence.includes('focus on') || 
+        lowerSentence.includes('remember to') ||
+        lowerSentence.includes('important') ||
+        lowerSentence.includes('technique') ||
+        lowerSentence.includes('tip')
+      )
+    );
+  });
+  
+  return relevantSentences;
+};
+
+// Process techniques mentioned in AI responses and save key points
+const processAndSaveTechniques = async (
+  supabase: any, 
+  userId: string, 
+  aiResponse: string
+) => {
+  try {
+    // Detect techniques in the AI response
+    const detectedTechniques = detectTechniques(aiResponse);
+    
+    // If no techniques detected, exit early
+    if (detectedTechniques.length === 0) return;
+    
+    console.log(`Detected ${detectedTechniques.length} techniques: ${detectedTechniques.join(', ')}`);
+    
+    // Process each detected technique
+    for (const technique of detectedTechniques) {
+      // Extract key points for this technique
+      const keyPoints = extractKeyPoints(aiResponse, technique);
+      
+      if (keyPoints.length > 0) {
+        console.log(`Found ${keyPoints.length} key points for ${technique}`);
+        
+        // Check if technique memory already exists
+        const { data: existingMemory, error: fetchError } = await supabase
+          .from('tennis_technique_memory')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('technique_name', technique)
+          .single();
+          
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.error(`Error checking for existing memory: ${fetchError.message}`);
+          continue;
+        }
+        
+        if (existingMemory) {
+          // Update existing memory
+          const existingPoints = existingMemory.key_points || [];
+          const allPoints = [...existingPoints, ...keyPoints];
+          const uniquePoints = Array.from(new Set(allPoints));
+          
+          const { error: updateError } = await supabase
+            .from('tennis_technique_memory')
+            .update({ key_points: uniquePoints })
+            .eq('id', existingMemory.id);
+            
+          if (updateError) {
+            console.error(`Error updating technique memory: ${updateError.message}`);
+          }
+        } else {
+          // Create new memory
+          const { error: insertError } = await supabase
+            .from('tennis_technique_memory')
+            .insert({
+              user_id: userId,
+              technique_name: technique,
+              key_points: keyPoints
+            });
+            
+          if (insertError) {
+            console.error(`Error creating technique memory: ${insertError.message}`);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`Error in processAndSaveTechniques: ${error.message}`);
+  }
+};
+
 // Enhanced tennis coaching system prompt with improved instruction and examples
 const TENNIS_SYSTEM_PROMPT = `You are an expert tennis coach and analyst with years of experience. 
 You provide friendly, detailed advice on tennis techniques, strategies, training regimens, and equipment.
@@ -243,14 +377,13 @@ serve(async (req) => {
 
     if (saveResponseError) throw saveResponseError;
 
-    // Track user interactions for future personalization (placeholder)
-    try {
-      // In the future, we can analyze the conversation to identify skills, techniques, or topics
-      // discussed and store them for personalization
-      console.log("Will track conversation insights for future personalization");
-    } catch (trackingError) {
-      // Don't fail the request if tracking fails
-      console.error("Error tracking conversation insights:", trackingError);
+    // NEW CODE: Process the AI response for technique memory
+    // Use EdgeRuntime.waitUntil to handle this as a background task without blocking the response
+    if (typeof EdgeRuntime !== 'undefined') {
+      EdgeRuntime.waitUntil(processAndSaveTechniques(supabase, userId, aiMessage));
+    } else {
+      // Fall back to processing synchronously if we're not in an environment that supports waitUntil
+      await processAndSaveTechniques(supabase, userId, aiMessage);
     }
 
     // Return the response

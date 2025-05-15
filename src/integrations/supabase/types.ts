@@ -537,6 +537,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tennis_technique_memory: {
+        Row: {
+          created_at: string | null
+          discussion_count: number | null
+          id: string
+          key_points: Json | null
+          last_discussed: string | null
+          technique_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          discussion_count?: number | null
+          id?: string
+          key_points?: Json | null
+          last_discussed?: string | null
+          technique_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          discussion_count?: number | null
+          id?: string
+          key_points?: Json | null
+          last_discussed?: string | null
+          technique_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tennis_user_preferences: {
         Row: {
           age_group: string | null

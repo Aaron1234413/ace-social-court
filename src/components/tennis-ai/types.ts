@@ -1,4 +1,3 @@
-
 export interface TennisAIMessage {
   id: string;
   content: string;
@@ -51,6 +50,18 @@ export interface TennisUserProgress {
     key_points: string[];
     follow_up_recommended?: string[];
   }>;
+}
+
+// New interface for the tennis technique memory
+export interface TennisTechniqueMemory {
+  id: string;
+  user_id: string;
+  technique_name: string;
+  key_points: string[];
+  last_discussed: string;
+  discussion_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 // This will be used for the future personalization feature
