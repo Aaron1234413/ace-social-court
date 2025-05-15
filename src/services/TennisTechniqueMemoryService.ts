@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { TennisTechniqueMemory } from '@/components/tennis-ai/types';
 
@@ -91,7 +92,9 @@ export const saveTechniqueMemory = async (
     // If technique exists, update it
     if (existingData) {
       // Get existing key points
-      const existingPoints: string[] = existingData.key_points || [];
+      const existingPoints: string[] = Array.isArray(existingData.key_points) 
+        ? existingData.key_points 
+        : [];
       
       // Merge existing and new points, removing duplicates
       const allPoints = [...existingPoints, ...newPoints];
