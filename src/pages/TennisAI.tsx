@@ -58,6 +58,7 @@ const TennisAI = () => {
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const realtimeChannelRef = useRef<any>(null);
+  const authCheckedRef = useRef(false);
   
   // Add new states for preferences
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
@@ -93,18 +94,22 @@ const TennisAI = () => {
   const retryIntervalMs = 3000;
   const [retryCount, setRetryCount] = useState(0);
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated - FIXED AUTH CHECK
   useEffect(() => {
     console.log('TennisAI: Auth check effect running', { 
       user: user ? 'exists' : 'null',
-      isAuthLoading 
+      isAuthLoading,
+      authChecked: authCheckedRef.current
     });
     
-    // Avoid redirect during initial auth loading
-    if (isAuthLoading) {
-      console.log('TennisAI: Auth is still loading, waiting...');
+    // Only run this check once after initial auth load is complete
+    if (isAuthLoading || authCheckedRef.current) {
+      console.log('TennisAI: Auth is still loading or check already performed, waiting...');
       return;
     }
+    
+    // Mark auth check as performed to prevent repeated redirects
+    authCheckedRef.current = true;
     
     if (!user) {
       console.log("TennisAI: User not authenticated, redirecting to auth page");
@@ -139,6 +144,10 @@ const TennisAI = () => {
       console.error('Error during realtime configuration check:', error);
       setConnectionStatus('disconnected');
     }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   // Scroll to bottom when messages change
@@ -273,10 +282,6 @@ const TennisAI = () => {
     } finally {
       setIsReconnecting(false);
     }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const loadConversations = async () => {
