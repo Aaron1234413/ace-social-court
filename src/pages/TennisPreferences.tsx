@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,8 +23,8 @@ const TennisPreferences = () => {
   }, [user, navigate]);
 
   const handleEdit = () => {
-    // This will cause the full questionnaire to show
-    updatePreferences({ id: 'reset' });
+    // This will cause the full questionnaire to show without passing an invalid 'id' property
+    updatePreferences({}); // Reset preferences to trigger the questionnaire
   };
 
   const handleReturnToChat = () => {

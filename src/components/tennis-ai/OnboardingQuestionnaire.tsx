@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +11,7 @@ import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTennisPreferences } from '@/hooks/use-tennis-preferences';
-import { CheckIcon } from 'lucide-react';
+import { TennisUserPreferences } from '@/components/tennis-ai/types';
 
 const playStyles = [
   { value: 'aggressive', label: 'Aggressive (Power and attacking play)' },
@@ -155,14 +154,14 @@ export function OnboardingQuestionnaire({ onComplete }: OnboardingQuestionnaireP
     if (isLastStep) {
       try {
         // Format the data for API submission
-        const preferenceData = {
-          preferred_play_style: updatedData.preferred_play_style,
-          dominant_hand: updatedData.dominant_hand,
-          experience_level: updatedData.experience_level,
+        const preferenceData: Partial<TennisUserPreferences> = {
+          preferred_play_style: updatedData.preferred_play_style as TennisUserPreferences['preferred_play_style'],
+          dominant_hand: updatedData.dominant_hand as TennisUserPreferences['dominant_hand'],
+          experience_level: updatedData.experience_level as TennisUserPreferences['experience_level'],
           focus_areas: updatedData.focus_areas ? updatedData.focus_areas.split(',').map(item => item.trim()) : [],
-          court_surface_preference: updatedData.court_surface_preference,
-          training_frequency: updatedData.training_frequency,
-          fitness_level: updatedData.fitness_level,
+          court_surface_preference: updatedData.court_surface_preference as TennisUserPreferences['court_surface_preference'],
+          training_frequency: updatedData.training_frequency as TennisUserPreferences['training_frequency'],
+          fitness_level: updatedData.fitness_level as TennisUserPreferences['fitness_level'],
           recent_injuries: updatedData.recent_injuries ? updatedData.recent_injuries.split(',').map(item => item.trim()) : [],
           goals: updatedData.goals ? updatedData.goals.split(',').map(item => item.trim()) : [],
           favorite_pros: updatedData.favorite_pros ? updatedData.favorite_pros.split(',').map(item => item.trim()) : [],
