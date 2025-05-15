@@ -537,6 +537,90 @@ export type Database = {
         }
         Relationships: []
       }
+      tennis_user_preferences: {
+        Row: {
+          age_group: string | null
+          court_surface_preference: string | null
+          created_at: string
+          dominant_hand: string | null
+          experience_level: string | null
+          favorite_pros: string[] | null
+          fitness_level: string | null
+          focus_areas: string[] | null
+          goals: string[] | null
+          id: string
+          preferred_play_style: string | null
+          recent_injuries: string[] | null
+          training_frequency: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          court_surface_preference?: string | null
+          created_at?: string
+          dominant_hand?: string | null
+          experience_level?: string | null
+          favorite_pros?: string[] | null
+          fitness_level?: string | null
+          focus_areas?: string[] | null
+          goals?: string[] | null
+          id?: string
+          preferred_play_style?: string | null
+          recent_injuries?: string[] | null
+          training_frequency?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          court_surface_preference?: string | null
+          created_at?: string
+          dominant_hand?: string | null
+          experience_level?: string | null
+          favorite_pros?: string[] | null
+          fitness_level?: string | null
+          focus_areas?: string[] | null
+          goals?: string[] | null
+          id?: string
+          preferred_play_style?: string | null
+          recent_injuries?: string[] | null
+          training_frequency?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tennis_user_progress: {
+        Row: {
+          completed_drills: Json | null
+          created_at: string
+          id: string
+          lesson_history: Json | null
+          skill_assessments: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_drills?: Json | null
+          created_at?: string
+          id?: string
+          lesson_history?: Json | null
+          skill_assessments?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_drills?: Json | null
+          created_at?: string
+          id?: string
+          lesson_history?: Json | null
+          skill_assessments?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_analyses: {
         Row: {
           created_at: string | null

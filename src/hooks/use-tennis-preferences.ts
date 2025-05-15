@@ -10,70 +10,174 @@ export const useTennisPreferences = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // This will be implemented when we create the actual preferences table
+  // Fetch user preferences from the database
   const { data: preferences, isLoading: isLoadingPreferences } = useQuery({
     queryKey: ['tennis-preferences'],
     queryFn: async () => {
       if (!user) return null;
       
-      // This is a placeholder - in the future, we'll implement the actual query
-      // to fetch preferences from the database
-      console.log('Will fetch preferences for user', user.id);
-      return null as TennisUserPreferences | null;
+      const { data, error } = await supabase
+        .from('tennis_user_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        // If no record is found, that's expected for new users
+        if (error.code === 'PGRST116') {
+          console.log('No preferences found for user, will create when needed');
+          return null;
+        }
+        console.error('Error fetching preferences:', error);
+        toast.error('Failed to load tennis preferences');
+        throw error;
+      }
+      
+      return data as TennisUserPreferences;
     },
     enabled: !!user
   });
 
-  // This will be implemented when we create the actual progress table
+  // Fetch user progress from the database
   const { data: progress, isLoading: isLoadingProgress } = useQuery({
     queryKey: ['tennis-progress'],
     queryFn: async () => {
       if (!user) return null;
       
-      // This is a placeholder - in the future, we'll implement the actual query
-      // to fetch progress from the database
-      console.log('Will fetch progress for user', user.id);
-      return null as TennisUserProgress | null;
+      const { data, error } = await supabase
+        .from('tennis_user_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        // If no record is found, that's expected for new users
+        if (error.code === 'PGRST116') {
+          console.log('No progress found for user, will create when needed');
+          return null;
+        }
+        console.error('Error fetching progress:', error);
+        toast.error('Failed to load tennis progress data');
+        throw error;
+      }
+      
+      return data as TennisUserProgress;
     },
     enabled: !!user
   });
 
-  // This will be implemented when we create the actual preferences table
+  // Update user preferences
   const updatePreferencesMutation = useMutation({
     mutationFn: async (updatedPreferences: Partial<TennisUserPreferences>) => {
       if (!user) throw new Error('User not authenticated');
       
-      // This is a placeholder - in the future, we'll implement the actual mutation
-      // to update preferences in the database
-      console.log('Will update preferences for user', user.id, updatedPreferences);
-      return updatedPreferences;
+      // Check if preferences exist for this user
+      const { data: existingPrefs } = await supabase
+        .from('tennis_user_preferences')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      // Prepare the data to update/insert
+      const prefsData = {
+        user_id: user.id,
+        ...updatedPreferences
+      };
+      
+      if (existingPrefs) {
+        // Update existing preferences
+        const { data, error } = await supabase
+          .from('tennis_user_preferences')
+          .update(prefsData)
+          .eq('user_id', user.id)
+          .select('*');
+          
+        if (error) {
+          console.error('Error updating preferences:', error);
+          throw error;
+        }
+        
+        return data[0] as TennisUserPreferences;
+      } else {
+        // Insert new preferences
+        const { data, error } = await supabase
+          .from('tennis_user_preferences')
+          .insert(prefsData)
+          .select('*');
+          
+        if (error) {
+          console.error('Error inserting preferences:', error);
+          throw error;
+        }
+        
+        return data[0] as TennisUserPreferences;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tennis-preferences'] });
-      toast.success('Preferences updated successfully');
+      queryClient.setQueryData(['tennis-preferences'], data);
+      toast.success('Tennis preferences updated successfully');
     },
     onError: (error) => {
-      toast.error('Failed to update preferences');
+      toast.error('Failed to update tennis preferences');
       console.error('Error updating preferences:', error);
     }
   });
 
-  // This will be implemented when we create the actual progress table
+  // Update user progress
   const updateProgressMutation = useMutation({
     mutationFn: async (updatedProgress: Partial<TennisUserProgress>) => {
       if (!user) throw new Error('User not authenticated');
       
-      // This is a placeholder - in the future, we'll implement the actual mutation
-      // to update progress in the database
-      console.log('Will update progress for user', user.id, updatedProgress);
-      return updatedProgress;
+      // Check if progress exists for this user
+      const { data: existingProgress } = await supabase
+        .from('tennis_user_progress')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      // Prepare the data to update/insert
+      const progressData = {
+        user_id: user.id,
+        ...updatedProgress
+      };
+      
+      if (existingProgress) {
+        // Update existing progress
+        const { data, error } = await supabase
+          .from('tennis_user_progress')
+          .update(progressData)
+          .eq('user_id', user.id)
+          .select('*');
+          
+        if (error) {
+          console.error('Error updating progress:', error);
+          throw error;
+        }
+        
+        return data[0] as TennisUserProgress;
+      } else {
+        // Insert new progress
+        const { data, error } = await supabase
+          .from('tennis_user_progress')
+          .insert(progressData)
+          .select('*');
+          
+        if (error) {
+          console.error('Error inserting progress:', error);
+          throw error;
+        }
+        
+        return data[0] as TennisUserProgress;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tennis-progress'] });
-      toast.success('Progress updated successfully');
+      queryClient.setQueryData(['tennis-progress'], data);
+      toast.success('Tennis progress updated successfully');
     },
     onError: (error) => {
-      toast.error('Failed to update progress');
+      toast.error('Failed to update tennis progress');
       console.error('Error updating progress:', error);
     }
   });
