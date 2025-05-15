@@ -1,13 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, BookOpen, Clock, MessageSquare } from 'lucide-react';
+import { AlertCircle, BookOpen, Clock, MessageSquare, ChevronDown, ChevronUp, History } from 'lucide-react';
 import { useTechniqueMemory } from '@/hooks/use-technique-memory';
 import { Loading } from '@/components/ui/loading';
 import { TennisTechniqueMemory } from '../tennis-ai/types';
 import { formatTimeSinceLastDiscussion } from '@/services/TennisTechniqueMemoryService';
+import TimelineView from './TimelineView';
 
 export interface TechniqueMemoriesProps {
   className?: string;
@@ -19,6 +20,7 @@ export const TechniqueMemories: React.FC<TechniqueMemoriesProps> = ({
   showEmpty = true
 }) => {
   const { memories, isLoading, error, refreshMemories } = useTechniqueMemory();
+  const [expandedTechnique, setExpandedTechnique] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -74,6 +76,14 @@ export const TechniqueMemories: React.FC<TechniqueMemoriesProps> = ({
     );
   }
 
+  const toggleExpand = (techniqueId: string) => {
+    if (expandedTechnique === techniqueId) {
+      setExpandedTechnique(null);
+    } else {
+      setExpandedTechnique(techniqueId);
+    }
+  };
+
   return (
     <Card className={className}>
       <CardHeader className="pb-3">
@@ -88,7 +98,12 @@ export const TechniqueMemories: React.FC<TechniqueMemoriesProps> = ({
       <CardContent>
         <div className="space-y-6">
           {memories.map((memory) => (
-            <TechniqueMemoryItem key={memory.id} memory={memory} />
+            <TechniqueMemoryItem 
+              key={memory.id} 
+              memory={memory} 
+              isExpanded={expandedTechnique === memory.id}
+              onToggleExpand={() => toggleExpand(memory.id)}
+            />
           ))}
         </div>
       </CardContent>
@@ -98,17 +113,32 @@ export const TechniqueMemories: React.FC<TechniqueMemoriesProps> = ({
 
 interface TechniqueMemoryItemProps {
   memory: TennisTechniqueMemory;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }
 
-export const TechniqueMemoryItem: React.FC<TechniqueMemoryItemProps> = ({ memory }) => {
+export const TechniqueMemoryItem: React.FC<TechniqueMemoryItemProps> = ({ 
+  memory, 
+  isExpanded,
+  onToggleExpand
+}) => {
   const { technique_name, key_points, discussion_count, last_discussed } = memory;
   const timeSince = formatTimeSinceLastDiscussion(last_discussed);
   
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-base font-medium capitalize">{technique_name}</h3>
+        <div className="flex-1">
+          <div className="flex justify-between items-center">
+            <h3 className="text-base font-medium capitalize">{technique_name}</h3>
+            <button 
+              onClick={onToggleExpand}
+              className="text-muted-foreground hover:text-foreground transition-colors ml-2 p-1"
+              aria-label={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+          </div>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <Badge variant="outline" className="text-xs flex items-center">
               <MessageSquare className="mr-1 h-3 w-3" />
@@ -135,6 +165,17 @@ export const TechniqueMemoryItem: React.FC<TechniqueMemoryItemProps> = ({ memory
           </p>
         )}
       </div>
+
+      {isExpanded && (
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="flex items-center mb-3">
+            <History className="h-4 w-4 mr-2" />
+            <h4 className="text-sm font-medium">Learning Timeline</h4>
+          </div>
+          <TimelineView techniqueName={technique_name} />
+        </div>
+      )}
+      
       <Separator className="mt-4" />
     </div>
   );

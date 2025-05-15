@@ -92,10 +92,9 @@ export const saveTechniqueMemory = async (
     // If technique exists, update it
     if (existingData) {
       // Handle key_points from database, ensuring it's treated as string[]
-      // This ensures we handle potential type mismatches from the JSON data
       let existingPoints: string[] = [];
       
-      if (Array.isArray(existingData.key_points)) {
+      if (existingData.key_points && Array.isArray(existingData.key_points)) {
         // Map each item to ensure they're all strings
         existingPoints = existingData.key_points.map(point => 
           typeof point === 'string' ? point : String(point)
@@ -192,7 +191,7 @@ export const getTechniqueMemory = async (userId: string, techniqueName: string):
   }
 };
 
-// New function: Get recently discussed techniques
+// Get recently discussed techniques
 export const getRecentlyDiscussedTechniques = async (userId: string, limit: number = 3): Promise<TennisTechniqueMemory[]> => {
   try {
     const { data, error } = await supabase
@@ -214,7 +213,7 @@ export const getRecentlyDiscussedTechniques = async (userId: string, limit: numb
   }
 };
 
-// New function: Format human-readable time since last discussion
+// Format human-readable time since last discussion
 export const formatTimeSinceLastDiscussion = (lastDiscussedDate: string): string => {
   const lastDiscussed = new Date(lastDiscussedDate);
   const now = new Date();
@@ -236,7 +235,7 @@ export const formatTimeSinceLastDiscussion = (lastDiscussedDate: string): string
   }
 };
 
-// New function: Generate reminder about previous advice
+// Generate reminder about previous advice
 export const generatePreviousAdviceReminder = (technique: TennisTechniqueMemory): string => {
   if (!technique || !technique.key_points || technique.key_points.length === 0) {
     return '';
@@ -254,4 +253,48 @@ export const generatePreviousAdviceReminder = (technique: TennisTechniqueMemory)
   
   // Generate a reminder message
   return `Last time we discussed your ${technique.technique_name} ${timeSince}, I suggested ${highlightPoint.toLowerCase()}. Have you had a chance to work on that?`;
+};
+
+// New function to get user learning progress for a technique
+export const getLearningProgress = async (userId: string, techniqueName: string): Promise<any[]> => {
+  try {
+    const memory = await getTechniqueMemory(userId, techniqueName);
+    
+    if (!memory) {
+      return [];
+    }
+    
+    // In a real implementation, we would have a separate table for tracking progress over time
+    // For now, we'll simulate progress data based on the existing memory
+    const progress = [];
+    const discussionCount = memory.discussion_count || 1;
+    const lastDiscussed = new Date(memory.last_discussed);
+    
+    // Create some simulated historical entries
+    for (let i = 0; i < discussionCount; i++) {
+      const date = new Date(lastDiscussed);
+      // Spread the dates out by 7 days for each historical entry
+      date.setDate(date.getDate() - (i * 7));
+      
+      let keyPoint = "";
+      if (memory.key_points && Array.isArray(memory.key_points) && i < memory.key_points.length) {
+        keyPoint = typeof memory.key_points[i] === 'string' 
+          ? memory.key_points[i] as string
+          : String(memory.key_points[i]);
+      }
+      
+      progress.push({
+        date: date.toISOString(),
+        milestoneType: i === 0 ? "latest" : (i === discussionCount - 1 ? "first" : "progress"),
+        keyPoint: keyPoint || `Discussed ${techniqueName} technique`
+      });
+    }
+    
+    return progress.sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  } catch (error) {
+    console.error('Error getting learning progress:', error);
+    return [];
+  }
 };
