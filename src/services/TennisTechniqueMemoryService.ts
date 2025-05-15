@@ -191,3 +191,67 @@ export const getTechniqueMemory = async (userId: string, techniqueName: string):
     return null;
   }
 };
+
+// New function: Get recently discussed techniques
+export const getRecentlyDiscussedTechniques = async (userId: string, limit: number = 3): Promise<TennisTechniqueMemory[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('tennis_technique_memory')
+      .select('*')
+      .eq('user_id', userId)
+      .order('last_discussed', { ascending: false })
+      .limit(limit);
+    
+    if (error) {
+      console.error('Error fetching recent techniques:', error);
+      return [];
+    }
+    
+    return data as TennisTechniqueMemory[];
+  } catch (error) {
+    console.error('Unexpected error in getRecentlyDiscussedTechniques:', error);
+    return [];
+  }
+};
+
+// New function: Format human-readable time since last discussion
+export const formatTimeSinceLastDiscussion = (lastDiscussedDate: string): string => {
+  const lastDiscussed = new Date(lastDiscussedDate);
+  const now = new Date();
+  const diffMs = now.getTime() - lastDiscussed.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return 'today';
+  } else if (diffDays === 1) {
+    return 'yesterday';
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+  } else {
+    const months = Math.floor(diffDays / 30);
+    return `${months} ${months === 1 ? 'month' : 'months'} ago`;
+  }
+};
+
+// New function: Generate reminder about previous advice
+export const generatePreviousAdviceReminder = (technique: TennisTechniqueMemory): string => {
+  if (!technique || !technique.key_points || technique.key_points.length === 0) {
+    return '';
+  }
+  
+  const timeSince = formatTimeSinceLastDiscussion(technique.last_discussed);
+  const keyPoints = Array.isArray(technique.key_points) 
+    ? technique.key_points.map(point => typeof point === 'string' ? point : String(point))
+    : [];
+  
+  // Choose one key point to highlight (most recent one is often the most relevant)
+  const highlightPoint = keyPoints[0];
+  
+  if (!highlightPoint) return '';
+  
+  // Generate a reminder message
+  return `Last time we discussed your ${technique.technique_name} ${timeSince}, I suggested ${highlightPoint.toLowerCase()}. Have you had a chance to work on that?`;
+};

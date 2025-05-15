@@ -70,6 +70,28 @@ const extractKeyPoints = (text: string, technique: string): string[] => {
   return relevantSentences;
 };
 
+// Format human-readable time since last discussion
+const formatTimeSinceLastDiscussion = (lastDiscussedDate: string): string => {
+  const lastDiscussed = new Date(lastDiscussedDate);
+  const now = new Date();
+  const diffMs = now.getTime() - lastDiscussed.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return 'today';
+  } else if (diffDays === 1) {
+    return 'yesterday';
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+  } else {
+    const months = Math.floor(diffDays / 30);
+    return `${months} ${months === 1 ? 'month' : 'months'} ago`;
+  }
+};
+
 // Process techniques mentioned in AI responses and save key points
 const processAndSaveTechniques = async (
   supabase: any, 
@@ -138,6 +160,60 @@ const processAndSaveTechniques = async (
     }
   } catch (error) {
     console.error(`Error in processAndSaveTechniques: ${error.message}`);
+  }
+};
+
+// NEW FUNCTION: Get previous advice for techniques mentioned in the current message
+const getPreviousAdvice = async (
+  supabase: any,
+  userId: string,
+  userMessage: string
+): Promise<string> => {
+  try {
+    // Detect techniques in the user message
+    const mentionedTechniques = detectTechniques(userMessage);
+    
+    if (mentionedTechniques.length === 0) {
+      return '';
+    }
+    
+    console.log(`User mentioned techniques: ${mentionedTechniques.join(', ')}`);
+    
+    // Get the first mentioned technique to avoid overloading the conversation
+    const primaryTechnique = mentionedTechniques[0];
+    
+    // Get memory for this technique
+    const { data: techniqueMemory, error } = await supabase
+      .from('tennis_technique_memory')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('technique_name', primaryTechnique)
+      .single();
+      
+    if (error || !techniqueMemory || !techniqueMemory.key_points || techniqueMemory.discussion_count <= 1) {
+      return '';
+    }
+    
+    // Generate a continuity message
+    const timeSince = formatTimeSinceLastDiscussion(techniqueMemory.last_discussed);
+    const keyPoints = techniqueMemory.key_points;
+    
+    if (!Array.isArray(keyPoints) || keyPoints.length === 0) {
+      return '';
+    }
+    
+    // Choose one key point to highlight
+    const highlightPoint = keyPoints[0];
+    
+    if (typeof highlightPoint !== 'string' || !highlightPoint) {
+      return '';
+    }
+    
+    return `Note: Last time we discussed the ${primaryTechnique} ${timeSince}, I suggested: "${highlightPoint}". You may want to reference this in your response if relevant.`;
+    
+  } catch (error) {
+    console.error(`Error getting previous advice: ${error.message}`);
+    return '';
   }
 };
 
@@ -262,8 +338,17 @@ serve(async (req) => {
       .eq('id', userId)
       .single();
 
+    // NEW: Get previous advice about techniques mentioned in the user message
+    const previousAdviceNote = await getPreviousAdvice(supabase, userId, message);
+
     // Prepare for personalization (will be expanded in the future)
     let systemPrompt = TENNIS_SYSTEM_PROMPT;
+    
+    // Add previous advice to the system prompt if available
+    if (previousAdviceNote) {
+      systemPrompt += `\n\n${previousAdviceNote}`;
+      console.log("Adding previous advice context to prompt");
+    }
     
     // In the future, we can enhance the prompt with user information
     if (userProfile && !profileError) {
@@ -377,7 +462,7 @@ serve(async (req) => {
 
     if (saveResponseError) throw saveResponseError;
 
-    // NEW CODE: Process the AI response for technique memory
+    // Process the AI response for technique memory
     // Use EdgeRuntime.waitUntil to handle this as a background task without blocking the response
     if (typeof EdgeRuntime !== 'undefined') {
       EdgeRuntime.waitUntil(processAndSaveTechniques(supabase, userId, aiMessage));

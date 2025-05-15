@@ -3,10 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, BookOpen } from 'lucide-react';
+import { AlertCircle, BookOpen, Clock, MessageSquare } from 'lucide-react';
 import { useTechniqueMemory } from '@/hooks/use-technique-memory';
 import { Loading } from '@/components/ui/loading';
 import { TennisTechniqueMemory } from '../tennis-ai/types';
+import { formatTimeSinceLastDiscussion } from '@/services/TennisTechniqueMemoryService';
 
 export interface TechniqueMemoriesProps {
   className?: string;
@@ -101,19 +102,21 @@ interface TechniqueMemoryItemProps {
 
 export const TechniqueMemoryItem: React.FC<TechniqueMemoryItemProps> = ({ memory }) => {
   const { technique_name, key_points, discussion_count, last_discussed } = memory;
-  const formattedDate = new Date(last_discussed).toLocaleDateString();
+  const timeSince = formatTimeSinceLastDiscussion(last_discussed);
   
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-base font-medium capitalize">{technique_name}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className="text-xs">
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <Badge variant="outline" className="text-xs flex items-center">
+              <MessageSquare className="mr-1 h-3 w-3" />
               {discussion_count} {discussion_count === 1 ? 'discussion' : 'discussions'}
             </Badge>
-            <span className="text-xs text-muted-foreground">
-              Last discussed: {formattedDate}
+            <span className="text-xs text-muted-foreground flex items-center">
+              <Clock className="mr-1 h-3 w-3" />
+              Last discussed: {timeSince}
             </span>
           </div>
         </div>
