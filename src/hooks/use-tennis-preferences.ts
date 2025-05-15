@@ -10,12 +10,18 @@ export const useTennisPreferences = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
+  console.log('useTennisPreferences: Hook called, user:', user ? 'exists' : 'null');
+  
   // Fetch user preferences from the database
   const { data: preferences, isLoading: isLoadingPreferences } = useQuery({
     queryKey: ['tennis-preferences'],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user) {
+        console.log('useTennisPreferences: No user, skipping preferences fetch');
+        return null;
+      }
       
+      console.log('useTennisPreferences: Fetching preferences for user:', user.id);
       const { data, error } = await supabase
         .from('tennis_user_preferences')
         .select('*')
@@ -25,14 +31,15 @@ export const useTennisPreferences = () => {
       if (error) {
         // If no record is found, that's expected for new users
         if (error.code === 'PGRST116') {
-          console.log('No preferences found for user, will create when needed');
+          console.log('useTennisPreferences: No preferences found for user, will create when needed');
           return null;
         }
-        console.error('Error fetching preferences:', error);
+        console.error('useTennisPreferences: Error fetching preferences:', error);
         toast.error('Failed to load tennis preferences');
         throw error;
       }
       
+      console.log('useTennisPreferences: Preferences loaded successfully');
       return data as TennisUserPreferences;
     },
     enabled: !!user
@@ -42,8 +49,12 @@ export const useTennisPreferences = () => {
   const { data: progress, isLoading: isLoadingProgress } = useQuery({
     queryKey: ['tennis-progress'],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user) {
+        console.log('useTennisPreferences: No user, skipping progress fetch');
+        return null;
+      }
       
+      console.log('useTennisPreferences: Fetching progress for user:', user.id);
       const { data, error } = await supabase
         .from('tennis_user_progress')
         .select('*')
@@ -53,13 +64,15 @@ export const useTennisPreferences = () => {
       if (error) {
         // If no record is found, that's expected for new users
         if (error.code === 'PGRST116') {
-          console.log('No progress found for user, will create when needed');
+          console.log('useTennisPreferences: No progress found for user, will create when needed');
           return null;
         }
-        console.error('Error fetching progress:', error);
+        console.error('useTennisPreferences: Error fetching progress:', error);
         toast.error('Failed to load tennis progress data');
         throw error;
       }
+      
+      console.log('useTennisPreferences: Progress loaded successfully');
       
       // Convert the database JSON to the expected TypeScript type
       return {

@@ -33,8 +33,15 @@ interface Conversation {
 }
 
 const TennisAI = () => {
+  console.log('TennisAI: Component initializing');
   
-  const { user } = useAuth();
+  const { user, profile, isLoading: isAuthLoading } = useAuth();
+  console.log('TennisAI: Auth state -', { 
+    user: user ? 'exists' : 'null', 
+    profile: profile ? 'exists' : 'null',
+    isAuthLoading 
+  });
+  
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -56,11 +63,24 @@ const TennisAI = () => {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
   const { preferences, isLoadingPreferences } = useTennisPreferences();
   
+  console.log('TennisAI: Tennis preferences -', { 
+    preferences: preferences ? 'exists' : 'null', 
+    isLoadingPreferences 
+  });
+  
   // Show preferences dialog if user has no preferences
   useEffect(() => {
+    console.log('TennisAI: Preferences effect running', { 
+      user: user ? 'exists' : 'null',
+      preferences: preferences ? 'exists' : 'null',
+      isLoadingPreferences
+    });
+    
     if (user && preferences === null && !isLoadingPreferences) {
+      console.log('TennisAI: No preferences found, will show dialog after timer');
       // Wait a moment before showing the dialog to avoid immediate popup on page load
       const timer = setTimeout(() => {
+        console.log('TennisAI: Showing preferences dialog');
         setShowPreferencesDialog(true);
       }, 1000);
       
@@ -68,8 +88,6 @@ const TennisAI = () => {
     }
   }, [user, preferences, isLoadingPreferences]);
   
-  
-
   // Auto-retry for API failures
   const maxRetries = 3;
   const retryIntervalMs = 3000;
@@ -77,18 +95,30 @@ const TennisAI = () => {
 
   // Redirect to login if not authenticated
   useEffect(() => {
+    console.log('TennisAI: Auth check effect running', { 
+      user: user ? 'exists' : 'null',
+      isAuthLoading 
+    });
+    
+    // Avoid redirect during initial auth loading
+    if (isAuthLoading) {
+      console.log('TennisAI: Auth is still loading, waiting...');
+      return;
+    }
+    
     if (!user) {
-      console.log("User not authenticated, redirecting to auth page");
+      console.log("TennisAI: User not authenticated, redirecting to auth page");
       toast.error("Please sign in to use the Tennis AI");
       navigate('/auth');
     } else {
+      console.log("TennisAI: User is authenticated, loading conversations");
       setLoadingConversations(true);
       loadConversations().finally(() => setLoadingConversations(false));
       
       // Check realtime configuration during initialization
       checkAndConfigureRealtime();
     }
-  }, [user, navigate]);
+  }, [user, navigate, isAuthLoading]);
 
   // Check and configure realtime
   const checkAndConfigureRealtime = async () => {
@@ -252,37 +282,42 @@ const TennisAI = () => {
   const loadConversations = async () => {
     try {
       setApiError(null);
-      console.log("Loading conversations from database...");
+      console.log("TennisAI: Loading conversations from database...");
+      
+      if (!user) {
+        console.log("TennisAI: User is null, cannot load conversations");
+        return [];
+      }
       
       const { data, error } = await supabase
         .from('ai_conversations')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(30);
 
       if (error) throw error;
       
-      console.log(`Loaded ${data?.length || 0} conversations:`, data);
+      console.log(`TennisAI: Loaded ${data?.length || 0} conversations:`, data);
       setConversations(data || []);
 
       // If there are conversations and no current conversation selected, select the most recent one
       if (data && data.length > 0 && !currentConversation) {
-        console.log(`Selecting first conversation: ${data[0].id}`);
+        console.log(`TennisAI: Selecting first conversation: ${data[0].id}`);
         setCurrentConversation(data[0].id);
         setLoadingMessages(true);
         loadMessages(data[0].id).finally(() => setLoadingMessages(false));
       } else if (data && data.length === 0 && currentConversation) {
         // If no conversations left but we have a current conversation ID
         // (this might happen after deleting the last conversation)
-        console.log("No conversations left, resetting current conversation");
+        console.log("TennisAI: No conversations left, resetting current conversation");
         setCurrentConversation(null);
         setMessages([]);
       }
       
       return data;
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      console.error('TennisAI: Error loading conversations:', error);
       toast.error('Failed to load conversations');
       setApiError({
         message: 'Failed to load conversations. Please try again.',
@@ -569,10 +604,23 @@ const TennisAI = () => {
     />
   );
 
+  if (isAuthLoading) {
+    console.log('TennisAI: Rendering loading state while auth is loading');
+    return (
+      <div className="container max-w-6xl mx-auto px-4 py-8">
+        <div className="h-[70vh] flex items-center justify-center">
+          <Loading variant="spinner" text="Preparing Tennis AI..." />
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
+    console.log('TennisAI: Rendering not authenticated message');
     return <div className="p-8 text-center">Please sign in to use the Tennis AI</div>;
   }
 
+  console.log('TennisAI: Rendering full component');
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
       {/* Preferences Dialog */}

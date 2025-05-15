@@ -65,12 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async () => {
     if (!user) {
+      console.log("AuthProvider: No user, skipping profile refresh");
       setIsProfileChecked(true);
       return;
     }
     
     try {
-      console.log('Refreshing profile for user:', user.id);
+      console.log('AuthProvider: Refreshing profile for user:', user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -78,12 +79,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
       
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('AuthProvider: Error fetching profile:', error);
         setIsProfileChecked(true);
         return;
       }
       
-      console.log('Fetched profile data:', data);
+      console.log('AuthProvider: Fetched profile data:', data);
       setProfile(data);
       
       // Check if profile is complete enough to use the app
@@ -95,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const profileIsComplete = hasUsername && hasFullName && hasUserType && hasExperienceLevel;
       
-      console.log('Profile completion check:', {
+      console.log('AuthProvider: Profile completion check:', {
         hasUsername,
         hasFullName,
         hasUserType,
@@ -106,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If profile is complete, store this information in localStorage for future sessions
       if (profileIsComplete) {
         localStorage.setItem(PROFILE_COMPLETE_KEY, 'true');
-        console.log('Profile is complete, saved to localStorage');
+        console.log('AuthProvider: Profile is complete, saved to localStorage');
       }
       
       // Set profile complete status - check both current completion and stored completion
@@ -114,12 +115,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsProfileComplete(profileIsComplete || storedProfileComplete);
       setIsProfileChecked(true);
       
-      console.log('Profile loaded:', data);
-      console.log('Profile complete status:', profileIsComplete || storedProfileComplete, 
+      console.log('AuthProvider: Profile loaded:', data);
+      console.log('AuthProvider: Profile complete status:', profileIsComplete || storedProfileComplete, 
                   '(current:', profileIsComplete, ', stored:', storedProfileComplete, ')');
       
     } catch (err) {
-      console.error('Failed to fetch profile:', err);
+      console.error('AuthProvider: Failed to fetch profile:', err);
       setIsProfileChecked(true);
     } finally {
       // Always mark profile as checked, even on error
@@ -128,12 +129,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log("AuthProvider initializing");
+    console.log("AuthProvider: Initializing");
     
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event, session ? "session exists" : "no session");
+        console.log("AuthProvider: Auth state changed:", event, session ? "session exists" : "no session");
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -144,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Check if we have stored profile completion status
           const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
           if (storedProfileComplete) {
-            console.log('Found stored profile completion status: complete');
+            console.log('AuthProvider: Found stored profile completion status: complete');
             setIsProfileComplete(true);
           }
           
@@ -170,7 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session check:", session ? "session exists" : "no session");
+      console.log("AuthProvider: Initial session check:", session ? "session exists" : "no session");
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -178,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Check if we have stored profile completion status
         const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
         if (storedProfileComplete) {
-          console.log('Found stored profile completion status: complete');
+          console.log('AuthProvider: Found stored profile completion status: complete');
           setIsProfileComplete(true);
         }
         
@@ -197,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
-      console.log("Unsubscribing from auth state changes");
+      console.log("AuthProvider: Unsubscribing from auth state changes");
       subscription.unsubscribe();
     };
   }, []);
