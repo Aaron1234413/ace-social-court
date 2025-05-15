@@ -345,6 +345,7 @@ export const useTennisAIConversations = ({ userId, onError }: UseConversationsOp
     setCurrentConversation,
     conversations,
     messages,
+    setMessages,
     loadingConversations,
     loadingMessages,
     deleteDialogOpen,

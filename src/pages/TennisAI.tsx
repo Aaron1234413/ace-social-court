@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import TennisAILayout from '@/components/tennis-ai/TennisAILayout';
 import ChatContainer from '@/components/tennis-ai/ChatContainer';
+import ConversationSidebar from '@/components/tennis-ai/ConversationSidebar';
 import { Loading } from '@/components/ui/loading';
 import { PreferencesDialog } from '@/components/tennis-ai/PreferencesDialog';
 import { useTennisPreferences } from '@/hooks/use-tennis-preferences';
@@ -40,6 +41,7 @@ const TennisAI = () => {
     setCurrentConversation,
     conversations,
     messages,
+    setMessages,
     loadingConversations,
     loadingMessages,
     deleteDialogOpen,
@@ -66,11 +68,11 @@ const TennisAI = () => {
       created_at: new Date().toISOString(),
     };
     setMessages(prev => [...prev, optimisticUserMessage]);
-  }, []);
+  }, [setMessages]);
   
   const removeOptimisticMessages = useCallback(() => {
     setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
-  }, []);
+  }, [setMessages]);
   
   // Messaging functionality
   const {
