@@ -61,7 +61,13 @@ export const useTennisPreferences = () => {
         throw error;
       }
       
-      return data as TennisUserProgress;
+      // Convert the database JSON to the expected TypeScript type
+      return {
+        ...data,
+        skill_assessments: data.skill_assessments as TennisUserProgress['skill_assessments'],
+        completed_drills: data.completed_drills as TennisUserProgress['completed_drills'],
+        lesson_history: data.lesson_history as TennisUserProgress['lesson_history']
+      } as TennisUserProgress;
     },
     enabled: !!user
   });
@@ -155,7 +161,13 @@ export const useTennisPreferences = () => {
           throw error;
         }
         
-        return data[0] as TennisUserProgress;
+        // Convert the database JSON to the expected TypeScript type
+        return {
+          ...data[0],
+          skill_assessments: data[0].skill_assessments as TennisUserProgress['skill_assessments'],
+          completed_drills: data[0].completed_drills as TennisUserProgress['completed_drills'],
+          lesson_history: data[0].lesson_history as TennisUserProgress['lesson_history']
+        } as TennisUserProgress;
       } else {
         // Insert new progress
         const { data, error } = await supabase
@@ -168,7 +180,13 @@ export const useTennisPreferences = () => {
           throw error;
         }
         
-        return data[0] as TennisUserProgress;
+        // Convert the database JSON to the expected TypeScript type
+        return {
+          ...data[0],
+          skill_assessments: data[0].skill_assessments as TennisUserProgress['skill_assessments'],
+          completed_drills: data[0].completed_drills as TennisUserProgress['completed_drills'],
+          lesson_history: data[0].lesson_history as TennisUserProgress['lesson_history']
+        } as TennisUserProgress;
       }
     },
     onSuccess: (data) => {

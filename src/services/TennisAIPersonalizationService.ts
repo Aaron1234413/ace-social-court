@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { TennisUserPreferences, TennisUserProgress } from '@/components/tennis-ai/types';
+import { Json } from '@/integrations/supabase/types';
 
 export class TennisAIPersonalizationService {
   /**
@@ -55,7 +56,7 @@ export class TennisAIPersonalizationService {
           enhancedPrompt += `- Experience level: ${preferences.experience_level}\n`;
         }
         
-        if (preferences.focus_areas && preferences.focus_areas.length > 0) {
+        if (preferences.focus_areas && Array.isArray(preferences.focus_areas) && preferences.focus_areas.length > 0) {
           enhancedPrompt += `- Focus areas: ${preferences.focus_areas.join(', ')}\n`;
         }
         
@@ -71,36 +72,44 @@ export class TennisAIPersonalizationService {
           enhancedPrompt += `- Fitness level: ${preferences.fitness_level}\n`;
         }
         
-        if (preferences.recent_injuries && preferences.recent_injuries.length > 0) {
+        if (preferences.recent_injuries && Array.isArray(preferences.recent_injuries) && preferences.recent_injuries.length > 0) {
           enhancedPrompt += `- Recent injuries: ${preferences.recent_injuries.join(', ')}\n`;
         }
         
-        if (preferences.goals && preferences.goals.length > 0) {
+        if (preferences.goals && Array.isArray(preferences.goals) && preferences.goals.length > 0) {
           enhancedPrompt += `- Goals: ${preferences.goals.join(', ')}\n`;
         }
         
-        if (preferences.favorite_pros && preferences.favorite_pros.length > 0) {
+        if (preferences.favorite_pros && Array.isArray(preferences.favorite_pros) && preferences.favorite_pros.length > 0) {
           enhancedPrompt += `- Favorite professional players: ${preferences.favorite_pros.join(', ')}\n`;
         }
       }
       
       // Add progress information if available
       if (progress) {
+        const processedProgress = {
+          ...progress,
+          skill_assessments: progress.skill_assessments as TennisUserProgress['skill_assessments'],
+          completed_drills: progress.completed_drills as TennisUserProgress['completed_drills'],
+          lesson_history: progress.lesson_history as TennisUserProgress['lesson_history']
+        } as TennisUserProgress;
+        
         enhancedPrompt += "\n### TENNIS PROGRESS:\n";
         
-        if (progress.skill_assessments && Object.keys(progress.skill_assessments).length > 0) {
+        if (processedProgress.skill_assessments && Object.keys(processedProgress.skill_assessments).length > 0) {
           enhancedPrompt += "- Skill assessments:\n";
-          Object.entries(progress.skill_assessments).forEach(([skill, assessment]) => {
+          Object.entries(processedProgress.skill_assessments).forEach(([skill, assessment]) => {
             enhancedPrompt += `  - ${skill}: rated ${assessment.rating}/10 (last assessed: ${assessment.last_assessed})\n`;
           });
         }
         
-        if (progress.completed_drills && progress.completed_drills.length > 0) {
-          enhancedPrompt += `- Recently completed drills: ${progress.completed_drills.slice(-3).map(drill => drill.drill_name).join(', ')}\n`;
+        if (processedProgress.completed_drills && Array.isArray(processedProgress.completed_drills) && processedProgress.completed_drills.length > 0) {
+          const recentDrills = processedProgress.completed_drills.slice(-3);
+          enhancedPrompt += `- Recently completed drills: ${recentDrills.map(drill => drill.drill_name).join(', ')}\n`;
         }
         
-        if (progress.lesson_history && progress.lesson_history.length > 0) {
-          const recentLessons = progress.lesson_history.slice(-3);
+        if (processedProgress.lesson_history && Array.isArray(processedProgress.lesson_history) && processedProgress.lesson_history.length > 0) {
+          const recentLessons = processedProgress.lesson_history.slice(-3);
           enhancedPrompt += "- Recent lesson topics:\n";
           recentLessons.forEach(lesson => {
             enhancedPrompt += `  - ${lesson.topic} (${lesson.date})\n`;
