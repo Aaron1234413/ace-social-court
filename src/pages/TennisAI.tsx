@@ -172,10 +172,10 @@ const TennisAI = () => {
     
     // Only redirect to auth if user is definitely not authenticated
     // after the auth loading process has completed
-    if (!user) {
+    if (!user && !isAuthLoading) {
       console.warn('[Debug Redirect] User not authenticated, redirecting to auth');
       toast.error("Please sign in to use the Tennis AI");
-      navigate('/auth');
+      navigate('/auth', { replace: true });
     } else {
       console.warn('[Debug Redirect] User is authenticated, continuing');
     }

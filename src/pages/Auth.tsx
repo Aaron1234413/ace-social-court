@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -23,9 +24,16 @@ const Auth = () => {
   useEffect(() => {
     if (user) {
       console.log("Auth: User detected, redirecting to feed");
-      navigate("/feed");
+      
+      // If we came from tennis-ai, go back there instead of feed
+      const fromPath = new URLSearchParams(location.search).get('from');
+      if (fromPath === '/tennis-ai') {
+        navigate('/tennis-ai');
+      } else {
+        navigate("/feed");
+      }
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.search]);
 
   const validateForm = () => {
     if (!email || !password) {
