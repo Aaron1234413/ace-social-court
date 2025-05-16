@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
@@ -25,6 +24,7 @@ const VideoAnalysis = React.lazy(() => import('./pages/VideoAnalysis'));
 const TennisAI = React.lazy(() => import('./pages/TennisAI'));
 const TennisPreferences = React.lazy(() => import('./pages/TennisPreferences'));
 const UserTest = React.lazy(() => import('./pages/UserTest'));
+const Settings = React.lazy(() => import('./pages/Settings'));
 
 // Route change tracker component to debug navigation
 const RouteChangeTracker = () => {
@@ -145,6 +145,7 @@ function AppContent() {
             <Route path="/tennis-ai" element={<TennisAI />} />
             <Route path="/tennis-preferences" element={<TennisPreferences />} />
             <Route path="/tests" element={<UserTest />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
