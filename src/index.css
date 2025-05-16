@@ -14,10 +14,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 210 100% 45%;
+    --primary: 145 65% 35%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 145 65% 35%;
+    --secondary: 210 100% 45%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 210 40% 96.1%;
@@ -55,10 +55,10 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 100% 52%;
+    --primary: 145 65% 42%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
-    --secondary: 145 65% 42%;
+    --secondary: 210 100% 52%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
@@ -109,9 +109,50 @@
   }
   
   .court-pattern {
-    background-image: linear-gradient(rgba(255, 255, 255, 0.7) 1px, transparent 1px),
-                     linear-gradient(90deg, rgba(255, 255, 255, 0.7) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(120, 184, 51, 0.1) 1px, transparent 1px),
+                     linear-gradient(90deg, rgba(120, 184, 51, 0.1) 1px, transparent 1px);
     background-size: 20px 20px;
+  }
+
+  .tennis-gradient-text {
+    @apply bg-gradient-to-r from-tennis-darkGreen via-tennis-green to-tennis-blue bg-clip-text text-transparent;
+  }
+
+  .tennis-glass-card {
+    @apply backdrop-blur-sm bg-white/80 dark:bg-black/20 border border-white/20 dark:border-white/10 shadow-lg;
+  }
+  
+  .tennis-section {
+    @apply py-12 relative overflow-hidden;
+  }
+  
+  .tennis-section::before {
+    content: "";
+    @apply absolute top-0 left-0 w-full h-full opacity-5 court-pattern -z-10;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+  
+  h1 {
+    @apply text-4xl font-bold md:text-5xl lg:text-6xl;
+  }
+  
+  h2 {
+    @apply text-3xl font-bold md:text-4xl;  
+  }
+  
+  .page-title {
+    @apply tennis-gradient-text mb-6 font-bold;
+  }
+  
+  .page-subtitle {
+    @apply text-muted-foreground text-lg mb-8 max-w-3xl;
+  }
+  
+  .tennis-ball-glow {
+    @apply before:absolute before:content-[''] before:w-40 before:h-40 before:bg-tennis-highlight/30 before:rounded-full before:blur-3xl before:-z-10 before:animate-pulse-subtle;
   }
 }
 
@@ -122,5 +163,21 @@
   
   .text-glass {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary to-tennis-blue;
+  }
+  
+  .tennis-border {
+    @apply border-2 border-tennis-green/20;
+  }
+  
+  .tennis-shadow {
+    @apply shadow-[0_8px_30px_rgb(120,184,51,0.1)];
+  }
+  
+  .tennis-input {
+    @apply border-2 border-tennis-green/20 focus:border-tennis-green/40 focus:ring-tennis-green/30;
+  }
+  
+  .tennis-card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
   }
 }

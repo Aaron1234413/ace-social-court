@@ -110,22 +110,29 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+      {/* Tennis-themed background elements */}
+      <div className="absolute inset-0 court-pattern opacity-[0.03] pointer-events-none"></div>
+      <div className="absolute top-40 right-20 w-60 h-60 bg-tennis-green/10 rounded-full blur-[100px] -z-10"></div>
+      <div className="absolute bottom-20 left-20 w-60 h-60 bg-tennis-accent/10 rounded-full blur-[100px] -z-10"></div>
+      
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">{isSignUp ? "Create Account" : "Welcome Back"}</h1>
+          <h1 className="text-3xl font-bold">
+            <span className="tennis-gradient-text">{isSignUp ? "Create Account" : "Welcome Back"}</span>
+          </h1>
           <p className="text-muted-foreground mt-2">
-            {isSignUp ? "Sign up to get started" : "Sign in to your account"}
+            {isSignUp ? "Sign up to get started with rallypointx" : "Sign in to your account"}
           </p>
         </div>
 
         {error && (
-          <Alert variant="destructive" className="my-4">
+          <Alert variant="destructive" className="my-4 border-2 border-destructive/20">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-4 tennis-glass-card p-6 rounded-xl">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -136,7 +143,7 @@ const Auth = () => {
               required
               placeholder="Enter your email"
               disabled={isLoading}
-              className="w-full"
+              className="w-full tennis-input"
             />
           </div>
           <div className="space-y-2">
@@ -149,11 +156,11 @@ const Auth = () => {
               required
               placeholder="Enter your password"
               disabled={isLoading}
-              className="w-full"
+              className="w-full tennis-input"
               minLength={6}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-gradient-to-r from-tennis-green to-tennis-darkGreen hover:from-tennis-darkGreen hover:to-tennis-green transition-all duration-300" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
@@ -172,7 +179,7 @@ const Auth = () => {
               setIsSignUp(!isSignUp);
               setError(null);
             }}
-            className="text-sm text-muted-foreground hover:underline"
+            className="text-sm text-muted-foreground hover:underline hover:text-primary transition-colors"
           >
             {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
           </button>

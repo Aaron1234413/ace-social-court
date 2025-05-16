@@ -20,17 +20,20 @@ export const Testimonial = ({ quote, name, title, avatarUrl, accentColor = "bg-p
     .toUpperCase();
 
   return (
-    <Card className={`h-full ${accentColor} hover:shadow-md transition-shadow border-2`}>
+    <Card className={`h-full ${accentColor} hover:shadow-md transition-shadow border-2 relative overflow-hidden tennis-card`}>
+      {/* Tennis court pattern background */}
+      <div className="absolute inset-0 court-pattern opacity-5 pointer-events-none"></div>
+      
       <CardContent className="pt-6 relative">
         <div className="mb-6">
-          <QuoteIcon className="text-primary/50 w-8 h-8" />
+          <QuoteIcon className="text-primary/70 w-8 h-8" />
         </div>
-        <p className="text-lg font-medium leading-relaxed">"{quote}"</p>
+        <p className="text-lg font-medium leading-relaxed italic">"{quote}"</p>
       </CardContent>
       <CardFooter className="border-t pt-4 flex items-center gap-3">
-        <Avatar className="h-10 w-10 border-2 border-primary/20">
+        <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-sm">
           {avatarUrl && <img src={avatarUrl} alt={name} />}
-          <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
+          <AvatarFallback className="bg-tennis-accent/10 text-tennis-accent font-bold">{initials}</AvatarFallback>
         </Avatar>
         <div>
           <p className="text-sm font-semibold">{name}</p>
