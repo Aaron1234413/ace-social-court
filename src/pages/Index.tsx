@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FeatureCard from "@/components/FeatureCard";
@@ -9,21 +9,23 @@ import { ChevronRight } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   // Add console log for debugging
-  console.log("Index page rendering, user:", user);
+  console.log("Index page rendering, user:", user, "path:", location.pathname);
 
   useEffect(() => {
-    if (user) {
-      console.log("User is authenticated, redirecting to feed");
+    // Only auto-redirect to /feed when we're actually at "/"
+    if (user && location.pathname === "/") {
+      console.log("Index: authenticated on root → redirecting to /feed");
       navigate('/feed');
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.pathname]);
 
-  // If user is authenticated, don't render anything while redirecting
-  if (user) {
-    console.log("User authenticated, returning null while redirecting");
+  // If user is authenticated and we're on root, don't render anything while redirecting
+  if (user && location.pathname === "/") {
+    console.log("Index: authenticated on root, returning null while redirecting");
     return null;
   }
 
