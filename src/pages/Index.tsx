@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import FeatureCard from "@/components/FeatureCard";
 import { Testimonial } from "@/components/Testimonial";
-import { ChevronRight, ArrowRight, Trophy, Racquet, Users, Video, Star } from "lucide-react";
+import { ChevronRight, ArrowRight, Trophy, Users, Video, Star } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
