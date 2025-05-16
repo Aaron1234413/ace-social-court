@@ -123,6 +123,7 @@ function App() {
             <MainLayout>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
+                  {/* No redirect here - let the component handle it */}
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/feed" element={<Feed />} />

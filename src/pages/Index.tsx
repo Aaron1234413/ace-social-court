@@ -16,7 +16,8 @@ const Index = () => {
   console.log("Index page rendering, user:", user, "path:", location.pathname);
 
   useEffect(() => {
-    // Only auto-redirect to /feed when we're actually at "/"
+    // IMPORTANT: Only auto-redirect to /feed when we're strictly at the root path "/"
+    // This ensures we don't redirect from other pages
     if (user && location.pathname === "/") {
       console.log("Index: authenticated on root → redirecting to /feed");
       navigate('/feed');
@@ -29,6 +30,7 @@ const Index = () => {
     return null;
   }
 
+  // For all other paths, render the page normally
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section - Tennis-themed design with ball pattern */}
