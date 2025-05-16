@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -42,8 +41,8 @@ const TennisAI = () => {
     currentConversation,
     setCurrentConversation,
     conversations,
-    messages,
     setMessages,
+    messages,
     loadingConversations,
     loadingMessages,
     deleteDialogOpen,
@@ -173,9 +172,10 @@ const TennisAI = () => {
     // Only redirect to auth if user is definitely not authenticated
     // after the auth loading process has completed
     if (!user && !isAuthLoading) {
-      console.warn('[Debug Redirect] User not authenticated, redirecting to auth');
+      console.warn('[Debug Redirect] User not authenticated, redirecting to auth with source path');
       toast.error("Please sign in to use the Tennis AI");
-      navigate('/auth', { replace: true });
+      // Add the current path as a query parameter for redirect after auth
+      navigate(`/auth?from=${encodeURIComponent('/tennis-ai')}`, { replace: true });
     } else {
       console.warn('[Debug Redirect] User is authenticated, continuing');
     }

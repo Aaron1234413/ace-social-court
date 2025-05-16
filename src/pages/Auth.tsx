@@ -27,9 +27,13 @@ const Auth = () => {
       
       // If we came from tennis-ai, go back there instead of feed
       const fromPath = new URLSearchParams(location.search).get('from');
+      console.log("Auth: fromPath parameter detected:", fromPath);
+      
       if (fromPath === '/tennis-ai') {
+        console.log("Auth: Redirecting back to tennis-ai");
         navigate('/tennis-ai');
       } else {
+        console.log("Auth: No specific redirect path, going to feed");
         navigate("/feed");
       }
     }
