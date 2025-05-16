@@ -12,14 +12,31 @@ import { MessageSquare, Heart, Clock } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { toast } from 'sonner';
 import { Loading } from '@/components/ui/loading';
+import { useLocation } from 'react-router-dom';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
 const Feed = () => {
+  const location = useLocation();
   const { user, profile, isProfileComplete } = useAuth();
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [storageInitialized, setStorageInitialized] = useState(false);
+  
+  // Debug logging for Feed component
+  useEffect(() => {
+    console.log('Feed component mounted', {
+      pathname: location.pathname,
+      userId: user?.id,
+      hasProfile: !!profile
+    });
+
+    return () => {
+      console.log('Feed component unmounting', {
+        pathname: location.pathname
+      });
+    };
+  }, [location.pathname, user, profile]);
   
   const { posts, isLoading, fetchPosts } = usePosts({ 
     personalize: personalized,

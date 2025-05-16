@@ -153,18 +153,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(() => {
             refreshProfile();
           }, 0);
+          
+          // ⚠️ IMPORTANT DEBUGGING: Log if this is redirecting anywhere
+          console.log('AuthProvider: SIGNED_IN event - CHECKING FOR ANY CODE THAT MIGHT REDIRECT');
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setIsProfileComplete(false);
           setIsProfileChecked(false);
           localStorage.removeItem(PROFILE_COMPLETE_KEY);
           toast.info("Signed out successfully");
+          
+          // ⚠️ IMPORTANT DEBUGGING: Log if this is redirecting anywhere  
+          console.log('AuthProvider: SIGNED_OUT event - CHECKING FOR ANY CODE THAT MIGHT REDIRECT');
         } else if (event === 'USER_UPDATED') {
           toast.info("User profile updated");
           // Defer profile fetching to avoid Supabase deadlock
           setTimeout(() => {
             refreshProfile();
           }, 0);
+          
+          // ⚠️ IMPORTANT DEBUGGING: Log if this is redirecting anywhere
+          console.log('AuthProvider: USER_UPDATED event - CHECKING FOR ANY CODE THAT MIGHT REDIRECT');
         }
       }
     );

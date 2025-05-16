@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Loading } from '@/components/ui/loading';
 import { AuthProvider, useAuth } from './components/AuthProvider';
@@ -26,16 +26,36 @@ const TennisAI = React.lazy(() => import('./pages/TennisAI'));
 const TennisPreferences = React.lazy(() => import('./pages/TennisPreferences'));
 const UserTest = React.lazy(() => import('./pages/UserTest'));
 
+// Route change tracker component to debug navigation
+const RouteChangeTracker = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    console.log(`Navigation detected: Route changed to ${location.pathname}${location.search}`);
+  }, [location]);
+  
+  return null;
+};
+
 // Redirect component that sends users to their profile
 const ProfileRedirect = () => {
   const { user, profile } = useAuth();
   
+  // Add additional logging
+  console.log("ProfileRedirect: Checking if redirect is needed", { 
+    userExists: !!user, 
+    profileUsername: profile?.username
+  });
+  
   if (!user) {
+    console.log("ProfileRedirect: No user, redirecting to /auth");
     return <Navigate to="/auth" />;
   }
   
   // Redirect to username if available, otherwise use user ID
-  return <Navigate to={`/profile/${profile?.username || user.id}`} />;
+  const redirectPath = `/profile/${profile?.username || user.id}`;
+  console.log(`ProfileRedirect: Redirecting to ${redirectPath}`);
+  return <Navigate to={redirectPath} />;
 };
 
 // Loading fallback component
@@ -46,11 +66,14 @@ const PageLoader = () => (
 );
 
 // Small fix to ensure no initial rendering issues
-function App() {
+function AppContent() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
+    console.log(`App: Current route is ${location.pathname}`);
+    
     const handleOnline = () => {
       setIsOnline(true);
       toast.success("You're back online!");
@@ -74,7 +97,7 @@ function App() {
       window.removeEventListener('offline', handleOffline);
       clearTimeout(timer);
     };
-  }, []);
+  }, [location]);
 
   // Handle any uncaught errors
   useEffect(() => {
@@ -100,6 +123,38 @@ function App() {
   }
 
   return (
+    <>
+      <RouteChangeTracker />
+      <MainLayout>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* No redirect here - let the component handle it */}
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/profile/edit" element={<ProfileEdit />} />
+            <Route path="/profile/:username" element={<Profile />} />
+            <Route path="/profile" element={<ProfileRedirect />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/map" element={<MapExplorer />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/messages/:recipientId" element={<Messages />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/analysis" element={<VideoAnalysis />} />
+            <Route path="/tennis-ai" element={<TennisAI />} />
+            <Route path="/tennis-preferences" element={<TennisPreferences />} />
+            <Route path="/tests" element={<UserTest />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </MainLayout>
+    </>
+  );
+}
+
+function App() {
+  return (
     <HelmetProvider>
       <ErrorBoundary 
         fallback={({ error, resetErrorBoundary }) => (
@@ -120,30 +175,7 @@ function App() {
               <meta name="twitter:description" content="tennis. together." />
             </Helmet>
             
-            <MainLayout>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {/* No redirect here - let the component handle it */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/feed" element={<Feed />} />
-                  <Route path="/profile/edit" element={<ProfileEdit />} />
-                  <Route path="/profile/:username" element={<Profile />} />
-                  <Route path="/profile" element={<ProfileRedirect />} />
-                  <Route path="/search" element={<Search />} />
-                  <Route path="/map" element={<MapExplorer />} />
-                  <Route path="/messages" element={<Messages />} />
-                  <Route path="/messages/:recipientId" element={<Messages />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/post/:id" element={<PostDetail />} />
-                  <Route path="/analysis" element={<VideoAnalysis />} />
-                  <Route path="/tennis-ai" element={<TennisAI />} />
-                  <Route path="/tennis-preferences" element={<TennisPreferences />} />
-                  <Route path="/tests" element={<UserTest />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </MainLayout>
+            <AppContent />
           </Router>
         </AuthProvider>
       </ErrorBoundary>

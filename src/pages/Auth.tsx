@@ -24,6 +24,7 @@ const Auth = () => {
   useEffect(() => {
     if (user) {
       console.log("Auth: User detected, redirecting to feed");
+      console.log("Auth: Current location path:", location.pathname);
       
       // If we came from tennis-ai, go back there instead of feed
       const fromPath = new URLSearchParams(location.search).get('from');
@@ -34,6 +35,7 @@ const Auth = () => {
         navigate('/tennis-ai');
       } else {
         console.log("Auth: No specific redirect path, going to feed");
+        console.log("Auth: About to navigate to /feed");
         navigate("/feed");
       }
     }

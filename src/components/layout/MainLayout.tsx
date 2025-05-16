@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navigation from './Navigation';
 import { Toaster } from '@/components/ui/sonner';
 import BottomNav from './navigation/BottomNav';
 import { useAuth } from '@/components/AuthProvider';
 import { AppSidebar } from './AppSidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { useLocation } from 'react-router-dom';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -13,8 +14,13 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user } = useAuth();
+  const location = useLocation();
   
-  console.log("MainLayout rendering, user:", user ? "authenticated" : "unauthenticated");
+  useEffect(() => {
+    console.log("MainLayout: Path changed to:", location.pathname);
+  }, [location.pathname]);
+  
+  console.log("MainLayout rendering, user:", user ? "authenticated" : "unauthenticated", "path:", location.pathname);
   
   return (
     <SidebarProvider defaultOpen={true}>
