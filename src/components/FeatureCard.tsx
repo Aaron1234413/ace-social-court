@@ -6,18 +6,25 @@ interface FeatureCardProps {
   title: string;
   description: string;
   icon: keyof typeof Icons;
+  highlightColor?: string;
 }
 
-const FeatureCard = ({ title, description, icon }: FeatureCardProps) => {
+const FeatureCard = ({ title, description, icon, highlightColor = "from-primary to-primary/80" }: FeatureCardProps) => {
   // Create the icon component dynamically from the icon name
   const IconComponent = Icons[icon] as LucideIcon;
 
   return (
-    <div className="p-6 rounded-lg border bg-card text-card-foreground">
-      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-        <IconComponent className="w-6 h-6 text-primary" />
+    <div className="p-8 rounded-xl border bg-card text-card-foreground hover:shadow-lg transition-all relative overflow-hidden group">
+      {/* Background gradient that appears on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
+      
+      {/* Top highlight bar */}
+      <div className={`h-1 w-16 bg-gradient-to-r ${highlightColor} rounded-full mb-6`}></div>
+      
+      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-transparent flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+        <IconComponent className="w-7 h-7 text-primary" />
       </div>
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <h3 className="text-2xl font-semibold mb-3">{title}</h3>
       <p className="text-muted-foreground">{description}</p>
     </div>
   );
