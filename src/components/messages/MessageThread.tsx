@@ -1,11 +1,12 @@
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuth } from '@/components/AuthProvider';
 import { format } from 'date-fns';
 import MessageGroup from './MessageGroup';
+import { Message } from '@/components/messages/types';
 
 interface MessageThreadProps {
   conversationId: string | null;
@@ -15,6 +16,7 @@ const MessageThread = ({ conversationId }: MessageThreadProps) => {
   const { user } = useAuth();
   const { messages, isLoading, error } = useMessages(conversationId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -22,6 +24,10 @@ const MessageThread = ({ conversationId }: MessageThreadProps) => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+  
+  const handleMessageClick = (messageId: string) => {
+    setSelectedMessage(selectedMessage === messageId ? null : messageId);
+  };
   
   if (!conversationId) {
     return (
@@ -61,25 +67,73 @@ const MessageThread = ({ conversationId }: MessageThreadProps) => {
     );
   }
   
-  // Group messages by date
-  const groupedMessages: { [date: string]: typeof messages } = {};
+  // Group messages by date and then by sender
+  const groupedByDate: { [date: string]: Message[] } = {};
+  
   messages.forEach(message => {
     const date = format(new Date(message.created_at), 'MMM d, yyyy');
-    if (!groupedMessages[date]) {
-      groupedMessages[date] = [];
+    if (!groupedByDate[date]) {
+      groupedByDate[date] = [];
     }
-    groupedMessages[date].push(message);
+    groupedByDate[date].push(message);
+  });
+  
+  // Further group consecutive messages from the same sender
+  const groupedMessages: { date: string, messageGroups: Message[][] }[] = [];
+  
+  Object.entries(groupedByDate).forEach(([date, messagesForDate]) => {
+    let currentGroup: Message[] = [];
+    let currentSenderId: string | null = null;
+    
+    messagesForDate.forEach(message => {
+      if (currentSenderId !== message.sender_id) {
+        if (currentGroup.length > 0) {
+          if (!groupedMessages.find(group => group.date === date)) {
+            groupedMessages.push({ date, messageGroups: [] });
+          }
+          const dateGroup = groupedMessages.find(group => group.date === date);
+          if (dateGroup) {
+            dateGroup.messageGroups.push([...currentGroup]);
+          }
+        }
+        currentGroup = [message];
+        currentSenderId = message.sender_id;
+      } else {
+        currentGroup.push(message);
+      }
+    });
+    
+    if (currentGroup.length > 0) {
+      if (!groupedMessages.find(group => group.date === date)) {
+        groupedMessages.push({ date, messageGroups: [] });
+      }
+      const dateGroup = groupedMessages.find(group => group.date === date);
+      if (dateGroup) {
+        dateGroup.messageGroups.push(currentGroup);
+      }
+    }
   });
   
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4 space-y-4">
-      {Object.entries(groupedMessages).map(([date, messagesGroup]) => (
-        <MessageGroup 
-          key={date} 
-          date={date} 
-          messages={messagesGroup} 
-          currentUser={user}
-        />
+      {groupedMessages.map(({ date, messageGroups }) => (
+        <div key={date} className="space-y-3">
+          <div className="flex justify-center">
+            <span className="text-xs bg-accent/60 text-muted-foreground px-2 py-1 rounded-full">
+              {date}
+            </span>
+          </div>
+          
+          {messageGroups.map((messageGroup, groupIndex) => (
+            <MessageGroup 
+              key={`${date}-${groupIndex}`}
+              messages={messageGroup} 
+              isCurrentUser={user?.id === messageGroup[0].sender_id}
+              handleMessageClick={handleMessageClick}
+              selectedMessage={selectedMessage}
+            />
+          ))}
+        </div>
       ))}
       <div ref={messagesEndRef} />
     </div>
