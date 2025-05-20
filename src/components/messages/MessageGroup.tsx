@@ -8,13 +8,19 @@ interface MessageGroupProps {
   isCurrentUser: boolean;
   handleMessageClick?: (messageId: string) => void;
   selectedMessage?: string | null;
+  onAddReaction?: (messageId: string, type: "like" | "heart" | "laugh" | "sad" | "thumbs_up") => void;
+  onRemoveReaction?: (messageId: string, reactionId: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
 const MessageGroup = ({ 
   messages, 
   isCurrentUser,
   handleMessageClick,
-  selectedMessage
+  selectedMessage,
+  onAddReaction,
+  onRemoveReaction,
+  onDeleteMessage
 }: MessageGroupProps) => {
   if (!messages || messages.length === 0) return null;
   

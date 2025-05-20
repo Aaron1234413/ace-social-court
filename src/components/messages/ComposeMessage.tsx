@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useSendMessage } from '@/hooks/useMessages';
+import { useMessages } from '@/hooks/useMessages';
 
 interface ComposeMessageProps {
   conversationId: string | null;
@@ -11,14 +11,15 @@ interface ComposeMessageProps {
 
 const ComposeMessage = ({ conversationId }: ComposeMessageProps) => {
   const [message, setMessage] = useState('');
-  const { sendMessage, isSending } = useSendMessage(conversationId);
+  const { sendMessage, isSending, newMessage, setNewMessage } = useMessages(conversationId);
   
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!message.trim() || !conversationId) return;
     
-    sendMessage(message);
+    setNewMessage(message);
+    sendMessage();
     setMessage('');
   };
   
