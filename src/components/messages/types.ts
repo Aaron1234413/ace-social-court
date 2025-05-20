@@ -25,3 +25,18 @@ export interface Message {
   } | null;
   reactions?: MessageReaction[];
 }
+
+export interface Conversation {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  last_message_at: string;
+  created_at: string;
+  other_user: {
+    id: string;
+    avatar_url: string | null;
+    username: string | null;
+    full_name: string | null;
+  } | null;
+  last_message?: Message | null;
+}
