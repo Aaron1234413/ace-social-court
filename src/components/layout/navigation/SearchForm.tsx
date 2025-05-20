@@ -27,9 +27,9 @@ const SearchForm = () => {
         placeholder="Search..."
         value={searchQuery}
         onChange={handleSearchChange}
-        className="pr-10 rounded-full bg-gray-100 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 w-[200px] lg:w-[300px]"
+        className="pr-10 rounded-full bg-muted/40 border-tennis-green/20 focus-visible:border-tennis-green/40 focus-visible:ring-tennis-green/10 w-[200px] lg:w-[300px] transition-all"
       />
-      <Button type="submit" variant="ghost" size="icon" className="absolute right-1 top-1">
+      <Button type="submit" variant="ghost" size="icon" className="absolute right-1 top-1 text-tennis-green opacity-80 hover:opacity-100 hover:bg-transparent">
         <Search className="h-5 w-5" />
       </Button>
     </form>

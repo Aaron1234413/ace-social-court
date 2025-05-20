@@ -59,10 +59,14 @@ export function AppSidebar() {
                     tooltip={item.title}
                   >
                     <Link to={item.url} className={cn(
-                      "flex items-center",
-                      isActive(item.url) && "font-medium"
+                      "flex items-center transition-all duration-200",
+                      isActive(item.url) ? 
+                        "font-medium text-tennis-green" :
+                        "text-sidebar-foreground hover:text-tennis-green/80"
                     )}>
-                      <item.icon />
+                      <item.icon className={cn(
+                        isActive(item.url) && "stroke-[2.5px]"
+                      )} />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -85,17 +89,21 @@ export function AppSidebar() {
                       tooltip={item.title}
                     >
                       <Link to={item.url} className={cn(
-                        "flex items-center",
-                        isActive(item.url) && "font-medium"
+                        "flex items-center transition-all duration-200",
+                        isActive(item.url) ? 
+                          "font-medium text-tennis-green" :
+                          "text-sidebar-foreground hover:text-tennis-green/80"
                       )}>
                         <div className="relative">
-                          <item.icon />
+                          <item.icon className={cn(
+                            isActive(item.url) && "stroke-[2.5px]"
+                          )} />
                           
                           {/* Add notification badge for unread items */}
                           {item.title === "Notifications" && unreadCount > 0 && (
                             <Badge 
                               variant="destructive" 
-                              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
+                              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-tennis-accent"
                             >
                               {unreadCount > 9 ? "9+" : unreadCount}
                             </Badge>

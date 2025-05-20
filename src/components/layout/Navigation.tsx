@@ -36,23 +36,29 @@ const Navigation = () => {
   console.log("Navigation component rendering, path:", location.pathname);
 
   return (
-    <div className="border-b sticky top-0 bg-background z-50">
+    <div className="border-b sticky top-0 bg-background z-50 backdrop-blur-sm bg-background/90">
       <div className="flex h-16 items-center px-4">
-        {/* Mobile menu - only show when user is logged in */}
-        {user && (
-          <MobileMenu 
-            navLinks={navLinks}
-            userLinks={userLinks}
-            isMobileMenuOpen={isMobileMenuOpen}
-            setIsMobileMenuOpen={setIsMobileMenuOpen}
-            onSignOut={() => {}} // Actual sign-out is handled in UserDropdown
-          />
-        )}
-        
-        {/* Logo/brand */}
-        <Link to="/" className="text-xl font-bold mr-4">
-          rallypointx
-        </Link>
+        {/* Tennis ball icon and menu */}
+        <div className="flex items-center">
+          {/* Mobile menu - only show when user is logged in */}
+          {user && (
+            <MobileMenu 
+              navLinks={navLinks}
+              userLinks={userLinks}
+              isMobileMenuOpen={isMobileMenuOpen}
+              setIsMobileMenuOpen={setIsMobileMenuOpen}
+              onSignOut={() => {}} // Actual sign-out is handled in UserDropdown
+            />
+          )}
+          
+          {/* Logo/brand with tennis styling */}
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-tennis-green to-tennis-darkGreen flex items-center justify-center text-white font-bold text-sm animate-bounce-subtle">
+              rpx
+            </div>
+            <span className="text-xl font-bold tennis-gradient-text">rallypointx</span>
+          </Link>
+        </div>
 
         {/* Search and user actions */}
         <div className="ml-auto flex items-center space-x-4">

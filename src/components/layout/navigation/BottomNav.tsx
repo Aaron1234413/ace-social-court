@@ -43,7 +43,7 @@ const BottomNav = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t md:hidden">
       <div className="flex justify-around">
         {criticalNavItems.map((item) => {
           const url = getUrl(item);
@@ -54,24 +54,32 @@ const BottomNav = () => {
               key={item.title}
               to={url}
               className={cn(
-                "flex flex-1 flex-col items-center py-2 px-1",
-                active ? "text-primary" : "text-muted-foreground"
+                "flex flex-1 flex-col items-center py-3 px-1 transition-all",
+                active 
+                  ? "text-tennis-green font-medium" 
+                  : "text-muted-foreground hover:text-tennis-green/80"
               )}
             >
               <div className="relative">
-                <item.icon className="h-5 w-5" />
+                <item.icon className={cn(
+                  "h-5 w-5",
+                  active && "stroke-[2.5px]"
+                )} />
                 
                 {/* Add notification badge for Messages and Notifications */}
                 {item.title === "Notifications" && unreadCount > 0 && (
                   <Badge 
                     variant="destructive" 
-                    className="absolute -top-1 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
+                    className="absolute -top-1 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-tennis-accent"
                   >
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </Badge>
                 )}
               </div>
-              <span className="text-xs mt-1">{item.title}</span>
+              <span className={cn(
+                "text-xs mt-1",
+                active && "font-medium"
+              )}>{item.title}</span>
             </Link>
           );
         })}
