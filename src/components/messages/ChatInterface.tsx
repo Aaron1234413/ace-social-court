@@ -1,58 +1,43 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMessages } from '@/hooks/use-messages';
+import { useMessages } from '@/hooks/useMessages';
 import { useAuth } from '@/components/AuthProvider';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ErrorAlert } from '@/components/ui/error-alert';
+import { Loading } from '@/components/ui/loading';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { MessageSquare } from 'lucide-react';
 import ChatHeader from './ChatHeader';
 import MessagesList from './MessagesList';
-import MessageInput from './MessageInput';
-import { MessageSquare } from 'lucide-react'; // Add this import
+import ComposeMessage from './ComposeMessage';
 
 interface ChatInterfaceProps {
   onError?: (error: string) => void;
-  chatId?: string; // Allow passing chatId directly as prop
+  chatId?: string;
 }
 
 const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
   const { chatId: paramChatId } = useParams<{ chatId: string }>();
-  // Use either the prop or the URL parameter
   const otherUserId = propChatId || paramChatId;
   
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   
-  // Check if we have a valid otherUserId
   const validConversation = !!otherUserId && otherUserId !== 'undefined';
-  
-  console.log("ChatInterface: Using otherUserId:", otherUserId, "valid:", validConversation);
 
   const { 
     messages, 
     isLoadingMessages,
     error: messagesError,
-    newMessage, 
-    setNewMessage, 
-    sendMessage,
-    isSending,
-    mediaPreview,
-    mediaFile,
-    mediaType,
-    uploadProgress,
-    handleMediaSelect,
-    clearMedia,
     addReaction,
     removeReaction,
     deleteMessage
-  } = useMessages(validConversation ? otherUserId : undefined);
+  } = useMessages(validConversation ? otherUserId : null);
   
   // Handle any errors
   useEffect(() => {
@@ -60,13 +45,6 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
       onError(messagesError.message);
     }
   }, [messagesError, onError]);
-  
-  // Display warning if no valid otherUserId
-  useEffect(() => {
-    if (!validConversation) {
-      console.warn("No valid conversation ID found in URL parameters or props");
-    }
-  }, [validConversation]);
 
   const { data: otherUser, isLoading: isLoadingUser, error: userError } = useQuery({
     queryKey: ['user', otherUserId],
@@ -96,143 +74,36 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
       onError("Failed to load user information: " + (userError instanceof Error ? userError.message : String(userError)));
     }
   }, [userError, onError]);
-
-  // Simulate typing indicator effect
-  const simulateTypingIndicator = useCallback(() => {
-    // Only show typing indicator occasionally to make it feel more natural
-    if (Math.random() > 0.7 && messages.length > 0) {
-      setIsTyping(true);
-      
-      // Clear previous timeout if exists
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      
-      // Set random duration for typing indicator (between 2-5 seconds)
-      const duration = Math.floor(Math.random() * 3000) + 2000;
-      typingTimeoutRef.current = setTimeout(() => {
-        setIsTyping(false);
-      }, duration);
-    }
-  }, [messages.length]);
-
-  // Subscribe to realtime updates for new messages
-  useEffect(() => {
-    if (!validConversation || !user) return;
-    
-    console.log("Setting up realtime subscription for messages");
-    
-    const channel = supabase
-      .channel('direct_messages_channel')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'direct_messages',
-        filter: `recipient_id=eq.${user.id}`
-      }, (payload) => {
-        console.log("Realtime message received:", payload);
-        queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-        
-        // Show typing indicator before new message comes in
-        simulateTypingIndicator();
-      })
-      .subscribe((status) => {
-        console.log("Channel status:", status);
-      });
-    
-    return () => {
-      console.log("Removing realtime subscription");
-      supabase.removeChannel(channel);
-      
-      // Clear typing timeout if component unmounts
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [otherUserId, user, queryClient, simulateTypingIndicator]);
-
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validConversation) {
-      if (onError) onError("Cannot send message: Invalid conversation");
-      return;
-    }
-    
-    if (newMessage.trim() || mediaFile) {
-      try {
-        sendMessage();
-      } catch (error) {
-        console.error("Error sending message:", error);
-        if (error instanceof Error && onError) {
-          onError("Failed to send message: " + error.message);
-        }
-      }
-    }
-  }, [newMessage, mediaFile, sendMessage, onError, validConversation]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if ((newMessage.trim() || mediaFile) && validConversation) {
-        sendMessage();
-      }
-    }
-  }, [newMessage, mediaFile, sendMessage, validConversation]);
   
   const handleMessageClick = useCallback((messageId: string) => {
     setSelectedMessage(messageId === selectedMessage ? null : messageId);
   }, [selectedMessage]);
 
-  // Helper to handle file selection
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const fileType = file.type.startsWith('image/') ? 'image' : 'video';
-    
-    // Validate file
-    if (fileType === 'image' && file.size > 5 * 1024 * 1024) {
-      onError?.("Image file is too large (max 5MB)");
-      return;
-    }
-    
-    if (fileType === 'video' && file.size > 20 * 1024 * 1024) {
-      onError?.("Video file is too large (max 20MB)");
-      return;
-    }
-    
-    handleMediaSelect(file, fileType);
-    
-    // Reset input value so the same file can be selected again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [handleMediaSelect, onError]);
-  
-  // Helper to trigger file input click
-  const triggerFileInput = useCallback((type: 'image' | 'video') => {
-    if (fileInputRef.current) {
-      fileInputRef.current.accept = type === 'image' ? 'image/*' : 'video/*';
-      fileInputRef.current.click();
-    }
-  }, []);
-
   // Display better empty state if no valid conversation
   if (!validConversation) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-4 text-center">
-        <div className="w-24 h-24 rounded-full bg-tennis-green/10 flex items-center justify-center mb-4">
-          <MessageSquare className="h-12 w-12 text-tennis-green opacity-60" />
+      <div className="h-full flex flex-col items-center justify-center p-6 bg-background/50">
+        <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          <MessageSquare className="h-12 w-12 text-primary opacity-60" />
         </div>
-        <h3 className="text-lg font-medium mb-2 text-tennis-darkGreen">No conversation selected</h3>
-        <p className="text-muted-foreground">Select a conversation from the list or start a new one.</p>
+        <h3 className="text-lg font-medium mb-2">Select a conversation</h3>
+        <p className="text-muted-foreground text-center max-w-xs">
+          Choose an existing conversation or start a new one to begin messaging
+        </p>
+      </div>
+    );
+  }
+
+  if (isLoadingUser || isLoadingMessages) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loading variant="spinner" text="Loading conversation..." />
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-white/50 backdrop-blur-sm rounded-lg">
+    <div className="h-full flex flex-col">
       <ChatHeader 
         otherUser={otherUser}
         isLoading={isLoadingUser}
@@ -254,26 +125,7 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
         />
       </div>
       
-      <MessageInput 
-        newMessage={newMessage}
-        setNewMessage={setNewMessage}
-        sendMessage={sendMessage}
-        isSending={isSending}
-        mediaPreview={mediaPreview}
-        mediaType={mediaType}
-        uploadProgress={uploadProgress}
-        clearMedia={clearMedia}
-        onFileSelect={handleFileSelect}
-        triggerFileInput={triggerFileInput}
-        handleKeyDown={handleKeyDown}
-      />
-      
-      <input 
-        type="file" 
-        ref={fileInputRef}
-        className="hidden"
-        onChange={handleFileSelect}
-      />
+      <ComposeMessage conversationId={otherUserId} />
     </div>
   );
 };
