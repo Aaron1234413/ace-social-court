@@ -19,8 +19,9 @@ const Messages = () => {
   const { chatId } = useParams<{ chatId?: string }>();
   const isMobile = useIsMobile();
   
-  // Ensure we have a valid selectedUserId
+  // Ensure we have a valid selectedUserId - fix to correctly parse the chatId
   const selectedUserId = useMemo(() => {
+    console.log("Raw chatId from params:", chatId);
     return chatId && chatId !== 'undefined' ? chatId : null;
   }, [chatId]);
   

@@ -10,6 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import ChatHeader from './ChatHeader';
 import MessagesList from './MessagesList';
 import MessageInput from './MessageInput';
+import { MessageSquare } from 'lucide-react'; // Add this import
 
 interface ChatInterfaceProps {
   onError?: (error: string) => void;
@@ -217,15 +218,15 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
     }
   }, []);
 
-  // Display error if no valid conversation
+  // Display better empty state if no valid conversation
   if (!validConversation) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-4 text-center">
-        <ErrorAlert
-          title="No conversation selected"
-          message="Please select a conversation from the list"
-          severity="info"
-        />
+        <div className="w-24 h-24 rounded-full bg-tennis-green/10 flex items-center justify-center mb-4">
+          <MessageSquare className="h-12 w-12 text-tennis-green opacity-60" />
+        </div>
+        <h3 className="text-lg font-medium mb-2 text-tennis-darkGreen">No conversation selected</h3>
+        <p className="text-muted-foreground">Select a conversation from the list or start a new one.</p>
       </div>
     );
   }

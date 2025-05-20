@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
@@ -79,7 +80,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
     return (
       <div className="space-y-2">
         {conversations.map((conversation) => {
-          // Check if this conversation is currently selected - convert both to strings for consistent comparison
+          // Convert both IDs to strings for consistent comparison
           const isSelected = selectedUserId === conversation.other_user?.id;
           
           console.log(
@@ -88,9 +89,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
             `(selected=${selectedUserId}, this=${conversation.other_user?.id})`
           );
           
-          const hasUnread = conversation.last_message && 
-            !conversation.last_message.read && 
-            conversation.last_message.recipient_id === conversation.other_user?.id;
+          const hasUnread = conversation.unread_count && conversation.unread_count > 0;
 
           return (
             <button

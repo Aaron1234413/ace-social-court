@@ -69,7 +69,7 @@ const MessageInput = ({
               <div className="absolute bottom-0 left-0 right-0 px-2">
                 <Progress 
                   value={uploadProgress} 
-                  className="h-1 bg-gray-200" 
+                  className="h-1 bg-gray-200"
                 />
               </div>
             )}
