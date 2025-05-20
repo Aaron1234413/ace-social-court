@@ -4,7 +4,7 @@ import { Send, Image, Smile, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useMessages } from '@/hooks/useMessages';
+import { useMessages } from '@/hooks/use-messages';
 
 interface ComposeMessageProps {
   conversationId: string | null;

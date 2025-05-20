@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMessages } from '@/hooks/useMessages';
+import { useMessages } from '@/hooks/use-messages';
 import { useAuth } from '@/components/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
