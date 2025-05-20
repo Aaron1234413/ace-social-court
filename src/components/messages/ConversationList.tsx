@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,7 +16,7 @@ const ConversationList = ({ selectedConversationId, onSelectConversation }: Conv
   
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 p-2">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center gap-3 p-2">
             <Skeleton className="h-10 w-10 rounded-full" />
@@ -48,7 +48,7 @@ const ConversationList = ({ selectedConversationId, onSelectConversation }: Conv
   }
   
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 p-2">
       {conversations.map(conversation => {
         const isSelected = selectedConversationId === conversation.other_user?.id;
         const hasUnread = conversation.last_message && 
