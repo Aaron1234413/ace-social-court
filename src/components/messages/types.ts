@@ -7,44 +7,21 @@ export interface MessageReaction {
   created_at: string;
 }
 
-export interface MessageMedia {
-  id: string;
-  message_id: string;
-  url: string;
-  type: 'image' | 'video';
-  created_at: string;
-}
-
 export interface Message {
   id: string;
-  content: string;
   sender_id: string;
   recipient_id: string;
-  read: boolean;
+  content: string;
   created_at: string;
   updated_at: string;
+  read: boolean;
+  is_deleted?: boolean;
+  media_url?: string | null;
+  media_type?: 'image' | 'video' | null;
   sender?: {
     avatar_url: string | null;
     username: string | null;
     full_name: string | null;
   } | null;
-  media_url?: string | null;
-  media_type?: 'image' | 'video' | null;
-  is_deleted?: boolean;
   reactions?: MessageReaction[];
-}
-
-export interface Conversation {
-  id: string;
-  user1_id: string;
-  user2_id: string;
-  last_message_at: string;
-  created_at: string;
-  other_user: {
-    id: string;
-    avatar_url: string | null;
-    username: string | null;
-    full_name: string | null;
-  } | null;
-  last_message?: Message | null;
 }

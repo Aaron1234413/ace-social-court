@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import MessageMedia from './MessageMedia';
 
 interface MessageGroupProps {
   messages: Message[];
@@ -72,6 +73,14 @@ const MessageGroup = ({
                     : 'bg-accent rounded-tl-none'
                 } ${selectedMessage === message.id ? 'ring-2 ring-primary' : ''}`}
               >
+                {message.media_url && message.media_type && (
+                  <div className="mb-2">
+                    <MessageMedia 
+                      url={message.media_url} 
+                      type={message.media_type as 'image' | 'video'} 
+                    />
+                  </div>
+                )}
                 <p className="break-words">{message.content}</p>
                 <p className="text-xs mt-1 opacity-70">
                   {format(new Date(message.created_at), 'h:mm a')}

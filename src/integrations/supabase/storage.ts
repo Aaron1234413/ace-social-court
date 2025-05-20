@@ -72,9 +72,7 @@ export const initializeStorage = async () => {
     };
     
     // Initialize all required buckets
-    await initBucket('media');
-    await initBucket('posts');
-    await initBucket('analysis');
+    await initBucket('message_media');
     
     console.log('Storage initialization completed');
     return true;
@@ -167,124 +165,30 @@ export const uploadFileWithProgress = async (
   });
 
   try {
-    if (onProgress) {
-      // Get token for authenticated upload
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Authentication error: ' + sessionError.message);
-      }
-      
-      if (!session) {
-        throw new Error('No active session');
-      }
-
-      // Use XMLHttpRequest for progress tracking
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        // Track progress
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
-            console.log(`Upload progress: ${progress.toFixed(2)}%`);
-            onProgress(progress);
-          }
-        });
-        
-        // Handle completion
-        xhr.addEventListener('load', async () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            console.log(`Upload completed successfully with status ${xhr.status}`);
-            // Get public URL after successful upload
-            const { data: { publicUrl } } = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(filePath);
-            
-            resolve(publicUrl);
-          } else {
-            const errorMessage = `Upload failed with status ${xhr.status}`;
-            console.error(errorMessage, xhr.responseText);
-            
-            try {
-              // Try to parse response for better error details
-              const responseData = JSON.parse(xhr.responseText);
-              console.error('Response details:', responseData);
-              
-              if (responseData.error) {
-                reject(new Error(`${errorMessage}: ${responseData.error}`));
-              } else {
-                reject(new Error(errorMessage));
-              }
-            } catch (e) {
-              // If we can't parse the response, just use the status
-              reject(new Error(errorMessage));
-            }
-          }
-        });
-        
-        // Handle errors
-        xhr.addEventListener('error', (e) => {
-          console.error('Upload failed due to network or CORS error:', e);
-          reject(new Error('Upload failed due to network error'));
-        });
-        
-        xhr.addEventListener('abort', () => {
-          console.warn('Upload aborted by user or script');
-          reject(new Error('Upload aborted'));
-        });
-        
-        // Construct the Storage API URL
-        const storageUrl = `https://sdrndqcaskaitzcwgnaw.supabase.co/storage/v1/object/${bucketName}/${filePath}`;
-        
-        console.log(`Sending upload request to: ${storageUrl}`);
-        
-        xhr.open('POST', storageUrl);
-        xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-        xhr.setRequestHeader('x-upsert', 'true'); // Enable upsert
-        
-        // Log request headers for debugging
-        console.log('Upload headers:', {
-          'Authorization': `Bearer ${session.access_token.substring(0, 10)}...`, // Only log part of the token
-          'x-upsert': 'true'
-        });
-        
-        // Try a smaller chunk size for large files
-        const MAX_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
-        if (file.size > MAX_CHUNK_SIZE) {
-          console.log(`Large file detected (${(file.size / (1024 * 1024)).toFixed(2)} MB), would be better to use chunked upload`);
-          // For now, we'll still try with the full file
-        }
-        
-        // Upload the file
-        xhr.send(file);
+    // Standard upload without progress tracking since supabase client doesn't support progress
+    console.log('Using standard upload method');
+    
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        contentType: file.type,
+        upsert: true,
       });
-    } else {
-      // Standard upload without progress tracking
-      console.log('Using standard upload method (no progress tracking)');
-      
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          contentType: file.type,
-          upsert: true,
-        });
-      
-      if (error) {
-        console.error('Upload error:', error);
-        throw error;
-      }
-      
-      console.log('Upload completed successfully via standard method');
-      
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-      
-      return publicUrl;
+    
+    if (error) {
+      console.error('Upload error:', error);
+      throw error;
     }
+    
+    console.log('Upload completed successfully via standard method');
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+    
+    return publicUrl;
   } catch (error) {
     console.error('Error in uploadFileWithProgress:', error);
     throw error;
