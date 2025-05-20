@@ -207,6 +207,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_deleted: boolean | null
+          media_type: string | null
+          media_url: string | null
           read: boolean
           recipient_id: string
           sender_id: string
@@ -216,6 +219,9 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_deleted?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
           read?: boolean
           recipient_id: string
           sender_id: string
@@ -225,6 +231,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_deleted?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
           read?: boolean
           recipient_id?: string
           sender_id?: string
@@ -278,6 +287,38 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
             referencedColumns: ["id"]
           },
         ]

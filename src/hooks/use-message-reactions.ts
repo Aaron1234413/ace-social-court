@@ -14,11 +14,6 @@ export const useMessageReactions = (otherUserId?: string) => {
     mutationFn: async ({ messageId, reactionType }: { messageId: string, reactionType: MessageReaction['reaction_type'] }) => {
       if (!user) throw new Error('User not authenticated');
       
-      // Return a placeholder for now since we don't have the table yet
-      return [{id: 'placeholder-id'}];
-      
-      // Original code commented out since table doesn't exist yet:
-      /*
       const { data, error } = await supabase
         .from('message_reactions')
         .insert({
@@ -34,7 +29,6 @@ export const useMessageReactions = (otherUserId?: string) => {
       }
       
       return data;
-      */
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
@@ -50,11 +44,6 @@ export const useMessageReactions = (otherUserId?: string) => {
     mutationFn: async ({ messageId, reactionId }: { messageId: string, reactionId: string }) => {
       if (!user) throw new Error('User not authenticated');
       
-      // Return a placeholder for now since we don't have the table yet
-      return true;
-      
-      // Original code commented out since table doesn't exist yet:
-      /*
       const { error } = await supabase
         .from('message_reactions')
         .delete()
@@ -64,7 +53,6 @@ export const useMessageReactions = (otherUserId?: string) => {
         console.error('Error removing reaction:', error);
         throw error;
       }
-      */
       
       return true;
     },

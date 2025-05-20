@@ -69,10 +69,18 @@ export const useMessages = (otherUserId?: string) => {
               } as Message;
             }
 
+            // Get reactions for this message
+            const { data: reactionsData, error: reactionsError } = await supabase
+              .from('message_reactions')
+              .select('*')
+              .eq('message_id', message.id);
+
+            const reactions = reactionsError ? [] : reactionsData;
+
             return {
               ...message,
               sender: senderData,
-              reactions: [] // Add empty reactions array
+              reactions
             } as Message;
           })
         );

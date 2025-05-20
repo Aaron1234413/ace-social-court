@@ -1,7 +1,7 @@
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
-import { Message } from '@/types/messages';
+import { Message } from '@/components/messages/types';
 import { Smile, MoreVertical, Trash2 } from 'lucide-react';
 import { 
   DropdownMenu,
