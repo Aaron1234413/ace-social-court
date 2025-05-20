@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ const MessageSearch = ({ onSelectUser }: MessageSearchProps) => {
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
   
   // Search for users when debounced search term changes
-  useState(() => {
+  useEffect(() => {
     const searchUsers = async () => {
       if (!debouncedSearchTerm || debouncedSearchTerm.length < 3) {
         setResults([]);
