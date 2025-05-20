@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
@@ -68,7 +67,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
         <div className="py-8 text-center text-muted-foreground">
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 rounded-full bg-tennis-green/10 flex items-center justify-center mb-4">
-              <MessageSquare className="h-8 w-8 text-tennis-green opacity-60" />
+              <MessageSquarePlus className="h-8 w-8 text-tennis-green opacity-60" />
             </div>
             <p>No conversations yet</p>
             <p className="text-sm mt-2">Start a new message to connect</p>
