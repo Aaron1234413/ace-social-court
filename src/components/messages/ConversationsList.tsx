@@ -89,7 +89,10 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
             `(selected=${selectedUserId}, this=${conversation.other_user?.id})`
           );
           
-          const hasUnread = conversation.unread_count && conversation.unread_count > 0;
+          // Check if there are unread messages (last message is not read and was sent by the other user)
+          const hasUnread = conversation.last_message && 
+                           !conversation.last_message.read && 
+                           conversation.last_message.sender_id === conversation.other_user?.id;
 
           return (
             <button
