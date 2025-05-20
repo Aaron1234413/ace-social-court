@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,12 @@ const Settings = () => {
   const [pushNotifications, setPushNotifications] = useState(true);
 
   // Redirect to auth if not logged in
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) {
       console.log("Settings: No user found, redirecting to auth");
       navigate("/auth");
+    } else {
+      console.log("Settings: User authenticated, rendering settings page", { userId: user.id });
     }
   }, [user, navigate]);
 
@@ -29,6 +31,14 @@ const Settings = () => {
     // This would connect to your backend in a real app
     toast.success("Preferences saved successfully!");
   };
+
+  // Add log when component mounts
+  useEffect(() => {
+    console.log("Settings page mounted", { path: window.location.pathname });
+    return () => {
+      console.log("Settings page unmounting", { path: window.location.pathname });
+    };
+  }, []);
 
   return (
     <>
