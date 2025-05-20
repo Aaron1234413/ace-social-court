@@ -1,53 +1,68 @@
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
-import { Message } from '@/types/messages';
+import { Message } from '@/components/messages/types';
 
 interface MessageGroupProps {
-  date: string;
   messages: Message[];
-  currentUser: any;
+  isCurrentUser: boolean;
+  handleMessageClick?: (messageId: string) => void;
+  selectedMessage?: string | null;
+  onAddReaction?: (messageId: string, type: string) => void;
+  onRemoveReaction?: (messageId: string, reactionId: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
-const MessageGroup = ({ date, messages, currentUser }: MessageGroupProps) => {
+const MessageGroup = ({ 
+  messages, 
+  isCurrentUser,
+  handleMessageClick,
+  selectedMessage,
+  onAddReaction,
+  onRemoveReaction,
+  onDeleteMessage
+}: MessageGroupProps) => {
+  if (!messages || messages.length === 0) return null;
+  
+  const firstMessage = messages[0];
+  const sender = firstMessage.sender;
+  
   return (
-    <div className="space-y-4">
-      <div className="flex justify-center">
-        <span className="text-xs bg-accent/60 text-muted-foreground px-2 py-1 rounded-full">
-          {date}
-        </span>
-      </div>
-      
-      {messages.map(message => {
-        const isCurrentUser = message.sender_id === currentUser?.id;
+    <div className="space-y-1 mb-3">
+      {messages.map((message, index) => {
+        const isFirstInGroup = index === 0;
+        const showAvatar = isFirstInGroup;
         
         return (
           <div 
             key={message.id} 
             className={`flex items-start gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+            onClick={() => handleMessageClick && handleMessageClick(message.id)}
           >
-            {!isCurrentUser && (
-              <Avatar className="h-8 w-8">
-                {message.sender?.avatar_url && (
+            {!isCurrentUser && showAvatar && (
+              <Avatar className="h-8 w-8 mt-1 border-2 border-tennis-green/20">
+                {sender?.avatar_url && (
                   <img 
-                    src={message.sender.avatar_url} 
-                    alt={message.sender?.username || 'User'} 
+                    src={sender.avatar_url} 
+                    alt={sender?.username || 'User'} 
                     className="h-full w-full object-cover"
                   />
                 )}
-                <AvatarFallback>
-                  {message.sender?.full_name?.charAt(0) || 
-                   message.sender?.username?.charAt(0) || 'U'}
+                <AvatarFallback className="bg-tennis-green/10 text-tennis-darkGreen">
+                  {sender?.full_name?.charAt(0) || 
+                   sender?.username?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
             )}
+            
+            {!isCurrentUser && !showAvatar && <div className="w-8" />}
             
             <div 
               className={`px-4 py-2 rounded-xl max-w-[80%] ${
                 isCurrentUser 
                   ? 'bg-primary text-primary-foreground rounded-tr-none' 
                   : 'bg-accent rounded-tl-none'
-              }`}
+              } ${selectedMessage === message.id ? 'ring-2 ring-primary' : ''}`}
             >
               <p>{message.content}</p>
               <p className="text-xs mt-1 opacity-70">
@@ -55,21 +70,15 @@ const MessageGroup = ({ date, messages, currentUser }: MessageGroupProps) => {
               </p>
             </div>
             
-            {isCurrentUser && (
-              <Avatar className="h-8 w-8">
-                {currentUser?.user_metadata?.avatar_url && (
-                  <img 
-                    src={currentUser.user_metadata.avatar_url} 
-                    alt={currentUser?.user_metadata?.full_name || 'User'} 
-                    className="h-full w-full object-cover"
-                  />
-                )}
+            {isCurrentUser && showAvatar && (
+              <Avatar className="h-8 w-8 mt-1">
                 <AvatarFallback>
-                  {currentUser?.user_metadata?.full_name?.charAt(0) || 
-                   currentUser?.email?.charAt(0) || 'U'}
+                  U
                 </AvatarFallback>
               </Avatar>
             )}
+            
+            {isCurrentUser && !showAvatar && <div className="w-8" />}
           </div>
         );
       })}
