@@ -19,7 +19,7 @@ const Messages = () => {
   const { chatId } = useParams<{ chatId?: string }>();
   const isMobile = useIsMobile();
   
-  // Ensure we have a valid selectedUserId, explicitly set to null if invalid
+  // Ensure we have a valid selectedUserId
   const selectedUserId = useMemo(() => {
     return chatId && chatId !== 'undefined' ? chatId : null;
   }, [chatId]);
@@ -53,7 +53,7 @@ const Messages = () => {
 
   const handleConversationSelect = useCallback((userId: string) => {
     console.log(`Selecting conversation: ${userId}`);
-    navigate(`/messages/${userId}`, { replace: true });
+    navigate(`/messages/${userId}`);
     // Close the sidebar on mobile after selecting a conversation
     if (isMobile) {
       setSidebarOpen(false);
@@ -160,7 +160,11 @@ const Messages = () => {
           }`}>
             <ErrorBoundary>
               {selectedUserId ? (
-                <ChatInterface key={selectedUserId} onError={handleError} />
+                <ChatInterface 
+                  key={selectedUserId} 
+                  onError={handleError}
+                  chatId={selectedUserId} // Pass the selected user ID directly
+                />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
                   <MessageSquare className="h-16 w-16 mb-4 opacity-20" />

@@ -1,6 +1,5 @@
-
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useMessages } from '@/hooks/use-messages';
 import { useAuth } from '@/components/AuthProvider';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,14 +12,15 @@ import MessageInput from './MessageInput';
 
 interface ChatInterfaceProps {
   onError?: (error: string) => void;
+  chatId?: string; // Allow passing chatId directly as prop
 }
 
-const ChatInterface = ({ onError }: ChatInterfaceProps) => {
-  const { chatId } = useParams<{ chatId: string }>();
-  const otherUserId = chatId;
+const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
+  const { chatId: paramChatId } = useParams<{ chatId: string }>();
+  // Use either the prop or the URL parameter
+  const otherUserId = propChatId || paramChatId;
   
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
@@ -31,6 +31,8 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   // Check if we have a valid otherUserId
   const validConversation = !!otherUserId && otherUserId !== 'undefined';
   
+  console.log("ChatInterface: Using otherUserId:", otherUserId, "valid:", validConversation);
+
   const { 
     messages, 
     isLoadingMessages,
@@ -60,7 +62,7 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
   // Display warning if no valid otherUserId
   useEffect(() => {
     if (!validConversation) {
-      console.warn("No valid conversation ID found in URL parameters");
+      console.warn("No valid conversation ID found in URL parameters or props");
     }
   }, [validConversation]);
 
@@ -219,10 +221,9 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
     return (
       <div className="h-full flex flex-col items-center justify-center p-4 text-center">
         <ErrorAlert
-          title="Invalid conversation"
-          message="No valid conversation ID was found"
-          severity="warning"
-          onRetry={() => navigate('/messages')}
+          title="No conversation selected"
+          message="Please select a conversation from the list"
+          severity="info"
         />
       </div>
     );
@@ -263,6 +264,13 @@ const ChatInterface = ({ onError }: ChatInterfaceProps) => {
         onFileSelect={handleFileSelect}
         triggerFileInput={triggerFileInput}
         handleKeyDown={handleKeyDown}
+      />
+      
+      <input 
+        type="file" 
+        ref={fileInputRef}
+        className="hidden"
+        onChange={handleFileSelect}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
@@ -57,9 +56,9 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
       onSelectConversation(userId);
     } else {
       // Fallback to direct navigation if no handler provided
-      navigate(`/messages/${userId}`, { replace: location.pathname.includes(userId) });
+      navigate(`/messages/${userId}`);
     }
-  }, [onSelectConversation, navigate, location.pathname]);
+  }, [onSelectConversation, navigate]);
   
   // Memoize the rendering of conversations to prevent unnecessary re-renders
   const renderConversations = useMemo(() => {
@@ -75,7 +74,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
       <div className="space-y-1">
         {conversations.map((conversation) => {
           // Check if this conversation is currently selected - convert both to strings for consistent comparison
-          const isSelected = String(selectedUserId) === String(conversation.other_user?.id);
+          const isSelected = selectedUserId === conversation.other_user?.id;
           
           console.log(
             `Conversation with ${conversation.other_user?.username}:`, 
@@ -85,7 +84,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
           
           const hasUnread = conversation.last_message && 
             !conversation.last_message.read && 
-            conversation.last_message.sender_id !== conversation.other_user?.id;
+            conversation.last_message.recipient_id === conversation.other_user?.id;
 
           return (
             <button
