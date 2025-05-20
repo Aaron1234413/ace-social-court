@@ -4,12 +4,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { Message } from '@/types/messages';
+import { toast } from 'sonner';
 
-export const useMessages = (conversationId: string | null) => {
+export function useMessages(conversationId: string | null) {
   const { user } = useAuth();
-  const [error, setError] = useState<{ message: string } | null>(null);
+  const queryClient = useQueryClient();
+  const [newMessage, setNewMessage] = useState('');
+  const [error, setError] = useState<{message: string} | null>(null);
   
-  const { data, isLoading, refetch } = useQuery({
+  // Fetch messages for the given conversation
+  const { data, isLoading } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
       if (!user || !conversationId) return [];
@@ -79,6 +83,9 @@ export const useMessages = (conversationId: string | null) => {
                 .eq('id', message.id);
             })
           );
+          
+          // Update conversations to refresh unread badges
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
         }
         
         return messagesWithSenders;
@@ -91,75 +98,81 @@ export const useMessages = (conversationId: string | null) => {
     staleTime: 5000,
   });
   
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      if (!user || !conversationId || !content.trim()) {
+        throw new Error('Missing required data for sending message');
+      }
+      
+      try {
+        // Get the other user ID from the conversation
+        const { data: conversationData, error: conversationError } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('id', conversationId)
+          .single();
+          
+        if (conversationError) {
+          throw new Error(conversationError.message);
+        }
+        
+        const recipientId = conversationData.user1_id === user.id
+          ? conversationData.user2_id
+          : conversationData.user1_id;
+        
+        // Insert the message
+        const { data, error } = await supabase
+          .from('direct_messages')
+          .insert({
+            sender_id: user.id,
+            recipient_id: recipientId,
+            content,
+            read: false
+          })
+          .select();
+          
+        if (error) {
+          throw new Error(error.message);
+        }
+        
+        // Update conversation last_message_at
+        await supabase
+          .from('conversations')
+          .update({ last_message_at: new Date().toISOString() })
+          .eq('id', conversationId);
+        
+        return data;
+      } catch (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      setNewMessage('');
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to send message');
+      setError({ message: error instanceof Error ? error.message : 'Failed to send message' });
+    }
+  });
+
+  // Send message function
+  const sendMessage = () => {
+    if (newMessage.trim()) {
+      sendMessageMutation.mutate(newMessage);
+    }
+  };
+
   return {
     messages: data || [],
     isLoading,
     error,
-    refetch
+    newMessage,
+    setNewMessage,
+    sendMessage,
+    isSending: sendMessageMutation.isPending
   };
-};
-
-export const useSendMessage = (conversationId: string | null) => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [isSending, setIsSending] = useState(false);
-  
-  const sendMessage = async (content: string) => {
-    if (!user || !conversationId || !content.trim()) {
-      return;
-    }
-    
-    setIsSending(true);
-    
-    try {
-      // Get the other user ID from the conversation
-      const { data: conversationData, error: conversationError } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('id', conversationId)
-        .single();
-        
-      if (conversationError) {
-        throw new Error(conversationError.message);
-      }
-      
-      const recipientId = conversationData.user1_id === user.id
-        ? conversationData.user2_id
-        : conversationData.user1_id;
-      
-      // Insert the message
-      const { data, error } = await supabase
-        .from('direct_messages')
-        .insert({
-          sender_id: user.id,
-          recipient_id: recipientId,
-          content,
-          read: false
-        })
-        .select();
-        
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      // Update conversation last_message_at
-      await supabase
-        .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', conversationId);
-      
-      // Refresh the messages and conversations
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      
-      return data;
-    } catch (error) {
-      console.error('Error sending message:', error);
-      throw error;
-    } finally {
-      setIsSending(false);
-    }
-  };
-  
-  return { sendMessage, isSending };
-};
+}

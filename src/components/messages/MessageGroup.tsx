@@ -1,26 +1,20 @@
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
-import { Message } from '@/components/messages/types';
+import { Message } from '@/types/messages';
 
 interface MessageGroupProps {
   messages: Message[];
   isCurrentUser: boolean;
   handleMessageClick?: (messageId: string) => void;
   selectedMessage?: string | null;
-  onAddReaction?: (messageId: string, type: string) => void;
-  onRemoveReaction?: (messageId: string, reactionId: string) => void;
-  onDeleteMessage?: (messageId: string) => void;
 }
 
 const MessageGroup = ({ 
   messages, 
   isCurrentUser,
   handleMessageClick,
-  selectedMessage,
-  onAddReaction,
-  onRemoveReaction,
-  onDeleteMessage
+  selectedMessage
 }: MessageGroupProps) => {
   if (!messages || messages.length === 0) return null;
   

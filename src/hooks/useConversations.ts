@@ -1,19 +1,20 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { Conversation } from '@/types/messages';
 
-export const useConversations = () => {
+export function useConversations() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
       if (!user) return [];
       
       try {
-        // Get all conversations where current user is either user1 or user2
+        // Get conversations where current user is involved
         const { data: conversationsData, error: conversationsError } = await supabase
           .from('conversations')
           .select('*')
@@ -82,23 +83,25 @@ export const useConversations = () => {
     enabled: !!user,
     staleTime: 30000,
   });
-  
+
   return {
     conversations: data || [],
     isLoading,
-    error,
-    refetch
+    error
   };
-};
+}
 
-export const useCreateConversation = () => {
+export function useCreateConversation() {
   const { user } = useAuth();
-  const { refetch } = useConversations();
+  const queryClient = useQueryClient();
+  const [isCreating, setIsCreating] = useState(false);
   
-  const createConversation = async (otherUserId: string) => {
+  const createConversation = async (otherUserId: string, options?: { onSuccess?: Function, onError?: (error: any) => void }) => {
     if (!user || !otherUserId) {
       throw new Error('Missing user information');
     }
+    
+    setIsCreating(true);
     
     try {
       // Check if conversation already exists
@@ -114,6 +117,7 @@ export const useCreateConversation = () => {
       
       // If conversation exists, return it
       if (existingConversation) {
+        if (options?.onSuccess) options.onSuccess(existingConversation.id);
         return existingConversation.id;
       }
       
@@ -133,14 +137,18 @@ export const useCreateConversation = () => {
       }
       
       // Refresh conversations list
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
+      if (options?.onSuccess) options.onSuccess(newConversation.id);
       return newConversation.id;
     } catch (error) {
       console.error('Error creating conversation:', error);
+      if (options?.onError) options.onError(error);
       throw error;
+    } finally {
+      setIsCreating(false);
     }
   };
   
-  return { createConversation };
-};
+  return { createConversation, isCreating };
+}

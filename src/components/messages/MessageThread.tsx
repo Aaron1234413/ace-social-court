@@ -6,7 +6,7 @@ import { useMessages } from '@/hooks/useMessages';
 import { useAuth } from '@/components/AuthProvider';
 import { format } from 'date-fns';
 import MessageGroup from './MessageGroup';
-import { Message } from '@/components/messages/types';
+import { Message } from '@/types/messages';
 
 interface MessageThreadProps {
   conversationId: string | null;
