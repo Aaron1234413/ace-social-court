@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMessages } from '@/hooks/use-messages';
@@ -230,7 +231,7 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-white/50 backdrop-blur-sm rounded-lg">
       <ChatHeader 
         otherUser={otherUser}
         isLoading={isLoadingUser}

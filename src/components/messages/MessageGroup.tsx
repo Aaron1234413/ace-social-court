@@ -41,14 +41,14 @@ const MessageGroup = ({
         }`}
       >
         {/* Only show avatar once per group */}
-        <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
+        <Avatar className="h-8 w-8 mt-1 flex-shrink-0 border-2 border-tennis-green/20">
           {messages[0].sender?.avatar_url && (
             <img 
               src={messages[0].sender.avatar_url} 
               alt={messages[0].sender?.username || 'User'} 
             />
           )}
-          <AvatarFallback>
+          <AvatarFallback className={isCurrentUser ? "bg-tennis-green text-white" : "bg-tennis-green/10 text-tennis-darkGreen"}>
             {isCurrentUser 
               ? user?.email?.charAt(0).toUpperCase() || 'Y'
               : messages[0].sender?.username?.charAt(0) || 'U'}
@@ -89,9 +89,9 @@ const MessageGroup = ({
                 <div 
                   className={`${borderRadiusClass} ${
                     isCurrentUser 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-accent'
-                  } ${selectedMessage === message.id ? 'ring-2 ring-offset-2 ring-primary' : ''}`}
+                      ? 'bg-tennis-green text-white shadow-sm' 
+                      : 'bg-tennis-green/10 text-tennis-darkGreen'
+                  } ${selectedMessage === message.id ? 'ring-2 ring-offset-2 ring-tennis-blue' : ''}`}
                   onClick={() => handleMessageClick(message.id)}
                   role="button"
                   tabIndex={0}
@@ -113,7 +113,7 @@ const MessageGroup = ({
                   
                   {/* Message text */}
                   {(!isDeleted || message.content) && (
-                    <div className={`px-4 py-2 ${isDeleted ? 'italic text-muted-foreground' : ''}`}>
+                    <div className={`px-4 py-2 ${isDeleted ? 'italic text-opacity-70' : ''}`}>
                       <p>{message.content}</p>
                     </div>
                   )}
@@ -135,7 +135,7 @@ const MessageGroup = ({
                     <div className={`flex items-center text-xs text-muted-foreground ${isCurrentUser ? 'justify-end' : 'justify-start'} px-1`}>
                       <span>{format(new Date(message.created_at), 'h:mm a')}</span>
                       {isCurrentUser && message.read && (
-                        <Check className="h-3 w-3 ml-1 text-primary" />
+                        <Check className="h-3 w-3 ml-1 text-tennis-blue" />
                       )}
                     </div>
                   )}
@@ -144,13 +144,13 @@ const MessageGroup = ({
                 {/* Display reactions if any */}
                 {messageReactions.length > 0 && (
                   <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
-                    <div className="flex bg-background rounded-full border px-2 py-0.5 gap-1">
+                    <div className="flex bg-background rounded-full border border-tennis-green/10 px-2 py-0.5 gap-1">
                       {Object.entries(messageReactions.reduce((acc, reaction) => {
                         acc[reaction.reaction_type] = (acc[reaction.reaction_type] || 0) + 1;
                         return acc;
                       }, {} as Record<string, number>)).map(([type, count]) => (
                         <div key={type} className="flex items-center text-xs">
-                          {type === 'like' && <ThumbsUp className="h-3 w-3 text-primary mr-1" />}
+                          {type === 'like' && <ThumbsUp className="h-3 w-3 text-tennis-blue mr-1" />}
                           {type === 'heart' && <Heart className="h-3 w-3 text-red-500 mr-1" />}
                           {type === 'laugh' && <Laugh className="h-3 w-3 text-yellow-500 mr-1" />}
                           {type === 'sad' && <Frown className="h-3 w-3 text-blue-500 mr-1" />}

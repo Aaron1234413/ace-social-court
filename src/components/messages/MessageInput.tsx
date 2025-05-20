@@ -41,10 +41,10 @@ const MessageInput = ({
   };
 
   return (
-    <div className="border-t p-4 bg-background sticky bottom-0 z-10">
+    <div className="border-t border-tennis-green/20 p-4 bg-white/70 backdrop-blur-sm rounded-b-lg sticky bottom-0 z-10">
       {mediaPreview && (
-        <div className="px-4 pb-2">
-          <div className="relative bg-accent/20 rounded-md p-2 flex items-center">
+        <div className="px-2 pb-2">
+          <div className="relative bg-tennis-green/5 rounded-md p-2 flex items-center border border-tennis-green/20">
             {mediaType === 'image' ? (
               <img 
                 src={mediaPreview} 
@@ -67,7 +67,7 @@ const MessageInput = ({
             </Button>
             {uploadProgress > 0 && uploadProgress < 100 && (
               <div className="absolute bottom-0 left-0 right-0 px-2">
-                <Progress value={uploadProgress} className="h-1" />
+                <Progress value={uploadProgress} className="h-1" indicatorClassName="bg-tennis-green" />
               </div>
             )}
           </div>
@@ -82,7 +82,7 @@ const MessageInput = ({
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isSending}
-            className="flex-1"
+            className="flex-1 border-tennis-green/20 focus-visible:ring-tennis-green/30 focus-visible:ring-offset-tennis-green/10"
             ref={inputRef}
             aria-label="Message input"
           />
@@ -90,7 +90,7 @@ const MessageInput = ({
             type="submit"
             size="icon"
             disabled={(!newMessage.trim() && !mediaPreview) || isSending}
-            className="rounded-full h-10 w-10"
+            className="rounded-full h-10 w-10 bg-tennis-green hover:bg-tennis-darkGreen text-white"
           >
             <Send className="h-4 w-4" />
             <span className="sr-only">Send message</span>
@@ -104,7 +104,7 @@ const MessageInput = ({
             size="sm"
             onClick={() => triggerFileInput('image')}
             disabled={isSending}
-            className="rounded-md h-8 px-2 text-xs flex gap-1 text-muted-foreground"
+            className="rounded-md h-8 px-2 text-xs flex gap-1 text-tennis-darkGreen hover:bg-tennis-green/10"
           >
             <ImageIcon className="h-3 w-3" />
             Add image
@@ -116,7 +116,7 @@ const MessageInput = ({
             size="sm"
             onClick={() => triggerFileInput('video')}
             disabled={isSending}
-            className="rounded-md h-8 px-2 text-xs flex gap-1 text-muted-foreground"
+            className="rounded-md h-8 px-2 text-xs flex gap-1 text-tennis-darkGreen hover:bg-tennis-green/10"
           >
             <Video className="h-3 w-3" />
             Add video

@@ -144,3 +144,41 @@
 .tennis-court-lines {
   background-image: linear-gradient(90deg, transparent 49%, rgba(120, 184, 51, 0.1) 49%, rgba(120, 184, 51, 0.1) 51%, transparent 51%);
 }
+
+/* Messages page specific styles */
+.message-bubble-current {
+  background: linear-gradient(135deg, #78B833, #3C7A14);
+  color: white;
+  border-radius: 18px 18px 0 18px;
+}
+
+.message-bubble-other {
+  background: rgba(120, 184, 51, 0.1);
+  border-radius: 18px 18px 18px 0;
+}
+
+.message-date-divider {
+  position: relative;
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.message-date-divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background: rgba(120, 184, 51, 0.2);
+  z-index: 1;
+}
+
+.message-date-divider span {
+  background: white;
+  padding: 0 1rem;
+  position: relative;
+  z-index: 2;
+  font-size: 0.75rem;
+  color: rgba(60, 122, 20, 0.8);
+}

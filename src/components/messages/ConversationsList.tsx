@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useConversations } from '@/hooks/use-messages';
@@ -65,13 +66,19 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
     if (conversations.length === 0) {
       return (
         <div className="py-8 text-center text-muted-foreground">
-          No conversations yet
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full bg-tennis-green/10 flex items-center justify-center mb-4">
+              <MessageSquare className="h-8 w-8 text-tennis-green opacity-60" />
+            </div>
+            <p>No conversations yet</p>
+            <p className="text-sm mt-2">Start a new message to connect</p>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-2">
         {conversations.map((conversation) => {
           // Check if this conversation is currently selected - convert both to strings for consistent comparison
           const isSelected = selectedUserId === conversation.other_user?.id;
@@ -89,38 +96,39 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
           return (
             <button
               key={conversation.id}
-              className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${
+              className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${
                 isSelected 
-                  ? 'bg-primary/10 border border-primary/30' 
-                  : 'hover:bg-accent'
+                  ? 'bg-tennis-green/20 border border-tennis-green/40' 
+                  : 'hover:bg-tennis-green/10 border border-transparent'
               }`}
               onClick={() => handleConversationClick(conversation.other_user?.id)}
               aria-selected={isSelected}
             >
               <div className="relative">
-                <Avatar className="h-10 w-10 flex-shrink-0">
+                <Avatar className="h-12 w-12 flex-shrink-0 border-2 border-tennis-green/20">
                   {conversation.other_user?.avatar_url && (
                     <img 
                       src={conversation.other_user.avatar_url} 
                       alt={conversation.other_user?.username || 'User'} 
+                      className="object-cover"
                     />
                   )}
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-tennis-green/20 text-tennis-darkGreen">
                     {conversation.other_user?.full_name?.charAt(0) || 
                      conversation.other_user?.username?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 
                 {hasUnread && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                    <Eye className="h-3 w-3 text-primary-foreground" />
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-tennis-accent rounded-full flex items-center justify-center border-2 border-white">
+                    <Eye className="h-3 w-3 text-white" />
                   </span>
                 )}
               </div>
               
               <div className="flex-1 overflow-hidden">
                 <div className="flex justify-between items-baseline">
-                  <p className={`font-medium truncate ${isSelected ? 'text-primary' : ''}`}>
+                  <p className={`font-medium truncate ${isSelected ? 'text-tennis-darkGreen' : ''}`}>
                     {conversation.other_user?.full_name || 
                      conversation.other_user?.username || 'Unknown User'}
                   </p>
@@ -133,13 +141,13 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
                 
                 <div className="flex justify-between items-center">
                   {conversation.last_message && (
-                    <p className={`text-sm truncate ${hasUnread ? 'font-medium' : 'text-muted-foreground'}`}>
+                    <p className={`text-sm truncate ${hasUnread ? 'font-medium text-tennis-darkGreen' : 'text-muted-foreground'}`}>
                       {conversation.last_message.content}
                     </p>
                   )}
                   
                   {hasUnread && (
-                    <Badge variant="default" className="ml-1 py-0 px-1.5 text-xs h-5">
+                    <Badge variant="default" className="ml-1 py-0 px-1.5 text-xs h-5 bg-tennis-accent text-white">
                       new
                     </Badge>
                   )}
@@ -156,11 +164,11 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
   if (isLoadingConversations) {
     return (
       <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center gap-3">
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-[100px]" />
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-4 w-[120px]" />
               <Skeleton className="h-3 w-[150px]" />
             </div>
           </div>
@@ -181,7 +189,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
         />
         <Button 
           variant="outline" 
-          className="w-full gap-2 mt-4" 
+          className="w-full gap-2 mt-4 border-tennis-green/20 hover:bg-tennis-green/10 text-tennis-darkGreen" 
           onClick={() => setNewMessageOpen(true)}
         >
           <MessageSquarePlus className="h-4 w-4" />
@@ -201,7 +209,7 @@ const ConversationsList = ({ selectedUserId, onError, onSelectConversation }: Co
     <div className="space-y-4">
       <Button 
         variant="outline" 
-        className="w-full gap-2" 
+        className="w-full gap-2 border-tennis-green/20 bg-gradient-to-r from-white to-[#F2FCE2] hover:bg-tennis-green/10 text-tennis-darkGreen" 
         onClick={() => setNewMessageOpen(true)}
       >
         <MessageSquarePlus className="h-4 w-4" />

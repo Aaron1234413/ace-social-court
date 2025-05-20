@@ -59,7 +59,7 @@ const MessagesList = ({
   if (isLoading) {
     return (
       <div className="flex flex-col space-y-4 py-4">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(3)].map((_, i) => (
           <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
             <div className={`flex gap-2 ${i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
               <Skeleton className="h-8 w-8 rounded-full" />
@@ -86,8 +86,16 @@ const MessagesList = ({
 
   if (messages.length === 0) {
     return (
-      <div className="py-12 text-center text-muted-foreground">
-        No messages yet. Start a conversation!
+      <div className="py-12 text-center">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 rounded-full bg-tennis-green/10 flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64" className="text-tennis-green opacity-60">
+              <path fill="currentColor" d="M33.18 3.195a28 28 0 0 0-26 43.98l-4 11 11-4a28 28 0 1 0 19-50.98zm0 52a24 24 0 0 1-13-3.85l-1.67-.99L12 52l1.65-6.5-.99-1.67a24 24 0 1 1 20.52 11.37z"/>
+            </svg>
+          </div>
+          <p className="text-tennis-darkGreen font-medium mb-1">Start the conversation</p>
+          <p className="text-sm text-muted-foreground">Send your first message to begin chatting</p>
+        </div>
       </div>
     );
   }
@@ -143,7 +151,7 @@ const MessagesList = ({
         return (
           <div key={date} className="space-y-6">
             <div className="flex justify-center my-4">
-              <div className="px-3 py-1 bg-accent rounded-full text-xs">
+              <div className="px-3 py-1 bg-tennis-green/10 text-tennis-darkGreen rounded-full text-xs font-medium">
                 {date}
               </div>
             </div>
@@ -172,20 +180,20 @@ const MessagesList = ({
       {isTyping && otherUser && (
         <div className="flex justify-start my-2">
           <div className="flex items-start gap-2 max-w-[80%]">
-            <Avatar className="h-8 w-8 mt-1">
+            <Avatar className="h-8 w-8 mt-1 border-2 border-tennis-green/20">
               {otherUser?.avatar_url && (
                 <img src={otherUser.avatar_url} alt={otherUser?.username || 'User'} />
               )}
-              <AvatarFallback>
+              <AvatarFallback className="bg-tennis-green/10 text-tennis-darkGreen">
                 {otherUser?.full_name?.charAt(0) || otherUser?.username?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             
-            <div className="px-4 py-2 bg-accent rounded-xl rounded-bl-none">
-              <div className="flex items-center h-6 space-x-1">
-                <div className="w-2 h-2 rounded-full bg-current animate-bounce" />
-                <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '0.2s' }} />
-                <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '0.4s' }} />
+            <div className="px-4 py-3 bg-tennis-green/10 rounded-xl rounded-bl-none">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 rounded-full bg-tennis-green animate-bounce" />
+                <div className="w-2 h-2 rounded-full bg-tennis-green animate-bounce" style={{ animationDelay: '0.2s' }} />
+                <div className="w-2 h-2 rounded-full bg-tennis-green animate-bounce" style={{ animationDelay: '0.4s' }} />
               </div>
             </div>
           </div>
