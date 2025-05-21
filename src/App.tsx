@@ -15,6 +15,8 @@ import MainLayout from '@/components/layout/MainLayout';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
+import MapExplorer from '@/pages/MapExplorer';
+import Search from '@/pages/Search';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -72,13 +74,25 @@ function App() {
                 <TennisAI />
               </MainLayout>
             } />
-            {/* Add new route for notifications */}
+            {/* Add new route for explore/map */}
+            <Route path="/explore" element={
+              <MainLayout>
+                <MapExplorer />
+              </MainLayout>
+            } />
+            {/* Add route for search */}
+            <Route path="/search" element={
+              <MainLayout>
+                <Search />
+              </MainLayout>
+            } />
+            {/* Notifications route */}
             <Route path="/notifications" element={
               <MainLayout>
                 <Notifications />
               </MainLayout>
             } />
-            {/* Add new route for settings */}
+            {/* Settings route */}
             <Route path="/settings" element={
               <MainLayout>
                 <Settings />
