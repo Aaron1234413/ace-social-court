@@ -18,6 +18,7 @@ export interface Message {
   is_deleted?: boolean;
   media_url?: string | null;
   media_type?: 'image' | 'video' | null;
+  conversation_id?: string;
   sender?: {
     avatar_url: string | null;
     username: string | null;

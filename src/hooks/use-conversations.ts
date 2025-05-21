@@ -127,29 +127,36 @@ export function useConversations() {
     enabled: !!conversationsWithOtherUsers.data && conversationsWithOtherUsers.data.length > 0
   });
   
-  // Count unread messages for each conversation
+  // Count unread messages for each conversation - Remove the .group() call that's causing the error
   const { data: unreadCounts } = useQuery({
     queryKey: ['unread_counts', user?.id],
     queryFn: async () => {
       if (!user) return {};
       
+      // Use a different approach to count unread messages
       const { data, error } = await supabase
         .from('direct_messages')
-        .select('recipient_id, count')
+        .select('conversation_id, count')
         .eq('recipient_id', user.id)
         .eq('read', false)
-        .eq('is_deleted', false)
-        .group('recipient_id');
+        .eq('is_deleted', false);
         
       if (error) {
         console.error('Error counting unread messages:', error);
         return {};
       }
       
-      return data.reduce((acc, curr) => {
-        acc[curr.recipient_id] = curr.count;
-        return acc;
-      }, {} as Record<string, number>);
+      // Process the data to get counts by conversation
+      const counts: Record<string, number> = {};
+      if (data) {
+        data.forEach(item => {
+          if (item.conversation_id) {
+            counts[item.conversation_id] = (counts[item.conversation_id] || 0) + 1;
+          }
+        });
+      }
+      
+      return counts;
     },
     enabled: !!user
   });
