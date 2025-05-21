@@ -1,14 +1,16 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import FollowButton from '@/components/social/FollowButton';
 import { useAuth } from '@/components/AuthProvider';
 import { UserCheck, MapPin, Star, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SearchUser } from '@/hooks/useSearch';
+import { useMasonryGrid } from '@/hooks/useMasonryGrid';
 
 interface UserSearchResultsProps {
   users: SearchUser[];
@@ -21,7 +23,7 @@ const UserCard = ({ user }: { user: SearchUser }) => {
   
   return (
     <div 
-      className="perspective-1000 relative h-[220px] transition-all duration-300 cursor-pointer"
+      className="perspective-1000 relative h-[220px] transition-all duration-300 cursor-pointer w-full"
       onClick={() => setFlipped(!flipped)}
     >
       <Card 
@@ -31,19 +33,15 @@ const UserCard = ({ user }: { user: SearchUser }) => {
         )}
       >
         <div className="flex items-start gap-4">
-          <div className="h-16 w-16 rounded-full bg-tennis-green/10 flex items-center justify-center overflow-hidden border-2 border-tennis-green/30">
+          <Avatar className="h-16 w-16 border-2 border-tennis-green/30">
             {user.avatar_url ? (
-              <img 
-                src={user.avatar_url} 
-                alt={user.full_name || 'User'} 
-                className="h-full w-full object-cover"
-              />
+              <AvatarImage src={user.avatar_url} alt={user.full_name || 'User'} />
             ) : (
-              <span className="text-xl font-bold text-tennis-darkGreen">
+              <AvatarFallback className="bg-tennis-green/10 text-tennis-darkGreen">
                 {user.full_name?.charAt(0) || user.username?.charAt(0) || '?'}
-              </span>
+              </AvatarFallback>
             )}
-          </div>
+          </Avatar>
           
           <div className="flex-1 min-w-0">
             <Link to={`/profile/${user.id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
@@ -61,7 +59,7 @@ const UserCard = ({ user }: { user: SearchUser }) => {
             
             <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
               <MapPin className="h-3 w-3" />
-              <span>Local area</span>
+              <span>{user.location || 'Local area'}</span>
             </div>
           </div>
         </div>
@@ -151,10 +149,29 @@ const UserCard = ({ user }: { user: SearchUser }) => {
 };
 
 const UserSearchResults: React.FC<UserSearchResultsProps> = ({ users }) => {
+  const { gridRef, rendered, resizeGrid } = useMasonryGrid();
+  
+  // Force grid recalculation when users change
+  useEffect(() => {
+    if (users.length > 0) {
+      setTimeout(resizeGrid, 100); // Small delay to ensure DOM is updated
+    }
+  }, [users, resizeGrid]);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div 
+      ref={gridRef} 
+      className={cn(
+        "masonry-grid",
+        !rendered && "opacity-0",
+        rendered && "opacity-100 transition-opacity duration-300"
+      )}
+      style={{ gridAutoRows: '10px' }}
+    >
       {users.map((user) => (
-        <UserCard key={user.id} user={user} />
+        <div key={user.id} className="masonry-item">
+          <UserCard user={user} />
+        </div>
       ))}
     </div>
   );
