@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 const ProfileEdit = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   
   // Check if the user is logged in
@@ -35,7 +35,17 @@ const ProfileEdit = () => {
     );
   }
   
-  // Always pass the current user's ID to the ProfileEditContainer
+  // Check if the profile exists yet
+  if (!profile) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <Loading />
+        <p className="mt-4 text-muted-foreground">Loading profile data...</p>
+      </div>
+    );
+  }
+  
+  // Pass the current user's profile data to the ProfileEditContainer
   return <ProfileEditContainer isNewUser={false} />;
 };
 

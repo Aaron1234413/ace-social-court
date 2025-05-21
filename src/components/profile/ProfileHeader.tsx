@@ -7,6 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Pencil, MapPin, Calendar, Award } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import MessageButton from '@/components/messages/MessageButton';
+import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
+import { useState } from 'react';
+import { useAuth } from '@/components/AuthProvider';
+import { toast } from 'sonner';
 
 interface ProfileHeaderProps {
   userId: string;
@@ -14,7 +19,11 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
-  const { data: profile, isLoading } = useQuery({
+  const { user } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['profile-header', userId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -76,6 +85,109 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
       return count || 0;
     }
   });
+  
+  // Query skill ratings from matches
+  const { data: skillRatings } = useQuery({
+    queryKey: ['skill-ratings', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('serve_rating, return_rating, endurance_rating')
+        .eq('user_id', userId)
+        .order('match_date', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      
+      // Calculate average ratings from recent matches
+      const avgRatings = {
+        serve: 0,
+        return: 0,
+        endurance: 0,
+        forehand: Math.floor(Math.random() * 5) + 1, // Placeholder for demo
+        backhand: Math.floor(Math.random() * 5) + 1, // Placeholder for demo
+      };
+      
+      if (data && data.length > 0) {
+        let serveSum = 0;
+        let returnSum = 0;
+        let enduranceSum = 0;
+        let count = 0;
+        
+        data.forEach(match => {
+          if (match.serve_rating) {
+            serveSum += match.serve_rating;
+            count++;
+          }
+          if (match.return_rating) {
+            returnSum += match.return_rating;
+          }
+          if (match.endurance_rating) {
+            enduranceSum += match.endurance_rating;
+          }
+        });
+        
+        if (count > 0) {
+          avgRatings.serve = Math.round(serveSum / count);
+          avgRatings.return = Math.round(returnSum / count);
+          avgRatings.endurance = Math.round(enduranceSum / count);
+        }
+      }
+      
+      return avgRatings;
+    }
+  });
+
+  // Handle avatar upload
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+    
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      // Check file size and type
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image too large. Please upload an image under 5MB.');
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        toast.error('Only image files are allowed.');
+        return;
+      }
+      
+      // Upload the file with progress tracking
+      const avatarUrl = await uploadFileWithProgress(
+        file,
+        'message_media',
+        userId,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
+      
+      // Update the profile with the new avatar URL
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', userId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Refetch profile data
+      refetch();
+      toast.success('Profile picture updated successfully!');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload profile picture.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   if (isLoading) {
     return <div>Loading profile...</div>;
@@ -101,15 +213,43 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         
         {/* Avatar + Name positioned over cover image */}
         <div className="absolute -bottom-12 left-0 right-0 flex flex-col items-center z-20">
-          <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
-            {profile.avatar_url ? (
-              <AvatarImage src={profile.avatar_url} alt={profile.username || 'User avatar'} />
-            ) : (
-              <AvatarFallback className="text-3xl bg-primary text-primary-foreground">
-                {profile.username?.[0]?.toUpperCase() || profile.full_name?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
+          <div className="relative group">
+            <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
+              {profile.avatar_url ? (
+                <AvatarImage src={profile.avatar_url} alt={profile.username || 'User avatar'} />
+              ) : (
+                <AvatarFallback className="text-3xl bg-primary text-primary-foreground">
+                  {profile.username?.[0]?.toUpperCase() || profile.full_name?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              )}
+            </Avatar>
+            
+            {/* Profile photo upload overlay (only visible for own profile) */}
+            {isOwnProfile && (
+              <label 
+                htmlFor="avatar-upload" 
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Pencil className="h-6 w-6 text-white" />
+                <input 
+                  type="file" 
+                  id="avatar-upload" 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleAvatarUpload}
+                  disabled={isUploading}
+                />
+              </label>
             )}
-          </Avatar>
+          </div>
+          
+          {/* Upload progress indicator */}
+          {isUploading && (
+            <div className="mt-2 w-24">
+              <Progress value={uploadProgress} className="h-1" />
+            </div>
+          )}
+          
           <div className="mt-2 text-center">
             <h1 className="text-2xl font-bold drop-shadow-md">{profile.full_name || profile.username}</h1>
             {profile.username && <p className="text-muted-foreground drop-shadow-md">@{profile.username}</p>}
@@ -162,41 +302,123 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         />
       </div>
       
-      {profile.bio && (
-        <div className="mt-4">
-          <h2 className="font-semibold mb-1">Bio</h2>
-          <p className="whitespace-pre-wrap">{profile.bio}</p>
+      {/* Bio and skills section - Two column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        {/* Left column - Bio and details */}
+        <div className="space-y-6">
+          {profile.bio && (
+            <div>
+              <h2 className="font-semibold text-lg mb-2">About Me</h2>
+              <p className="whitespace-pre-wrap text-md">{profile.bio}</p>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            {profile.user_type && (
+              <div className="p-3 bg-secondary/30 rounded-lg">
+                <span className="text-muted-foreground block">Account Type</span>
+                <span className="capitalize font-medium">{profile.user_type}</span>
+              </div>
+            )}
+            {profile.experience_level && (
+              <div className="p-3 bg-secondary/30 rounded-lg">
+                <span className="text-muted-foreground block">Experience</span>
+                <span className="capitalize font-medium">{profile.experience_level}</span>
+              </div>
+            )}
+            {profile.playing_style && (
+              <div className="p-3 bg-secondary/30 rounded-lg">
+                <span className="text-muted-foreground block">Playing Style</span>
+                <span className="font-medium">{profile.playing_style}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Display location if available */}
+          {profile.location_name && (
+            <div className="flex items-center gap-2 text-sm bg-secondary/30 p-3 rounded-lg">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{profile.location_name}</span>
+            </div>
+          )}
         </div>
-      )}
-      
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-        {profile.user_type && (
+        
+        {/* Right column - Skills tracking */}
+        <div className="space-y-6">
           <div>
-            <span className="text-muted-foreground block">Account Type</span>
-            <span className="capitalize">{profile.user_type}</span>
+            <h2 className="font-semibold text-lg mb-4">Skills Progress</h2>
+            <div className="space-y-4">
+              <SkillProgressBar 
+                label="Serve" 
+                value={skillRatings?.serve || 0} 
+                maxValue={5}
+                color="bg-green-500"
+              />
+              <SkillProgressBar 
+                label="Return" 
+                value={skillRatings?.return || 0} 
+                maxValue={5}
+                color="bg-blue-500"
+              />
+              <SkillProgressBar 
+                label="Forehand" 
+                value={skillRatings?.forehand || 0} 
+                maxValue={5}
+                color="bg-purple-500"
+              />
+              <SkillProgressBar 
+                label="Backhand" 
+                value={skillRatings?.backhand || 0} 
+                maxValue={5}
+                color="bg-red-500"
+              />
+              <SkillProgressBar 
+                label="Endurance" 
+                value={skillRatings?.endurance || 0} 
+                maxValue={5}
+                color="bg-yellow-500"
+              />
+            </div>
+            
+            {isOwnProfile && (
+              <div className="mt-4">
+                <Link to="/dashboard">
+                  <Button variant="outline" size="sm" className="w-full mt-2">
+                    View Full Stats
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
-        )}
-        {profile.experience_level && (
-          <div>
-            <span className="text-muted-foreground block">Experience</span>
-            <span className="capitalize">{profile.experience_level}</span>
-          </div>
-        )}
-        {profile.playing_style && (
-          <div>
-            <span className="text-muted-foreground block">Playing Style</span>
-            <span>{profile.playing_style}</span>
-          </div>
-        )}
+        </div>
       </div>
-      
-      {/* Display location if available */}
-      {profile.location_name && (
-        <div className="flex items-center gap-2 text-sm">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span>{profile.location_name}</span>
-        </div>
-      )}
+    </div>
+  );
+};
+
+// Skill Progress Bar Component
+interface SkillProgressBarProps {
+  label: string;
+  value: number;
+  maxValue: number;
+  color: string;
+}
+
+const SkillProgressBar = ({ label, value, maxValue, color }: SkillProgressBarProps) => {
+  const percentage = (value / maxValue) * 100;
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="font-medium text-sm">{label}</span>
+        <span className="text-sm text-muted-foreground">{value}/{maxValue}</span>
+      </div>
+      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+        <div 
+          className={`h-full ${color}`} 
+          style={{ width: `${percentage}%` }}
+        ></div>
+      </div>
     </div>
   );
 };
@@ -236,3 +458,6 @@ const ProfileStatCard = ({ icon, count, label, href }: ProfileStatCardProps) => 
     </Link>
   );
 };
+
+// Import needed function from storage.ts
+const { uploadFileWithProgress } = await import('@/integrations/supabase/storage');

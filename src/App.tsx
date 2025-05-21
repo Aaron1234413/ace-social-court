@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/components/AuthProvider';
@@ -62,17 +61,20 @@ function App() {
                   <Feed />
                 </MainLayout>
               } />
-              <Route path="/profile/:id" element={
-                <MainLayout>
-                  <Profile />
-                </MainLayout>
-              } />
-              {/* Add a dedicated route for profile editing */}
+              
+              {/* IMPORTANT: The edit route must come before the :id route to avoid conflicts */}
               <Route path="/profile/edit" element={
                 <MainLayout>
                   <ProfileEdit />
                 </MainLayout>
               } />
+              
+              <Route path="/profile/:id" element={
+                <MainLayout>
+                  <Profile />
+                </MainLayout>
+              } />
+              
               <Route path="/messages" element={
                 <MainLayout>
                   <Messages />
