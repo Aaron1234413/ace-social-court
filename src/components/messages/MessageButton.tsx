@@ -79,7 +79,7 @@ const MessageButton = ({
             {buttonContent}
           </TooltipTrigger>
           <TooltipContent side="bottom" align="center" className="z-50">
-            <p className="text-xs whitespace-nowrap">Send an icebreaker message</p>
+            <MessageSquare className="h-4 w-4" />
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
