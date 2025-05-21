@@ -58,7 +58,11 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
         throw error;
       }
       
-      return data as Match[];
+      // Add proper type casting to ensure compatibility with the Match type
+      return (data as any[]).map(match => ({
+        ...match,
+        highlights: Array.isArray(match.highlights) ? match.highlights : [],
+      })) as Match[];
     },
     enabled: !!user,
   });

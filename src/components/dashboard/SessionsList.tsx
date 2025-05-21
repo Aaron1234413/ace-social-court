@@ -66,7 +66,13 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
         throw error;
       }
       
-      return data as Session[];
+      // Add proper type casting to ensure compatibility with the Session type
+      return (data as any[]).map(session => ({
+        ...session,
+        drills: Array.isArray(session.drills) ? session.drills : [],
+        next_steps: Array.isArray(session.next_steps) ? session.next_steps : [],
+        focus_areas: Array.isArray(session.focus_areas) ? session.focus_areas : [],
+      })) as Session[];
     },
     enabled: !!user,
   });
