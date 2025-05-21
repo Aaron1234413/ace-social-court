@@ -35,6 +35,7 @@ const ProfileEdit = () => {
     );
   }
   
+  // Always pass the current user's ID to the ProfileEditContainer
   return <ProfileEditContainer isNewUser={false} />;
 };
 

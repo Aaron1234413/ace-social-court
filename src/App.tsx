@@ -7,6 +7,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
 import Profile from '@/pages/Profile';
+import ProfileEdit from '@/pages/ProfileEdit';
 import Messages from '@/pages/Messages';
 import TennisAI from '@/pages/TennisAI';
 import Feed from '@/pages/Feed';
@@ -64,6 +65,12 @@ function App() {
               <Route path="/profile/:id" element={
                 <MainLayout>
                   <Profile />
+                </MainLayout>
+              } />
+              {/* Add a dedicated route for profile editing */}
+              <Route path="/profile/edit" element={
+                <MainLayout>
+                  <ProfileEdit />
                 </MainLayout>
               } />
               <Route path="/messages" element={
