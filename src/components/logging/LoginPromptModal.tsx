@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Sheet, 
@@ -18,13 +18,18 @@ export function LoginPromptModal() {
   const { user } = useAuth();
   const { shownToday, isLoading, logPrompt } = useLogPrompts();
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   
   // Show modal on mount if not already shown today and user is logged in
   useEffect(() => {
-    console.log("LoginPromptModal: Checking if modal should be shown", { user: !!user, isLoading, shownToday });
+    console.log("LoginPromptModal: Checking if modal should be shown", { 
+      user: !!user, 
+      userId: user?.id, 
+      isLoading, 
+      shownToday 
+    });
     
-    if (user && !isLoading && !shownToday) {
+    if (user && !isLoading && shownToday === false) {
       console.log("LoginPromptModal: Opening modal");
       setIsOpen(true);
       // Log that prompt was shown
@@ -48,12 +53,16 @@ export function LoginPromptModal() {
     // For 'explore', just close the modal and let user continue
   };
   
-  // Add additional debug check - if modal should be shown but isn't
+  // Force modal to open if conditions are right but modal is closed
   useEffect(() => {
-    if (user && !isLoading && !shownToday && !isOpen) {
-      console.log("LoginPromptModal: Modal should be shown but isn't - forcing open");
-      setIsOpen(true);
-    }
+    const timeoutId = setTimeout(() => {
+      if (user && !isLoading && shownToday === false && !isOpen) {
+        console.log("LoginPromptModal: Modal should be shown but isn't - forcing open");
+        setIsOpen(true);
+      }
+    }, 1000); // Check after a short delay to allow other state to settle
+    
+    return () => clearTimeout(timeoutId);
   }, [user, isLoading, shownToday, isOpen]);
   
   if (isLoading || !user) {

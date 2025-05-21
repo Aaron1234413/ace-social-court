@@ -33,12 +33,13 @@ export function useLogPrompts() {
       }
       
       const hasBeenShown = data && data.length > 0;
-      console.log("useLogPrompts: Prompt has been shown today:", hasBeenShown);
+      console.log("useLogPrompts: Prompt has been shown today:", hasBeenShown, "data:", data);
       return hasBeenShown;
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    refetchOnWindowFocus: false // Don't refetch on window focus
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: true // Always refetch when the component mounts
   });
   
   // Record prompt display or action
