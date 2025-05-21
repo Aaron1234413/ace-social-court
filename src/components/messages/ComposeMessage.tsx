@@ -33,7 +33,7 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
     }
   }, [initialMessage, setNewMessage]);
 
-  // Focus input when component mounts
+  // Focus input when component mounts or conversation changes
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
@@ -47,15 +47,23 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
     
     if ((!message.trim() && !mediaPreview) || !conversationId) {
       if (!conversationId) {
-        toast.error('Conversation ID is missing');
+        toast.error('Please select a conversation first');
+      } else if (!message.trim() && !mediaPreview) {
+        toast.error('Please enter a message or add media');
       }
       return;
     }
     
     console.log(`Preparing to send message: "${message}" to conversation: ${conversationId}`);
     setNewMessage(message);
-    sendMessage();
-    setMessage('');
+    
+    try {
+      sendMessage();
+      setMessage('');
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message. Please try again.");
+    }
   };
   
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

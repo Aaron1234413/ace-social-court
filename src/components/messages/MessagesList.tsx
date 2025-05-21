@@ -1,30 +1,28 @@
 
-import React, { useRef, useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import { Fragment } from 'react';
 import { Message } from '@/types/messages';
 import { useAuth } from '@/components/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { format } from 'date-fns';
-import { Check, CheckCheck } from 'lucide-react';
-import MessageActions from './MessageActions';
-import MessageMedia from './MessageMedia';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import MessageGroup from './MessageGroup';
 
 interface MessagesListProps {
   messages: Message[];
-  isLoading: boolean;
+  isLoading?: boolean;
   error?: { message: string } | null;
-  selectedMessage: string | null;
-  handleMessageClick: (messageId: string) => void;
-  onAddReaction?: (messageId: string, reactionType: string) => void;
-  onRemoveReaction?: (messageId: string, reactionType: string) => void;
+  selectedMessage?: string | null;
+  handleMessageClick?: (messageId: string) => void;
+  onAddReaction?: (messageId: string, reaction: string) => void;
+  onRemoveReaction?: (messageId: string, reaction: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   otherUser?: any;
   isTyping?: boolean;
 }
 
-const MessagesList: React.FC<MessagesListProps> = ({
+const MessagesList = ({
   messages,
-  isLoading,
+  isLoading = false,
   error,
   selectedMessage,
   handleMessageClick,
@@ -32,210 +30,114 @@ const MessagesList: React.FC<MessagesListProps> = ({
   onRemoveReaction,
   onDeleteMessage,
   otherUser,
-  isTyping = false
-}) => {
+  isTyping
+}: MessagesListProps) => {
   const { user } = useAuth();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    if (messagesEndRef.current && messages.length > 0) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
-
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-sm text-muted-foreground mt-2">Loading messages...</p>
+      <div className="flex flex-col items-center justify-center h-full p-4">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <p className="mt-2 text-sm text-muted-foreground">Loading messages...</p>
       </div>
     );
   }
-
+  
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-sm text-destructive">{error.message}</p>
-      </div>
-    );
-  }
-
-  if (!messages || messages.length === 0) {
-    return (
       <div className="flex flex-col items-center justify-center h-full p-4">
-        <div className="bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center mb-3">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-muted-foreground/70"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
+        <div className="bg-destructive/10 text-destructive p-3 rounded-md">
+          <p className="text-sm">{error.message}</p>
         </div>
-        <p className="text-center text-muted-foreground">
-          No messages yet. Start the conversation!
-        </p>
       </div>
     );
   }
-
-  let lastSenderId: string | null = null;
-  let lastDate: string | null = null;
-
+  
+  if (messages.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-4 text-muted-foreground">
+        <p>No messages yet.</p>
+        <p className="text-sm mt-1">Send a message to start the conversation!</p>
+      </div>
+    );
+  }
+  
+  // Group messages by day
+  const groupedMessages: { [key: string]: Message[] } = {};
+  messages.forEach((message) => {
+    const date = new Date(message.created_at).toLocaleDateString();
+    if (!groupedMessages[date]) {
+      groupedMessages[date] = [];
+    }
+    groupedMessages[date].push(message);
+  });
+  
+  // Group consecutive messages by same sender
+  const groupConsecutiveMessagesBySender = (messages: Message[]): Message[][] => {
+    return messages.reduce((groups: Message[][], message: Message) => {
+      const lastGroup = groups[groups.length - 1];
+      
+      if (lastGroup && lastGroup[0].sender_id === message.sender_id) {
+        lastGroup.push(message);
+      } else {
+        groups.push([message]);
+      }
+      
+      return groups;
+    }, []);
+  };
+  
   return (
-    <div className="flex flex-col space-y-4">
-      {messages.map((message, index) => {
-        const isCurrentUser = user && message.sender_id === user.id;
-        const showSender = message.sender_id !== lastSenderId;
-        const messageDate = new Date(message.created_at).toDateString();
-        const showDateDivider = lastDate !== messageDate;
-        const isIcebreaker = index === 0 && messages.length === 1;
-        
-        // Update for next iteration
-        lastSenderId = message.sender_id;
-        lastDate = messageDate;
+    <div className="flex flex-col space-y-6">
+      {Object.entries(groupedMessages).map(([date, messagesForDate]) => {
+        const messageGroups = groupConsecutiveMessagesBySender(messagesForDate);
         
         return (
-          <React.Fragment key={message.id}>
-            {showDateDivider && (
-              <div className="flex items-center justify-center my-4">
-                <div className="bg-muted/30 rounded-full px-3 py-1 text-xs text-muted-foreground">
-                  {format(new Date(message.created_at), 'MMMM d, yyyy')}
-                </div>
+          <Fragment key={date}>
+            <div className="relative flex items-center justify-center my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-muted" />
               </div>
-            )}
-            
-            <div 
-              className={cn(
-                "group flex w-full",
-                isCurrentUser ? "justify-end" : "justify-start",
-                showSender ? "mt-4" : "mt-1",
-                isIcebreaker && "animate-fade-in"
-              )}
-            >
-              {!isCurrentUser && showSender && (
-                <div className="mr-2 mt-1">
-                  <Avatar className="h-6 w-6">
-                    {message.sender?.avatar_url ? (
-                      <AvatarImage src={message.sender.avatar_url} />
-                    ) : (
-                      <AvatarFallback>
-                        {message.sender?.username?.charAt(0) || 
-                         message.sender?.full_name?.charAt(0) || 
-                         '?'}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                </div>
-              )}
-              
-              <div
-                className={cn(
-                  "relative max-w-[80%]",
-                  isCurrentUser ? "order-1" : "order-2"
-                )}
-              >
-                {showSender && !isCurrentUser && message.sender && (
-                  <div className="ml-1 mb-1 text-xs text-muted-foreground">
-                    {message.sender.full_name || message.sender.username || 'Unknown'}
-                  </div>
-                )}
-                
-                <div 
-                  className={cn(
-                    "rounded-lg px-3 py-2 text-sm relative break-words",
-                    isCurrentUser 
-                      ? "bg-primary text-primary-foreground rounded-br-none" 
-                      : "bg-accent text-accent-foreground rounded-bl-none",
-                    selectedMessage === message.id && "ring-2 ring-ring",
-                    isIcebreaker && "border-2 border-primary/20" // Highlight icebreakers
-                  )}
-                  onClick={() => handleMessageClick(message.id)}
-                >
-                  {message.is_deleted ? (
-                    <span className="italic text-muted-foreground">This message was deleted</span>
-                  ) : (
-                    <>
-                      {message.content}
-                      {message.media_url && (
-                        <div className="mt-2">
-                          <MessageMedia 
-                            url={message.media_url} 
-                            type={message.media_type || 'image'} 
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                  
-                  <div className="flex items-center justify-end gap-2 mt-1">
-                    <span className="text-[0.65rem] opacity-70">
-                      {format(new Date(message.created_at), 'h:mm a')}
-                    </span>
-                    
-                    {/* Enhanced read receipt indicator */}
-                    {isCurrentUser && (
-                      <span className="text-xs text-muted-foreground flex items-center" title={message.read ? "Read" : "Delivered"}>
-                        {message.read ? (
-                          <CheckCheck className="h-3.5 w-3.5 text-primary" />
-                        ) : (
-                          <Check className="h-3 w-3 opacity-70" />
-                        )}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                {onAddReaction && onRemoveReaction && onDeleteMessage && (
-                  <MessageActions
-                    message={message}
-                    isCurrentUser={isCurrentUser}
-                    onAddReaction={onAddReaction}
-                    onRemoveReaction={onRemoveReaction}
-                    onDeleteMessage={onDeleteMessage}
-                    isVisible={selectedMessage === message.id}
-                  />
-                )}
+              <div className="relative bg-background px-2 text-xs text-muted-foreground">
+                {date === new Date().toLocaleDateString() 
+                  ? "Today" 
+                  : date === new Date(Date.now() - 86400000).toLocaleDateString()
+                    ? "Yesterday"
+                    : date}
               </div>
             </div>
-          </React.Fragment>
+            
+            {messageGroups.map((group, groupIndex) => (
+              <MessageGroup 
+                key={`${date}-group-${groupIndex}`}
+                messages={group}
+                isCurrentUser={group[0].sender_id === user?.id}
+                selectedMessageId={selectedMessage}
+                onMessageClick={handleMessageClick}
+                onAddReaction={onAddReaction}
+                onRemoveReaction={onRemoveReaction}
+                onDeleteMessage={onDeleteMessage}
+              />
+            ))}
+          </Fragment>
         );
       })}
       
       {isTyping && (
-        <div className="flex items-start ml-2">
-          <div className="mr-2">
-            <Avatar className="h-6 w-6">
-              {otherUser?.avatar_url ? (
-                <AvatarImage src={otherUser.avatar_url} />
-              ) : (
-                <AvatarFallback>
-                  {otherUser?.username?.charAt(0) || 
-                   otherUser?.full_name?.charAt(0) || 
-                   '?'}
-                </AvatarFallback>
-              )}
-            </Avatar>
-          </div>
-          <div className="bg-accent rounded-lg p-3 inline-flex">
-            <div className="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
+        <div className="flex items-start gap-2 px-4">
+          <Avatar className="h-8 w-8">
+            {otherUser?.avatar_url && <AvatarImage src={otherUser.avatar_url} alt={otherUser.username || 'User'} />}
+            <AvatarFallback>{otherUser?.full_name?.[0] || otherUser?.username?.[0] || '?'}</AvatarFallback>
+          </Avatar>
+          <div className="bg-muted px-4 py-2 rounded-lg">
+            <div className="flex space-x-1">
+              <div className="h-2 w-2 bg-muted-foreground/70 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="h-2 w-2 bg-muted-foreground/70 rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></div>
+              <div className="h-2 w-2 bg-muted-foreground/70 rounded-full animate-bounce" style={{ animationDelay: '400ms' }}></div>
             </div>
           </div>
         </div>
       )}
-      
-      <div ref={messagesEndRef} />
     </div>
   );
 };

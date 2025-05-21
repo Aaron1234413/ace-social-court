@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MessageSearch from '@/components/messages/MessageSearch';
 import ConversationsList from '@/components/messages/ConversationsList';
 import ChatInterface from '@/components/messages/ChatInterface';
-import { useCreateConversation } from '@/hooks/use-create-conversation'; // Updated import path
+import NewMessageButton from '@/components/messages/NewMessageButton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Loading } from '@/components/ui/loading';
 import { configureRealtime } from '@/utils/realtimeHelper';
@@ -28,8 +28,6 @@ const Messages = () => {
   // Extract state from navigation, if any
   const locationState = location.state || {};
   const { fromSearch, previousPath } = locationState;
-  
-  const { createConversation } = useCreateConversation();
   
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -62,24 +60,6 @@ const Messages = () => {
         });
     }
   }, [user]);
-  
-  // Handle selecting a user from search
-  const handleUserSelect = async (user: any) => {
-    try {
-      // Create or get conversation with this user
-      const conversationId = await createConversation(user.id, {
-        onSuccess: (id: string) => {
-          navigate(`/messages/${id}`);
-          setActiveTab('conversations');
-        },
-        onError: (err: any) => {
-          setError(`Failed to create conversation: ${err.message || 'Unknown error'}`);
-        }
-      });
-    } catch (error: any) {
-      setError(`Error creating conversation: ${error.message || 'Unknown error'}`);
-    }
-  };
   
   // Handle selecting a conversation from the list
   const handleConversationSelect = (userId: string) => {
@@ -135,17 +115,7 @@ const Messages = () => {
           </Button>
         )}
         
-        {!isMobile && (
-          <Button 
-            onClick={() => setActiveTab('search')}
-            variant="default"
-            size="sm"
-            className="gap-2"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            <span>New Message</span>
-          </Button>
-        )}
+        {!isMobile && <NewMessageButton size="sm" />}
       </div>
       
       {error && (
@@ -166,7 +136,7 @@ const Messages = () => {
         <div className={`md:col-span-1 border-r overflow-hidden flex flex-col ${
           isMobile && selectedConversationId ? 'hidden md:flex' : ''
         }`}>
-          <Tabs defaultValue={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="flex flex-col h-full">
+          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="flex flex-col h-full">
             <TabsList className="w-full grid grid-cols-2 rounded-none border-b bg-background">
               <TabsTrigger value="conversations" className="rounded-none data-[state=active]:bg-accent/50">Conversations</TabsTrigger>
               <TabsTrigger value="search" className="rounded-none data-[state=active]:bg-accent/50">Search</TabsTrigger>
@@ -180,7 +150,7 @@ const Messages = () => {
             </TabsContent>
             
             <TabsContent value="search" className="p-4 flex-1 overflow-y-auto border-0">
-              <MessageSearch onSelectUser={handleUserSelect} />
+              <MessageSearch />
             </TabsContent>
           </Tabs>
         </div>

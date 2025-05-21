@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { useCreateConversation } from '@/hooks/use-messages';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useCreateConversation } from '@/hooks/use-create-conversation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Search, UserPlus, AlertCircle } from 'lucide-react';
+import { Loader2, Search, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface NewMessageDialogProps {
@@ -48,34 +48,96 @@ const NewMessageDialog = ({ open, onOpenChange, onError }: NewMessageDialogProps
   });
   
   const handleStartConversation = (userId: string) => {
+    if (!user) {
+      toast.error("You need to be logged in");
+      return;
+    }
+
     try {
       createConversation(userId, {
-        onSuccess: () => {
+        onSuccess: (conversationId) => {
+          console.log("Successfully created conversation with ID:", conversationId);
           onOpenChange(false);
-          navigate(`/messages/${userId}`);
+          navigate(`/messages/${conversationId}`);
         },
         onError: (error) => {
           console.error('Error creating conversation:', error);
           
-          // If the error is a duplicate key error, the conversation already exists
-          if (error instanceof Error && 
-              (error.message.includes('duplicate key') || 
-               error.message.includes('constraint'))) {
-            console.log("Conversation already exists, navigating to it");
-            onOpenChange(false);
-            navigate(`/messages/${userId}`);
+          // Try to fetch the existing conversation
+          if (error instanceof Error && error.message.includes('duplicate key')) {
+            fetchExistingConversation(userId);
           } else {
-            // Show the error
             toast.error("Failed to create conversation");
             if (onError) onError(error instanceof Error ? error.message : String(error));
           }
+        },
+        onSettled: () => {
+          // Regardless of success or failure, let's refresh the conversations list
+          // This is important for showing newly created conversations
+          setTimeout(() => {
+            navigate('/messages');
+            navigate(`/messages/${userId}`);
+          }, 200);
         }
       });
     } catch (err) {
       console.error('Unexpected error in NewMessageDialog:', err);
-      // Try to navigate anyway
-      onOpenChange(false);
-      navigate(`/messages/${userId}`);
+      toast.error("Failed to create conversation");
+    }
+  };
+
+  const fetchExistingConversation = async (otherUserId: string) => {
+    if (!user) return;
+    
+    try {
+      console.log("Looking for existing conversation between", user.id, "and", otherUserId);
+      
+      // Use lexicographical comparison for consistent ID ordering
+      const user1 = user.id < otherUserId ? user.id : otherUserId;
+      const user2 = user.id > otherUserId ? user.id : otherUserId;
+      
+      // Try to get the exact conversation
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('user1_id', user1)
+        .eq('user2_id', user2)
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error finding conversation (exact match):', error);
+        
+        // Fallback to OR condition
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('conversations')
+          .select('id')
+          .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
+          .maybeSingle();
+          
+        if (fallbackError) {
+          console.error('Error finding conversation (fallback):', fallbackError);
+          toast.error("Could not find conversation");
+          return;
+        }
+        
+        if (fallbackData) {
+          console.log('Found existing conversation (fallback):', fallbackData.id);
+          onOpenChange(false);
+          navigate(`/messages/${fallbackData.id}`);
+          return;
+        }
+      }
+      
+      if (data) {
+        console.log('Found existing conversation (exact match):', data.id);
+        onOpenChange(false);
+        navigate(`/messages/${data.id}`);
+      } else {
+        toast.error("No conversation found");
+      }
+    } catch (err) {
+      console.error('Error finding existing conversation:', err);
+      toast.error("Failed to find conversation");
     }
   };
   
@@ -104,7 +166,6 @@ const NewMessageDialog = ({ open, onOpenChange, onError }: NewMessageDialogProps
           <div className="min-h-[200px] max-h-[300px] overflow-y-auto">
             {error && (
               <div className="flex items-center gap-2 text-destructive p-4 bg-destructive/10 rounded-md">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 <p className="text-sm">Error searching users: {error instanceof Error ? error.message : String(error)}</p>
               </div>
             )}
@@ -130,7 +191,7 @@ const NewMessageDialog = ({ open, onOpenChange, onError }: NewMessageDialogProps
                     <div className="flex items-center gap-3 w-full">
                       <Avatar className="h-10 w-10">
                         {user.avatar_url && (
-                          <img 
+                          <AvatarImage 
                             src={user.avatar_url} 
                             alt={user.username || 'User'} 
                           />
