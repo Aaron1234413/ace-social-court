@@ -7,6 +7,8 @@ import Auth from '@/pages/Auth';
 import Profile from '@/pages/Profile';
 import Messages from '@/pages/Messages';
 import TennisAI from '@/pages/TennisAI';
+import Feed from '@/pages/Feed';
+import MainLayout from '@/components/layout/MainLayout';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -36,10 +38,31 @@ function App() {
         <Routes>
           <Route path="/" element={<Auth />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/profile/:id" element={<Profile />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/messages/:chatId" element={<Messages />} />
-          <Route path="/tennis-ai" element={<TennisAI />} />
+          <Route path="/feed" element={
+            <MainLayout>
+              <Feed />
+            </MainLayout>
+          } />
+          <Route path="/profile/:id" element={
+            <MainLayout>
+              <Profile />
+            </MainLayout>
+          } />
+          <Route path="/messages" element={
+            <MainLayout>
+              <Messages />
+            </MainLayout>
+          } />
+          <Route path="/messages/:chatId" element={
+            <MainLayout>
+              <Messages />
+            </MainLayout>
+          } />
+          <Route path="/tennis-ai" element={
+            <MainLayout>
+              <TennisAI />
+            </MainLayout>
+          } />
         </Routes>
       </Router>
       <Toaster />
