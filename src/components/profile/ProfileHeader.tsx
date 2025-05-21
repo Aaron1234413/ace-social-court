@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
+import { uploadFileWithProgress } from '@/integrations/supabase/storage';
 
 interface ProfileHeaderProps {
   userId: string;
@@ -458,6 +458,3 @@ const ProfileStatCard = ({ icon, count, label, href }: ProfileStatCardProps) => 
     </Link>
   );
 };
-
-// Import needed function from storage.ts
-const { uploadFileWithProgress } = await import('@/integrations/supabase/storage');
