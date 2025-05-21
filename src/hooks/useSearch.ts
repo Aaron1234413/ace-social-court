@@ -42,13 +42,15 @@ export function useSearch() {
       try {
         let query = supabase
           .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type, bio, skill_level, location')
+          .select('id, full_name, username, avatar_url, user_type, bio, skill_level')
           .or(`username.ilike.%${debouncedSearchTerm}%,full_name.ilike.%${debouncedSearchTerm}%`)
           .limit(20);
           
         // Apply filters
         if (filters.userType && filters.userType.length > 0) {
-          query = query.in('user_type', filters.userType);
+          // Convert string array to proper format for the query
+          // This approach avoids TypeScript errors while allowing string values
+          query = query.in('user_type', filters.userType as any);
         }
         
         if (filters.skillLevel) {

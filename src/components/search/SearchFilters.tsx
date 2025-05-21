@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   ToggleGroup, 
   ToggleGroupItem 
@@ -8,17 +8,44 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown } from 'lucide-react';
+import { SearchFilters as SearchFiltersType } from '@/hooks/useSearch';
 
-const SearchFilters = () => {
-  const [userType, setUserType] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState("relevance");
+interface SearchFiltersProps {
+  filters: SearchFiltersType;
+  setFilters: (filters: SearchFiltersType) => void;
+}
+
+const SearchFilters: React.FC<SearchFiltersProps> = ({ filters, setFilters }) => {
+  const handleUserTypeChange = (value: string[]) => {
+    setFilters({ ...filters, userType: value });
+  };
+  
+  const handleSortByChange = (value: string) => {
+    setFilters({ 
+      ...filters, 
+      sortBy: value as 'relevance' | 'distance' | 'rating' | 'newest' 
+    });
+  };
+  
+  const resetFilters = () => {
+    setFilters({
+      userType: [],
+      sortBy: 'relevance',
+      nearby: false
+    });
+  };
   
   return (
     <div className="space-y-4">
       <div>
         <Label className="block mb-2">User Type</Label>
-        <ToggleGroup type="multiple" variant="outline" value={userType} onValueChange={setUserType} className="flex flex-wrap gap-2">
+        <ToggleGroup 
+          type="multiple" 
+          variant="outline" 
+          value={filters.userType} 
+          onValueChange={handleUserTypeChange} 
+          className="flex flex-wrap gap-2"
+        >
           <ToggleGroupItem value="player" aria-label="Filter by players" className="rounded-full data-[state=on]:bg-tennis-green/20 data-[state=on]:text-tennis-darkGreen">
             <Badge className="bg-tennis-green/10 text-tennis-darkGreen hover:bg-tennis-green/20 border-none">
               Players
@@ -45,7 +72,7 @@ const SearchFilters = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
           <Label htmlFor="sort-by">Sort By</Label>
-          <Select value={sortBy} onValueChange={setSortBy}>
+          <Select value={filters.sortBy} onValueChange={handleSortByChange}>
             <SelectTrigger className="w-[180px]" id="sort-by">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
@@ -61,10 +88,7 @@ const SearchFilters = () => {
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => {
-            setUserType([]);
-            setSortBy("relevance");
-          }}
+          onClick={resetFilters}
           className="text-sm"
         >
           Reset Filters

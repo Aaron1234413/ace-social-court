@@ -8,21 +8,13 @@ import FollowButton from '@/components/social/FollowButton';
 import { useAuth } from '@/components/AuthProvider';
 import { UserCheck, MapPin, Star, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface User {
-  id: string;
-  full_name: string | null;
-  username: string | null;
-  avatar_url: string | null;
-  user_type?: string;
-  bio?: string | null;
-}
+import { SearchUser } from '@/hooks/useSearch';
 
 interface UserSearchResultsProps {
-  users: User[];
+  users: SearchUser[];
 }
 
-const UserCard = ({ user }: { user: User }) => {
+const UserCard = ({ user }: { user: SearchUser }) => {
   const { user: currentUser } = useAuth();
   const [flipped, setFlipped] = useState(false);
   const [favorite, setFavorite] = useState(false);
@@ -145,7 +137,7 @@ const UserCard = ({ user }: { user: User }) => {
                 </Link>
               </div>
               
-              <FollowButton userId={user.id} className="w-full" />
+              <FollowButton userId={user.id} />
             </>
           )}
         </div>

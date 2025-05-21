@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search as SearchIcon, Users, MapPin, SlidersHorizontal, Filter } from 'lucide-react';
+import { Search as SearchIcon, Users, MapPin, Filter } from 'lucide-react';
 import UserSearchResults from '@/components/search/UserSearchResults';
 import SearchFilters from '@/components/search/SearchFilters';
 import { Card } from '@/components/ui/card';
@@ -19,7 +19,14 @@ const Search = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [showFilters, setShowFilters] = useState(false);
   
-  const { searchQuery, setSearchQuery, results: userResults, isLoading } = useSearch();
+  const { 
+    searchQuery, 
+    setSearchQuery, 
+    results: userResults, 
+    isLoading,
+    filters,
+    setFilters
+  } = useSearch();
   
   // Update the search query when the URL parameter changes
   useEffect(() => {
@@ -111,13 +118,16 @@ const Search = () => {
         {/* Filters panel */}
         {showFilters && (
           <Card className="mb-6 p-4 animate-fade-in">
-            <SearchFilters />
+            <SearchFilters 
+              filters={filters}
+              setFilters={setFilters}
+            />
           </Card>
         )}
         
         {/* Results content */}
-        <div>
-          <TabsContent value="users" className="mt-0">
+        <Tabs value={activeTab} className="mt-0">
+          <TabsContent value="users">
             {query ? (
               <>
                 {isLoading ? (
@@ -157,7 +167,7 @@ const Search = () => {
             )}
           </TabsContent>
           
-          <TabsContent value="courts" className="mt-0">
+          <TabsContent value="courts">
             <div className="text-center py-12">
               <div className="inline-block h-20 w-20 rounded-full bg-tennis-green/10 flex items-center justify-center mb-4">
                 <MapPin className="h-10 w-10 text-tennis-green/60" />
@@ -171,7 +181,7 @@ const Search = () => {
               </Button>
             </div>
           </TabsContent>
-        </div>
+        </Tabs>
       </div>
     </>
   );
