@@ -291,6 +291,87 @@ export type Database = {
           },
         ]
       }
+      log_prompts: {
+        Row: {
+          action_taken: string | null
+          created_at: string | null
+          id: string
+          prompt_type: string
+          user_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string | null
+          id?: string
+          prompt_type: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string | null
+          id?: string
+          prompt_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          created_at: string | null
+          endurance_rating: number | null
+          highlights: Json | null
+          id: string
+          location: string | null
+          match_date: string
+          media_type: string | null
+          media_url: string | null
+          opponent_id: string | null
+          reflection_note: string | null
+          return_rating: number | null
+          score: string | null
+          serve_rating: number | null
+          surface: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          endurance_rating?: number | null
+          highlights?: Json | null
+          id?: string
+          location?: string | null
+          match_date?: string
+          media_type?: string | null
+          media_url?: string | null
+          opponent_id?: string | null
+          reflection_note?: string | null
+          return_rating?: number | null
+          score?: string | null
+          serve_rating?: number | null
+          surface?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          endurance_rating?: number | null
+          highlights?: Json | null
+          id?: string
+          location?: string | null
+          match_date?: string
+          media_type?: string | null
+          media_url?: string | null
+          opponent_id?: string | null
+          reflection_note?: string | null
+          return_rating?: number | null
+          score?: string | null
+          serve_rating?: number | null
+          surface?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string
@@ -485,6 +566,48 @@ export type Database = {
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
           username?: string | null
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          coach_id: string | null
+          created_at: string | null
+          drills: Json | null
+          focus_areas: string[] | null
+          id: string
+          next_steps: Json | null
+          reminder_date: string | null
+          session_date: string
+          session_note: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coach_id?: string | null
+          created_at?: string | null
+          drills?: Json | null
+          focus_areas?: string[] | null
+          id?: string
+          next_steps?: Json | null
+          reminder_date?: string | null
+          session_date?: string
+          session_note?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coach_id?: string | null
+          created_at?: string | null
+          drills?: Json | null
+          focus_areas?: string[] | null
+          id?: string
+          next_steps?: Json | null
+          reminder_date?: string | null
+          session_date?: string
+          session_note?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }

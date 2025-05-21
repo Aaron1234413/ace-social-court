@@ -8,7 +8,10 @@ import Profile from '@/pages/Profile';
 import Messages from '@/pages/Messages';
 import TennisAI from '@/pages/TennisAI';
 import Feed from '@/pages/Feed';
+import LogMatch from '@/pages/LogMatch';
+import LogSession from '@/pages/LogSession';
 import MainLayout from '@/components/layout/MainLayout';
+import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -35,6 +38,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <LoginPromptModal />
         <Routes>
           <Route path="/" element={<Auth />} />
           <Route path="/auth" element={<Auth />} />
@@ -61,6 +65,17 @@ function App() {
           <Route path="/tennis-ai" element={
             <MainLayout>
               <TennisAI />
+            </MainLayout>
+          } />
+          {/* Add new routes for match and session logging */}
+          <Route path="/log/match" element={
+            <MainLayout>
+              <LogMatch />
+            </MainLayout>
+          } />
+          <Route path="/log/session" element={
+            <MainLayout>
+              <LogSession />
             </MainLayout>
           } />
         </Routes>
