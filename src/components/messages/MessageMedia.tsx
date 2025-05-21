@@ -5,7 +5,7 @@ import { Loading } from '@/components/ui/loading';
 
 interface MessageMediaProps {
   url: string;
-  type: 'image' | 'video';
+  type: string; // Changed from 'image' | 'video' to string
   uploadProgress?: number;
   isUploading?: boolean;
   isLoading?: boolean;

@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -6,6 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 interface CreateConversationCallbacks {
   onSuccess?: (conversationId: string) => void;
   onError?: (error: any) => void;
+  onSettled?: () => void;
 }
 
 export const useCreateConversation = () => {
@@ -62,6 +62,11 @@ export const useCreateConversation = () => {
         onError: (error) => {
           if (callbacks?.onError) {
             callbacks.onError(error);
+          }
+        },
+        onSettled: () => {
+          if (callbacks?.onSettled) {
+            callbacks.onSettled();
           }
         }
       });
