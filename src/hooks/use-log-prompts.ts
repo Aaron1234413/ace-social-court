@@ -14,6 +14,8 @@ export function useLogPrompts() {
     queryFn: async () => {
       if (!user) return false;
       
+      console.log("useLogPrompts: Checking if prompt shown today for user", user.id);
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -30,9 +32,13 @@ export function useLogPrompts() {
         return false;
       }
       
-      return data && data.length > 0;
+      const hasBeenShown = data && data.length > 0;
+      console.log("useLogPrompts: Prompt has been shown today:", hasBeenShown);
+      return hasBeenShown;
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false // Don't refetch on window focus
   });
   
   // Record prompt display or action
@@ -45,6 +51,8 @@ export function useLogPrompts() {
       actionTaken?: string | null;
     }) => {
       if (!user) throw new Error('User not authenticated');
+      
+      console.log("useLogPrompts: Logging prompt action", { promptType, actionTaken });
       
       const { data, error } = await supabase
         .from('log_prompts')

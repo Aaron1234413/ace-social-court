@@ -22,7 +22,10 @@ export function LoginPromptModal() {
   
   // Show modal on mount if not already shown today and user is logged in
   useEffect(() => {
+    console.log("LoginPromptModal: Checking if modal should be shown", { user: !!user, isLoading, shownToday });
+    
     if (user && !isLoading && !shownToday) {
+      console.log("LoginPromptModal: Opening modal");
       setIsOpen(true);
       // Log that prompt was shown
       logPrompt({ promptType: 'daily_login' });
@@ -44,6 +47,14 @@ export function LoginPromptModal() {
     }
     // For 'explore', just close the modal and let user continue
   };
+  
+  // Add additional debug check - if modal should be shown but isn't
+  useEffect(() => {
+    if (user && !isLoading && !shownToday && !isOpen) {
+      console.log("LoginPromptModal: Modal should be shown but isn't - forcing open");
+      setIsOpen(true);
+    }
+  }, [user, isLoading, shownToday, isOpen]);
   
   if (isLoading || !user) {
     return null;

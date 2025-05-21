@@ -38,6 +38,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        {/* Make sure LoginPromptModal is not inside any route so it can show regardless of current page */}
         <LoginPromptModal />
         <Routes>
           <Route path="/" element={<Auth />} />
