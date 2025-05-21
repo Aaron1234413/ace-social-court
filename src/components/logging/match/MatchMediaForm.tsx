@@ -3,7 +3,7 @@ import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { MatchFormValues } from './matchSchema';
-import { MediaUploader } from '@/components/media/MediaUploader';
+import MediaUploader from '@/components/media/MediaUploader';
 import { FormLabel } from '@/components/ui/form';
 
 interface MatchMediaFormProps {
