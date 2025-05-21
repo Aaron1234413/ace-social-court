@@ -1,96 +1,90 @@
 
-import { useState, useCallback, memo } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { useCreateConversation } from '@/hooks/use-create-conversation'; // Updated import path
-import { MessageSquare, Loader2 } from 'lucide-react';
+import { Button, ButtonProps } from '@/components/ui/button';
+import { MessageSquare } from 'lucide-react';
+import { useCreateConversation } from '@/hooks/use-create-conversation';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
-interface MessageButtonProps {
+interface MessageButtonProps extends ButtonProps {
   userId: string;
   compact?: boolean;
-  variant?: 'default' | 'secondary' | 'outline' | 'ghost' | 'link' | 'destructive';
+  showIcon?: boolean;
+  initialMessage?: string;
+  autoSend?: boolean;
+  showTooltip?: boolean;
 }
 
-const MessageButton = ({ userId, compact = false, variant = 'outline' }: MessageButtonProps) => {
+const MessageButton = ({ 
+  userId, 
+  compact = false, 
+  showIcon = true,
+  initialMessage,
+  autoSend = false,
+  showTooltip = false,
+  className,
+  ...props 
+}: MessageButtonProps) => {
   const navigate = useNavigate();
-  const [isCreating, setIsCreating] = useState(false);
-  const { createConversation } = useCreateConversation();
-  const isMobile = useIsMobile();
-  
-  const handleClick = useCallback(async () => {
-    if (isCreating || !userId) return;
-    
+  const { createConversation, isCreating } = useCreateConversation();
+
+  const handleMessageClick = async () => {
     try {
-      setIsCreating(true);
-      console.log(`Starting conversation with user: ${userId}`);
-      
-      // Navigate to the messages route with this user ID and pass the referrer to preserve context
-      navigate(`/messages/${userId}`, {
-        state: { 
-          fromSearch: true,
-          previousPath: window.location.pathname + window.location.search
-        }
-      });
-      
-      // Then attempt to create a conversation record if it doesn't exist yet
-      createConversation(userId, {
-        onSuccess: () => {
-          console.log("Conversation created or found successfully");
-          if (isMobile) {
-            // On mobile, show a toast to confirm
-            toast.success("Conversation opened", {
-              description: "You can now start messaging"
-            });
-          }
+      await createConversation(userId, {
+        onSuccess: (conversationId: string) => {
+          // Navigate to the conversation with optional initial message
+          navigate(`/messages/${conversationId}`, { 
+            state: { 
+              fromSearch: true, 
+              initialMessage,
+              autoSend,
+              previousPath: window.location.pathname + window.location.search
+            } 
+          });
         },
-        onError: (error) => {
-          // Only show errors for non-duplicate key issues
-          // (duplicate errors are expected since we may already have this conversation)
-          if (error instanceof Error && 
-             !(error.message.includes('duplicate key') || 
-               error.message.includes('constraint'))) {
-            
-            toast.error("Failed to create conversation", {
-              description: error instanceof Error ? error.message : "Please try again later"
-            });
-          }
-        },
-        onSettled: () => {
-          setIsCreating(false);
+        onError: (error: Error) => {
+          console.error('Error creating conversation:', error);
+          toast.error('Could not start conversation');
         }
       });
     } catch (error) {
-      console.error('Unexpected error in MessageButton:', error);
-      setIsCreating(false);
-      toast.error("An unexpected error occurred");
+      console.error('Failed to create conversation:', error);
+      toast.error('Failed to create conversation');
     }
-  }, [userId, isCreating, navigate, createConversation, isMobile]);
-  
-  // On mobile, use a more compact button when compact prop is true
-  const buttonSize = isMobile && compact ? 'icon' : compact ? 'icon' : 'sm';
-  
-  return (
+  };
+
+  const buttonContent = (
     <Button
-      variant={variant}
-      size={buttonSize}
-      onClick={handleClick}
+      onClick={handleMessageClick}
       disabled={isCreating}
-      className={compact ? 'rounded-full' : 'rounded-md'}
-    >
-      {isCreating ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : compact ? (
-        <MessageSquare className="h-4 w-4" />
-      ) : (
-        <>
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Message
-        </>
+      size={compact ? "sm" : "default"}
+      className={cn(
+        "gap-2", 
+        className
       )}
+      {...props}
+    >
+      {showIcon && <MessageSquare className={compact ? "h-4 w-4" : "h-5 w-5"} />}
+      {!compact && <span>Message</span>}
     </Button>
   );
+
+  if (showTooltip) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {buttonContent}
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">Send an icebreaker message</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return buttonContent;
 };
 
-export default memo(MessageButton);
+export default MessageButton;

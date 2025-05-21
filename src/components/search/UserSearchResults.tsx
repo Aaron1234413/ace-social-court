@@ -44,6 +44,8 @@ const UserSearchResults: React.FC<UserSearchResultsProps> = ({ users }) => {
                 userId={user.id} 
                 variant="outline" 
                 compact={true} 
+                initialMessage={`Hi ${user.full_name || user.username || 'there'}! I found you in search and would like to connect.`}
+                showTooltip={true}
               />
             </div>
             

@@ -90,16 +90,17 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
     }
   }, [userError, onError]);
   
-  // Handle initial message from navigation state
+  // Handle initial message from navigation state with improved reliability
   useEffect(() => {
     if (locationState?.initialMessage && validConversation && !initialMessageProcessed && !isLoadingMessages) {
+      console.log("Setting initial message:", locationState.initialMessage);
       // Set the message text from the navigation state
       setNewMessage(locationState.initialMessage);
       
       // Auto-send the message if requested
       if (locationState.autoSend) {
         // Use setTimeout to ensure the message state is updated before sending
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           sendMessage();
           setInitialMessageProcessed(true);
           
@@ -108,7 +109,9 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
           delete newState.initialMessage;
           delete newState.autoSend;
           navigate('.', { state: newState, replace: true });
-        }, 100);
+        }, 300);
+        
+        return () => clearTimeout(timer);
       } else {
         setInitialMessageProcessed(true);
       }

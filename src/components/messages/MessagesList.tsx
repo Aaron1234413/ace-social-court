@@ -97,6 +97,7 @@ const MessagesList: React.FC<MessagesListProps> = ({
         const showSender = message.sender_id !== lastSenderId;
         const messageDate = new Date(message.created_at).toDateString();
         const showDateDivider = lastDate !== messageDate;
+        const isIcebreaker = index === 0 && messages.length === 1;
         
         // Update for next iteration
         lastSenderId = message.sender_id;
@@ -116,7 +117,8 @@ const MessagesList: React.FC<MessagesListProps> = ({
               className={cn(
                 "group flex w-full",
                 isCurrentUser ? "justify-end" : "justify-start",
-                showSender ? "mt-4" : "mt-1"
+                showSender ? "mt-4" : "mt-1",
+                isIcebreaker && "animate-fade-in"
               )}
             >
               {!isCurrentUser && showSender && (
@@ -153,7 +155,8 @@ const MessagesList: React.FC<MessagesListProps> = ({
                     isCurrentUser 
                       ? "bg-primary text-primary-foreground rounded-br-none" 
                       : "bg-accent text-accent-foreground rounded-bl-none",
-                    selectedMessage === message.id && "ring-2 ring-ring"
+                    selectedMessage === message.id && "ring-2 ring-ring",
+                    isIcebreaker && "border-2 border-primary/20" // Highlight icebreakers
                   )}
                   onClick={() => handleMessageClick(message.id)}
                 >
@@ -173,20 +176,22 @@ const MessagesList: React.FC<MessagesListProps> = ({
                     </>
                   )}
                   
-                  <span className="inline-block ml-2 opacity-70 text-[0.65rem]">
-                    {format(new Date(message.created_at), 'h:mm a')}
-                  </span>
-                  
-                  {/* Read receipt indicator */}
-                  {isCurrentUser && (
-                    <span className="absolute -bottom-4 right-0 text-xs text-muted-foreground flex items-center">
-                      {message.read ? (
-                        <CheckCheck className="h-3 w-3 text-primary" />
-                      ) : (
-                        <Check className="h-3 w-3" />
-                      )}
+                  <div className="flex items-center justify-end gap-2 mt-1">
+                    <span className="text-[0.65rem] opacity-70">
+                      {format(new Date(message.created_at), 'h:mm a')}
                     </span>
-                  )}
+                    
+                    {/* Enhanced read receipt indicator */}
+                    {isCurrentUser && (
+                      <span className="text-xs text-muted-foreground flex items-center" title={message.read ? "Read" : "Delivered"}>
+                        {message.read ? (
+                          <CheckCheck className="h-3.5 w-3.5 text-primary" />
+                        ) : (
+                          <Check className="h-3 w-3 opacity-70" />
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
                 {onAddReaction && onRemoveReaction && onDeleteMessage && (
