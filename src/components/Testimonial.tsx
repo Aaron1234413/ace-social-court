@@ -7,28 +7,13 @@ interface TestimonialProps {
   quote: string;
   name: string;
   title: string;
-  author?: string; // For backward compatibility
-  position?: string; // For backward compatibility
   avatarUrl?: string;
   accentColor?: string;
 }
 
-export const Testimonial = ({ 
-  quote, 
-  name, 
-  title, 
-  author, // Added for backward compatibility
-  position, // Added for backward compatibility
-  avatarUrl, 
-  accentColor = "bg-primary/10 border-primary/20" 
-}: TestimonialProps) => {
-  // Use author as fallback for name for backward compatibility
-  const displayName = name || author || '';
-  // Use position as fallback for title for backward compatibility
-  const displayTitle = title || position || '';
-  
+export const Testimonial = ({ quote, name, title, avatarUrl, accentColor = "bg-primary/10 border-primary/20" }: TestimonialProps) => {
   // Create initials from name for avatar fallback
-  const initials = displayName
+  const initials = name
     .split(' ')
     .map(part => part[0])
     .join('')
@@ -47,12 +32,12 @@ export const Testimonial = ({
       </CardContent>
       <CardFooter className="border-t pt-4 flex items-center gap-3">
         <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-sm">
-          {avatarUrl && <img src={avatarUrl} alt={displayName} />}
+          {avatarUrl && <img src={avatarUrl} alt={name} />}
           <AvatarFallback className="bg-tennis-accent/10 text-tennis-accent font-bold">{initials}</AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-semibold">{displayName}</p>
-          <p className="text-xs text-muted-foreground">{displayTitle}</p>
+          <p className="text-sm font-semibold">{name}</p>
+          <p className="text-xs text-muted-foreground">{title}</p>
         </div>
       </CardFooter>
     </Card>

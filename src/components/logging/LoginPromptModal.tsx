@@ -15,30 +15,10 @@ import { useLogPrompts } from '@/hooks/use-log-prompts';
 import { useAuth } from '@/components/AuthProvider';
 
 export function LoginPromptModal() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { shownToday, isLoading, logPrompt } = useLogPrompts();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = React.useState(false);
-  
-  // Get the best available display name for the user
-  const displayName = React.useMemo(() => {
-    // First try to use the profile data (which has username and full_name)
-    if (profile?.full_name) return profile.full_name;
-    if (profile?.username) return profile.username;
-    
-    // Fall back to user metadata if profile isn't loaded yet
-    if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
-    if (user?.user_metadata?.name) return user.user_metadata.name;
-    
-    // Fall back to user's email (just the part before @)
-    if (user?.email) {
-      const emailName = user.email.split('@')[0];
-      return emailName.charAt(0).toUpperCase() + emailName.slice(1);
-    }
-    
-    // Last resort generic greeting
-    return profile?.user_type === 'coach' ? 'Coach' : 'Player';
-  }, [user, profile]);
   
   // Show modal on mount if not already shown today and user is logged in
   useEffect(() => {
@@ -73,7 +53,7 @@ export function LoginPromptModal() {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent side="center" className="sm:max-w-lg sm:mx-auto rounded-lg">
         <SheetHeader className="text-center pb-6">
-          <SheetTitle className="text-2xl font-bold">Welcome back, {displayName}!</SheetTitle>
+          <SheetTitle className="text-2xl font-bold">Welcome back, {user.user_metadata?.full_name || 'Player'}!</SheetTitle>
           <SheetDescription className="text-lg">
             What would you like to log today?
           </SheetDescription>
