@@ -10,7 +10,6 @@ import { useAuth } from '@/components/AuthProvider';
 import { UserCheck, MapPin, Star, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SearchUser } from '@/hooks/useSearch';
-import { useMasonryGrid } from '@/hooks/useMasonryGrid';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -87,7 +86,7 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
       animate="visible"
       custom={index}
       variants={itemVariants}
-      className="masonry-item"
+      className="w-full"
     >
       <div 
         className="perspective-1000 relative h-[250px] transition-all duration-300 cursor-pointer w-full hover:shadow-lg"
@@ -264,25 +263,9 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
 };
 
 const UserSearchResults: React.FC<UserSearchResultsProps> = ({ users }) => {
-  const { gridRef, rendered, resizeGrid } = useMasonryGrid();
-  
-  // Force grid recalculation when users change
-  useEffect(() => {
-    if (users.length > 0) {
-      setTimeout(resizeGrid, 100); // Small delay to ensure DOM is updated
-    }
-  }, [users, resizeGrid]);
-
+  // Use CSS grid for clean, responsive layout instead of masonry
   return (
-    <div 
-      ref={gridRef} 
-      className={cn(
-        "masonry-grid",
-        !rendered && "opacity-0",
-        rendered && "opacity-100 transition-opacity duration-300"
-      )}
-      style={{ gridAutoRows: '10px' }}
-    >
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
       {users.map((user, index) => (
         <UserCard key={user.id} user={user} index={index} />
       ))}
