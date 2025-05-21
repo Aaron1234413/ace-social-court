@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, Image, Smile, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,10 @@ import { useMessages } from '@/hooks/use-messages';
 
 interface ComposeMessageProps {
   conversationId: string | null;
+  initialMessage?: string;
 }
 
-const ComposeMessage = ({ conversationId }: ComposeMessageProps) => {
+const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps) => {
   const [message, setMessage] = useState('');
   const { 
     sendMessage, 
@@ -21,6 +22,14 @@ const ComposeMessage = ({ conversationId }: ComposeMessageProps) => {
     mediaPreview,
     clearMedia
   } = useMessages(conversationId);
+  
+  // Set initial message if provided
+  useEffect(() => {
+    if (initialMessage) {
+      setMessage(initialMessage);
+      setNewMessage(initialMessage);
+    }
+  }, [initialMessage, setNewMessage]);
   
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();

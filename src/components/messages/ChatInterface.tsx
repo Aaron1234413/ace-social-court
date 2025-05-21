@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useMessages } from '@/hooks/use-messages';
 import { useAuth } from '@/components/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
@@ -18,8 +18,15 @@ interface ChatInterfaceProps {
   chatId?: string;
 }
 
+interface LocationState {
+  initialMessage?: string;
+  autoSend?: boolean;
+}
+
 const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
   const { chatId: paramChatId } = useParams<{ chatId: string }>();
+  const location = useLocation();
+  const locationState = location.state as LocationState;
   const otherUserId = propChatId || paramChatId;
   
   const { user } = useAuth();
@@ -28,6 +35,7 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const [initialMessageProcessed, setInitialMessageProcessed] = useState(false);
   
   const validConversation = !!otherUserId && otherUserId !== 'undefined';
 
@@ -37,7 +45,10 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
     error: messagesError,
     addReaction,
     removeReaction,
-    deleteMessage
+    deleteMessage,
+    setNewMessage,
+    sendMessage,
+    newMessage
   } = useMessages(validConversation ? otherUserId : null);
   
   // Handle any errors
@@ -75,6 +86,28 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
       onError("Failed to load user information: " + (userError instanceof Error ? userError.message : String(userError)));
     }
   }, [userError, onError]);
+  
+  // Handle initial message from navigation state
+  useEffect(() => {
+    if (locationState?.initialMessage && validConversation && !initialMessageProcessed && !isLoadingMessages) {
+      // Set the message text from the navigation state
+      setNewMessage(locationState.initialMessage);
+      
+      // Auto-send the message if requested
+      if (locationState.autoSend) {
+        // Use setTimeout to ensure the message state is updated before sending
+        setTimeout(() => {
+          sendMessage();
+          setInitialMessageProcessed(true);
+          
+          // Clear navigation state to prevent re-sending
+          window.history.replaceState({}, document.title);
+        }, 100);
+      } else {
+        setInitialMessageProcessed(true);
+      }
+    }
+  }, [locationState, validConversation, isLoadingMessages, initialMessageProcessed, setNewMessage, sendMessage]);
   
   const handleMessageClick = useCallback((messageId: string) => {
     setSelectedMessage(messageId === selectedMessage ? null : messageId);
@@ -126,7 +159,10 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
         />
       </div>
       
-      <ComposeMessage conversationId={otherUserId} />
+      <ComposeMessage 
+        conversationId={otherUserId} 
+        initialMessage={!initialMessageProcessed ? locationState?.initialMessage : undefined}
+      />
     </div>
   );
 };

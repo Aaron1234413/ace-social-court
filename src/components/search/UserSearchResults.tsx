@@ -77,50 +77,21 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
     if (!user.id || !currentUser) return;
     
     try {
-      // Create or find conversation with this user
+      // Create a conversation with this user through our hook
       createConversation(user.id, {
         onSuccess: (conversationId: string) => {
-          // Send the icebreaker message
-          const sendMessageAction = async () => {
-            try {
-              // Send message to the conversation
-              const { data, error } = await supabase
-                .from('direct_messages')
-                .insert({
-                  sender_id: currentUser.id,
-                  recipient_id: user.id,
-                  content: message,
-                  read: false
-                })
-                .select();
-                
-              if (error) throw error;
-              
-              // Update the conversation's last_message_at timestamp
-              await supabase
-                .from('conversations')
-                .update({ last_message_at: new Date().toISOString() })
-                .eq('id', conversationId);
-                
-              // Navigate to messages page with this conversation
-              navigate(`/messages/${conversationId}`);
-              
-              toast({
-                title: "Message sent!",
-                description: `Your message was sent to ${user.full_name || user.username}.`
-              });
-            } catch (err) {
-              console.error('Error sending message:', err);
-              toast({
-                title: "Failed to send message",
-                description: "Please try again later.",
-                variant: "destructive"
-              });
+          // Navigate to the conversation with the message pre-filled
+          navigate(`/messages/${conversationId}`, { 
+            state: { 
+              initialMessage: message,
+              autoSend: true 
             }
-          };
+          });
           
-          // Execute the message sending action
-          sendMessageAction();
+          toast({
+            title: "Message sent!",
+            description: `Your message to ${user.full_name || user.username} was sent.`
+          });
         },
         onError: (error: any) => {
           console.error('Error creating conversation:', error);
@@ -129,6 +100,9 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
             description: "Failed to start conversation. Please try again.",
             variant: "destructive"
           });
+        },
+        onSettled: () => {
+          setShowIcebreakers(false);
         }
       });
     } catch (error) {
@@ -138,13 +112,15 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
         description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
+      setShowIcebreakers(false);
     }
-    setShowIcebreakers(false);
   };
   
   const skillLevelColor = getSkillLevelColor(user.skill_level);
   
+  
   return (
+    
     <motion.div
       initial="hidden"
       animate="visible"
