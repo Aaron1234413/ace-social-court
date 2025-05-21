@@ -7,6 +7,7 @@ import { useCreateConversation } from '@/hooks/use-create-conversation';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MessageButtonProps extends ButtonProps {
   userId: string;
@@ -32,7 +33,7 @@ const MessageButton = ({
 
   const handleMessageClick = async () => {
     try {
-      await createConversation(userId, {
+      createConversation(userId, {
         onSuccess: (conversationId: string) => {
           // Navigate to the conversation with optional initial message
           navigate(`/messages/${conversationId}`, { 
@@ -46,12 +47,48 @@ const MessageButton = ({
         },
         onError: (error: Error) => {
           console.error('Error creating conversation:', error);
-          toast.error('Could not start conversation');
+          // Check if we got the duplicate key error, which we can handle gracefully
+          if (error.message?.includes('duplicate key value')) {
+            // Try to fetch the existing conversation
+            getExistingConversation(userId);
+          } else {
+            toast.error('Could not start conversation');
+          }
         }
       });
     } catch (error) {
       console.error('Failed to create conversation:', error);
       toast.error('Failed to create conversation');
+    }
+  };
+
+  // Helper function to get existing conversation and navigate to it
+  const getExistingConversation = async (otherUserId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${userId},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${userId})`)
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      if (data) {
+        // Navigate to the existing conversation
+        navigate(`/messages/${data.id}`, { 
+          state: { 
+            fromSearch: true, 
+            initialMessage,
+            autoSend,
+            previousPath: window.location.pathname + window.location.search
+          } 
+        });
+      } else {
+        toast.error('Could not find your conversation');
+      }
+    } catch (err) {
+      console.error('Error finding conversation:', err);
+      toast.error('Could not start conversation');
     }
   };
 

@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 interface CreateConversationCallbacks {
   onSuccess?: (conversationId: string) => void;
   onError?: (error: any) => void;
-  onSettled?: () => void; // Added this property
+  onSettled?: () => void;
 }
 
 export const useCreateConversation = () => {
@@ -21,6 +21,24 @@ export const useCreateConversation = () => {
 
       console.log(`Creating conversation between ${user.id} and ${otherUserId}`);
       
+      // First check if conversation already exists
+      const { data: existingConversation, error: checkError } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking for existing conversation:', checkError);
+        throw checkError;
+      }
+      
+      // If conversation exists, return it
+      if (existingConversation) {
+        console.log('Found existing conversation:', existingConversation.id);
+        return existingConversation;
+      }
+
       // We'll add this check to make sure user1_id is lexicographically smaller than user2_id
       const user1 = user.id < otherUserId ? user.id : otherUserId;
       const user2 = user.id < otherUserId ? otherUserId : user.id;
@@ -39,15 +57,14 @@ export const useCreateConversation = () => {
         throw error;
       }
       
-      console.log('Conversation created/updated successfully');
+      console.log('Conversation created successfully');
       return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (error) => {
-      // Don't show toast here, handled by the component
-      console.error('Error creating conversation:', error);
+      console.error('Error in useCreateConversation mutation:', error);
     },
     retry: 1, // Retry once before failing
   });
