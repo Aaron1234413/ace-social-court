@@ -35,6 +35,7 @@ const MessageButton = ({
     try {
       createConversation(userId, {
         onSuccess: (conversationId: string) => {
+          console.log("Successfully created or found conversation:", conversationId);
           // Navigate to the conversation with optional initial message
           navigate(`/messages/${conversationId}`, { 
             state: { 
@@ -65,24 +66,41 @@ const MessageButton = ({
   // Helper function to get existing conversation and navigate to it
   const getExistingConversation = async (otherUserId: string) => {
     try {
+      // Use lexicographical sorting for consistency with how conversations are created
+      const user1 = userId < otherUserId ? userId : otherUserId;
+      const user2 = userId > otherUserId ? userId : otherUserId;
+      
       const { data, error } = await supabase
         .from('conversations')
         .select('id')
-        .or(`and(user1_id.eq.${userId},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${userId})`)
+        .eq('user1_id', user1)
+        .eq('user2_id', user2)
         .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error finding conversation with exact match:', error);
+        
+        // Try with OR condition as fallback
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('conversations')
+          .select('id')
+          .or(`and(user1_id.eq.${userId},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${userId})`)
+          .maybeSingle();
+          
+        if (fallbackError) {
+          throw fallbackError;
+        }
+        
+        if (fallbackData) {
+          navigateToConversation(fallbackData.id);
+        } else {
+          toast.error('Could not find your conversation');
+        }
+        return;
+      }
       
       if (data) {
-        // Navigate to the existing conversation
-        navigate(`/messages/${data.id}`, { 
-          state: { 
-            fromSearch: true, 
-            initialMessage,
-            autoSend,
-            previousPath: window.location.pathname + window.location.search
-          } 
-        });
+        navigateToConversation(data.id);
       } else {
         toast.error('Could not find your conversation');
       }
@@ -90,6 +108,18 @@ const MessageButton = ({
       console.error('Error finding conversation:', err);
       toast.error('Could not start conversation');
     }
+  };
+  
+  // Helper function to navigate to a conversation
+  const navigateToConversation = (conversationId: string) => {
+    navigate(`/messages/${conversationId}`, { 
+      state: { 
+        fromSearch: true, 
+        initialMessage,
+        autoSend,
+        previousPath: window.location.pathname + window.location.search
+      } 
+    });
   };
 
   const buttonContent = (

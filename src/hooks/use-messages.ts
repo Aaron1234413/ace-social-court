@@ -1,14 +1,15 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { Message } from '@/components/messages/types';
+import { Message } from '@/types/messages';
 import { toast } from 'sonner';
 import { useMediaUpload } from './use-media-upload';
 import { useMessageReactions } from './use-message-reactions';
 import { useMessageOperations } from './use-message-operations';
 
-export const useMessages = (otherUserId?: string) => {
+export const useMessages = (conversationId?: string | null) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState('');
@@ -24,22 +25,49 @@ export const useMessages = (otherUserId?: string) => {
     clearMedia
   } = useMediaUpload();
   
-  const { addReaction, removeReaction } = useMessageReactions(otherUserId);
-  const { deleteMessage } = useMessageOperations(otherUserId);
+  const { addReaction, removeReaction } = useMessageReactions(conversationId);
+  const { deleteMessage } = useMessageOperations(conversationId);
 
-  const { data: messages, isLoading: isLoadingMessages, refetch } = useQuery({
-    queryKey: ['messages', otherUserId],
+  // First get the conversation details to identify participants
+  const { data: conversation } = useQuery({
+    queryKey: ['conversation-details', conversationId],
     queryFn: async () => {
-      if (!user || !otherUserId) return [];
+      if (!user || !conversationId) return null;
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching conversation:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+    enabled: !!user && !!conversationId,
+  });
+
+  // Get both participants' IDs for the messages query
+  const user1Id = conversation?.user1_id;
+  const user2Id = conversation?.user2_id;
+
+  // Now fetch messages for this conversation
+  const { data: messages, isLoading: isLoadingMessages, refetch } = useQuery({
+    queryKey: ['messages', conversationId],
+    queryFn: async () => {
+      if (!user || !conversationId || !user1Id || !user2Id) return [];
 
       try {
-        console.log("Fetching messages between:", user.id, "and", otherUserId);
+        console.log(`Fetching messages for conversation: ${conversationId}`);
         
-        // First, get the messages between current user and other user
+        // Get all messages for this conversation
         const { data, error } = await supabase
           .from('direct_messages')
           .select('*')
-          .or(`and(sender_id.eq.${user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${user.id})`)
+          .or(`and(sender_id.eq.${user1Id},recipient_id.eq.${user2Id}),and(sender_id.eq.${user2Id},recipient_id.eq.${user1Id})`)
           .order('created_at', { ascending: true });
 
         if (error) {
@@ -64,7 +92,7 @@ export const useMessages = (otherUserId?: string) => {
               return {
                 ...message,
                 sender: null,
-                reactions: [] // Add empty reactions array
+                reactions: []
               } as Message;
             }
 
@@ -115,7 +143,7 @@ export const useMessages = (otherUserId?: string) => {
         return [];
       }
     },
-    enabled: !!user && !!otherUserId,
+    enabled: !!user && !!conversationId && !!user1Id && !!user2Id,
     meta: {
       onError: (error: Error) => {
         console.error('Error in useMessages query:', error);
@@ -129,7 +157,7 @@ export const useMessages = (otherUserId?: string) => {
 
   // Add real-time subscription for message status updates
   useEffect(() => {
-    if (!user || !otherUserId) return;
+    if (!user || !conversationId) return;
     
     // Set up a subscription to changes in direct_messages table
     const channel = supabase
@@ -145,7 +173,7 @@ export const useMessages = (otherUserId?: string) => {
           console.log('Message status updated:', payload);
           // If the read status was updated, refresh the messages
           if (payload.new.read !== payload.old.read) {
-            queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
+            queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
           }
         }
       )
@@ -157,15 +185,17 @@ export const useMessages = (otherUserId?: string) => {
       console.log('Unsubscribing from message status changes');
       supabase.removeChannel(channel);
     };
-  }, [user, otherUserId, queryClient]);
+  }, [user, conversationId, queryClient]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      if (!user || !otherUserId) {
+      if (!user || !conversationId || !conversation) {
         throw new Error('Missing required data for sending message');
       }
 
-      console.log(`Sending message to ${otherUserId}: ${content.substring(0, 20)}...`);
+      const recipientId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
+      
+      console.log(`Sending message to ${recipientId} in conversation ${conversationId}`);
       
       let mediaUrl = null;
       let mediaTypeToSave = null;
@@ -177,7 +207,6 @@ export const useMessages = (otherUserId?: string) => {
           const fileExt = mediaFile.name.split('.').pop();
           const filePath = `${user.id}/${Date.now()}.${fileExt}`;
           
-          // Fix FileOptions type issue by removing onUploadProgress
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('message_media')
             .upload(filePath, mediaFile, {
@@ -209,7 +238,7 @@ export const useMessages = (otherUserId?: string) => {
         .from('direct_messages')
         .insert({
           sender_id: user.id,
-          recipient_id: otherUserId,
+          recipient_id: recipientId,
           content,
           media_url: mediaUrl,
           media_type: mediaTypeToSave,
@@ -222,12 +251,18 @@ export const useMessages = (otherUserId?: string) => {
         throw error;
       }
       
+      // Update conversation last_message_at
+      await supabase
+        .from('conversations')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', conversationId);
+      
       return data;
     },
     onSuccess: () => {
       setNewMessage('');
       clearMedia();
-      queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (error) => {
@@ -239,10 +274,10 @@ export const useMessages = (otherUserId?: string) => {
   });
 
   const sendMessage = useCallback(() => {
-    if (newMessage.trim() || mediaFile) {
+    if ((newMessage.trim() || mediaFile) && conversationId) {
       sendMessageMutation.mutate(newMessage);
     }
-  }, [newMessage, mediaFile, sendMessageMutation]);
+  }, [newMessage, mediaFile, conversationId, sendMessageMutation]);
   
   // Function to retry loading messages when there's an error
   const retryLoadMessages = useCallback(() => {
@@ -271,10 +306,6 @@ export const useMessages = (otherUserId?: string) => {
   };
 };
 
-// Fix the export conflict by re-exporting from the other modules
-// instead of exporting them directly
+// Export the other hooks to avoid conflicts
 export * from './use-conversations';
-
-// Remove the re-export of useCreateConversation to avoid the conflict
-// and instead import from use-create-conversation directly where needed
 export { useCreateConversation } from './use-create-conversation';

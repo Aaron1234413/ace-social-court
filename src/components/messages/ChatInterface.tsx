@@ -30,7 +30,7 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const locationState = location.state as LocationState || {};
-  const otherUserId = propChatId || paramChatId;
+  const conversationId = propChatId || paramChatId;
   
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +40,36 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const [initialMessageProcessed, setInitialMessageProcessed] = useState(false);
   
-  const validConversation = !!otherUserId && otherUserId !== 'undefined';
+  const validConversation = !!conversationId && conversationId !== 'undefined';
+
+  // First fetch the conversation to get the other user's ID
+  const { data: conversationData, isLoading: isLoadingConversation, error: conversationError } = useQuery({
+    queryKey: ['conversation', conversationId],
+    queryFn: async () => {
+      if (!user || !validConversation) {
+        throw new Error("No valid conversation ID provided");
+      }
+      
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching conversation:", error);
+        throw error;
+      }
+      
+      return data;
+    },
+    enabled: !!user && validConversation
+  });
+  
+  // Determine the other user ID from the conversation
+  const otherUserId = conversationData ? 
+    (conversationData.user1_id === user?.id ? conversationData.user2_id : conversationData.user1_id) 
+    : null;
 
   const { 
     messages, 
@@ -52,19 +81,13 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
     setNewMessage,
     sendMessage,
     newMessage
-  } = useMessages(validConversation ? otherUserId : null);
-  
-  // Handle any errors
-  useEffect(() => {
-    if (messagesError && onError) {
-      onError(messagesError.message);
-    }
-  }, [messagesError, onError]);
+  } = useMessages(validConversation ? conversationId : null);
 
+  // Now fetch the other user's profile
   const { data: otherUser, isLoading: isLoadingUser, error: userError } = useQuery({
     queryKey: ['user', otherUserId],
     queryFn: async () => {
-      if (!otherUserId || otherUserId === 'undefined') {
+      if (!otherUserId) {
         throw new Error("No valid user ID provided");
       }
       
@@ -80,16 +103,24 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
       }
       return data;
     },
-    enabled: validConversation
+    enabled: !!otherUserId
   });
-
-  // Handle user data error
-  useEffect(() => {
-    if (userError && onError) {
-      onError("Failed to load user information: " + (userError instanceof Error ? userError.message : String(userError)));
-    }
-  }, [userError, onError]);
   
+  // Handle any errors
+  useEffect(() => {
+    if (messagesError && onError) {
+      onError(messagesError.message);
+    }
+    
+    if (userError && onError) {
+      onError("Failed to load user information: " + (userError instanceof Error ? userError.message : JSON.stringify(userError)));
+    }
+    
+    if (conversationError && onError) {
+      onError("Failed to load conversation: " + (conversationError instanceof Error ? conversationError.message : JSON.stringify(conversationError)));
+    }
+  }, [messagesError, userError, conversationError, onError]);
+
   // Handle initial message from navigation state with improved reliability
   useEffect(() => {
     if (locationState?.initialMessage && validConversation && !initialMessageProcessed && !isLoadingMessages) {
@@ -137,10 +168,28 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
     );
   }
 
-  if (isLoadingUser || isLoadingMessages) {
+  // Show loading state when fetching conversation data or user data
+  if (isLoadingConversation || (isLoadingUser && otherUserId)) {
     return (
       <div className="h-full flex items-center justify-center">
         <Loading variant="spinner" text="Loading conversation..." />
+      </div>
+    );
+  }
+
+  // If we have the conversation but no otherUserId, there might be an issue
+  if (!isLoadingConversation && !otherUserId) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6">
+        <div className="p-4 bg-destructive/10 text-destructive rounded-md mb-4">
+          Error loading conversation data. Please try again.
+        </div>
+        <button 
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+          onClick={() => navigate('/messages')}
+        >
+          Return to Messages
+        </button>
       </div>
     );
   }
@@ -169,7 +218,7 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
       </div>
       
       <ComposeMessage 
-        conversationId={otherUserId} 
+        conversationId={conversationId} 
         initialMessage={!initialMessageProcessed ? locationState?.initialMessage : undefined}
       />
     </div>
