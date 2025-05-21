@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 interface MessageMediaPreviewProps {
   url: string;
-  type: 'image' | 'video';
+  type: string; // Changed from 'image' | 'video' to string to match MessageMedia
   className?: string;
   uploadProgress?: number;
   isUploading?: boolean;
