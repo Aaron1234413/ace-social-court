@@ -13,15 +13,36 @@ import { SearchUser } from '@/hooks/useSearch';
 import { useMasonryGrid } from '@/hooks/useMasonryGrid';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface UserSearchResultsProps {
   users: SearchUser[];
 }
 
+// Helper function to get appropriate color based on skill level
+const getSkillLevelColor = (skillLevel: string | null | undefined): string => {
+  if (!skillLevel) return 'bg-gray-300';
+  
+  // Extract numeric value from skill level (e.g., "3.5" -> 3.5)
+  const level = parseFloat(skillLevel);
+  
+  if (level <= 3.0) return 'bg-green-500';
+  if (level <= 4.0) return 'bg-yellow-500';
+  return 'bg-orange-500';
+};
+
+// Quick messages to choose from for the ice breakers
+const QUICK_MESSAGES = [
+  "Great serve video!",
+  "Fancy a hitting session?",
+  "Love your style!"
+];
+
 const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
   const { user: currentUser } = useAuth();
   const [flipped, setFlipped] = useState(false);
   const [favorite, setFavorite] = useState(false);
+  const [showIcebreakers, setShowIcebreakers] = useState(false);
   const { toast } = useToast();
   
   // Animation variants for staggered entrance
@@ -49,6 +70,16 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
         : `${user.full_name || user.username} was added to your favorites.`
     });
   };
+
+  const sendIcebreaker = (message: string) => {
+    toast({
+      title: "Message sent!",
+      description: `Your message was sent to ${user.full_name || user.username}.`
+    });
+    setShowIcebreakers(false);
+  };
+  
+  const skillLevelColor = getSkillLevelColor(user.skill_level);
   
   return (
     <motion.div
@@ -59,25 +90,42 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
       className="masonry-item"
     >
       <div 
-        className="perspective-1000 relative h-[220px] transition-all duration-300 cursor-pointer w-full hover:shadow-lg"
+        className="perspective-1000 relative h-[250px] transition-all duration-300 cursor-pointer w-full hover:shadow-lg"
         onClick={() => setFlipped(!flipped)}
       >
+        {/* Front of card with racquet-shaped frame styling */}
         <Card 
           className={cn(
-            "absolute inset-0 backface-hidden transition-all duration-500 p-4 flex flex-col",
+            "absolute inset-0 backface-hidden transition-all duration-500 p-4 flex flex-col overflow-hidden",
             flipped ? "rotate-y-180 opacity-0" : "rotate-y-0 opacity-100"
           )}
         >
-          <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16 border-2 border-tennis-green/30 hover:border-tennis-green transition-colors">
-              {user.avatar_url ? (
-                <AvatarImage src={user.avatar_url} alt={user.full_name || 'User'} />
-              ) : (
-                <AvatarFallback className="bg-tennis-green/10 text-tennis-darkGreen">
-                  {user.full_name?.charAt(0) || user.username?.charAt(0) || '?'}
-                </AvatarFallback>
+          {/* Racquet-shaped decorative frame */}
+          <div className="absolute -right-10 -top-12 w-40 h-40 rounded-full border-8 border-tennis-green/20 opacity-30 transform rotate-45"></div>
+          <div className="absolute -right-12 -top-10 w-40 h-40 border-b-8 border-r-8 border-tennis-green/20 opacity-30"></div>
+          
+          <div className="flex items-start gap-4 relative z-10">
+            <div className="relative">
+              <Avatar className="h-16 w-16 border-2 border-tennis-green/30 hover:border-tennis-green transition-colors transform -rotate-6">
+                {user.avatar_url ? (
+                  <AvatarImage src={user.avatar_url} alt={user.full_name || 'User'} />
+                ) : (
+                  <AvatarFallback className="bg-tennis-green/10 text-tennis-darkGreen">
+                    {user.full_name?.charAt(0) || user.username?.charAt(0) || '?'}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              
+              {/* Skill level indicator as a colored ring */}
+              {user.skill_level && (
+                <div className={cn(
+                  "absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white border-2 border-white",
+                  skillLevelColor
+                )}>
+                  {user.skill_level}
+                </div>
               )}
-            </Avatar>
+            </div>
             
             <div className="flex-1 min-w-0">
               <Link to={`/profile/${user.id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
@@ -156,16 +204,25 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
                     )}
                     onClick={handleFavoriteToggle}
                   >
-                    <Star className={cn("h-4 w-4 transition-all", favorite && "fill-white animate-scale-in")} />
+                    <Star className={cn(
+                      "h-4 w-4 transition-all", 
+                      favorite && "fill-white animate-scale-in"
+                    )} />
                     <span>{favorite ? "Favorited" : "Favorite"}</span>
                   </Button>
                   
-                  <Link to={`/messages/${user.id}`} className="flex-1" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="outline" size="sm" className="w-full gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      <span>Message</span>
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 gap-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowIcebreakers(true);
+                    }}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Say Hi</span>
+                  </Button>
                 </div>
                 
                 <FollowButton userId={user.id} />
@@ -178,6 +235,30 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
           </div>
         </Card>
       </div>
+
+      {/* Icebreaker messages dialog */}
+      <Dialog open={showIcebreakers} onOpenChange={setShowIcebreakers}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Say hi to {user.full_name || user.username}</DialogTitle>
+            <DialogDescription>
+              Choose an icebreaker to start the conversation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-4">
+            {QUICK_MESSAGES.map((message, index) => (
+              <Button 
+                key={index} 
+                variant="outline" 
+                className="justify-start text-left hover:bg-tennis-green/10"
+                onClick={() => sendIcebreaker(message)}
+              >
+                {message}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

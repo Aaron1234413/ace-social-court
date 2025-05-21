@@ -43,9 +43,7 @@ const Search = () => {
   
   // Update the search query when the URL parameter changes
   useEffect(() => {
-    if (query) {
-      setSearchQuery(query);
-    }
+    setSearchQuery(query);
   }, [query, setSearchQuery]);
 
   // Reset page when query changes
@@ -76,7 +74,7 @@ const Search = () => {
         const nextPage = page + 1;
         setPage(nextPage);
         loadMore(nextPage).then(moreResults => {
-          if (moreResults && moreResults.length === 0) {
+          if (!moreResults || moreResults.length === 0) {
             setHasMore(false);
           }
         });
@@ -91,6 +89,10 @@ const Search = () => {
     if (inputValue.trim()) {
       setSearchParams({ q: inputValue.trim() });
       setSearchQuery(inputValue.trim());
+    } else {
+      // Clear search params if input is empty
+      setSearchParams({});
+      setSearchQuery('');
     }
   };
   
@@ -201,60 +203,58 @@ const Search = () => {
         {/* Results content */}
         <Tabs value={activeTab} className="mt-0">
           <TabsContent value="users">
-            {query ? (
+            {isLoading ? (
+              <Loading 
+                variant="skeleton" 
+                count={6} 
+                className="mt-8"
+                text="Loading tennis players and coaches..." 
+              />
+            ) : userResults.length > 0 ? (
               <>
-                {isLoading && page === 1 ? (
-                  <Loading 
-                    variant="skeleton" 
-                    count={6} 
-                    className="mt-8"
-                    text="Searching for players and coaches..." 
-                  />
-                ) : userResults.length > 0 ? (
-                  <>
-                    <div className="mb-4 text-sm text-muted-foreground">
-                      Found {userResults.length} {userResults.length === 1 ? 'result' : 'results'} for "{query}"
-                    </div>
-                    <UserSearchResults users={userResults} />
-                    
-                    {/* Infinite scroll loader */}
-                    {hasMore && (
-                      <div 
-                        ref={lastResultElementRef} 
-                        className="w-full py-6 flex justify-center"
-                      >
-                        {isLoadingMore && (
-                          <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-tennis-green border-t-transparent"></div>
-                        )}
+                <div className="mb-4 text-sm text-muted-foreground">
+                  {query ? (
+                    <>Found {userResults.length} {userResults.length === 1 ? 'result' : 'results'} for "{query}"</>
+                  ) : (
+                    <>Showing {userResults.length} players and coaches</>
+                  )}
+                </div>
+                <UserSearchResults users={userResults} />
+                
+                {/* Infinite scroll loader */}
+                {hasMore && (
+                  <div 
+                    ref={lastResultElementRef} 
+                    className="w-full py-6 flex justify-center"
+                  >
+                    {isLoadingMore && (
+                      <div className="relative h-12 w-12">
+                        {/* Tennis ball spinner */}
+                        <div className="absolute inset-0 rounded-full border-4 border-tennis-green/30 animate-spin border-t-tennis-green"></div>
+                        <div className="absolute inset-2 rounded-full bg-tennis-green/10"></div>
                       </div>
                     )}
-                    
-                    {!hasMore && userResults.length > 10 && (
-                      <div className="text-center py-6 text-muted-foreground text-sm">
-                        No more results to load
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-12 animate-fade-in">
-                    <div className="inline-block h-20 w-20 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                      <Users className="h-10 w-10 text-muted-foreground/50" />
-                    </div>
-                    <h3 className="text-lg font-medium mb-2">No users found</h3>
-                    <p className="text-muted-foreground">
-                      We couldn't find anyone matching "{query}". Try adjusting your search.
-                    </p>
+                  </div>
+                )}
+                
+                {!hasMore && userResults.length > 10 && (
+                  <div className="text-center py-6 text-muted-foreground text-sm">
+                    No more results to load
                   </div>
                 )}
               </>
             ) : (
               <div className="text-center py-12 animate-fade-in">
-                <div className="inline-block h-20 w-20 rounded-full bg-tennis-green/10 flex items-center justify-center mb-4">
-                  <SearchIcon className="h-10 w-10 text-tennis-green/60" />
+                <div className="inline-block h-20 w-20 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                  <Users className="h-10 w-10 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">Let's find someone</h3>
+                <h3 className="text-lg font-medium mb-2">No users found</h3>
                 <p className="text-muted-foreground">
-                  Enter a search term to find players and coaches
+                  {query ? (
+                    <>We couldn't find anyone matching "{query}". Try adjusting your search.</>
+                  ) : (
+                    <>No players or coaches are registered yet. Be the first to join!</>
+                  )}
                 </p>
               </div>
             )}
