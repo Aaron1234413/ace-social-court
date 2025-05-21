@@ -31,10 +31,10 @@ const MatchMediaForm = ({ form }: MatchMediaFormProps) => {
             <FormLabel>Upload Media</FormLabel>
             <div className="mt-2">
               <MediaUploader 
-                onFileUploaded={handleMediaUploaded}
+                onMediaUpload={handleMediaUploaded}
                 existingUrl={mediaUrl}
                 existingType={mediaType}
-                allowedTypes={['image/*', 'video/*']}
+                allowedTypes={['image', 'video']}
                 maxFileSizeMB={50}
               />
             </div>
