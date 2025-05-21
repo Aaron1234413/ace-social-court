@@ -79,6 +79,13 @@ const Messages = () => {
     setError(errorMessage);
   };
   
+  // Handle user selection from search
+  const handleUserSelect = (user: any) => {
+    if (user && user.id) {
+      navigate(`/messages/${user.id}`);
+    }
+  };
+  
   if (!user) {
     return (
       <div className="container max-w-6xl mx-auto px-4 py-16">
@@ -150,7 +157,7 @@ const Messages = () => {
             </TabsContent>
             
             <TabsContent value="search" className="p-4 flex-1 overflow-y-auto border-0">
-              <MessageSearch />
+              <MessageSearch onSelectUser={handleUserSelect} />
             </TabsContent>
           </Tabs>
         </div>

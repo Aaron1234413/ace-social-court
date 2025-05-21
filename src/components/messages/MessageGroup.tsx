@@ -14,7 +14,7 @@ import MessageMedia from './MessageMedia';
 interface MessageGroupProps {
   messages: Message[];
   isCurrentUser: boolean;
-  handleMessageClick?: (messageId: string) => void;
+  onMessageClick?: (messageId: string) => void;
   selectedMessage?: string | null;
   onAddReaction?: (messageId: string, type: "like" | "heart" | "laugh" | "sad" | "thumbs_up") => void;
   onRemoveReaction?: (messageId: string, reactionId: string) => void;
@@ -24,7 +24,7 @@ interface MessageGroupProps {
 const MessageGroup = ({ 
   messages, 
   isCurrentUser,
-  handleMessageClick,
+  onMessageClick,
   selectedMessage,
   onAddReaction,
   onRemoveReaction,
@@ -45,7 +45,7 @@ const MessageGroup = ({
           <div 
             key={message.id} 
             className={`flex items-start gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'} group`}
-            onClick={() => handleMessageClick && handleMessageClick(message.id)}
+            onClick={() => onMessageClick && onMessageClick(message.id)}
           >
             {!isCurrentUser && showAvatar && (
               <Avatar className="h-8 w-8 mt-1 border-2 border-tennis-green/20">

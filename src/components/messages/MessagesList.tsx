@@ -112,7 +112,7 @@ const MessagesList = ({
                 key={`${date}-group-${groupIndex}`}
                 messages={group}
                 isCurrentUser={group[0].sender_id === user?.id}
-                selectedMessageId={selectedMessage}
+                selectedMessage={selectedMessage} // Fixed: renamed from selectedMessageId to selectedMessage
                 onMessageClick={handleMessageClick}
                 onAddReaction={onAddReaction}
                 onRemoveReaction={onRemoveReaction}
