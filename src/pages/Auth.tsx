@@ -1,12 +1,12 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthForm } from '@/components/AuthForm';
+import AuthForm from '@/components/AuthForm';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/components/AuthProvider';
 import { Separator } from '@/components/ui/separator';
 import { Testimonial } from '@/components/Testimonial';
-import { FeatureCard } from '@/components/FeatureCard';
+import FeatureCard from '@/components/FeatureCard';
 import { CalendarDays, MapPin, Trophy, MessageCircle, MessageSquare, BookOpen } from 'lucide-react';
 
 export default function Auth() {
@@ -72,13 +72,13 @@ export default function Auth() {
               <div className="grid gap-4 md:grid-cols-2">
                 <Testimonial 
                   quote="RallyPointX helped me find a consistent hitting partner and improved my game dramatically."
-                  author="Michael K."
-                  position="4.0 NTRP Player"
+                  name="Michael K."
+                  title="4.0 NTRP Player"
                 />
                 <Testimonial 
                   quote="I love being able to track my progress and see how my game improves over time."
-                  author="Sarah L."
-                  position="3.5 NTRP Player"
+                  name="Sarah L."
+                  title="3.5 NTRP Player"
                 />
               </div>
             </div>

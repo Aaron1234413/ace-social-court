@@ -109,7 +109,7 @@ const AuthForm = () => {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-center">Welcome to TennisMatch</CardTitle>
+        <CardTitle className="text-center">Welcome to RallyPointX</CardTitle>
         <CardDescription className="text-center">
           Sign in to your account or create a new one
         </CardDescription>
