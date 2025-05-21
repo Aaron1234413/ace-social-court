@@ -22,6 +22,7 @@ import Search from '@/pages/Search';
 import UserTest from '@/pages/UserTest';
 import { ErrorBoundary } from 'react-error-boundary';
 import AppErrorFallback from '@/components/AppErrorFallback';
+import NotFound from '@/pages/NotFound';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -123,6 +124,8 @@ function App() {
                   <Dashboard />
                 </MainLayout>
               } />
+              {/* 404 route - must be last */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>
           <Toaster />
