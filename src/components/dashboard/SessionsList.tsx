@@ -24,8 +24,7 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
       let query = supabase
         .from('sessions')
         .select(`
-          *,
-          coach:profiles(id, avatar_url, username, full_name)
+          *
         `);
       
       // For coaches, only show sessions where they are tagged
@@ -66,13 +65,34 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
         throw error;
       }
       
-      // Add proper type casting to ensure compatibility with the Session type
-      return (data as any[]).map(session => ({
-        ...session,
-        drills: Array.isArray(session.drills) ? session.drills : [],
-        next_steps: Array.isArray(session.next_steps) ? session.next_steps : [],
-        focus_areas: Array.isArray(session.focus_areas) ? session.focus_areas : [],
-      })) as Session[];
+      // Get coach information in a separate query if needed
+      const sessionsWithCoaches = await Promise.all(
+        (data || []).map(async (session) => {
+          if (session.coach_id) {
+            const { data: coachData } = await supabase
+              .from('profiles')
+              .select('id, avatar_url, username, full_name')
+              .eq('id', session.coach_id)
+              .single();
+              
+            return {
+              ...session,
+              drills: Array.isArray(session.drills) ? session.drills : [],
+              next_steps: Array.isArray(session.next_steps) ? session.next_steps : [],
+              focus_areas: Array.isArray(session.focus_areas) ? session.focus_areas : [],
+              coach: coachData
+            };
+          }
+          return {
+            ...session,
+            drills: Array.isArray(session.drills) ? session.drills : [],
+            next_steps: Array.isArray(session.next_steps) ? session.next_steps : [],
+            focus_areas: Array.isArray(session.focus_areas) ? session.focus_areas : []
+          };
+        })
+      );
+      
+      return sessionsWithCoaches as Session[];
     },
     enabled: !!user,
   });

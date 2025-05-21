@@ -23,8 +23,7 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
       let query = supabase
         .from('matches')
         .select(`
-          *,
-          opponent:profiles(id, avatar_url, username, full_name)
+          *
         `)
         .eq('user_id', user.id);
       
@@ -57,12 +56,31 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
         console.error('Error fetching matches:', error);
         throw error;
       }
+
+      // Get opponent information in a separate query if needed
+      const matchesWithOpponents = await Promise.all(
+        (data || []).map(async (match) => {
+          if (match.opponent_id) {
+            const { data: opponentData } = await supabase
+              .from('profiles')
+              .select('id, avatar_url, username, full_name')
+              .eq('id', match.opponent_id)
+              .single();
+              
+            return {
+              ...match,
+              highlights: Array.isArray(match.highlights) ? match.highlights : [],
+              opponent: opponentData
+            };
+          }
+          return {
+            ...match,
+            highlights: Array.isArray(match.highlights) ? match.highlights : []
+          };
+        })
+      );
       
-      // Add proper type casting to ensure compatibility with the Match type
-      return (data as any[]).map(match => ({
-        ...match,
-        highlights: Array.isArray(match.highlights) ? match.highlights : [],
-      })) as Match[];
+      return matchesWithOpponents as Match[];
     },
     enabled: !!user,
   });
