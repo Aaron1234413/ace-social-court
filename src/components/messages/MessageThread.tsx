@@ -129,7 +129,7 @@ const MessageThread = ({ conversationId }: MessageThreadProps) => {
               key={`${date}-${groupIndex}`}
               messages={messageGroup} 
               isCurrentUser={user?.id === messageGroup[0].sender_id}
-              handleMessageClick={handleMessageClick}
+              onMessageClick={handleMessageClick}
               selectedMessage={selectedMessage}
             />
           ))}
