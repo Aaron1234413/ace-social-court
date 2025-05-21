@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Pencil, MapPin, Calendar, Award } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import MessageButton from '@/components/messages/MessageButton';
@@ -85,60 +85,90 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     return <div>Profile not found</div>;
   }
 
+  // Default cover image if not provided
+  const coverImage = profile.cover_url || "https://images.unsplash.com/photo-1576633587382-13ddf37b1fc1?q=80&w=2070&auto=format&fit=crop";
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-center gap-4">
-        <Avatar className="w-20 h-20 border-2 border-background">
-          {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt={profile.username || 'User avatar'} />
-          ) : (
-            <AvatarFallback className="text-2xl">
-              {profile.username?.[0]?.toUpperCase() || profile.full_name?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 text-center sm:text-left">
-          <h1 className="text-2xl font-bold">{profile.full_name || profile.username}</h1>
-          {profile.username && <p className="text-muted-foreground">@{profile.username}</p>}
-          <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-2">
-            <div>
-              <span className="font-semibold">{followingCount || 0}</span> Following
-            </div>
-            <div>
-              <span className="font-semibold">{followersCount || 0}</span> Followers
-            </div>
-            <div className="flex items-center gap-1">
-              <Award className="h-4 w-4 text-primary" />
-              <span className="font-semibold">{matchesCount || 0}</span> Matches
-            </div>
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4 text-primary" />
-              <span className="font-semibold">{sessionsCount || 0}</span> Sessions
-            </div>
+      {/* Cover Image with Overlay */}
+      <div className="relative h-48 md:h-64 w-full overflow-hidden rounded-xl mb-16">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/40 z-10"></div>
+        <img 
+          src={coverImage} 
+          alt="Cover" 
+          className="w-full h-full object-cover"
+        />
+        
+        {/* Avatar + Name positioned over cover image */}
+        <div className="absolute -bottom-12 left-0 right-0 flex flex-col items-center z-20">
+          <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
+            {profile.avatar_url ? (
+              <AvatarImage src={profile.avatar_url} alt={profile.username || 'User avatar'} />
+            ) : (
+              <AvatarFallback className="text-3xl bg-primary text-primary-foreground">
+                {profile.username?.[0]?.toUpperCase() || profile.full_name?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <div className="mt-2 text-center">
+            <h1 className="text-2xl font-bold drop-shadow-md">{profile.full_name || profile.username}</h1>
+            {profile.username && <p className="text-muted-foreground drop-shadow-md">@{profile.username}</p>}
           </div>
         </div>
-        <div className="flex flex-row sm:flex-col gap-2">
+        
+        {/* Action buttons - positioned top right */}
+        <div className="absolute top-4 right-4 z-20">
           {isOwnProfile ? (
-            <Button asChild size="sm">
+            <Button asChild size="sm" variant="secondary" className="bg-primary/90 text-primary-foreground hover:bg-primary shadow-md">
               <Link to="/profile/edit">
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Profile
               </Link>
             </Button>
           ) : (
-            <>
+            <div className="flex gap-2">
               <FollowButton userId={userId} />
               <MessageButton userId={userId} />
-            </>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Profile Stats Bar */}
+      <div className="flex flex-wrap justify-center gap-4 my-8">
+        <ProfileStatCard 
+          icon="users" 
+          count={followingCount || 0} 
+          label="Following" 
+          href={`/profile/${userId}/following`}
+        />
+        <ProfileStatCard 
+          icon="users-round" 
+          count={followersCount || 0} 
+          label="Followers" 
+          href={`/profile/${userId}/followers`}
+        />
+        <ProfileStatCard 
+          icon="award" 
+          count={matchesCount || 0} 
+          label="Matches" 
+          href={`/profile/${userId}/matches`}
+        />
+        <ProfileStatCard 
+          icon="calendar-days" 
+          count={sessionsCount || 0} 
+          label="Sessions" 
+          href={`/profile/${userId}/sessions`}
+        />
+      </div>
+      
       {profile.bio && (
-        <div>
+        <div className="mt-4">
           <h2 className="font-semibold mb-1">Bio</h2>
           <p className="whitespace-pre-wrap">{profile.bio}</p>
         </div>
       )}
+      
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
         {profile.user_type && (
           <div>
@@ -168,5 +198,41 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         </div>
       )}
     </div>
+  );
+};
+
+// Profile Stat Card Component
+interface ProfileStatCardProps {
+  icon: "users" | "users-round" | "award" | "calendar-days";
+  count: number;
+  label: string;
+  href: string;
+}
+
+const ProfileStatCard = ({ icon, count, label, href }: ProfileStatCardProps) => {
+  // Import the appropriate icon based on the icon prop
+  let IconComponent;
+  if (icon === "users") {
+    IconComponent = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+  } else if (icon === "users-round") {
+    IconComponent = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users-round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg>;
+  } else if (icon === "award") {
+    IconComponent = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-award"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>;
+  } else if (icon === "calendar-days") {
+    IconComponent = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-calendar-days"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>;
+  }
+  
+  return (
+    <Link to={href} className="group">
+      <div className="flex items-center gap-3 px-4 py-3 bg-background rounded-full border shadow-sm transition-all hover:border-primary hover:shadow-md hover:shadow-primary/10 group-hover:scale-105">
+        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary">
+          {IconComponent && <IconComponent />}
+        </div>
+        <div>
+          <p className="text-xl font-semibold">{count}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
+        </div>
+      </div>
+    </Link>
   );
 };

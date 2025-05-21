@@ -16,6 +16,7 @@ import { Loader2, BarChart2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import ProfileDashboardButton from '@/components/profile/ProfileDashboardButton';
+import { Card } from '@/components/ui/card';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -121,8 +122,10 @@ const Profile = () => {
         </Helmet>
       )}
 
-      <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
-        <ProfileHeader userId={profile.id} isOwnProfile={isOwnProfile} />
+      <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
+        <Card className="border-none shadow-sm overflow-hidden animate-fade-in">
+          <ProfileHeader userId={profile.id} isOwnProfile={isOwnProfile} />
+        </Card>
         
         {/* Add dashboard button if it's the user's own profile */}
         {isOwnProfile && (
@@ -131,14 +134,24 @@ const Profile = () => {
           </div>
         )}
         
-        <Separator />
-        <ProfileMediaGallery userId={profile.id} />
-        <Separator />
-        <AchievementsList userId={profile.id} />
+        <Separator className="my-8" />
+        
+        <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <ProfileMediaGallery userId={profile.id} />
+        </div>
+        
+        <Separator className="my-8" />
+        
+        <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <AchievementsList userId={profile.id} />
+        </div>
+        
         {profile.user_type === 'coach' && (
           <>
-            <Separator />
-            <CertificationsList userId={profile.id} />
+            <Separator className="my-8" />
+            <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <CertificationsList userId={profile.id} />
+            </div>
           </>
         )}
       </div>
