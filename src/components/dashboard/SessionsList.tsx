@@ -3,7 +3,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { Session } from '@/types/logging';
+import { Session, SessionDrill, SessionNextStep } from '@/types/logging';
 import { FilterState } from './DashboardContent';
 import SessionCard from './cards/SessionCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -68,6 +68,28 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
       // Get coach information in a separate query if needed
       const sessionsWithCoaches = await Promise.all(
         (data || []).map(async (session) => {
+          // Transform drills from Json[] to SessionDrill[]
+          const typedDrills: SessionDrill[] = Array.isArray(session.drills) 
+            ? session.drills.map((drill: any) => ({
+                name: drill.name || 'Unnamed Drill', // Ensure the required 'name' property exists
+                rating: drill.rating,
+                notes: drill.notes,
+              }))
+            : [];
+
+          // Transform next_steps from Json[] to SessionNextStep[]
+          const typedNextSteps: SessionNextStep[] = Array.isArray(session.next_steps) 
+            ? session.next_steps.map((step: any) => ({
+                description: step.description || 'Unnamed Step', // Ensure the required 'description' property exists
+                completed: step.completed,
+              }))
+            : [];
+
+          // Ensure focus_areas is an array
+          const focusAreas: string[] = Array.isArray(session.focus_areas) 
+            ? session.focus_areas 
+            : [];
+
           if (session.coach_id) {
             const { data: coachData } = await supabase
               .from('profiles')
@@ -77,22 +99,23 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
               
             return {
               ...session,
-              drills: Array.isArray(session.drills) ? session.drills : [],
-              next_steps: Array.isArray(session.next_steps) ? session.next_steps : [],
-              focus_areas: Array.isArray(session.focus_areas) ? session.focus_areas : [],
+              drills: typedDrills,
+              next_steps: typedNextSteps,
+              focus_areas: focusAreas,
               coach: coachData
-            };
+            } as Session;
           }
+          
           return {
             ...session,
-            drills: Array.isArray(session.drills) ? session.drills : [],
-            next_steps: Array.isArray(session.next_steps) ? session.next_steps : [],
-            focus_areas: Array.isArray(session.focus_areas) ? session.focus_areas : []
-          };
+            drills: typedDrills,
+            next_steps: typedNextSteps,
+            focus_areas: focusAreas
+          } as Session;
         })
       );
       
-      return sessionsWithCoaches as Session[];
+      return sessionsWithCoaches;
     },
     enabled: !!user,
   });

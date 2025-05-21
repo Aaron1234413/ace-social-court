@@ -3,7 +3,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { Match } from '@/types/logging';
+import { Match, MatchHighlight } from '@/types/logging';
 import { FilterState } from './DashboardContent';
 import MatchCard from './cards/MatchCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -60,6 +60,15 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
       // Get opponent information in a separate query if needed
       const matchesWithOpponents = await Promise.all(
         (data || []).map(async (match) => {
+          // Transform the highlights from Json[] to MatchHighlight[]
+          const typedHighlights: MatchHighlight[] = Array.isArray(match.highlights) 
+            ? match.highlights.map((highlight: any) => ({
+                type: highlight.type || 'winner', // Ensure the required 'type' property exists
+                note: highlight.note,
+                timestamp: highlight.timestamp,
+              }))
+            : [];
+
           if (match.opponent_id) {
             const { data: opponentData } = await supabase
               .from('profiles')
@@ -69,18 +78,19 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
               
             return {
               ...match,
-              highlights: Array.isArray(match.highlights) ? match.highlights : [],
+              highlights: typedHighlights,
               opponent: opponentData
-            };
+            } as Match;
           }
+          
           return {
             ...match,
-            highlights: Array.isArray(match.highlights) ? match.highlights : []
-          };
+            highlights: typedHighlights
+          } as Match;
         })
       );
       
-      return matchesWithOpponents as Match[];
+      return matchesWithOpponents;
     },
     enabled: !!user,
   });
