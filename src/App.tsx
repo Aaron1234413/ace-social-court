@@ -19,6 +19,9 @@ import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
 import MapExplorer from '@/pages/MapExplorer';
 import Search from '@/pages/Search';
+import UserTest from '@/pages/UserTest';
+import { ErrorBoundary } from 'react-error-boundary';
+import AppErrorFallback from '@/components/AppErrorFallback';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -43,81 +46,89 @@ function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <HelmetProvider>
-        <Router>
-          {/* Make sure LoginPromptModal is not inside any route so it can show regardless of current page */}
-          <LoginPromptModal />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/feed" element={
-              <MainLayout>
-                <Feed />
-              </MainLayout>
-            } />
-            <Route path="/profile/:id" element={
-              <MainLayout>
-                <Profile />
-              </MainLayout>
-            } />
-            <Route path="/messages" element={
-              <MainLayout>
-                <Messages />
-              </MainLayout>
-            } />
-            <Route path="/messages/:chatId" element={
-              <MainLayout>
-                <Messages />
-              </MainLayout>
-            } />
-            <Route path="/tennis-ai" element={
-              <MainLayout>
-                <TennisAI />
-              </MainLayout>
-            } />
-            <Route path="/explore" element={
-              <MainLayout>
-                <MapExplorer />
-              </MainLayout>
-            } />
-            <Route path="/search" element={
-              <MainLayout>
-                <Search />
-              </MainLayout>
-            } />
-            <Route path="/notifications" element={
-              <MainLayout>
-                <Notifications />
-              </MainLayout>
-            } />
-            <Route path="/settings" element={
-              <MainLayout>
-                <Settings />
-              </MainLayout>
-            } />
-            {/* Log routes */}
-            <Route path="/log/match" element={
-              <MainLayout>
-                <LogMatch />
-              </MainLayout>
-            } />
-            <Route path="/log/session" element={
-              <MainLayout>
-                <LogSession />
-              </MainLayout>
-            } />
-            {/* Dashboard route */}
-            <Route path="/dashboard" element={
-              <MainLayout>
-                <Dashboard />
-              </MainLayout>
-            } />
-          </Routes>
-        </Router>
-        <Toaster />
-      </HelmetProvider>
-    </AuthProvider>
+    <ErrorBoundary FallbackComponent={AppErrorFallback}>
+      <AuthProvider>
+        <HelmetProvider>
+          <Router>
+            {/* Make sure LoginPromptModal is not inside any route so it can show regardless of current page */}
+            <LoginPromptModal />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/feed" element={
+                <MainLayout>
+                  <Feed />
+                </MainLayout>
+              } />
+              <Route path="/profile/:id" element={
+                <MainLayout>
+                  <Profile />
+                </MainLayout>
+              } />
+              <Route path="/messages" element={
+                <MainLayout>
+                  <Messages />
+                </MainLayout>
+              } />
+              <Route path="/messages/:chatId" element={
+                <MainLayout>
+                  <Messages />
+                </MainLayout>
+              } />
+              <Route path="/tennis-ai" element={
+                <MainLayout>
+                  <TennisAI />
+                </MainLayout>
+              } />
+              <Route path="/explore" element={
+                <MainLayout>
+                  <MapExplorer />
+                </MainLayout>
+              } />
+              <Route path="/search" element={
+                <MainLayout>
+                  <Search />
+                </MainLayout>
+              } />
+              <Route path="/notifications" element={
+                <MainLayout>
+                  <Notifications />
+                </MainLayout>
+              } />
+              <Route path="/settings" element={
+                <MainLayout>
+                  <Settings />
+                </MainLayout>
+              } />
+              {/* User Testing Route */}
+              <Route path="/user-testing" element={
+                <MainLayout>
+                  <UserTest />
+                </MainLayout>
+              } />
+              {/* Log routes */}
+              <Route path="/log/match" element={
+                <MainLayout>
+                  <LogMatch />
+                </MainLayout>
+              } />
+              <Route path="/log/session" element={
+                <MainLayout>
+                  <LogSession />
+                </MainLayout>
+              } />
+              {/* Dashboard route */}
+              <Route path="/dashboard" element={
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
+              } />
+            </Routes>
+          </Router>
+          <Toaster />
+        </HelmetProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
