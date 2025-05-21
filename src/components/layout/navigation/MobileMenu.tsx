@@ -5,13 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, LogOut } from "lucide-react";
-import { toast } from "sonner";
-
-interface NavItem {
-  title: string;
-  url: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
+import { NavItem } from "@/config/navigation";
 
 interface MobileMenuProps {
   navLinks: NavItem[];
@@ -44,12 +38,12 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             <h2 className="text-lg font-semibold mb-2">Navigation</h2>
             {navLinks.map((link) => (
               <Link
-                key={link.url}
-                to={link.url}
+                key={link.href.toString()}
+                to={typeof link.href === 'function' ? link.href() : link.href}
                 className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <link.icon className="h-5 w-5" />
+                {link.icon}
                 <span>{link.title}</span>
               </Link>
             ))}
@@ -60,12 +54,12 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               <h2 className="text-lg font-semibold mb-2">User</h2>
               {userLinks.map((link) => (
                 <Link
-                  key={link.url}
-                  to={link.url}
+                  key={link.href.toString()}
+                  to={typeof link.href === 'function' ? link.href(user.id) : link.href}
                   className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <link.icon className="h-5 w-5" />
+                  {link.icon}
                   <span>{link.title}</span>
                 </Link>
               ))}
