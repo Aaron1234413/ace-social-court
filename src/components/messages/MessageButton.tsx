@@ -26,8 +26,13 @@ const MessageButton = ({ userId, compact = false, variant = 'outline' }: Message
       setIsCreating(true);
       console.log(`Starting conversation with user: ${userId}`);
       
-      // First, navigate directly to the messages route with this user ID
-      navigate(`/messages/${userId}`);
+      // Navigate to the messages route with this user ID and pass the referrer to preserve context
+      navigate(`/messages/${userId}`, {
+        state: { 
+          fromSearch: true,
+          previousPath: window.location.pathname + window.location.search
+        }
+      });
       
       // Then attempt to create a conversation record if it doesn't exist yet
       createConversation(userId, {

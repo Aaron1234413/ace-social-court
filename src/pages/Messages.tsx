@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { MessageSquarePlus, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,12 +17,17 @@ import { configureRealtime } from '@/utils/realtimeHelper';
 const Messages = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { chatId } = useParams<{ chatId?: string }>();
   const isMobile = useIsMobile();
   
   const [activeTab, setActiveTab] = useState<'conversations' | 'search'>('conversations');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(chatId || null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Extract state from navigation, if any
+  const locationState = location.state || {};
+  const { fromSearch, previousPath } = locationState;
   
   const { createConversation } = useCreateConversation();
   
@@ -80,6 +86,15 @@ const Messages = () => {
     navigate(`/messages/${userId}`);
   };
   
+  // Handle going back to search with state preservation
+  const handleBackToSearch = () => {
+    if (previousPath && previousPath.includes('/search')) {
+      navigate(previousPath);
+    } else {
+      navigate('/search');
+    }
+  };
+  
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
   };
@@ -107,6 +122,18 @@ const Messages = () => {
     <div className="container max-w-6xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Messages</h1>
+        
+        {fromSearch && previousPath && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleBackToSearch}
+            className="mr-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Search
+          </Button>
+        )}
         
         {!isMobile && (
           <Button 

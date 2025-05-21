@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,14 +17,30 @@ type UserResult = {
 
 interface MessageSearchProps {
   onSelectUser: (user: UserResult) => void;
+  initialQuery?: string;
 }
 
-const MessageSearch = ({ onSelectUser }: MessageSearchProps) => {
-  const [searchQuery, setSearchQuery] = useState('');
+const MessageSearch = ({ onSelectUser, initialQuery = '' }: MessageSearchProps) => {
+  const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [results, setResults] = useState<UserResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
+  
+  // Initialize query from URL if coming from search page
+  useEffect(() => {
+    const state = location.state || {};
+    if (state.searchQuery && state.fromSearch) {
+      setSearchQuery(state.searchQuery);
+    }
+    
+    // Focus the input when component mounts
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [location.state]);
   
   // Search for users when debounced search term changes
   useEffect(() => {
@@ -63,6 +80,7 @@ const MessageSearch = ({ onSelectUser }: MessageSearchProps) => {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
+          ref={inputRef}
           placeholder="Search users..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

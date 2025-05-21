@@ -21,7 +21,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const isMobile = useIsMobile();
 
   const handleBackToSearch = () => {
-    navigate('/search');
+    navigate('/search', { state: { fromMessages: true } });
   };
 
   if (isLoading) {

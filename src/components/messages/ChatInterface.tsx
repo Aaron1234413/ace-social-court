@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useMessages } from '@/hooks/use-messages';
 import { useAuth } from '@/components/AuthProvider';
 import { useQuery } from '@tanstack/react-query';
@@ -15,18 +15,21 @@ import ComposeMessage from './ComposeMessage';
 
 interface ChatInterfaceProps {
   onError?: (error: string) => void;
-  chatId?: string;
+  chatId?: string | null;
 }
 
 interface LocationState {
   initialMessage?: string;
   autoSend?: boolean;
+  fromSearch?: boolean;
+  previousPath?: string;
 }
 
 const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
   const { chatId: paramChatId } = useParams<{ chatId: string }>();
   const location = useLocation();
-  const locationState = location.state as LocationState;
+  const navigate = useNavigate();
+  const locationState = location.state as LocationState || {};
   const otherUserId = propChatId || paramChatId;
   
   const { user } = useAuth();
@@ -101,13 +104,16 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
           setInitialMessageProcessed(true);
           
           // Clear navigation state to prevent re-sending
-          window.history.replaceState({}, document.title);
+          const newState = { ...locationState };
+          delete newState.initialMessage;
+          delete newState.autoSend;
+          navigate('.', { state: newState, replace: true });
         }, 100);
       } else {
         setInitialMessageProcessed(true);
       }
     }
-  }, [locationState, validConversation, isLoadingMessages, initialMessageProcessed, setNewMessage, sendMessage]);
+  }, [locationState, validConversation, isLoadingMessages, initialMessageProcessed, setNewMessage, sendMessage, navigate]);
   
   const handleMessageClick = useCallback((messageId: string) => {
     setSelectedMessage(messageId === selectedMessage ? null : messageId);
