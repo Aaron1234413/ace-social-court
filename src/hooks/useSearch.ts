@@ -11,13 +11,13 @@ export interface SearchUser {
   avatar_url: string | null;
   user_type?: string;
   bio?: string | null;
-  skill_level?: number | null;
+  skill_level?: string | null; // Changed from number to string to match DB schema
   location?: string | null;
 }
 
 export interface SearchFilters {
   userType?: string[];
-  skillLevel?: number;
+  skillLevel?: string; // Changed from number to string to match DB schema
   sortBy?: 'relevance' | 'distance' | 'rating' | 'newest';
   nearby?: boolean;
 }
@@ -54,7 +54,8 @@ export function useSearch() {
         }
         
         if (filters.skillLevel) {
-          query = query.gte('skill_level', filters.skillLevel);
+          // Changed to use eq instead of gte since skill_level is now a string
+          query = query.eq('skill_level', filters.skillLevel);
         }
         
         // Sort results
@@ -63,6 +64,7 @@ export function useSearch() {
             query = query.order('created_at', { ascending: false });
             break;
           case 'rating':
+            // Sort by skill_level as string, which works for values like "4.0", "4.5", etc.
             query = query.order('skill_level', { ascending: false });
             break;
           default:
