@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -45,8 +46,7 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
       title: favorite ? "Removed from favorites" : "Added to favorites",
       description: favorite 
         ? `${user.full_name || user.username} was removed from your favorites.`
-        : `${user.full_name || user.username} was added to your favorites.`,
-      duration: 2000,
+        : `${user.full_name || user.username} was added to your favorites.`
     });
   };
   
