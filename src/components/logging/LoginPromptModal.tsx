@@ -51,7 +51,7 @@ export function LoginPromptModal() {
   
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetContent side="bottom" className="h-[95vh] sm:h-auto sm:max-w-lg sm:mx-auto rounded-t-lg">
+      <SheetContent side="center" className="sm:max-w-lg sm:mx-auto rounded-lg">
         <SheetHeader className="text-center pb-6">
           <SheetTitle className="text-2xl font-bold">Welcome back, {user.user_metadata?.full_name || 'Player'}!</SheetTitle>
           <SheetDescription className="text-lg">
