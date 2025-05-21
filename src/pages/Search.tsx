@@ -14,7 +14,7 @@ const Search = () => {
   const query = searchParams.get('q') || '';
   const [inputValue, setInputValue] = useState(query);
   const [activeTab, setActiveTab] = useState('users');
-  const { results: userResults, isLoading } = useSearch(query);
+  const { results: userResults, isLoading } = useSearch();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

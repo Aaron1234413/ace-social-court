@@ -28,7 +28,7 @@ export function QuickActions() {
         >
           <Link 
             to={typeof item.href === 'function' ? item.href(user?.id) : item.href}
-            onClick={(e) => handleActionClick(e, typeof item.href === 'function' ? item.href(user?.id) : item.href)}
+            onClick={(e) => handleActionClick(e, typeof item.href === 'string' ? item.href : item.href(user?.id))}
             className="flex items-center gap-1"
           >
             {item.icon}

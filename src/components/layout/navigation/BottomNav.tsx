@@ -8,7 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotifications } from "@/components/notifications/useNotifications";
 
 // Import only the needed navigation items
-import { navigationConfig } from "@/config/navigation";
+import { mainNavItems, userNavItems } from "@/config/navigation";
 
 const BottomNav = () => {
   const location = useLocation();
@@ -20,21 +20,21 @@ const BottomNav = () => {
 
   // Select only the most critical navigation items for the bottom bar
   const criticalNavItems = [
-    navigationConfig.primaryNavItems.find(item => item.title === "Home"),
-    navigationConfig.userNavItems.find(item => item.title === "Messages"),
-    navigationConfig.userNavItems.find(item => item.title === "Notifications"),
-    navigationConfig.userNavItems.find(item => item.title === "Profile")
+    mainNavItems.find(item => item.title === "Feed"),
+    userNavItems.find(item => item.title === "Messages"),
+    userNavItems.find(item => item.title === "Notifications"),
+    userNavItems.find(item => item.title === "Profile")
   ].filter(Boolean) as Array<{
     title: string;
-    url: string;
-    icon: React.ComponentType<{ className?: string }>;
+    href: string | ((userId?: string) => string);
+    icon: React.ReactNode;
   }>;
 
-  const getUrl = (item: { title: string; url: string }) => {
-    if (item.title === "Profile") {
-      return `/profile/${profile?.username || user.id}`;
+  const getUrl = (item: { title: string; href: string | ((userId?: string) => string) }) => {
+    if (item.title === "Profile" && typeof item.href === 'function') {
+      return item.href(profile?.username || user.id);
     }
-    return item.url;
+    return typeof item.href === 'string' ? item.href : item.href(user.id);
   };
 
   const isActive = (path: string) => {
@@ -61,10 +61,7 @@ const BottomNav = () => {
               )}
             >
               <div className="relative">
-                <item.icon className={cn(
-                  "h-5 w-5",
-                  active && "stroke-[2.5px]"
-                )} />
+                {item.icon}
                 
                 {/* Add notification badge for Messages and Notifications */}
                 {item.title === "Notifications" && unreadCount > 0 && (

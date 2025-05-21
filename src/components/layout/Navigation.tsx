@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 import UserDropdown from "./navigation/UserDropdown";
 import MobileMenu from "./navigation/MobileMenu";
 import SearchForm from "./navigation/SearchForm";
-import QuickActions from "./navigation/QuickActions";
-import { navigationConfig } from "@/config/navigation";
+import { QuickActions } from "./navigation/QuickActions";
+import { mainNavItems, userNavItems } from "@/config/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
@@ -16,11 +16,11 @@ const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Get primary nav links from shared config
-  const navLinks = navigationConfig.primaryNavItems;
+  // Get primary nav links
+  const navLinks = mainNavItems;
 
   // Map user links with proper profile URL
-  const userLinks = user ? navigationConfig.userNavItems.map(item => {
+  const userLinks = user ? userNavItems.map(item => {
     if (item.title === "Profile") {
       return {
         ...item,
@@ -66,12 +66,7 @@ const Navigation = () => {
           {user && <SearchForm />}
 
           {/* Quick action links (desktop only) */}
-          {user && (
-            <QuickActions 
-              userId={user.id} 
-              username={profile?.username}
-            />
-          )}
+          {user && <QuickActions />}
 
           {/* User dropdown */}
           <UserDropdown />

@@ -14,7 +14,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { cn } from '@/lib/utils';
-import { navigationConfig } from "@/config/navigation";
+import { mainNavItems, userNavItems } from "@/config/navigation";
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/components/notifications/useNotifications';
 
@@ -29,11 +29,11 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
-  // Get primary nav items from shared config
-  const primaryNavItems = navigationConfig.primaryNavItems;
+  // Get primary nav items
+  const primaryNavItems = mainNavItems;
 
   // Map user links with proper profile URL
-  const userNavItems = user ? navigationConfig.userNavItems.map(item => {
+  const userNavItems2 = user ? userNavItems.map(item => {
     if (item.title === "Profile") {
       return {
         ...item,
@@ -54,19 +54,17 @@ export function AppSidebar() {
               {primaryNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    isActive={isActive(item.url)}
+                    isActive={isActive(item.href as string)}
                     asChild
                     tooltip={item.title}
                   >
-                    <Link to={item.url} className={cn(
+                    <Link to={item.href as string} className={cn(
                       "flex items-center transition-all duration-200",
-                      isActive(item.url) ? 
+                      isActive(item.href as string) ? 
                         "font-medium text-tennis-green" :
                         "text-sidebar-foreground hover:text-tennis-green/80"
                     )}>
-                      <item.icon className={cn(
-                        isActive(item.url) && "stroke-[2.5px]"
-                      )} />
+                      {item.icon}
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -81,23 +79,21 @@ export function AppSidebar() {
             <SidebarGroupLabel>User</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {userNavItems.map((item) => (
+                {userNavItems2.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
-                      isActive={isActive(item.url)}
+                      isActive={isActive(typeof item.url === 'function' ? item.url(user.id) : item.url)}
                       asChild
                       tooltip={item.title}
                     >
-                      <Link to={item.url} className={cn(
+                      <Link to={typeof item.url === 'function' ? item.url(user.id) : item.url} className={cn(
                         "flex items-center transition-all duration-200",
-                        isActive(item.url) ? 
+                        isActive(typeof item.url === 'function' ? item.url(user.id) : item.url) ? 
                           "font-medium text-tennis-green" :
                           "text-sidebar-foreground hover:text-tennis-green/80"
                       )}>
                         <div className="relative">
-                          <item.icon className={cn(
-                            isActive(item.url) && "stroke-[2.5px]"
-                          )} />
+                          {item.icon}
                           
                           {/* Add notification badge for unread items */}
                           {item.title === "Notifications" && unreadCount > 0 && (

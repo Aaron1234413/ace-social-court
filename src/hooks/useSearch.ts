@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useDebounce } from './use-debounce';
@@ -9,6 +9,8 @@ export interface SearchUser {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  user_type?: string;
+  bio?: string | null;
 }
 
 export function useSearch() {
@@ -25,7 +27,7 @@ export function useSearch() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, username, avatar_url')
+          .select('id, full_name, username, avatar_url, user_type, bio')
           .or(`username.ilike.%${debouncedSearchTerm}%,full_name.ilike.%${debouncedSearchTerm}%`)
           .limit(10);
           

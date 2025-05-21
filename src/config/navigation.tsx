@@ -14,7 +14,7 @@ import { ReactNode } from 'react';
 
 export interface NavItem {
   title: string;
-  href: string;
+  href: string | ((userId?: string) => string);
   icon: ReactNode;
   mobileLabel?: string;
   isAction?: boolean;
@@ -85,3 +85,10 @@ export const actionItems: NavItem[] = [
     isAction: true
   }
 ];
+
+// Add a navigationConfig export that combines all navigation items
+export const navigationConfig = {
+  primaryNavItems: mainNavItems,
+  userNavItems: userNavItems,
+  actionItems: actionItems
+};
