@@ -7,7 +7,7 @@ import UserDropdown from "./navigation/UserDropdown";
 import MobileMenu from "./navigation/MobileMenu";
 import SearchForm from "./navigation/SearchForm";
 import { QuickActions } from "./navigation/QuickActions";
-import { mainNavItems, userNavItems } from "@/config/navigation";
+import { mainNavItems, userNavItems, NavItem } from "@/config/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
@@ -24,7 +24,7 @@ const Navigation = () => {
     if (item.title === "Profile") {
       return {
         ...item,
-        url: `/profile/${profile?.username || user.id}`,
+        href: `/profile/${profile?.username || user.id}`,
       };
     }
     return item;

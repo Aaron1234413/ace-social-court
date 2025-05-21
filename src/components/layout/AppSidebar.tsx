@@ -37,7 +37,7 @@ export function AppSidebar() {
     if (item.title === "Profile") {
       return {
         ...item,
-        url: `/profile/${profile?.username || user.id}`,
+        href: `/profile/${profile?.username || user.id}`,
       };
     }
     return item;
@@ -82,13 +82,13 @@ export function AppSidebar() {
                 {userNavItems2.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
-                      isActive={isActive(typeof item.url === 'function' ? item.url(user.id) : item.url)}
+                      isActive={isActive(typeof item.href === 'function' ? item.href(user.id) : item.href)}
                       asChild
                       tooltip={item.title}
                     >
-                      <Link to={typeof item.url === 'function' ? item.url(user.id) : item.url} className={cn(
+                      <Link to={typeof item.href === 'function' ? item.href(user.id) : item.href} className={cn(
                         "flex items-center transition-all duration-200",
-                        isActive(typeof item.url === 'function' ? item.url(user.id) : item.url) ? 
+                        isActive(typeof item.href === 'function' ? item.href(user.id) : item.href) ? 
                           "font-medium text-tennis-green" :
                           "text-sidebar-foreground hover:text-tennis-green/80"
                       )}>
