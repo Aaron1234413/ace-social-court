@@ -201,7 +201,8 @@ export function useConversations() {
   });
   
   return {
-    conversations: conversationsWithLastMessages?.data || [],
+    // Fix: Don't try to access .data property here
+    conversations: conversationsWithLastMessages || [],
     isLoading: isLoading || conversationsWithOtherUsers.isLoading,
     unreadCounts: unreadCounts || {},
     deleteConversation: deleteConversationMutation.mutate
