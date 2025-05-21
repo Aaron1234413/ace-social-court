@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -19,6 +18,7 @@ import ProfileDashboardButton from '@/components/profile/ProfileDashboardButton'
 import { Card } from '@/components/ui/card';
 
 const Profile = () => {
+  
   const { user } = useAuth();
   const navigate = useNavigate();
   const { id: profileIdentifierFromUrl } = useParams();

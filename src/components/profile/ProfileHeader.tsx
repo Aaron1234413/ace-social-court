@@ -85,8 +85,8 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     return <div>Profile not found</div>;
   }
 
-  // Default cover image if not provided
-  const coverImage = profile.cover_url || "https://images.unsplash.com/photo-1576633587382-13ddf37b1fc1?q=80&w=2070&auto=format&fit=crop";
+  // Use a default cover image since cover_url doesn't exist in the profiles table
+  const defaultCoverImage = "https://images.unsplash.com/photo-1576633587382-13ddf37b1fc1?q=80&w=2070&auto=format&fit=crop";
 
   return (
     <div className="space-y-4">
@@ -94,7 +94,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
       <div className="relative h-48 md:h-64 w-full overflow-hidden rounded-xl mb-16">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/40 z-10"></div>
         <img 
-          src={coverImage} 
+          src={defaultCoverImage} 
           alt="Cover" 
           className="w-full h-full object-cover"
         />
