@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -13,6 +12,8 @@ import { SearchUser } from '@/hooks/useSearch';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useCreateConversation } from '@/hooks/use-create-conversation';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserSearchResultsProps {
   users: SearchUser[];
@@ -43,6 +44,8 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
   const [favorite, setFavorite] = useState(false);
   const [showIcebreakers, setShowIcebreakers] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { createConversation, isCreating } = useCreateConversation();
   
   // Animation variants for staggered entrance
   const itemVariants = {
@@ -71,10 +74,71 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
   };
 
   const sendIcebreaker = (message: string) => {
-    toast({
-      title: "Message sent!",
-      description: `Your message was sent to ${user.full_name || user.username}.`
-    });
+    if (!user.id || !currentUser) return;
+    
+    try {
+      // Create or find conversation with this user
+      createConversation(user.id, {
+        onSuccess: (conversationId: string) => {
+          // Send the icebreaker message
+          const sendMessageAction = async () => {
+            try {
+              // Send message to the conversation
+              const { data, error } = await supabase
+                .from('direct_messages')
+                .insert({
+                  sender_id: currentUser.id,
+                  recipient_id: user.id,
+                  content: message,
+                  read: false
+                })
+                .select();
+                
+              if (error) throw error;
+              
+              // Update the conversation's last_message_at timestamp
+              await supabase
+                .from('conversations')
+                .update({ last_message_at: new Date().toISOString() })
+                .eq('id', conversationId);
+                
+              // Navigate to messages page with this conversation
+              navigate(`/messages/${conversationId}`);
+              
+              toast({
+                title: "Message sent!",
+                description: `Your message was sent to ${user.full_name || user.username}.`
+              });
+            } catch (err) {
+              console.error('Error sending message:', err);
+              toast({
+                title: "Failed to send message",
+                description: "Please try again later.",
+                variant: "destructive"
+              });
+            }
+          };
+          
+          // Execute the message sending action
+          sendMessageAction();
+        },
+        onError: (error: any) => {
+          console.error('Error creating conversation:', error);
+          toast({
+            title: "Error",
+            description: "Failed to start conversation. Please try again.",
+            variant: "destructive"
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error in sendIcebreaker:', error);
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
+    }
     setShowIcebreakers(false);
   };
   
@@ -218,6 +282,7 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
                       e.stopPropagation();
                       setShowIcebreakers(true);
                     }}
+                    disabled={isCreating}
                   >
                     <MessageSquare className="h-4 w-4" />
                     <span>Say Hi</span>
@@ -251,6 +316,7 @@ const UserCard = ({ user, index }: { user: SearchUser; index: number }) => {
                 variant="outline" 
                 className="justify-start text-left hover:bg-tennis-green/10"
                 onClick={() => sendIcebreaker(message)}
+                disabled={isCreating}
               >
                 {message}
               </Button>

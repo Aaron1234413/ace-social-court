@@ -1,90 +1,52 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 210 40% 98%;
-
-    --ring: 215 20.2% 65.1%;
-
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142.1 76.2% 36.3%;
     --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-primary: 222.2 47.4% 11.2%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-ring: 215 20.2% 65.1%;
   }
-
+ 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-
-    --popover: 224 71% 4%;
-    --popover-foreground: 215 20.2% 65.1%;
-
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
-
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-
-    --ring: 216 34% 17%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 224 71% 4%;
-    --sidebar-foreground: 215 20.2% 65.1%;
-    --sidebar-border: 216 34% 17%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 222.2 47.4% 1.2%;
-    --sidebar-accent: 216 34% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-ring: 216 34% 17%;
+    --background: 20 14.3% 4.1%;
+    --foreground: 0 0% 95%;
+    --card: 24 9.8% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 144.9 80.4% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 12 6.5% 15.1%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.4 71.8% 29.2%;
   }
 }
 
@@ -98,18 +60,7 @@
   }
 }
 
-.court-pattern {
-  background-image: 
-    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-.tennis-gradient-text {
-  @apply bg-gradient-to-r from-tennis-green to-tennis-darkGreen bg-clip-text text-transparent;
-}
-
-/* Card flip animations */
+/* Utility classes for 3D card flipping */
 .perspective-1000 {
   perspective: 1000px;
 }
@@ -126,145 +77,106 @@
   transform: rotateY(0deg);
 }
 
-/* Masonry grid layout */
-.masonry-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  grid-gap: 1rem;
-  grid-auto-rows: 0;
+/* Typing indicator animation */
+.typing-indicator {
+  display: flex;
+  align-items: center;
 }
 
-.masonry-item {
-  margin-bottom: 1rem;
+.typing-indicator span {
+  height: 8px;
+  width: 8px;
+  margin: 0 2px;
+  background-color: #a0aec0;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.4;
 }
 
-/* New animation utilities */
-.animate-pulse-subtle {
-  animation: pulse-subtle 3s ease-in-out infinite;
+.typing-indicator span:nth-child(1) {
+  animation: bouncing 1s infinite 0.2s;
+}
+.typing-indicator span:nth-child(2) {
+  animation: bouncing 1s infinite 0.4s;
+}
+.typing-indicator span:nth-child(3) {
+  animation: bouncing 1s infinite 0.6s;
 }
 
-.animate-fade-in {
-  animation: fade-in 0.8s ease-out;
+@keyframes bouncing {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 0.8;
+  }
+}
+
+/* Custom tennis app styles */
+.tennis-green {
+  color: #4caf50;
+}
+
+.tennis-darkGreen {
+  color: #2e7d32;
+}
+
+.bg-tennis-green {
+  background-color: #4caf50;
+}
+
+.bg-tennis-darkGreen {
+  background-color: #2e7d32;
+}
+
+/* Scale-in animation */
+@keyframes scale-in {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .animate-scale-in {
   animation: scale-in 0.3s ease-out forwards;
 }
 
-.animate-bounce-subtle {
-  animation: bounce-subtle 2s ease-in-out infinite;
-}
-
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out;
-}
-
-@keyframes slide-up {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scale-in {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes fade-in {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* Subtle pulsing animation */
 @keyframes pulse-subtle {
-  0%, 100% {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
     opacity: 1;
   }
-  50% {
-    opacity: 0.8;
+  100% {
+    opacity: 0.7;
   }
 }
 
-@keyframes bounce-subtle {
-  0%, 100% {
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Fade-in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
     transform: translateY(0);
   }
-  50% {
-    transform: translateY(-4px);
-  }
 }
 
-/* Messages page specific styles */
-.message-bubble-current {
-  background: linear-gradient(135deg, #78B833, #3C7A14);
-  color: white;
-  border-radius: 18px 18px 0 18px;
-}
-
-.message-bubble-other {
-  background: rgba(120, 184, 51, 0.1);
-  border-radius: 18px 18px 18px 0;
-}
-
-.message-date-divider {
-  position: relative;
-  text-align: center;
-  margin: 1.5rem 0;
-}
-
-.message-date-divider::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 100%;
-  height: 1px;
-  background: rgba(120, 184, 51, 0.2);
-  z-index: 1;
-}
-
-.message-date-divider span {
-  background: white;
-  padding: 0 1rem;
-  position: relative;
-  z-index: 2;
-  font-size: 0.75rem;
-  color: rgba(60, 122, 20, 0.8);
-}
-
-/* Command Dialog Styles */
-.cmdk-group {
-  @apply overflow-hidden;
-}
-
-.cmdk-group-heading {
-  @apply px-2 py-1.5 text-xs font-semibold text-muted-foreground;
-}
-
-.cmdk-item {
-  @apply relative flex select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none cursor-default transition-colors;
-}
-
-.cmdk-item[data-selected=true] {
-  @apply bg-accent text-accent-foreground;
-}
-
-.cmdk-input {
-  @apply w-full border-none bg-transparent outline-none placeholder:text-muted-foreground text-foreground py-3;
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
 }

@@ -1,13 +1,13 @@
 
 import React, { useRef, useEffect } from 'react';
-import { format, isToday, isYesterday } from 'date-fns';
-import { Message, MessageReaction } from '@/components/messages/types';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ErrorAlert } from '@/components/ui/error-alert';
-import MessageGroup from './MessageGroup';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import { Message } from '@/types/messages';
 import { useAuth } from '@/components/AuthProvider';
-import { useQueryClient } from '@tanstack/react-query';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { format } from 'date-fns';
+import { Check, CheckCheck } from 'lucide-react';
+import MessageActions from './MessageActions';
+import MessageMedia from './MessageMedia';
 
 interface MessagesListProps {
   messages: Message[];
@@ -15,14 +15,14 @@ interface MessagesListProps {
   error?: { message: string } | null;
   selectedMessage: string | null;
   handleMessageClick: (messageId: string) => void;
-  onAddReaction: (messageId: string, type: MessageReaction['reaction_type']) => void;
-  onRemoveReaction: (messageId: string, reactionId: string) => void;
-  onDeleteMessage: (messageId: string) => void;
-  otherUser?: any; // For typing indicator
-  isTyping: boolean;
+  onAddReaction?: (messageId: string, reactionType: string) => void;
+  onRemoveReaction?: (messageId: string, reactionType: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
+  otherUser?: any;
+  isTyping?: boolean;
 }
 
-const MessagesList = ({
+const MessagesList: React.FC<MessagesListProps> = ({
   messages,
   isLoading,
   error,
@@ -32,176 +32,206 @@ const MessagesList = ({
   onRemoveReaction,
   onDeleteMessage,
   otherUser,
-  isTyping
-}: MessagesListProps) => {
+  isTyping = false
+}) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Scroll to bottom when messages change or typing status changes
+  // Scroll to bottom on new messages
   useEffect(() => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  }, [messages, isTyping]);
-  
-  // Helper function to format date for message grouping
-  const formatMessageDate = (date: Date) => {
-    if (isToday(date)) {
-      return 'Today';
-    } else if (isYesterday(date)) {
-      return 'Yesterday';
-    } else {
-      return format(date, 'EEEE, MMMM d, yyyy');
+    if (messagesEndRef.current && messages.length > 0) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  };
-  
+  }, [messages]);
+
   if (isLoading) {
     return (
-      <div className="flex flex-col space-y-4 py-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
-            <div className={`flex gap-2 ${i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
-              <Skeleton className="h-8 w-8 rounded-full" />
-              <Skeleton className="h-12 w-[200px] rounded-xl" />
-            </div>
-          </div>
-        ))}
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-sm text-muted-foreground mt-2">Loading messages...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="py-4 px-4">
-        <ErrorAlert
-          title="Failed to load messages"
-          message={error.message}
-          severity="error"
-          onRetry={() => queryClient.invalidateQueries({ queryKey: ['messages'] })}
-        />
+      <div className="flex flex-col items-center justify-center h-full">
+        <p className="text-sm text-destructive">{error.message}</p>
       </div>
     );
   }
 
-  if (messages.length === 0) {
+  if (!messages || messages.length === 0) {
     return (
-      <div className="py-12 text-center">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 rounded-full bg-tennis-green/10 flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64" className="text-tennis-green opacity-60">
-              <path fill="currentColor" d="M33.18 3.195a28 28 0 0 0-26 43.98l-4 11 11-4a28 28 0 1 0 19-50.98zm0 52a24 24 0 0 1-13-3.85l-1.67-.99L12 52l1.65-6.5-.99-1.67a24 24 0 1 1 20.52 11.37z"/>
-            </svg>
-          </div>
-          <p className="text-tennis-darkGreen font-medium mb-1">Start the conversation</p>
-          <p className="text-sm text-muted-foreground">Send your first message to begin chatting</p>
+      <div className="flex flex-col items-center justify-center h-full p-4">
+        <div className="bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center mb-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-muted-foreground/70"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
         </div>
+        <p className="text-center text-muted-foreground">
+          No messages yet. Start the conversation!
+        </p>
       </div>
     );
   }
 
-  // Group messages by date
-  const messagesByDate = messages.reduce((groups: Record<string, Message[]>, message) => {
-    const date = formatMessageDate(new Date(message.created_at));
-    if (!groups[date]) {
-      groups[date] = [];
-    }
-    groups[date].push(message);
-    return groups;
-  }, {});
-  
-  // Further group messages by sender in consecutive sequences
-  const groupMessagesBySender = (messages: Message[]) => {
-    const groups: { messages: Message[], sender_id: string }[] = [];
-    
-    messages.forEach((message) => {
-      const lastGroup = groups[groups.length - 1];
-      
-      if (lastGroup && lastGroup.sender_id === message.sender_id) {
-        // Add to the existing group if same sender and within 2 minutes
-        const lastMessage = lastGroup.messages[lastGroup.messages.length - 1];
-        const timeDiff = new Date(message.created_at).getTime() - new Date(lastMessage.created_at).getTime();
-        
-        if (timeDiff < 2 * 60 * 1000) { // 2 minutes in milliseconds
-          lastGroup.messages.push(message);
-        } else {
-          // Create new group if time difference is too large
-          groups.push({
-            sender_id: message.sender_id,
-            messages: [message]
-          });
-        }
-      } else {
-        // Create new group for new sender
-        groups.push({
-          sender_id: message.sender_id,
-          messages: [message]
-        });
-      }
-    });
-    
-    return groups;
-  };
+  let lastSenderId: string | null = null;
+  let lastDate: string | null = null;
 
   return (
-    <>
-      {Object.keys(messagesByDate).map((date) => {
-        const messageGroups = groupMessagesBySender(messagesByDate[date]);
+    <div className="flex flex-col space-y-4">
+      {messages.map((message, index) => {
+        const isCurrentUser = user && message.sender_id === user.id;
+        const showSender = message.sender_id !== lastSenderId;
+        const messageDate = new Date(message.created_at).toDateString();
+        const showDateDivider = lastDate !== messageDate;
+        
+        // Update for next iteration
+        lastSenderId = message.sender_id;
+        lastDate = messageDate;
         
         return (
-          <div key={date} className="space-y-6">
-            <div className="flex justify-center my-4">
-              <div className="px-3 py-1 bg-tennis-green/10 text-tennis-darkGreen rounded-full text-xs font-medium">
-                {date}
+          <React.Fragment key={message.id}>
+            {showDateDivider && (
+              <div className="flex items-center justify-center my-4">
+                <div className="bg-muted/30 rounded-full px-3 py-1 text-xs text-muted-foreground">
+                  {format(new Date(message.created_at), 'MMMM d, yyyy')}
+                </div>
+              </div>
+            )}
+            
+            <div 
+              className={cn(
+                "group flex w-full",
+                isCurrentUser ? "justify-end" : "justify-start",
+                showSender ? "mt-4" : "mt-1"
+              )}
+            >
+              {!isCurrentUser && showSender && (
+                <div className="mr-2 mt-1">
+                  <Avatar className="h-6 w-6">
+                    {message.sender?.avatar_url ? (
+                      <AvatarImage src={message.sender.avatar_url} />
+                    ) : (
+                      <AvatarFallback>
+                        {message.sender?.username?.charAt(0) || 
+                         message.sender?.full_name?.charAt(0) || 
+                         '?'}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                </div>
+              )}
+              
+              <div
+                className={cn(
+                  "relative max-w-[80%]",
+                  isCurrentUser ? "order-1" : "order-2"
+                )}
+              >
+                {showSender && !isCurrentUser && message.sender && (
+                  <div className="ml-1 mb-1 text-xs text-muted-foreground">
+                    {message.sender.full_name || message.sender.username || 'Unknown'}
+                  </div>
+                )}
+                
+                <div 
+                  className={cn(
+                    "rounded-lg px-3 py-2 text-sm relative break-words",
+                    isCurrentUser 
+                      ? "bg-primary text-primary-foreground rounded-br-none" 
+                      : "bg-accent text-accent-foreground rounded-bl-none",
+                    selectedMessage === message.id && "ring-2 ring-ring"
+                  )}
+                  onClick={() => handleMessageClick(message.id)}
+                >
+                  {message.is_deleted ? (
+                    <span className="italic text-muted-foreground">This message was deleted</span>
+                  ) : (
+                    <>
+                      {message.content}
+                      {message.media_url && (
+                        <div className="mt-2">
+                          <MessageMedia 
+                            url={message.media_url} 
+                            type={message.media_type || 'image'} 
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
+                  <span className="inline-block ml-2 opacity-70 text-[0.65rem]">
+                    {format(new Date(message.created_at), 'h:mm a')}
+                  </span>
+                  
+                  {/* Read receipt indicator */}
+                  {isCurrentUser && (
+                    <span className="absolute -bottom-4 right-0 text-xs text-muted-foreground flex items-center">
+                      {message.read ? (
+                        <CheckCheck className="h-3 w-3 text-primary" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      )}
+                    </span>
+                  )}
+                </div>
+                
+                {onAddReaction && onRemoveReaction && onDeleteMessage && (
+                  <MessageActions
+                    message={message}
+                    isCurrentUser={isCurrentUser}
+                    onAddReaction={onAddReaction}
+                    onRemoveReaction={onRemoveReaction}
+                    onDeleteMessage={onDeleteMessage}
+                    isVisible={selectedMessage === message.id}
+                  />
+                )}
               </div>
             </div>
-            
-            {messageGroups.map((group, groupIndex) => {
-              const isCurrentUser = group.sender_id === user?.id;
-              
-              return (
-                <MessageGroup
-                  key={`${date}-${groupIndex}`}
-                  messages={group.messages}
-                  isCurrentUser={isCurrentUser}
-                  handleMessageClick={handleMessageClick}
-                  selectedMessage={selectedMessage}
-                  onAddReaction={onAddReaction}
-                  onRemoveReaction={onRemoveReaction}
-                  onDeleteMessage={onDeleteMessage}
-                />
-              );
-            })}
-          </div>
+          </React.Fragment>
         );
       })}
       
-      {/* Typing indicator */}
-      {isTyping && otherUser && (
-        <div className="flex justify-start my-2">
-          <div className="flex items-start gap-2 max-w-[80%]">
-            <Avatar className="h-8 w-8 mt-1 border-2 border-tennis-green/20">
-              {otherUser?.avatar_url && (
-                <img src={otherUser.avatar_url} alt={otherUser?.username || 'User'} />
+      {isTyping && (
+        <div className="flex items-start ml-2">
+          <div className="mr-2">
+            <Avatar className="h-6 w-6">
+              {otherUser?.avatar_url ? (
+                <AvatarImage src={otherUser.avatar_url} />
+              ) : (
+                <AvatarFallback>
+                  {otherUser?.username?.charAt(0) || 
+                   otherUser?.full_name?.charAt(0) || 
+                   '?'}
+                </AvatarFallback>
               )}
-              <AvatarFallback className="bg-tennis-green/10 text-tennis-darkGreen">
-                {otherUser?.full_name?.charAt(0) || otherUser?.username?.charAt(0) || 'U'}
-              </AvatarFallback>
             </Avatar>
-            
-            <div className="px-4 py-3 bg-tennis-green/10 rounded-xl rounded-bl-none">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full bg-tennis-green animate-bounce" />
-                <div className="w-2 h-2 rounded-full bg-tennis-green animate-bounce" style={{ animationDelay: '0.2s' }} />
-                <div className="w-2 h-2 rounded-full bg-tennis-green animate-bounce" style={{ animationDelay: '0.4s' }} />
-              </div>
+          </div>
+          <div className="bg-accent rounded-lg p-3 inline-flex">
+            <div className="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
             </div>
           </div>
         </div>
       )}
       
       <div ref={messagesEndRef} />
-    </>
+    </div>
   );
 };
 
