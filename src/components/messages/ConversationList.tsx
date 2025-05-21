@@ -1,122 +1,118 @@
 
-import { useState } from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Conversation } from '@/components/messages/types';
-import { MoreHorizontal, Trash } from 'lucide-react';
-import { 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MoreVertical, Trash2 } from 'lucide-react';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { Conversation } from '@/components/messages/types';
 
 interface ConversationListProps {
   conversations: Conversation[];
-  currentConversationId?: string;
-  onSelectConversation: (userId: string) => void;
-  unreadCounts: Record<string, number>;
-  onDeleteConversation: (conversationId: string) => void;
+  currentConversationId: string | null | undefined;
+  onSelectConversation: (id: string) => void;
+  unreadCounts?: Record<string, number>;
+  onDeleteConversation?: (id: string) => void;
 }
 
 const ConversationList = ({ 
   conversations, 
   currentConversationId, 
-  onSelectConversation, 
-  unreadCounts,
-  onDeleteConversation 
+  onSelectConversation,
+  unreadCounts = {},
+  onDeleteConversation
 }: ConversationListProps) => {
-  if (!conversations || conversations.length === 0) {
-    return (
-      <div className="p-4 text-center text-muted-foreground text-sm">
-        <p>No conversations yet.</p>
-        <p className="mt-1">Search for users to start chatting.</p>
-      </div>
-    );
-  }
-  
   return (
-    <div className="space-y-1 p-2">
-      {conversations.map(conversation => {
-        const otherUserId = conversation.other_user?.id || '';
-        const isSelected = currentConversationId === otherUserId;
-        const unreadCount = unreadCounts[otherUserId] || 0;
+    <div className="space-y-2">
+      {conversations.map((conversation) => {
+        const isActive = currentConversationId === conversation.id;
+        const unreadCount = unreadCounts[conversation.id] || 0;
         const hasUnread = unreadCount > 0;
         
         return (
           <div 
-            key={conversation.id}
-            className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${
-              isSelected 
-                ? 'bg-primary/10 border border-primary/30' 
-                : 'hover:bg-accent border border-transparent'
+            key={conversation.id} 
+            className={`flex items-center p-2 rounded-lg cursor-pointer transition-colors ${
+              isActive 
+                ? 'bg-accent/50' 
+                : hasUnread 
+                  ? 'bg-primary/5 hover:bg-accent/30' 
+                  : 'hover:bg-accent/30'
             }`}
+            onClick={() => onSelectConversation(conversation.id)}
           >
-            <div 
-              className="flex-grow flex items-center gap-3 cursor-pointer"
-              onClick={() => onSelectConversation(otherUserId)}
-            >
-              <Avatar className="h-10 w-10 flex-shrink-0">
-                {conversation.other_user?.avatar_url && (
-                  <img 
-                    src={conversation.other_user.avatar_url} 
-                    alt={conversation.other_user?.username || 'User'} 
-                    className="h-full w-full object-cover"
-                  />
-                )}
+            <Avatar className="h-10 w-10 mr-3 flex-shrink-0">
+              {conversation.other_user?.avatar_url ? (
+                <AvatarImage src={conversation.other_user.avatar_url} />
+              ) : (
                 <AvatarFallback>
-                  {conversation.other_user?.full_name?.charAt(0) || 
-                   conversation.other_user?.username?.charAt(0) || 'U'}
+                  {conversation.other_user?.username?.charAt(0) || 
+                   conversation.other_user?.full_name?.charAt(0) || 
+                   '?'}
                 </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 overflow-hidden">
-                <div className="flex justify-between items-baseline">
-                  <p className="font-medium truncate">
-                    {conversation.other_user?.full_name || 
-                     conversation.other_user?.username || 'Unknown User'}
-                  </p>
-                  {conversation.last_message_at && (
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(conversation.last_message_at), { addSuffix: true })}
-                    </span>
-                  )}
-                </div>
+              )}
+            </Avatar>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-center">
+                <h4 className={`text-sm font-medium truncate ${hasUnread ? 'text-foreground font-semibold' : 'text-foreground'}`}>
+                  {conversation.other_user?.full_name || 
+                   conversation.other_user?.username || 
+                   'Unknown User'}
+                </h4>
                 
-                <div className="flex justify-between items-center">
-                  {conversation.last_message && (
-                    <p className={`text-sm truncate ${hasUnread ? 'font-medium' : 'text-muted-foreground'}`}>
-                      {conversation.last_message.content}
-                    </p>
-                  )}
-                  
-                  {hasUnread && (
-                    <Badge variant="default" className="ml-1 py-0 px-1.5 text-xs h-5">
-                      {unreadCount > 1 ? unreadCount : 'new'}
-                    </Badge>
-                  )}
-                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                  {conversation.last_message_at
+                    ? formatDistanceToNow(new Date(conversation.last_message_at), { 
+                        addSuffix: false,
+                        includeSeconds: true
+                      })
+                    : ''}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <p className={`text-xs truncate max-w-[150px] ${
+                  hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'
+                }`}>
+                  {conversation.last_message?.content || 'No messages yet'}
+                </p>
+                
+                {hasUnread && (
+                  <Badge variant="default" className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full">
+                    {unreadCount}
+                  </Badge>
+                )}
               </div>
             </div>
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-1 rounded-md hover:bg-accent">
-                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem 
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => onDeleteConversation(conversation.id)}
-                >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Delete conversation
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {onDeleteConversation && (
+              <div className="ml-2" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="sr-only">More options</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => onDeleteConversation(conversation.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete conversation
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
         );
       })}

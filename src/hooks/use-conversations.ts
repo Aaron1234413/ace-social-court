@@ -1,211 +1,251 @@
+
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { Conversation, Message } from '@/components/messages/types';
-import { toast } from 'sonner';
+import { Conversation } from '@/components/messages/types';
 
 export function useConversations() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   
-  // Fetch all conversations for the current user
-  const { data: conversations, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
       if (!user) return [];
       
-      // Get conversations where current user is either user1 or user2
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*, profiles!conversations_user2_id_fkey(id, username, full_name, avatar_url)')
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-        .order('last_message_at', { ascending: false });
-        
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        throw error;
-      }
-      
-      // Format conversations to always show the other user's info
-      return data.map((conversation: any) => {
-        const isUser1 = conversation.user1_id === user.id;
-        const otherUserId = isUser1 ? conversation.user2_id : conversation.user1_id;
-        const otherUser = isUser1 ? conversation.profiles : null;
-        
-        // If other user profile not loaded, we need to fetch it manually
-        // This happens when current user is user2, not user1
-        if (!otherUser && otherUserId) {
-          return {
-            ...conversation,
-            other_user: null // Will be fetched separately
-          };
+      try {
+        // Get conversations where current user is involved
+        const { data: conversationsData, error: conversationsError } = await supabase
+          .from('conversations')
+          .select('*')
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+          .order('last_message_at', { ascending: false });
+          
+        if (conversationsError) {
+          throw new Error(conversationsError.message);
         }
         
-        return {
-          ...conversation,
-          other_user: otherUser
-        } as Conversation;
-      });
-    },
-    enabled: !!user
-  });
-  
-  // If any conversations are missing other_user info, fetch them
-  const conversationsWithOtherUsers = useQuery({
-    queryKey: ['conversations_with_users', conversations],
-    queryFn: async () => {
-      if (!conversations) return [];
-      
-      const incompleteConversations = conversations.filter(
-        (conv: Conversation) => !conv.other_user
-      );
-      
-      if (incompleteConversations.length === 0) {
-        return conversations;
-      }
-      
-      const updatedConversations = [...conversations];
-      
-      await Promise.all(
-        incompleteConversations.map(async (conversation) => {
-          const otherUserId = conversation.user1_id === user?.id 
-            ? conversation.user2_id 
-            : conversation.user1_id;
-            
-          const { data: profileData, error } = await supabase
-            .from('profiles')
-            .select('id, username, full_name, avatar_url')
-            .eq('id', otherUserId)
-            .single();
-            
-          if (!error && profileData) {
-            const index = updatedConversations.findIndex(c => c.id === conversation.id);
-            if (index !== -1) {
-              updatedConversations[index] = {
-                ...updatedConversations[index],
-                other_user: profileData
+        // For each conversation, get the other user's profile and last message
+        const conversationsWithDetails = await Promise.all(
+          conversationsData.map(async (conversation) => {
+            const otherUserId = conversation.user1_id === user.id
+              ? conversation.user2_id
+              : conversation.user1_id;
+              
+            // Get other user's profile
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('id, username, full_name, avatar_url')
+              .eq('id', otherUserId)
+              .single();
+              
+            if (profileError) {
+              console.error('Error fetching profile:', profileError);
+              return {
+                ...conversation,
+                other_user: {
+                  id: otherUserId,
+                  username: 'Unknown User',
+                  full_name: null,
+                  avatar_url: null
+                },
+                last_message: null
               };
             }
-          }
-        })
-      );
-      
-      return updatedConversations;
-    },
-    enabled: !!conversations && conversations.length > 0
-  });
-  
-  // Fetch last messages for each conversation
-  const { data: conversationsWithLastMessages } = useQuery({
-    queryKey: ['conversations_with_messages', conversationsWithOtherUsers.data],
-    queryFn: async () => {
-      if (!conversationsWithOtherUsers.data) return [];
-      
-      const withLastMessages = await Promise.all(
-        conversationsWithOtherUsers.data.map(async (conversation: Conversation) => {
-          const { data, error } = await supabase
-            .from('direct_messages')
-            .select('*')
-            .or(`and(sender_id.eq.${conversation.user1_id},recipient_id.eq.${conversation.user2_id}),and(sender_id.eq.${conversation.user2_id},recipient_id.eq.${conversation.user1_id})`)
-            .order('created_at', { ascending: false })
-            .limit(1);
             
-          if (error || !data || data.length === 0) {
-            return conversation;
-          }
-          
-          // Ensure we're converting to the Message type
-          const lastMessage = data[0] as unknown as Message;
-          
-          return {
-            ...conversation,
-            last_message: lastMessage
-          };
-        })
-      );
-      
-      return withLastMessages;
-    },
-    enabled: !!conversationsWithOtherUsers.data && conversationsWithOtherUsers.data.length > 0
-  });
-  
-  // Count unread messages for each conversation - Fix the unread count query
-  const { data: unreadCounts } = useQuery({
-    queryKey: ['unread_counts', user?.id],
-    queryFn: async () => {
-      if (!user) return {};
-      
-      // Use a different approach to count unread messages per conversation
-      const { data, error } = await supabase
-        .from('direct_messages')
-        .select('id, sender_id, recipient_id')
-        .eq('recipient_id', user.id)
-        .eq('read', false)
-        .eq('is_deleted', false);
+            // Get last message
+            const { data: lastMessageData, error: messageError } = await supabase
+              .from('direct_messages')
+              .select('*')
+              .or(`and(sender_id.eq.${conversation.user1_id},recipient_id.eq.${conversation.user2_id}),and(sender_id.eq.${conversation.user2_id},recipient_id.eq.${conversation.user1_id})`)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+              
+            if (messageError) {
+              console.error('Error fetching last message:', messageError);
+            }
+
+            // Count unread messages
+            const { count: unreadCount, error: countError } = await supabase
+              .from('direct_messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('recipient_id', user.id)
+              .eq('sender_id', otherUserId)
+              .eq('read', false);
+
+            if (countError) {
+              console.error('Error counting unread messages:', countError);
+            } else if (unreadCount && unreadCount > 0) {
+              // Update unread counts
+              setUnreadCounts(prev => ({
+                ...prev,
+                [conversation.id]: unreadCount
+              }));
+            }
+            
+            return {
+              ...conversation,
+              other_user: profileData,
+              last_message: lastMessageData
+            } as Conversation;
+          })
+        );
         
-      if (error) {
-        console.error('Error counting unread messages:', error);
-        return {};
+        return conversationsWithDetails;
+      } catch (error) {
+        console.error('Error in useConversations:', error);
+        throw error;
       }
-      
-      // Process the data to get counts by conversation
-      const counts: Record<string, number> = {};
-      if (data) {
-        // Group messages by sender_id (which corresponds to the conversation with that user)
-        data.forEach(message => {
-          const senderId = message.sender_id;
-          counts[senderId] = (counts[senderId] || 0) + 1;
-        });
-      }
-      
-      return counts;
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 30000,
   });
-  
-  // Delete conversation mutation
-  const deleteConversationMutation = useMutation({
-    mutationFn: async (conversationId: string) => {
-      if (!user) throw new Error('User not authenticated');
+
+  // Set up realtime subscription to update read status
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('conversation-updates')
+      .on('postgres_changes', 
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `recipient_id=eq.${user.id}` // Only listen for messages sent to the current user
+        },
+        (payload) => {
+          console.log('Message updated:', payload);
+          // If read status changed, refresh conversations
+          if (payload.new.read !== payload.old.read) {
+            refetch();
+          }
+        }
+      )
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `recipient_id=eq.${user.id}` // New messages to the current user
+        },
+        (payload) => {
+          console.log('New message received:', payload);
+          refetch();
+        }
+      )
+      .subscribe();
       
-      // First delete all messages in the conversation
-      const { error: messagesError } = await supabase
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, refetch]);
+  
+  // Add a function to delete conversation
+  const deleteConversation = async (conversationId: string) => {
+    // In this implementation, we don't actually delete the conversation record,
+    // just mark all messages as deleted
+    if (!user) return false;
+    
+    try {
+      const conversation = data?.find(c => c.id === conversationId);
+      if (!conversation) return false;
+      
+      const otherUserId = conversation.user1_id === user.id
+        ? conversation.user2_id
+        : conversation.user1_id;
+      
+      // Mark all messages as deleted
+      const { error } = await supabase
         .from('direct_messages')
         .update({ is_deleted: true })
-        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${conversationId}),and(recipient_id.eq.${user.id},sender_id.eq.${conversationId})`);
-        
-      if (messagesError) {
-        console.error('Error deleting conversation messages:', messagesError);
-        throw messagesError;
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${user.id})`);
+      
+      if (error) {
+        console.error('Error deleting conversation:', error);
+        return false;
       }
       
-      // Then delete the conversation itself
-      const { error: conversationError } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', conversationId)
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
-        
-      if (conversationError) {
-        console.error('Error deleting conversation:', conversationError);
-        throw conversationError;
-      }
-      
-      return { success: true };
-    },
-    onSuccess: () => {
+      // Refresh conversations
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success('Conversation deleted');
-    },
-    onError: () => {
-      toast.error('Failed to delete conversation');
+      return true;
+    } catch (error) {
+      console.error('Error in deleteConversation:', error);
+      return false;
     }
-  });
-  
-  return {
-    conversations: conversationsWithLastMessages || [],
-    isLoading: isLoading || conversationsWithOtherUsers.isLoading,
-    unreadCounts: unreadCounts || {},
-    deleteConversation: deleteConversationMutation.mutate
   };
+
+  return {
+    conversations: data || [],
+    isLoading,
+    error,
+    unreadCounts,
+    deleteConversation,
+    refetch
+  };
+}
+
+export function useCreateConversation() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isCreating, setIsCreating] = useState(false);
+  
+  const createConversation = async (otherUserId: string, options?: { onSuccess?: Function, onError?: (error: any) => void }) => {
+    if (!user || !otherUserId) {
+      throw new Error('Missing user information');
+    }
+    
+    setIsCreating(true);
+    
+    try {
+      // Check if conversation already exists
+      const { data: existingConversation, error: checkError } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
+        .maybeSingle();
+        
+      if (checkError) {
+        throw new Error(checkError.message);
+      }
+      
+      // If conversation exists, return it
+      if (existingConversation) {
+        if (options?.onSuccess) options.onSuccess(existingConversation.id);
+        return existingConversation.id;
+      }
+      
+      // Create new conversation with user1_id < user2_id (for consistency)
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          user1_id: user.id < otherUserId ? user.id : otherUserId,
+          user2_id: user.id < otherUserId ? otherUserId : user.id,
+          last_message_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (createError) {
+        throw new Error(createError.message);
+      }
+      
+      // Refresh conversations list
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      
+      if (options?.onSuccess) options.onSuccess(newConversation.id);
+      return newConversation.id;
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      if (options?.onError) options.onError(error);
+      throw error;
+    } finally {
+      setIsCreating(false);
+    }
+  };
+  
+  return { createConversation, isCreating };
 }

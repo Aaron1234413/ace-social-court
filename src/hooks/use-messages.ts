@@ -1,5 +1,4 @@
-
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -127,6 +126,38 @@ export const useMessages = (otherUserId?: string) => {
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
     staleTime: 10000,
   });
+
+  // Add real-time subscription for message status updates
+  useEffect(() => {
+    if (!user || !otherUserId) return;
+    
+    // Set up a subscription to changes in direct_messages table
+    const channel = supabase
+      .channel('message-status-changes')
+      .on('postgres_changes', 
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `sender_id=eq.${user.id}` // Only listen for messages sent by the current user
+        },
+        (payload) => {
+          console.log('Message status updated:', payload);
+          // If the read status was updated, refresh the messages
+          if (payload.new.read !== payload.old.read) {
+            queryClient.invalidateQueries({ queryKey: ['messages', otherUserId] });
+          }
+        }
+      )
+      .subscribe();
+      
+    console.log('Subscribed to message status changes');
+      
+    return () => {
+      console.log('Unsubscribing from message status changes');
+      supabase.removeChannel(channel);
+    };
+  }, [user, otherUserId, queryClient]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {

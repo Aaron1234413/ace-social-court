@@ -14,7 +14,7 @@ export const configureRealtime = async () => {
     const { data: publicationData, error: publicationError } = await (supabase.rpc as any)(
       'is_table_in_publication',
       { 
-        _table_name: 'ai_conversations',
+        _table_name: 'direct_messages',
         _publication_name: 'supabase_realtime'
       }
     );
@@ -26,7 +26,7 @@ export const configureRealtime = async () => {
     
     // If needed, execute REPLICA IDENTITY FULL and add tables to realtime
     if (!publicationData) {
-      console.log('Configuring realtime for ai_conversations table...');
+      console.log('Configuring realtime for direct_messages table...');
       
       // Execute the SQL to configure the tables
       // Use type assertion to work around TypeScript errors

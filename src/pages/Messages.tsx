@@ -9,9 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MessageSearch from '@/components/messages/MessageSearch';
 import ConversationsList from '@/components/messages/ConversationsList';
 import ChatInterface from '@/components/messages/ChatInterface';
-import { useCreateConversation } from '@/hooks/useConversations';
+import { useCreateConversation } from '@/hooks/use-messages';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Loading } from '@/components/ui/loading';
+import { configureRealtime } from '@/utils/realtimeHelper';
 
 const Messages = () => {
   const { user } = useAuth();
@@ -38,6 +39,24 @@ const Messages = () => {
       setSelectedConversationId(chatId);
     }
   }, [chatId]);
+  
+  // Configure realtime subscriptions on component mount
+  useEffect(() => {
+    if (user) {
+      // Check and configure realtime for the message tables
+      configureRealtime()
+        .then(result => {
+          if (result.success) {
+            console.log('Realtime configuration successful');
+          } else {
+            console.warn('Realtime configuration issue:', result.error);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to configure realtime:', err);
+        });
+    }
+  }, [user]);
   
   // Handle selecting a user from search
   const handleUserSelect = async (user: any) => {
