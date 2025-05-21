@@ -5,7 +5,7 @@ import { Button, ButtonProps } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
 import { useCreateConversation } from '@/hooks/use-create-conversation';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface MessageButtonProps extends ButtonProps {
@@ -73,14 +73,16 @@ const MessageButton = ({
 
   if (showTooltip) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {buttonContent}
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="text-xs">Send an icebreaker message</p>
-        </TooltipContent>
-      </Tooltip>
+      <TooltipProvider>
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            {buttonContent}
+          </TooltipTrigger>
+          <TooltipContent side="bottom" align="center" className="z-50">
+            <p className="text-xs whitespace-nowrap">Send an icebreaker message</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 

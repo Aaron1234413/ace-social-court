@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -40,13 +39,15 @@ const UserSearchResults: React.FC<UserSearchResultsProps> = ({ users }) => {
                 </div>
               </Link>
               
-              <MessageButton 
-                userId={user.id} 
-                variant="outline" 
-                compact={true} 
-                initialMessage={`Hi ${user.full_name || user.username || 'there'}! I found you in search and would like to connect.`}
-                showTooltip={true}
-              />
+              <div className="relative z-10">
+                <MessageButton 
+                  userId={user.id} 
+                  variant="outline" 
+                  compact={true}
+                  initialMessage={`Hi ${user.full_name || user.username || 'there'}! I found you in search and would like to connect.`}
+                  showTooltip={true}
+                />
+              </div>
             </div>
             
             <div className="mt-3 space-y-2">
