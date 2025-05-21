@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { toast } from 'sonner';
 
 interface CreateConversationCallbacks {
   onSuccess?: (conversationId: string) => void;
@@ -22,16 +23,37 @@ export const useCreateConversation = () => {
       console.log(`Creating conversation between ${user.id} and ${otherUserId}`);
       
       try {
-        // First check if conversation already exists
+        // First check if conversation already exists with exact user1/user2 match
+        // Use lexicographical ordering to ensure consistency
+        const user1 = user.id < otherUserId ? user.id : otherUserId;
+        const user2 = user.id < otherUserId ? otherUserId : user.id;
+        
         const { data: existingConversation, error: checkError } = await supabase
           .from('conversations')
           .select('id')
-          .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
+          .eq('user1_id', user1)
+          .eq('user2_id', user2)
           .maybeSingle();
           
         if (checkError) {
-          console.error('Error checking for existing conversation:', checkError);
-          throw checkError;
+          console.error('Error checking for existing conversation (exact match):', checkError);
+          
+          // Try the OR approach as fallback
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('conversations')
+            .select('id')
+            .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
+            .maybeSingle();
+            
+          if (fallbackError) {
+            console.error('Error checking for existing conversation (fallback):', fallbackError);
+            throw fallbackError;
+          }
+          
+          if (fallbackData) {
+            console.log('Found existing conversation (fallback):', fallbackData.id);
+            return fallbackData;
+          }
         }
         
         // If conversation exists, return it
@@ -40,10 +62,7 @@ export const useCreateConversation = () => {
           return existingConversation;
         }
 
-        // Ensure consistent ordering of user IDs (user1_id is always lexicographically smaller)
-        const user1 = user.id < otherUserId ? user.id : otherUserId;
-        const user2 = user.id < otherUserId ? otherUserId : user.id;
-
+        // Create new conversation with consistent user ordering
         const { data, error } = await supabase
           .from('conversations')
           .insert({
@@ -93,6 +112,7 @@ export const useCreateConversation = () => {
     },
     onError: (error) => {
       console.error('Error in useCreateConversation mutation:', error);
+      toast.error('Failed to create conversation');
     },
     retry: 1, // Retry once before failing
   });

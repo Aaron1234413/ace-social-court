@@ -33,21 +33,29 @@ export const useMessages = (conversationId?: string | null) => {
     queryKey: ['conversation-details', conversationId],
     queryFn: async () => {
       if (!user || !conversationId) return null;
-
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('id', conversationId)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching conversation:', error);
-        throw error;
-      }
       
-      return data;
+      try {
+        console.log(`Fetching conversation details for ID: ${conversationId}`);
+        const { data, error } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('id', conversationId)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching conversation details:', error);
+          throw error;
+        }
+        
+        console.log('Conversation details fetched successfully:', data);
+        return data;
+      } catch (err) {
+        console.error('Failed to fetch conversation details:', err);
+        throw err;
+      }
     },
     enabled: !!user && !!conversationId,
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   // Get both participants' IDs for the messages query
@@ -58,12 +66,20 @@ export const useMessages = (conversationId?: string | null) => {
   const { data: messages, isLoading: isLoadingMessages, refetch } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
-      if (!user || !conversationId || !user1Id || !user2Id) return [];
+      if (!user || !conversationId || !user1Id || !user2Id) {
+        console.log('Not fetching messages - missing required data', { 
+          userId: user?.id, 
+          conversationId, 
+          user1Id, 
+          user2Id 
+        });
+        return [];
+      }
 
       try {
-        console.log(`Fetching messages for conversation: ${conversationId}`);
+        console.log(`Fetching messages for conversation: ${conversationId} between ${user1Id} and ${user2Id}`);
         
-        // Get all messages for this conversation
+        // Get all messages for this conversation using OR conditions with parentheses
         const { data, error } = await supabase
           .from('direct_messages')
           .select('*')
@@ -81,34 +97,43 @@ export const useMessages = (conversationId?: string | null) => {
         // For each message, fetch the sender's profile
         const messagesWithSenders = await Promise.all(
           data.map(async (message) => {
-            const { data: senderData, error: senderError } = await supabase
-              .from('profiles')
-              .select('username, full_name, avatar_url')
-              .eq('id', message.sender_id)
-              .single();
+            try {
+              const { data: senderData, error: senderError } = await supabase
+                .from('profiles')
+                .select('username, full_name, avatar_url')
+                .eq('id', message.sender_id)
+                .single();
 
-            if (senderError) {
-              console.error('Error fetching sender profile:', senderError);
+              if (senderError) {
+                console.error(`Error fetching sender profile for user ${message.sender_id}:`, senderError);
+                return {
+                  ...message,
+                  sender: null,
+                  reactions: []
+                } as Message;
+              }
+
+              // Get reactions for this message
+              const { data: reactionsData, error: reactionsError } = await supabase
+                .from('message_reactions')
+                .select('*')
+                .eq('message_id', message.id);
+
+              const reactions = reactionsError ? [] : reactionsData;
+
+              return {
+                ...message,
+                sender: senderData,
+                reactions
+              } as Message;
+            } catch (fetchError) {
+              console.error(`Error processing message ${message.id}:`, fetchError);
               return {
                 ...message,
                 sender: null,
                 reactions: []
               } as Message;
             }
-
-            // Get reactions for this message
-            const { data: reactionsData, error: reactionsError } = await supabase
-              .from('message_reactions')
-              .select('*')
-              .eq('message_id', message.id);
-
-            const reactions = reactionsError ? [] : reactionsData;
-
-            return {
-              ...message,
-              sender: senderData,
-              reactions
-            } as Message;
           })
         );
 
@@ -152,8 +177,38 @@ export const useMessages = (conversationId?: string | null) => {
     },
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
-    staleTime: 10000,
+    staleTime: 5000,
+    refetchInterval: 10000, // Poll for new messages every 10 seconds
   });
+
+  // Add real-time subscription for new messages
+  useEffect(() => {
+    if (!user || !conversationId) return;
+    
+    // Set up a subscription to changes in direct_messages table
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on('postgres_changes', 
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `recipient_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('New message received:', payload);
+          refetch();
+        }
+      )
+      .subscribe();
+      
+    console.log(`Subscribed to new messages for conversation ${conversationId}`);
+      
+    return () => {
+      console.log(`Unsubscribing from messages for conversation ${conversationId}`);
+      supabase.removeChannel(channel);
+    };
+  }, [user, conversationId, refetch]);
 
   // Add real-time subscription for message status updates
   useEffect(() => {
@@ -173,7 +228,7 @@ export const useMessages = (conversationId?: string | null) => {
           console.log('Message status updated:', payload);
           // If the read status was updated, refresh the messages
           if (payload.new.read !== payload.old.read) {
-            queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+            refetch();
           }
         }
       )
@@ -185,7 +240,7 @@ export const useMessages = (conversationId?: string | null) => {
       console.log('Unsubscribing from message status changes');
       supabase.removeChannel(channel);
     };
-  }, [user, conversationId, queryClient]);
+  }, [user, conversationId, refetch]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -251,17 +306,25 @@ export const useMessages = (conversationId?: string | null) => {
         throw error;
       }
       
+      console.log('Message sent successfully:', data);
+      
       // Update conversation last_message_at
-      await supabase
+      const { error: updateError } = await supabase
         .from('conversations')
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', conversationId);
+        
+      if (updateError) {
+        console.error('Error updating conversation timestamp:', updateError);
+        // Non-critical error, don't throw
+      }
       
       return data;
     },
     onSuccess: () => {
       setNewMessage('');
       clearMedia();
+      refetch(); // Immediately refetch messages to show the new one
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
@@ -275,7 +338,10 @@ export const useMessages = (conversationId?: string | null) => {
 
   const sendMessage = useCallback(() => {
     if ((newMessage.trim() || mediaFile) && conversationId) {
+      console.log(`Sending message: "${newMessage}" to conversation: ${conversationId}`);
       sendMessageMutation.mutate(newMessage);
+    } else {
+      console.warn('Cannot send message: Empty content or missing conversation ID');
     }
   }, [newMessage, mediaFile, conversationId, sendMessageMutation]);
   

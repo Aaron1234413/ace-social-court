@@ -1,10 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { Send, Image, Smile, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMessages } from '@/hooks/use-messages';
+import { toast } from 'sonner';
 
 interface ComposeMessageProps {
   conversationId: string | null;
@@ -13,6 +14,7 @@ interface ComposeMessageProps {
 
 const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps) => {
   const [message, setMessage] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const { 
     sendMessage, 
     isSending, 
@@ -30,15 +32,37 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
       setNewMessage(initialMessage);
     }
   }, [initialMessage, setNewMessage]);
+
+  // Focus input when component mounts
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [conversationId]);
   
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendMessage = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     
-    if ((!message.trim() && !mediaPreview) || !conversationId) return;
+    if ((!message.trim() && !mediaPreview) || !conversationId) {
+      if (!conversationId) {
+        toast.error('Conversation ID is missing');
+      }
+      return;
+    }
     
+    console.log(`Preparing to send message: "${message}" to conversation: ${conversationId}`);
     setNewMessage(message);
     sendMessage();
     setMessage('');
+  };
+  
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
   
   const triggerFileInput = () => {
@@ -116,16 +140,18 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
           placeholder="Type a message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
           disabled={isSending || !conversationId}
           className="flex-1 bg-accent/50 border-0 focus-visible:ring-1 focus-visible:ring-primary"
           autoFocus
+          ref={inputRef}
         />
         
         <Button 
           type="submit" 
           size="icon" 
           disabled={(!message.trim() && !mediaPreview) || isSending || !conversationId}
-          className="rounded-full h-9 w-9 bg-primary hover:bg-primary/90"
+          className="rounded-full h-9 w-9 bg-primary hover:bg-primary/90 transition-colors"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />
