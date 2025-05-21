@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -13,6 +12,9 @@ interface MediaUploaderProps {
   onValidateFile?: (file: File) => Promise<boolean> | boolean;
   allowedTypes?: ('image' | 'video')[];
   bucketName?: string;
+  existingUrl?: string; // Added property for existing media URL
+  existingType?: string; // Added property for existing media type
+  maxFileSizeMB?: number; // Added property for max file size
 }
 
 const MediaUploader = ({ 
@@ -20,21 +22,24 @@ const MediaUploader = ({
   onProgress,
   onValidateFile,
   allowedTypes = ['image', 'video'],
-  bucketName = 'media'
+  bucketName = 'media',
+  existingUrl,
+  existingType,
+  maxFileSizeMB
 }: MediaUploaderProps) => {
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [preview, setPreview] = useState<string | null>(existingUrl || null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(existingType as 'image' | 'video' | null || null);
   const [fileDetails, setFileDetails] = useState<{name: string, size: string, type: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Maximum file sizes with upgraded storage
-  const MAX_IMAGE_SIZE_MB = 100; // 100MB for images
-  const MAX_VIDEO_SIZE_MB = 5000; // 5GB for videos
+  const MAX_IMAGE_SIZE_MB = maxFileSizeMB || 100; // 100MB for images
+  const MAX_VIDEO_SIZE_MB = maxFileSizeMB || 5000; // 5GB for videos
 
   const updateProgress = (progress: number) => {
     setUploadProgress(progress);
@@ -182,6 +187,8 @@ const MediaUploader = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    // Also clear the value in the parent component
+    onMediaUpload('', 'image');
   };
 
   const triggerFileSelect = (type?: 'image' | 'video') => {
