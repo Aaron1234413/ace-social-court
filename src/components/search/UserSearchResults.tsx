@@ -1,12 +1,11 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { MessageButton } from '@/components/messages/MessageButton';
+import MessageButton from '@/components/messages/MessageButton';
 import { SearchUser } from '@/hooks/useSearch';
-import { FollowButton } from '@/components/social/FollowButton';
+import FollowButton from '@/components/social/FollowButton';
 
 interface UserSearchResultsProps {
   users: SearchUser[];
