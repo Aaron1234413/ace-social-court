@@ -14,6 +14,7 @@ import LogSession from '@/pages/LogSession';
 import MainLayout from '@/components/layout/MainLayout';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
 import Notifications from '@/pages/Notifications';
+import Settings from '@/pages/Settings';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -75,6 +76,12 @@ function App() {
             <Route path="/notifications" element={
               <MainLayout>
                 <Notifications />
+              </MainLayout>
+            } />
+            {/* Add new route for settings */}
+            <Route path="/settings" element={
+              <MainLayout>
+                <Settings />
               </MainLayout>
             } />
             {/* Log routes */}
