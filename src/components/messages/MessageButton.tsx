@@ -79,7 +79,7 @@ const MessageButton = ({
             {buttonContent}
           </TooltipTrigger>
           <TooltipContent side="bottom" align="center" className="z-50">
-            <MessageSquare className="h-4 w-4" />
+            <span className="text-xs">Say Hi</span>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
