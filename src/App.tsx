@@ -12,6 +12,7 @@ import LogMatch from '@/pages/LogMatch';
 import LogSession from '@/pages/LogSession';
 import MainLayout from '@/components/layout/MainLayout';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
+import Notifications from '@/pages/Notifications';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -68,7 +69,13 @@ function App() {
               <TennisAI />
             </MainLayout>
           } />
-          {/* Add new routes for match and session logging */}
+          {/* Add new route for notifications */}
+          <Route path="/notifications" element={
+            <MainLayout>
+              <Notifications />
+            </MainLayout>
+          } />
+          {/* Log routes */}
           <Route path="/log/match" element={
             <MainLayout>
               <LogMatch />
