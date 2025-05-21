@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Pencil, MapPin } from 'lucide-react';
+import { Pencil, MapPin, Calendar, Award } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import MessageButton from '@/components/messages/MessageButton';
 
@@ -50,6 +50,33 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     }
   });
 
+  // Add queries for match and session counts
+  const { data: matchesCount } = useQuery({
+    queryKey: ['matches-count', userId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return count || 0;
+    }
+  });
+
+  const { data: sessionsCount } = useQuery({
+    queryKey: ['sessions-count', userId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return count || 0;
+    }
+  });
+
   if (isLoading) {
     return <div>Loading profile...</div>;
   }
@@ -79,6 +106,14 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
             </div>
             <div>
               <span className="font-semibold">{followersCount || 0}</span> Followers
+            </div>
+            <div className="flex items-center gap-1">
+              <Award className="h-4 w-4 text-primary" />
+              <span className="font-semibold">{matchesCount || 0}</span> Matches
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="font-semibold">{sessionsCount || 0}</span> Sessions
             </div>
           </div>
         </div>

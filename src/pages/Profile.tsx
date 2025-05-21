@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { AchievementsList } from '@/components/profile/AchievementsList';
@@ -12,8 +12,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BarChart2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { Button } from '@/components/ui/button';
+import ProfileDashboardButton from '@/components/profile/ProfileDashboardButton';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -121,6 +123,14 @@ const Profile = () => {
 
       <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
         <ProfileHeader userId={profile.id} isOwnProfile={isOwnProfile} />
+        
+        {/* Add dashboard button if it's the user's own profile */}
+        {isOwnProfile && (
+          <div className="flex justify-end">
+            <ProfileDashboardButton userId={profile.id} isOwnProfile={isOwnProfile} />
+          </div>
+        )}
+        
         <Separator />
         <ProfileMediaGallery userId={profile.id} />
         <Separator />
