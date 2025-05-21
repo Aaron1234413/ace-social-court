@@ -13,7 +13,9 @@ export interface Message {
     full_name: string | null;
   } | null;
   media_url?: string | null;
-  media_type?: 'image' | 'video' | null;
+  media_type?: string | null;
+  is_deleted?: boolean;
+  reactions?: any[];
 }
 
 export interface Conversation {

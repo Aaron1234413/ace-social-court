@@ -3,6 +3,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 
+interface CreateConversationCallbacks {
+  onSuccess?: (conversationId: string) => void;
+  onError?: (error: any) => void;
+}
+
 export const useCreateConversation = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -47,7 +52,20 @@ export const useCreateConversation = () => {
   });
 
   return {
-    createConversation: createConversationMutation.mutate,
+    createConversation: (otherUserId: string, callbacks?: CreateConversationCallbacks) => {
+      createConversationMutation.mutate(otherUserId, {
+        onSuccess: (data) => {
+          if (callbacks?.onSuccess) {
+            callbacks.onSuccess(data.id);
+          }
+        },
+        onError: (error) => {
+          if (callbacks?.onError) {
+            callbacks.onError(error);
+          }
+        }
+      });
+    },
     isCreating: createConversationMutation.isPending
   };
 };

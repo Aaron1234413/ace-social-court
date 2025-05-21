@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loading } from '@/components/ui/loading';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MessageSquare } from 'lucide-react';
+import { Message } from '@/types/messages';
 import ChatHeader from './ChatHeader';
 import MessagesList from './MessagesList';
 import ComposeMessage from './ComposeMessage';
@@ -112,7 +113,7 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <MessagesList 
-          messages={messages}
+          messages={messages as Message[]}
           isLoading={isLoadingMessages}
           error={messagesError}
           selectedMessage={selectedMessage}
