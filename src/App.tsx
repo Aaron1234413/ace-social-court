@@ -11,6 +11,7 @@ import TennisAI from '@/pages/TennisAI';
 import Feed from '@/pages/Feed';
 import LogMatch from '@/pages/LogMatch';
 import LogSession from '@/pages/LogSession';
+import Dashboard from '@/pages/Dashboard';
 import MainLayout from '@/components/layout/MainLayout';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
 import Notifications from '@/pages/Notifications';
@@ -74,25 +75,21 @@ function App() {
                 <TennisAI />
               </MainLayout>
             } />
-            {/* Add new route for explore/map */}
             <Route path="/explore" element={
               <MainLayout>
                 <MapExplorer />
               </MainLayout>
             } />
-            {/* Add route for search */}
             <Route path="/search" element={
               <MainLayout>
                 <Search />
               </MainLayout>
             } />
-            {/* Notifications route */}
             <Route path="/notifications" element={
               <MainLayout>
                 <Notifications />
               </MainLayout>
             } />
-            {/* Settings route */}
             <Route path="/settings" element={
               <MainLayout>
                 <Settings />
@@ -107,6 +104,12 @@ function App() {
             <Route path="/log/session" element={
               <MainLayout>
                 <LogSession />
+              </MainLayout>
+            } />
+            {/* Dashboard route */}
+            <Route path="/dashboard" element={
+              <MainLayout>
+                <Dashboard />
               </MainLayout>
             } />
           </Routes>
