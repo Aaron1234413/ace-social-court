@@ -5,83 +5,87 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 145 65% 35%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 100% 45%;
-    --secondary-foreground: 210 40% 98%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 24 100% 63%;
-    --accent-foreground: 24 100% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
 
-    --radius: 0.75rem;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 215 20.2% 65.1%;
+
+    --radius: 0.5rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 145 65% 35%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-foreground: 222.2 47.4% 11.2%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-primary: 222.2 47.4% 11.2%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-ring: 215 20.2% 65.1%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 215 20.2% 65.1%;
 
-    --primary: 145 65% 42%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
 
-    --secondary: 210 100% 52%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 1.2%;
+
+    --secondary: 222.2 47.4% 11.2%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
 
-    --accent: 24 100% 63%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 216 34% 17%;
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 145 65% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 224 71% 4%;
+    --sidebar-foreground: 215 20.2% 65.1%;
+    --sidebar-border: 216 34% 17%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 222.2 47.4% 1.2%;
+    --sidebar-accent: 216 34% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 216 34% 17%;
   }
 }
 
@@ -89,95 +93,36 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
-  }
-
-  /* Tennis-themed custom styling */
-  .tennis-card {
-    @apply bg-gradient-to-br from-card to-muted/50 shadow-md hover:shadow-lg transition-shadow duration-300;
-  }
-  
-  .tennis-button {
-    @apply bg-gradient-to-r from-tennis-green to-tennis-darkGreen hover:from-tennis-darkGreen hover:to-tennis-green transition-all duration-300;
-  }
-  
-  .tennis-highlight {
-    @apply border-l-4 border-tennis-accent pl-4;
-  }
-  
-  .court-pattern {
-    background-image: linear-gradient(rgba(120, 184, 51, 0.1) 1px, transparent 1px),
-                     linear-gradient(90deg, rgba(120, 184, 51, 0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-
-  .tennis-gradient-text {
-    @apply bg-gradient-to-r from-tennis-darkGreen via-tennis-green to-tennis-blue bg-clip-text text-transparent;
-  }
-
-  .tennis-glass-card {
-    @apply backdrop-blur-sm bg-white/80 dark:bg-black/20 border border-white/20 dark:border-white/10 shadow-lg;
-  }
-  
-  .tennis-section {
-    @apply py-12 relative overflow-hidden;
-  }
-  
-  .tennis-section::before {
-    content: "";
-    @apply absolute top-0 left-0 w-full h-full opacity-5 court-pattern -z-10;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight;
-  }
-  
-  h1 {
-    @apply text-4xl font-bold md:text-5xl lg:text-6xl;
-  }
-  
-  h2 {
-    @apply text-3xl font-bold md:text-4xl;  
-  }
-  
-  .page-title {
-    @apply tennis-gradient-text mb-6 font-bold;
-  }
-  
-  .page-subtitle {
-    @apply text-muted-foreground text-lg mb-8 max-w-3xl;
-  }
-  
-  .tennis-ball-glow {
-    @apply before:absolute before:content-[''] before:w-40 before:h-40 before:bg-tennis-highlight/30 before:rounded-full before:blur-3xl before:-z-10 before:animate-pulse-subtle;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-  
-  .text-glass {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary to-tennis-blue;
-  }
-  
-  .tennis-border {
-    @apply border-2 border-tennis-green/20;
-  }
-  
-  .tennis-shadow {
-    @apply shadow-[0_8px_30px_rgb(120,184,51,0.1)];
-  }
-  
-  .tennis-input {
-    @apply border-2 border-tennis-green/20 focus:border-tennis-green/40 focus:ring-tennis-green/30;
-  }
-  
-  .tennis-card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
-  }
+.court-pattern {
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.tennis-gradient-text {
+  @apply bg-gradient-to-r from-tennis-green to-tennis-darkGreen bg-clip-text text-transparent;
+}
+
+/* Card flip animations */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.rotate-y-0 {
+  transform: rotateY(0deg);
 }

@@ -140,6 +140,10 @@ export default {
 				'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite',
 				'pulse-subtle': 'pulse-subtle 3s ease-in-out infinite',
 				'slide-up': 'slide-up 0.3s ease-out'
+			},
+			transitionProperty: {
+				'width': 'width',
+				'height': 'height',
 			}
 		}
 	},
