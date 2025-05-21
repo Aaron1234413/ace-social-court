@@ -8,7 +8,8 @@ import {
   Search,
   Bell,
   Brain,
-  PlusSquare
+  PlusSquare,
+  CalendarPlus
 } from 'lucide-react';
 import { ReactNode } from 'react';
 
@@ -82,6 +83,12 @@ export const actionItems: NavItem[] = [
     title: "Log a Match",
     href: "/log/match",
     icon: <PlusSquare className="h-5 w-5" />,
+    isAction: true
+  },
+  {
+    title: "Log a Session",
+    href: "/log/session",
+    icon: <CalendarPlus className="h-5 w-5" />,
     isAction: true
   }
 ];
