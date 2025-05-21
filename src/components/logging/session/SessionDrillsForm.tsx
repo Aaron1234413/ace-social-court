@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import DrillItem from './DrillItem';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SessionFormValues } from './sessionSchema';
 
 export default function SessionDrillsForm() {
-  const form = useFormContext();
+  const form = useFormContext<SessionFormValues>();
   
   const { fields, append, remove, update } = useFieldArray({
     control: form.control,
@@ -61,9 +62,9 @@ export default function SessionDrillsForm() {
                     <DrillItem
                       key={field.id}
                       index={index}
-                      name={field.name}
-                      rating={field.rating}
-                      notes={field.notes}
+                      name={field.name as string}
+                      rating={field.rating as number}
+                      notes={field.notes as string}
                       onNameChange={(name) => update(index, { ...field, name })}
                       onRatingChange={(rating) => update(index, { ...field, rating })}
                       onNotesChange={(notes) => update(index, { ...field, notes })}

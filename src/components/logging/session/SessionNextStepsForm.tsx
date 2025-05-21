@@ -10,9 +10,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { SessionFormValues } from './sessionSchema';
 
 export default function SessionNextStepsForm() {
-  const form = useFormContext();
+  const form = useFormContext<SessionFormValues>();
   
   const { fields, append, remove, update } = useFieldArray({
     control: form.control,
@@ -89,8 +90,8 @@ export default function SessionNextStepsForm() {
                     <NextStepItem
                       key={field.id}
                       index={index}
-                      description={field.description}
-                      completed={field.completed}
+                      description={field.description as string}
+                      completed={field.completed as boolean}
                       onDescriptionChange={(description) => update(index, { ...field, description })}
                       onCompletedChange={(completed) => update(index, { ...field, completed })}
                       onRemove={() => remove(index)}
