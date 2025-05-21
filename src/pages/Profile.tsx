@@ -18,25 +18,25 @@ import { Helmet } from 'react-helmet-async';
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { username } = useParams();
+  const { id: profileIdentifierFromUrl } = useParams();
   
   // Handle different types of identifiers in the URL (username or ID)
   const [profileIdentifier, setProfileIdentifier] = useState<string | null>(null);
-  const isOwnProfile = user?.id === username || user?.id === profileIdentifier;
+  const isOwnProfile = user?.id === profileIdentifierFromUrl || user?.id === profileIdentifier;
 
   // Determine the correct profile identifier (user ID or username)
   useEffect(() => {
-    if (!username && !user) {
+    if (!profileIdentifierFromUrl && !user) {
       navigate('/auth');
       return;
     }
     
     // If no username provided in URL, use current user's ID
-    if (!username && user) {
+    if (!profileIdentifierFromUrl && user) {
       setProfileIdentifier(user.id);
     } else {
       // Use provided username/ID from the URL
-      setProfileIdentifier(username || null);
+      setProfileIdentifier(profileIdentifierFromUrl || null);
     }
     
     // Initialize storage buckets if needed
@@ -46,7 +46,7 @@ const Profile = () => {
         toast.error('Error initializing media storage');
       });
     }
-  }, [user, navigate, username]);
+  }, [user, navigate, profileIdentifierFromUrl]);
 
   // Query by username first, then by user ID if username not found
   const { data: profile, isLoading } = useQuery({
@@ -106,16 +106,18 @@ const Profile = () => {
 
   return (
     <>
-      <Helmet>
-        <title>{profile.full_name || 'User'} - rallypointx</title>
-        <meta name="description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
-        <meta property="og:title" content={`${profile.full_name || 'User'} - rallypointx`} />
-        <meta property="og:description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
-        <meta property="og:type" content="profile" />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={`${profile.full_name || 'User'} - rallypointx`} />
-        <meta name="twitter:description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
-      </Helmet>
+      {profile && (
+        <Helmet>
+          <title>{profile.full_name || 'User'} - rallypointx</title>
+          <meta name="description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
+          <meta property="og:title" content={`${profile.full_name || 'User'} - rallypointx`} />
+          <meta property="og:description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
+          <meta property="og:type" content="profile" />
+          <meta name="twitter:card" content="summary" />
+          <meta name="twitter:title" content={`${profile.full_name || 'User'} - rallypointx`} />
+          <meta name="twitter:description" content={`${profile.user_type === 'coach' ? 'Tennis coach' : 'Tennis player'} profile on rallypointx`} />
+        </Helmet>
+      )}
 
       <div className="container mx-auto px-4 py-8 max-w-3xl space-y-8">
         <ProfileHeader userId={profile.id} isOwnProfile={isOwnProfile} />
