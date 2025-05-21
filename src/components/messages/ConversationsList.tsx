@@ -1,5 +1,4 @@
 
-// Update the component to match the properties returned from useConversations hook
 import React from 'react';
 import { useConversations } from '@/hooks/use-conversations';
 import { Conversation } from '@/components/messages/types';
@@ -7,7 +6,7 @@ import { Loading } from '@/components/ui/loading';
 import ConversationList from './ConversationList';
 
 interface ConversationsListProps {
-  onSelectConversation: (userId: string) => void; // Changed from (conversation: Conversation) => void
+  onSelectConversation: (userId: string) => void;
   currentConversationId?: string;
 }
 
@@ -34,9 +33,10 @@ const ConversationsList = ({
     );
   }
 
+  // Cast conversations to Conversation[] to ensure type compatibility
   return (
     <ConversationList
-      conversations={conversations}
+      conversations={conversations as Conversation[]}
       currentConversationId={currentConversationId}
       onSelectConversation={onSelectConversation}
       unreadCounts={unreadCounts}

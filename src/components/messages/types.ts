@@ -17,7 +17,8 @@ export interface Message {
   read: boolean;
   is_deleted?: boolean;
   media_url?: string | null;
-  media_type?: 'image' | 'video' | null;
+  // Update media_type to accept any string, not just the restricted union type
+  media_type?: string | null;
   conversation_id?: string;
   sender?: {
     avatar_url: string | null;

@@ -1,8 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { Conversation } from '@/components/messages/types';
+import { Conversation, Message } from '@/components/messages/types';
 import { toast } from 'sonner';
 
 export function useConversations() {
@@ -115,9 +114,12 @@ export function useConversations() {
             return conversation;
           }
           
+          // Ensure we're converting to the Message type
+          const lastMessage = data[0] as unknown as Message;
+          
           return {
             ...conversation,
-            last_message: data[0]
+            last_message: lastMessage
           };
         })
       );
@@ -201,7 +203,6 @@ export function useConversations() {
   });
   
   return {
-    // Fix: Don't try to access .data property here
     conversations: conversationsWithLastMessages || [],
     isLoading: isLoading || conversationsWithOtherUsers.isLoading,
     unreadCounts: unreadCounts || {},
