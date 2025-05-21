@@ -127,16 +127,16 @@ export function useConversations() {
     enabled: !!conversationsWithOtherUsers.data && conversationsWithOtherUsers.data.length > 0
   });
   
-  // Count unread messages for each conversation - Remove the .group() call that's causing the error
+  // Count unread messages for each conversation - Fix the unread count query
   const { data: unreadCounts } = useQuery({
     queryKey: ['unread_counts', user?.id],
     queryFn: async () => {
       if (!user) return {};
       
-      // Use a different approach to count unread messages
+      // Use a different approach to count unread messages per conversation
       const { data, error } = await supabase
         .from('direct_messages')
-        .select('conversation_id, count')
+        .select('id, sender_id, recipient_id')
         .eq('recipient_id', user.id)
         .eq('read', false)
         .eq('is_deleted', false);
@@ -149,10 +149,10 @@ export function useConversations() {
       // Process the data to get counts by conversation
       const counts: Record<string, number> = {};
       if (data) {
-        data.forEach(item => {
-          if (item.conversation_id) {
-            counts[item.conversation_id] = (counts[item.conversation_id] || 0) + 1;
-          }
+        // Group messages by sender_id (which corresponds to the conversation with that user)
+        data.forEach(message => {
+          const senderId = message.sender_id;
+          counts[senderId] = (counts[senderId] || 0) + 1;
         });
       }
       
@@ -170,7 +170,7 @@ export function useConversations() {
       const { error: messagesError } = await supabase
         .from('direct_messages')
         .update({ is_deleted: true })
-        .or(`and(sender_id.eq.${user.id},conversation_id.eq.${conversationId}),and(recipient_id.eq.${user.id},conversation_id.eq.${conversationId})`);
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${conversationId}),and(recipient_id.eq.${user.id},sender_id.eq.${conversationId})`);
         
       if (messagesError) {
         console.error('Error deleting conversation messages:', messagesError);

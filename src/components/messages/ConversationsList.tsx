@@ -7,7 +7,7 @@ import { Loading } from '@/components/ui/loading';
 import ConversationList from './ConversationList';
 
 interface ConversationsListProps {
-  onSelectConversation: (conversation: Conversation) => void;
+  onSelectConversation: (userId: string) => void; // Changed from (conversation: Conversation) => void
   currentConversationId?: string;
 }
 
@@ -17,7 +17,7 @@ const ConversationsList = ({
 }: ConversationsListProps) => {
   const { 
     conversations, 
-    isLoading, // This is what useConversations returns, not isLoadingConversations
+    isLoading,
     unreadCounts,
     deleteConversation
   } = useConversations();

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import MessageSearch from '@/components/messages/MessageSearch';
-import ConversationList from '@/components/messages/ConversationList';
+import ConversationsList from '@/components/messages/ConversationsList';
 import ChatInterface from '@/components/messages/ChatInterface';
 import { useCreateConversation } from '@/hooks/useConversations';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -128,8 +128,8 @@ const Messages = () => {
             </TabsList>
             
             <TabsContent value="conversations" className="p-4 flex-1 overflow-y-auto border-0">
-              <ConversationList 
-                selectedConversationId={selectedConversationId} 
+              <ConversationsList 
+                currentConversationId={selectedConversationId} 
                 onSelectConversation={handleConversationSelect} 
               />
             </TabsContent>
