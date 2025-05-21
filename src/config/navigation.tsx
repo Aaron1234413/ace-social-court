@@ -1,74 +1,87 @@
 
-import { 
-  Home, MessageSquare, Bell, User, Search, Map, Video, 
-  Settings, HelpCircle, LogOut, Plus, BookOpen, Clipboard
-} from "lucide-react";
+import {
+  Home,
+  User,
+  MessageCircle,
+  Map,
+  Settings,
+  Search,
+  Bell,
+  Brain,
+  PlusSquare
+} from 'lucide-react';
+import { ReactNode } from 'react';
 
-export const navigationConfig = {
-  primaryNavItems: [
-    {
-      title: "Home",
-      url: "/feed",
-      icon: Home,
-    },
-    {
-      title: "Explore",
-      url: "/search",
-      icon: Search,
-    },
-    {
-      title: "Map",
-      url: "/map",
-      icon: Map,
-    },
-    {
-      title: "Analysis",
-      url: "/analysis",
-      icon: Video,
-    },
-    {
-      title: "Tennis AI",
-      url: "/tennis-ai",
-      icon: BookOpen,
-    },
-    {
-      title: "User Testing",
-      url: "/tests",
-      icon: Clipboard,
-    },
-  ],
-  userNavItems: [
-    {
-      title: "Profile",
-      url: "/profile",
-      icon: User,
-    },
-    {
-      title: "Messages",
-      url: "/messages",
-      icon: MessageSquare,
-    },
-    {
-      title: "Notifications",
-      url: "/notifications",
-      icon: Bell,
-    },
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings,
-    },
-    {
-      title: "Help",
-      url: "/help",
-      icon: HelpCircle,
-    },
-  ],
-  additionalActions: [
-    {
-      title: "New Post",
-      url: "/create-post",
-      icon: Plus,
-    },
-  ],
-};
+export interface NavItem {
+  title: string;
+  href: string;
+  icon: ReactNode;
+  mobileLabel?: string;
+  isAction?: boolean;
+}
+
+// Primary navigation items
+export const mainNavItems: NavItem[] = [
+  {
+    title: "Feed",
+    href: "/feed",
+    icon: <Home className="h-5 w-5" />,
+    mobileLabel: "Feed"
+  },
+  {
+    title: "Map",
+    href: "/explore",
+    icon: <Map className="h-5 w-5" />,
+    mobileLabel: "Explore"
+  },
+  {
+    title: "Messages",
+    href: "/messages",
+    icon: <MessageCircle className="h-5 w-5" />,
+    mobileLabel: "Messages"
+  },
+  {
+    title: "Search",
+    href: "/search",
+    icon: <Search className="h-5 w-5" />,
+    mobileLabel: "Search"
+  }
+];
+
+// User-related navigation items
+export const userNavItems: NavItem[] = [
+  {
+    title: "Notifications",
+    href: "/notifications",
+    icon: <Bell className="h-5 w-5" />,
+    mobileLabel: "Notifications"
+  },
+  {
+    title: "Tennis AI",
+    href: "/tennis-ai",
+    icon: <Brain className="h-5 w-5" />,
+    mobileLabel: "AI"
+  },
+  {
+    title: "Profile",
+    href: (userId?: string) => userId ? `/profile/${userId}` : '/profile',
+    icon: <User className="h-5 w-5" />,
+    mobileLabel: "Profile"
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: <Settings className="h-5 w-5" />,
+    mobileLabel: "Settings"
+  }
+];
+
+// Action items
+export const actionItems: NavItem[] = [
+  {
+    title: "Log a Match",
+    href: "/log/match",
+    icon: <PlusSquare className="h-5 w-5" />,
+    isAction: true
+  }
+];

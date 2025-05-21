@@ -5,11 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 import MatchBasicsForm from '@/components/logging/match/MatchBasicsForm';
 import MatchHighlightsForm from '@/components/logging/match/MatchHighlightsForm';
@@ -74,71 +75,78 @@ export default function LogMatch() {
   }
 
   return (
-    <div className="container mx-auto py-6 px-4 sm:px-6">
-      <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          className="gap-1"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold mt-2">Log a Match</h1>
-        <p className="text-muted-foreground">Record your recent match details and performance.</p>
+    <>
+      <Helmet>
+        <title>Log a Match - rallypointx</title>
+        <meta name="description" content="Log your tennis match details and performance" />
+      </Helmet>
+      
+      <div className="container mx-auto py-6 px-4 sm:px-6">
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            className="gap-1"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold mt-2">Log a Match</h1>
+          <p className="text-muted-foreground">Record your recent match details and performance.</p>
+        </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-4 w-full mb-4">
+                <TabsTrigger value="basics">Basics</TabsTrigger>
+                <TabsTrigger value="highlights">Highlights</TabsTrigger>
+                <TabsTrigger value="reflection">Reflection</TabsTrigger>
+                <TabsTrigger value="media">Media</TabsTrigger>
+              </TabsList>
+
+              <Card className="mb-6">
+                <TabsContent value="basics">
+                  <MatchBasicsForm form={form} />
+                </TabsContent>
+
+                <TabsContent value="highlights">
+                  <MatchHighlightsForm form={form} />
+                </TabsContent>
+
+                <TabsContent value="reflection">
+                  <MatchReflectionForm form={form} />
+                </TabsContent>
+
+                <TabsContent value="media">
+                  <MatchMediaForm form={form} />
+                </TabsContent>
+              </Card>
+
+              <div className="flex justify-between mt-4">
+                {activeTab !== 'basics' && (
+                  <Button type="button" variant="outline" onClick={goToPrevTab}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Previous
+                  </Button>
+                )}
+                
+                {activeTab !== 'media' ? (
+                  <Button type="button" className="ml-auto" onClick={goToNextTab}>
+                    Next
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button type="submit" className="ml-auto" disabled={isSubmitting}>
+                    {isSubmitting ? "Submitting..." : "Save Match Log"}
+                    <Check className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </Tabs>
+          </form>
+        </Form>
       </div>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-4 w-full mb-4">
-              <TabsTrigger value="basics">Basics</TabsTrigger>
-              <TabsTrigger value="highlights">Highlights</TabsTrigger>
-              <TabsTrigger value="reflection">Reflection</TabsTrigger>
-              <TabsTrigger value="media">Media</TabsTrigger>
-            </TabsList>
-
-            <Card className="mb-6">
-              <TabsContent value="basics">
-                <MatchBasicsForm form={form} />
-              </TabsContent>
-
-              <TabsContent value="highlights">
-                <MatchHighlightsForm form={form} />
-              </TabsContent>
-
-              <TabsContent value="reflection">
-                <MatchReflectionForm form={form} />
-              </TabsContent>
-
-              <TabsContent value="media">
-                <MatchMediaForm form={form} />
-              </TabsContent>
-            </Card>
-
-            <div className="flex justify-between mt-4">
-              {activeTab !== 'basics' && (
-                <Button type="button" variant="outline" onClick={goToPrevTab}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Previous
-                </Button>
-              )}
-              
-              {activeTab !== 'media' ? (
-                <Button type="button" className="ml-auto" onClick={goToNextTab}>
-                  Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              ) : (
-                <Button type="submit" className="ml-auto" disabled={isSubmitting}>
-                  {isSubmitting ? "Submitting..." : "Save Match Log"}
-                  <Check className="ml-2 h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </Tabs>
-        </form>
-      </Form>
-    </div>
+    </>
   );
 }

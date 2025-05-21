@@ -1,141 +1,106 @@
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { useDebounce } from '@/hooks/use-debounce';
-import { Loader2, Search as SearchIcon, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search as SearchIcon, Users, MapPin } from 'lucide-react';
 import UserSearchResults from '@/components/search/UserSearchResults';
-import { toast } from 'sonner';
-
-type UserType = 'all' | 'player' | 'coach';
+import { useSearch } from '@/hooks/useSearch';
 
 const Search = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [userType, setUserType] = useState<UserType>('all');
-  const debouncedSearch = useDebounce(searchQuery, 500);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') || '';
+  const [inputValue, setInputValue] = useState(query);
+  const [activeTab, setActiveTab] = useState('users');
+  const { results: userResults, isLoading } = useSearch(query);
 
-  const { data: searchResults, isLoading, error } = useQuery({
-    queryKey: ['user-search', debouncedSearch, userType],
-    queryFn: async () => {
-      if (!debouncedSearch || debouncedSearch.length < 2) return [];
-
-      try {
-        let query = supabase
-          .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type, bio');
-
-        // Check if search might be an email
-        if (debouncedSearch.includes('@')) {
-          // Search by email in auth.users using a direct function call
-          const { data: authUsers, error: authError } = await supabase
-            .from('profiles')
-            .select('id, full_name, username, avatar_url, user_type, bio')
-            .or(`email.ilike.%${debouncedSearch}%`);
-            
-          if (authError) {
-            console.error('Error searching by email:', authError);
-            toast.error('Failed to search by email');
-            throw authError;
-          }
-          
-          if (authUsers && authUsers.length > 0) {
-            return authUsers;
-          } else {
-            // No users found by email
-            return [];
-          }
-        } else {
-          // Regular name/username search
-          query = query.or(`full_name.ilike.%${debouncedSearch}%,username.ilike.%${debouncedSearch}%`);
-        }
-
-        if (userType !== 'all') {
-          query = query.eq('user_type', userType);
-        }
-
-        const { data, error } = await query.limit(20);
-
-        if (error) {
-          console.error('Search error:', error);
-          toast.error('Error performing search');
-          throw error;
-        }
-        
-        console.log('Search results:', data);
-        return data || [];
-      } catch (err) {
-        console.error('Exception during search:', err);
-        return [];
-      }
-    },
-    enabled: debouncedSearch.length >= 2,
-  });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputValue.trim()) {
+      setSearchParams({ q: inputValue.trim() });
+    }
+  };
 
   return (
-    <div className="container max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">Find Tennis Players & Coaches</h1>
+    <>
+      <Helmet>
+        <title>Search - rallypointx</title>
+      </Helmet>
       
-      <div className="space-y-6">
-        <Card className="p-4 md:p-6">
-          <div className="space-y-4">
-            <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, username, or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+      <div className="container mx-auto py-6 px-4 max-w-4xl">
+        <h1 className="text-2xl font-bold mb-6">Search</h1>
+        
+        <form onSubmit={handleSubmit} className="mb-6">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input 
+                type="text" 
+                placeholder="Search for players, coaches, or locations..." 
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className="pl-9"
               />
             </div>
-            
-            <div>
-              <p className="mb-2 text-sm font-medium">Filter by:</p>
-              <RadioGroup value={userType} onValueChange={(value) => setUserType(value as UserType)} className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all" id="all" />
-                  <Label htmlFor="all">All</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="player" id="player" />
-                  <Label htmlFor="player">Players</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="coach" id="coach" />
-                  <Label htmlFor="coach">Coaches</Label>
-                </div>
-              </RadioGroup>
-            </div>
+            <Button type="submit">Search</Button>
           </div>
-        </Card>
+        </form>
         
-        <div className="min-h-[200px]">
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center py-12 text-destructive">
-              <AlertCircle className="h-6 w-6 mb-2" />
-              <p>An error occurred while searching. Please try again.</p>
-            </div>
-          ) : debouncedSearch.length < 2 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Enter at least 2 characters to search
-            </div>
-          ) : searchResults && searchResults.length > 0 ? (
-            <UserSearchResults users={searchResults} />
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              No users found. Try a different search term.
-            </div>
-          )}
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              People
+            </TabsTrigger>
+            <TabsTrigger value="courts" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Courts
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="users">
+            {query ? (
+              <>
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <p className="mt-2 text-sm text-muted-foreground">Searching...</p>
+                  </div>
+                ) : userResults.length > 0 ? (
+                  <UserSearchResults users={userResults} />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No users found matching "{query}"</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <SearchIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-4 text-muted-foreground">Enter a search term to find people</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="courts">
+            {query ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">
+                  Court search functionality coming soon
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <MapPin className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-4 text-muted-foreground">Enter a search term to find tennis courts</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
-    </div>
+    </>
   );
 };
 
