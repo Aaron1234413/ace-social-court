@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -5,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 interface CreateConversationCallbacks {
   onSuccess?: (conversationId: string) => void;
   onError?: (error: any) => void;
-  onSettled?: () => void;
+  onSettled?: () => void; // Added this property
 }
 
 export const useCreateConversation = () => {

@@ -271,6 +271,10 @@ export const useMessages = (otherUserId?: string) => {
   };
 };
 
-// Export the other hooks to maintain backward compatibility
+// Fix the export conflict by re-exporting from the other modules
+// instead of exporting them directly
 export * from './use-conversations';
-export * from './use-create-conversation';
+
+// Remove the re-export of useCreateConversation to avoid the conflict
+// and instead import from use-create-conversation directly where needed
+export { useCreateConversation } from './use-create-conversation';

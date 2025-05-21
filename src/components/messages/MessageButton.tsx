@@ -2,7 +2,7 @@
 import { useState, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useCreateConversation } from '@/hooks/use-messages';
+import { useCreateConversation } from '@/hooks/use-create-conversation'; // Updated import path
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';

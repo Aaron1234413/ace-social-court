@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -9,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MessageSearch from '@/components/messages/MessageSearch';
 import ConversationsList from '@/components/messages/ConversationsList';
 import ChatInterface from '@/components/messages/ChatInterface';
-import { useCreateConversation } from '@/hooks/use-messages';
+import { useCreateConversation } from '@/hooks/use-create-conversation'; // Updated import path
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Loading } from '@/components/ui/loading';
 import { configureRealtime } from '@/utils/realtimeHelper';
