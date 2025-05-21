@@ -60,7 +60,7 @@
   }
 }
 
-/* Utility classes for 3D card flipping */
+/* Utility classes for 3D card tilt effects */
 .perspective-1000 {
   perspective: 1000px;
 }

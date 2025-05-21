@@ -1,11 +1,12 @@
+
 import React from 'react';
-import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import MessageButton from '@/components/messages/MessageButton';
 import { SearchUser } from '@/hooks/useSearch';
 import FollowButton from '@/components/social/FollowButton';
+import InteractiveCard from '@/components/ui/interactive-card';
 
 interface UserSearchResultsProps {
   users: SearchUser[];
@@ -15,7 +16,7 @@ const UserSearchResults: React.FC<UserSearchResultsProps> = ({ users }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {users.map((user) => (
-        <Card key={user.id} className="overflow-hidden hover:shadow-md transition-shadow">
+        <InteractiveCard key={user.id} className="overflow-hidden transition-shadow">
           <div className="p-6">
             <div className="flex items-start justify-between">
               <Link to={`/profile/${user.id}`} className="flex items-start gap-3 group">
@@ -91,7 +92,7 @@ const UserSearchResults: React.FC<UserSearchResultsProps> = ({ users }) => {
               </Link>
             </div>
           </div>
-        </Card>
+        </InteractiveCard>
       ))}
     </div>
   );
