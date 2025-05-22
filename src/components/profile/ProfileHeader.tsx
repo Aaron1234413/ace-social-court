@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +24,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
   const { user, refreshProfile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadType, setUploadType<'avatar' | 'cover' | null>(null);
+  const [uploadType, setUploadType] = useState<'avatar' | 'cover' | null>(null);
   
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['profile-header', userId],
