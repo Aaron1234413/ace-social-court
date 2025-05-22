@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -197,67 +198,12 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     return <div>Profile not found</div>;
   }
 
-  // Use a default cover image since cover_url doesn't exist in the profiles table
-  const defaultCoverImage = "https://images.unsplash.com/photo-1576633587382-13ddf37b1fc1?q=80&w=2070&auto=format&fit=crop";
-
   return (
-    <div className="space-y-4">
-      {/* Cover Image with Overlay */}
-      <div className="relative h-48 md:h-64 w-full overflow-hidden rounded-xl mb-16">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/40 z-10"></div>
-        <img 
-          src={defaultCoverImage} 
-          alt="Cover" 
-          className="w-full h-full object-cover"
-        />
-        
-        {/* Avatar + Name positioned over cover image */}
-        <div className="absolute -bottom-12 left-0 right-0 flex flex-col items-center z-20">
-          <div className="relative group">
-            <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
-              {profile.avatar_url ? (
-                <AvatarImage src={profile.avatar_url} alt={profile.username || 'User avatar'} />
-              ) : (
-                <AvatarFallback className="text-3xl bg-primary text-primary-foreground">
-                  {profile.username?.[0]?.toUpperCase() || profile.full_name?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              )}
-            </Avatar>
-            
-            {/* Profile photo upload overlay (only visible for own profile) */}
-            {isOwnProfile && (
-              <label 
-                htmlFor="avatar-upload" 
-                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Pencil className="h-6 w-6 text-white" />
-                <input 
-                  type="file" 
-                  id="avatar-upload" 
-                  className="hidden" 
-                  accept="image/*" 
-                  onChange={handleAvatarUpload}
-                  disabled={isUploading}
-                />
-              </label>
-            )}
-          </div>
-          
-          {/* Upload progress indicator */}
-          {isUploading && (
-            <div className="mt-2 w-24">
-              <Progress value={uploadProgress} className="h-1" />
-            </div>
-          )}
-          
-          <div className="mt-2 text-center">
-            <h1 className="text-2xl font-bold drop-shadow-md">{profile.full_name || profile.username}</h1>
-            {profile.username && <p className="text-muted-foreground drop-shadow-md">@{profile.username}</p>}
-          </div>
-        </div>
-        
+    <div className="space-y-6">
+      {/* Profile Header with Avatar and Actions */}
+      <div className="flex flex-col items-center p-6 relative">
         {/* Action buttons - positioned top right */}
-        <div className="absolute top-4 right-4 z-20">
+        <div className="absolute top-0 right-0">
           {isOwnProfile ? (
             <Button asChild size="sm" variant="secondary" className="bg-primary/90 text-primary-foreground hover:bg-primary shadow-md">
               <Link to="/profile/edit">
@@ -272,6 +218,58 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
             </div>
           )}
         </div>
+        
+        {/* Avatar with upload option */}
+        <div className="relative group mb-4">
+          <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
+            {profile.avatar_url ? (
+              <AvatarImage src={profile.avatar_url} alt={profile.username || 'User avatar'} />
+            ) : (
+              <AvatarFallback className="text-3xl bg-primary text-primary-foreground">
+                {profile.username?.[0]?.toUpperCase() || profile.full_name?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          
+          {/* Profile photo upload overlay (only visible for own profile) */}
+          {isOwnProfile && (
+            <label 
+              htmlFor="avatar-upload" 
+              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Pencil className="h-6 w-6 text-white" />
+              <input 
+                type="file" 
+                id="avatar-upload" 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleAvatarUpload}
+                disabled={isUploading}
+              />
+            </label>
+          )}
+        </div>
+        
+        {/* Upload progress indicator */}
+        {isUploading && (
+          <div className="mt-2 w-24">
+            <Progress value={uploadProgress} className="h-1" />
+          </div>
+        )}
+        
+        {/* User name and username */}
+        <div className="text-center mb-2">
+          <h1 className="text-2xl font-bold">{profile.full_name || profile.username}</h1>
+          {profile.username && <p className="text-muted-foreground">@{profile.username}</p>}
+        </div>
+        
+        {/* Display location if available */}
+        {profile.location_name && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <span>{profile.location_name}</span>
+          </div>
+        )}
       </div>
 
       {/* Profile Stats Bar */}
