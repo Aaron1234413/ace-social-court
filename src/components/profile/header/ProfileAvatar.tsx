@@ -7,6 +7,7 @@ import { Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadFileWithProgress } from '@/integrations/supabase/storage';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/AuthProvider';
 
 interface ProfileAvatarProps {
   userId: string;
@@ -25,6 +26,7 @@ export const ProfileAvatar = ({
   isOwnProfile,
   onAvatarUpdated
 }: ProfileAvatarProps) => {
+  const { refreshProfile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -73,6 +75,9 @@ export const ProfileAvatar = ({
       }
       
       // Refresh global profile state
+      await refreshProfile();
+      
+      // Call the callback from parent component
       await onAvatarUpdated();
       
       toast.success('Profile picture updated', {

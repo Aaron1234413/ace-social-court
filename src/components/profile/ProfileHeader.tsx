@@ -39,7 +39,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     return <div>Profile not found</div>;
   }
   
-  // Handler for when the avatar is updated
+  // Handler for when profile media is updated
   const handleProfileUpdated = async () => {
     await refreshProfile();
     await refetch();
@@ -65,6 +65,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         onAvatarUpdated={handleProfileUpdated}
       />
       
+      {/* Profile Info section */}
       <ProfileInfo
         fullName={profile.full_name}
         username={profile.username}

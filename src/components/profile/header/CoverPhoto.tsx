@@ -1,11 +1,13 @@
 
 import { useState } from 'react';
-import { Camera } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
+import { Image, X } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { uploadFileWithProgress } from '@/integrations/supabase/storage';
 import { supabase } from '@/integrations/supabase/client';
-import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
+import { useAuth } from '@/components/AuthProvider';
 
 interface CoverPhotoProps {
   userId: string;
@@ -17,12 +19,13 @@ interface CoverPhotoProps {
 export const CoverPhoto = ({ 
   userId, 
   coverPhotoUrl, 
-  isOwnProfile, 
+  isOwnProfile,
   onCoverPhotoUpdated 
 }: CoverPhotoProps) => {
+  const { refreshProfile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-
+  
   const handleCoverPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -32,9 +35,9 @@ export const CoverPhoto = ({
       setUploadProgress(0);
       
       // Enhanced file validation
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 10 * 1024 * 1024) {
         toast.error('Image too large', {
-          description: 'Please upload an image under 5MB.'
+          description: 'Please upload an image under 10MB.'
         });
         return;
       }
@@ -68,6 +71,9 @@ export const CoverPhoto = ({
       }
       
       // Refresh global profile state
+      await refreshProfile();
+      
+      // Call the callback from parent component
       await onCoverPhotoUpdated();
       
       toast.success('Cover photo updated', {
@@ -82,47 +88,60 @@ export const CoverPhoto = ({
       setIsUploading(false);
     }
   };
+  
+  // Default cover photo style - gradient if no photo is provided
+  const defaultCoverStyle = {
+    background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    height: '200px'
+  };
 
   return (
-    <div className="relative w-full h-48 md:h-64 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg overflow-hidden">
+    <div className="relative w-full overflow-hidden rounded-t-xl" style={{ height: '200px' }}>
+      {/* Cover photo or default gradient */}
       {coverPhotoUrl ? (
         <img 
           src={coverPhotoUrl} 
-          alt="Profile cover" 
+          alt="Cover" 
           className="w-full h-full object-cover"
         />
       ) : (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          {isOwnProfile ? "Add a cover photo" : "No cover photo"}
-        </div>
+        <div style={defaultCoverStyle}></div>
       )}
       
-      {/* Cover photo upload button for own profile */}
+      {/* Upload overlay for own profile */}
       {isOwnProfile && (
-        <label 
-          htmlFor="cover-upload" 
-          className="absolute bottom-4 right-4 bg-background/90 hover:bg-background text-foreground p-2 rounded-full cursor-pointer shadow-md transition-colors"
-          title="Update cover photo"
-        >
-          <Camera className="h-5 w-5" />
-          <Input 
-            type="file" 
-            id="cover-upload" 
-            className="hidden" 
-            accept="image/*" 
-            onChange={handleCoverPhotoUpload}
-            disabled={isUploading}
-          />
-        </label>
+        <div className="absolute bottom-4 right-4">
+          <label htmlFor="cover-upload">
+            <Button 
+              variant="secondary"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              size="sm"
+              type="button"
+              disabled={isUploading}
+            >
+              <Image className="h-4 w-4 mr-2" />
+              {coverPhotoUrl ? 'Change Cover' : 'Add Cover'}
+              <Input 
+                type="file" 
+                id="cover-upload" 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleCoverPhotoUpload}
+                disabled={isUploading}
+              />
+            </Button>
+          </label>
+        </div>
       )}
       
       {/* Upload progress indicator */}
       {isUploading && (
-        <div className="absolute bottom-4 left-4 bg-background/80 p-2 rounded-md">
-          <Progress value={uploadProgress} className="h-1 w-32 mb-1" />
-          <span className="text-xs text-muted-foreground">
-            {Math.round(uploadProgress)}%
-          </span>
+        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
+          <div className="flex justify-between text-white text-xs mb-1">
+            <span>Uploading cover photo...</span>
+            <span>{Math.round(uploadProgress)}%</span>
+          </div>
+          <Progress value={uploadProgress} className="h-1" />
         </div>
       )}
     </div>
