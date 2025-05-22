@@ -93,7 +93,7 @@ export const ProfileEditContainer = ({ isNewUser }: ProfileEditContainerProps) =
 
   if (error) {
     return (
-      <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-md">
+      <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-md max-w-3xl mx-auto">
         <h2 className="text-lg font-semibold mb-2">Error</h2>
         <p>{error}</p>
         <button 
@@ -108,9 +108,9 @@ export const ProfileEditContainer = ({ isNewUser }: ProfileEditContainerProps) =
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <span className="ml-2">Loading profile data...</span>
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+        <span className="text-lg">Loading profile data...</span>
       </div>
     );
   }

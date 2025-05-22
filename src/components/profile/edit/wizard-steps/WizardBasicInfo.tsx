@@ -12,19 +12,21 @@ interface WizardBasicInfoProps {
 
 export const WizardBasicInfo = ({ control }: WizardBasicInfoProps) => {
   return (
-    <Card>
-      <CardContent className="pt-6 space-y-6">
-        <h2 className="text-xl font-semibold">Basic Information</h2>
-        <p className="text-muted-foreground">Let's start with some basic information about you.</p>
+    <Card className="border-none shadow-sm">
+      <CardContent className="p-6 space-y-6">
+        <div className="space-y-2 mb-6">
+          <h2 className="text-xl font-semibold">Basic Information</h2>
+          <p className="text-muted-foreground">Let's start with some basic information about you.</p>
+        </div>
         
         <FormField
           control={control}
           name="username"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username *</FormLabel>
+            <FormItem className="mb-4">
+              <FormLabel className="text-base">Username *</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Choose a username" />
+                <Input {...field} placeholder="Choose a username" className="h-11" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -35,10 +37,10 @@ export const WizardBasicInfo = ({ control }: WizardBasicInfoProps) => {
           control={control}
           name="full_name"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name *</FormLabel>
+            <FormItem className="mb-4">
+              <FormLabel className="text-base">Full Name *</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Your full name" />
+                <Input {...field} placeholder="Your full name" className="h-11" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -50,14 +52,14 @@ export const WizardBasicInfo = ({ control }: WizardBasicInfoProps) => {
           name="user_type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Account Type *</FormLabel>
+              <FormLabel className="text-base">Account Type *</FormLabel>
               <Select 
                 value={field.value} 
                 onValueChange={field.onChange}
                 defaultValue="player"
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select account type" />
                   </SelectTrigger>
                 </FormControl>

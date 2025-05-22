@@ -15,12 +15,12 @@ export const WizardProgress = ({
   progressPercentage
 }: WizardProgressProps) => {
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-sm">
+    <div className="mb-6">
+      <div className="flex justify-between text-sm font-medium mb-2">
         <span>Step {currentStep + 1} of {totalSteps}</span>
-        <span>{currentStepLabel}</span>
+        <span className="text-primary">{currentStepLabel}</span>
       </div>
-      <Progress value={progressPercentage} />
+      <Progress value={progressPercentage} className="h-2" />
     </div>
   );
 };

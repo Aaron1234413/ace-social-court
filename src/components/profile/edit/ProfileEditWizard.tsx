@@ -1,7 +1,6 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Form } from '@/components/ui/form';
 import { ProfileData } from './ProfileEditContainer';
 import { WizardBasicInfo } from './wizard-steps/WizardBasicInfo';
@@ -66,7 +65,7 @@ export const ProfileEditWizard = ({ isNewUser, profileData }: ProfileEditWizardP
   const CurrentStepComponent = activeSteps[currentStep]?.component;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl mx-auto px-4 py-6">
       {/* Progress indicator */}
       <WizardProgress 
         currentStep={currentStep} 
@@ -78,9 +77,9 @@ export const ProfileEditWizard = ({ isNewUser, profileData }: ProfileEditWizardP
       <ValidationMessage message={validationMessage} />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4">
           {/* Current step component */}
-          <div className="space-y-6">
+          <div className="my-6">
             {CurrentStepComponent && (
               <>
                 {currentStep === 0 && (
