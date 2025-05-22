@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Pencil, MapPin, Calendar, Award, Upload, Image } from 'lucide-react';
+import { Pencil, MapPin, Calendar, Award, Upload, Image, Camera } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import MessageButton from '@/components/messages/MessageButton';
 import { Progress } from '@/components/ui/progress';
@@ -23,13 +23,14 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
   const { user, refreshProfile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadType, setUploadType<'avatar' | 'cover' | null>(null);
   
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['profile-header', userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, cover_photo_url')
         .eq('id', userId)
         .single();
       
@@ -139,14 +140,15 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     }
   });
 
-  // Enhanced avatar upload handler
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Enhanced upload handler that works for both avatar and cover photo
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
     
     try {
       setIsUploading(true);
       setUploadProgress(0);
+      setUploadType(type);
       
       // Enhanced file validation
       if (file.size > 5 * 1024 * 1024) {
@@ -164,19 +166,24 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
       }
       
       // Upload the file with progress tracking
-      const avatarUrl = await uploadFileWithProgress(
+      const filePath = `${userId}/${type === 'avatar' ? 'avatar' : 'cover'}-${Date.now()}`;
+      const imageUrl = await uploadFileWithProgress(
         file,
         'message_media',
-        userId,
+        filePath,
         (progress) => {
           setUploadProgress(progress);
         }
       );
       
-      // Update the profile with the new avatar URL
+      // Update the profile with the new image URL
+      const updateData = type === 'avatar' 
+        ? { avatar_url: imageUrl }
+        : { cover_photo_url: imageUrl };
+        
       const { error } = await supabase
         .from('profiles')
-        .update({ avatar_url: avatarUrl })
+        .update(updateData)
         .eq('id', userId);
       
       if (error) {
@@ -189,16 +196,17 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
       // Also refetch the current profile view
       refetch();
       
-      toast.success('Profile picture updated', {
-        description: 'Your new profile picture will appear across the app.'
+      toast.success(`Profile ${type === 'avatar' ? 'picture' : 'cover'} updated`, {
+        description: `Your new profile ${type === 'avatar' ? 'picture' : 'cover'} will appear across the app.`
       });
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      console.error(`Error uploading ${type}:`, error);
       toast.error('Upload failed', {
-        description: 'Could not update your profile picture. Please try again.'
+        description: `Could not update your profile ${type === 'avatar' ? 'picture' : 'cover'}. Please try again.`
       });
     } finally {
       setIsUploading(false);
+      setUploadType(null);
     }
   };
 
@@ -212,6 +220,40 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Cover Photo Section */}
+      <div className="relative w-full h-48 md:h-64 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg overflow-hidden">
+        {profile.cover_photo_url ? (
+          <img 
+            src={profile.cover_photo_url} 
+            alt="Profile cover" 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            {isOwnProfile ? "Add a cover photo" : "No cover photo"}
+          </div>
+        )}
+        
+        {/* Cover photo upload button for own profile */}
+        {isOwnProfile && (
+          <label 
+            htmlFor="cover-upload" 
+            className="absolute bottom-4 right-4 bg-background/90 hover:bg-background text-foreground p-2 rounded-full cursor-pointer shadow-md transition-colors"
+            title="Update cover photo"
+          >
+            <Camera className="h-5 w-5" />
+            <Input 
+              type="file" 
+              id="cover-upload" 
+              className="hidden" 
+              accept="image/*" 
+              onChange={(e) => handleFileUpload(e, 'cover')}
+              disabled={isUploading}
+            />
+          </label>
+        )}
+      </div>
+
       {/* Profile Header with Avatar and Actions */}
       <div className="flex flex-col items-center p-6 relative">
         {/* Action buttons - positioned top right */}
@@ -231,8 +273,8 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
           )}
         </div>
         
-        {/* Avatar with enhanced upload option */}
-        <div className="relative group mb-4">
+        {/* Avatar with enhanced upload option - positioned on top of cover photo and profile info */}
+        <div className="relative group -mt-20 mb-4 z-10">
           <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
             {profile.avatar_url ? (
               <AvatarImage src={profile.avatar_url} alt={profile.username || 'User avatar'} />
@@ -258,7 +300,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
                 id="avatar-upload" 
                 className="hidden" 
                 accept="image/*" 
-                onChange={handleAvatarUpload}
+                onChange={(e) => handleFileUpload(e, 'avatar')}
                 disabled={isUploading}
                 aria-label="Upload profile picture"
               />
@@ -270,7 +312,9 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         {isUploading && (
           <div className="mt-2 w-32 flex flex-col items-center">
             <Progress value={uploadProgress} className="h-1 mb-1" />
-            <span className="text-xs text-muted-foreground">{Math.round(uploadProgress)}%</span>
+            <span className="text-xs text-muted-foreground">
+              {Math.round(uploadProgress)}% ({uploadType === 'avatar' ? 'Profile Picture' : 'Cover Photo'})
+            </span>
           </div>
         )}
         
