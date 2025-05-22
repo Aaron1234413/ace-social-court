@@ -1,10 +1,9 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Pencil, MapPin, Calendar, Award } from 'lucide-react';
+import { Pencil, MapPin, Calendar, Award, Upload, Image } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import MessageButton from '@/components/messages/MessageButton';
 import { Progress } from '@/components/ui/progress';
@@ -13,6 +12,7 @@ import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
 import { uploadFileWithProgress } from '@/integrations/supabase/storage';
+import { Input } from '@/components/ui/input';
 
 interface ProfileHeaderProps {
   userId: string;
@@ -20,7 +20,7 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   
@@ -139,7 +139,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
     }
   });
 
-  // Handle avatar upload
+  // Enhanced avatar upload handler
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
@@ -148,14 +148,18 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
       setIsUploading(true);
       setUploadProgress(0);
       
-      // Check file size and type
+      // Enhanced file validation
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image too large. Please upload an image under 5MB.');
+        toast.error('Image too large', {
+          description: 'Please upload an image under 5MB.'
+        });
         return;
       }
       
       if (!file.type.startsWith('image/')) {
-        toast.error('Only image files are allowed.');
+        toast.error('Invalid file format', {
+          description: 'Only image files are allowed (.jpg, .png, .gif, etc).'
+        });
         return;
       }
       
@@ -179,12 +183,20 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         throw error;
       }
       
-      // Refetch profile data
+      // Refresh global profile state - this ensures the avatar is updated everywhere
+      await refreshProfile();
+      
+      // Also refetch the current profile view
       refetch();
-      toast.success('Profile picture updated successfully!');
+      
+      toast.success('Profile picture updated', {
+        description: 'Your new profile picture will appear across the app.'
+      });
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to upload profile picture.');
+      toast.error('Upload failed', {
+        description: 'Could not update your profile picture. Please try again.'
+      });
     } finally {
       setIsUploading(false);
     }
@@ -219,7 +231,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
           )}
         </div>
         
-        {/* Avatar with upload option */}
+        {/* Avatar with enhanced upload option */}
         <div className="relative group mb-4">
           <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
             {profile.avatar_url ? (
@@ -231,29 +243,34 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
             )}
           </Avatar>
           
-          {/* Profile photo upload overlay (only visible for own profile) */}
+          {/* Enhanced profile photo upload overlay with better UX */}
           {isOwnProfile && (
             <label 
               htmlFor="avatar-upload" 
-              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Update profile picture"
+              role="button"
             >
-              <Pencil className="h-6 w-6 text-white" />
-              <input 
+              <Image className="h-6 w-6 text-white mb-1" />
+              <span className="text-xs text-white font-medium">Update</span>
+              <Input 
                 type="file" 
                 id="avatar-upload" 
                 className="hidden" 
                 accept="image/*" 
                 onChange={handleAvatarUpload}
                 disabled={isUploading}
+                aria-label="Upload profile picture"
               />
             </label>
           )}
         </div>
         
-        {/* Upload progress indicator */}
+        {/* Enhanced Upload progress indicator */}
         {isUploading && (
-          <div className="mt-2 w-24">
-            <Progress value={uploadProgress} className="h-1" />
+          <div className="mt-2 w-32 flex flex-col items-center">
+            <Progress value={uploadProgress} className="h-1 mb-1" />
+            <span className="text-xs text-muted-foreground">{Math.round(uploadProgress)}%</span>
           </div>
         )}
         
