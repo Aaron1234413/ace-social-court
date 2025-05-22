@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
@@ -115,9 +116,10 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
 
       if (formattedPosts.length > 0) {
         const userIds = formattedPosts.map(post => post.user_id);
+        // Update this query to also select avatar_url
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, full_name, user_type')
+          .select('id, full_name, user_type, avatar_url')
           .in('id', userIds);
 
         if (!profilesError && profilesData) {
@@ -125,7 +127,8 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
           profilesData.forEach(profile => {
             profileMap.set(profile.id, {
               full_name: profile.full_name,
-              user_type: profile.user_type
+              user_type: profile.user_type,
+              avatar_url: profile.avatar_url // Include avatar URL in the profile information
             });
           });
           

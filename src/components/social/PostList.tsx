@@ -8,7 +8,7 @@ import FollowButton from '@/components/social/FollowButton';
 import { Post } from '@/types/post';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loading } from '@/components/ui/loading';
 import { PostActions } from './PostActions';
 
@@ -54,12 +54,19 @@ const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListPr
               <div className="flex items-center">
                 <Link to={`/profile/${post.user_id}`} className="hover:opacity-80 transition-opacity group">
                   <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-background group-hover:border-primary/20 transition-colors">
-                    <AvatarFallback className={post.author?.user_type === 'coach' 
-                      ? "bg-gradient-to-br from-purple-100 to-purple-300 text-purple-800 font-semibold" 
-                      : "bg-gradient-to-br from-blue-100 to-blue-300 text-blue-800 font-semibold"
-                    }>
-                      {post.author?.full_name?.charAt(0) || '?'}
-                    </AvatarFallback>
+                    {post.author?.avatar_url ? (
+                      <AvatarImage 
+                        src={post.author.avatar_url} 
+                        alt={post.author?.full_name || 'User'} 
+                      />
+                    ) : (
+                      <AvatarFallback className={post.author?.user_type === 'coach' 
+                        ? "bg-gradient-to-br from-purple-100 to-purple-300 text-purple-800 font-semibold" 
+                        : "bg-gradient-to-br from-blue-100 to-blue-300 text-blue-800 font-semibold"
+                      }>
+                        {post.author?.full_name?.charAt(0) || '?'}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                 </Link>
                 <div className="ml-3 max-w-[calc(100%-48px)]">

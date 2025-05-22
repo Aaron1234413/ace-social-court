@@ -9,6 +9,7 @@ export interface Post {
   author?: {
     full_name: string | null;
     user_type: string | null;
+    avatar_url?: string | null;
   } | null;
   likes_count?: number;
   comments_count?: number;

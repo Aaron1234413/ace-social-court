@@ -510,6 +510,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          cover_photo_url: string | null
           created_at: string
           experience_level:
             | Database["public"]["Enums"]["experience_level"]
@@ -530,6 +531,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           experience_level?:
             | Database["public"]["Enums"]["experience_level"]
@@ -550,6 +552,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           experience_level?:
             | Database["public"]["Enums"]["experience_level"]
