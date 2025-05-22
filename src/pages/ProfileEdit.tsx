@@ -9,44 +9,41 @@ import { toast } from 'sonner';
 const ProfileEdit = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   
   // Check if the user is logged in
   useEffect(() => {
     const checkAuth = async () => {
+      if (authLoading) {
+        // Wait for auth state to load
+        return;
+      }
+      
       if (!user) {
         // Redirect to login if not authenticated
         toast.info('Please login to edit your profile');
         navigate('/auth', { state: { from: location.pathname } });
-      } else {
-        setIsLoading(false);
+        return;
       }
+      
+      setIsLoading(false);
     };
     
     checkAuth();
-  }, [user, navigate, location.pathname]);
+  }, [user, authLoading, navigate, location.pathname]);
   
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loading />
+        <Loading variant="spinner" text="Loading authentication..." />
       </div>
     );
   }
   
-  // Check if the profile exists yet
-  if (!profile) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <Loading />
-        <p className="mt-4 text-muted-foreground">Loading profile data...</p>
-      </div>
-    );
-  }
-  
-  // Pass the current user's profile data to the ProfileEditContainer
-  return <ProfileEditContainer isNewUser={false} />;
+  // If we have a user but no profile, we can still proceed with the edit form
+  // since ProfileEditContainer handles the case where profile is null
+  return <ProfileEditContainer isNewUser={!profile} />;
 };
 
 export default ProfileEdit;

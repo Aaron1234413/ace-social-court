@@ -53,6 +53,14 @@ export const ProfileEditContainer = ({ isNewUser }: ProfileEditContainerProps) =
         setIsLoading(true);
         setError(null);
         
+        // If we already have profile data from the auth context, use it
+        if (profile) {
+          console.log("Using profile data from auth context");
+          setProfileData(profile as unknown as ProfileData);
+          setIsLoading(false);
+          return;
+        }
+        
         console.log("Fetching profile data from Supabase for user:", user.id);
         
         const { data, error } = await supabase
@@ -70,14 +78,7 @@ export const ProfileEditContainer = ({ isNewUser }: ProfileEditContainerProps) =
         }
 
         console.log('Fetched profile data:', data);
-        
-        // If we have profile data from auth context but not from DB, use that as fallback
-        if (!data && profile) {
-          console.log("Using profile data from auth context as fallback");
-          setProfileData(profile as unknown as ProfileData);
-        } else {
-          setProfileData(data);
-        }
+        setProfileData(data);
       } catch (error: any) {
         console.error('Failed to fetch profile:', error);
         setError(`Error: ${error.message || 'Unknown error'}`);
@@ -109,6 +110,7 @@ export const ProfileEditContainer = ({ isNewUser }: ProfileEditContainerProps) =
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <span className="ml-2">Loading profile data...</span>
       </div>
     );
   }
