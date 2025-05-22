@@ -8,7 +8,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { v4 as uuidv4 } from 'uuid';
 import MediaUploader from '@/components/media/MediaUploader';
 import { Card } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Loader2, Send, Image, X } from 'lucide-react';
 
 interface CreatePostFormProps {
@@ -92,11 +92,19 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onPostCreated }) => {
       </div>
       <div className="flex items-start space-x-4 p-4">
         <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-muted">
-          <img
-            src={profile?.avatar_url || `/avatars/avatar-${Math.floor(Math.random() * 7) + 1}.svg`}
-            alt={profile?.full_name || "Avatar"}
-            className="rounded-full"
-          />
+          {profile?.avatar_url ? (
+            <AvatarImage
+              src={profile.avatar_url}
+              alt={profile?.full_name || "User"}
+            />
+          ) : (
+            <AvatarFallback className={profile?.user_type === 'coach' 
+              ? "bg-gradient-to-br from-purple-100 to-purple-300 text-purple-800 font-semibold" 
+              : "bg-gradient-to-br from-blue-100 to-blue-300 text-blue-800 font-semibold"
+            }>
+              {profile?.full_name?.charAt(0) || '?'}
+            </AvatarFallback>
+          )}
         </Avatar>
         <div className="flex-1 space-y-3">
           <Textarea
