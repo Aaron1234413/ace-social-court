@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,7 +47,7 @@ interface AdminPost {
 export default function AdminContent() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch posts with user profiles using correct join syntax
+  // Fetch posts with user profiles using the foreign key constraint
   const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['admin-posts'],
     queryFn: async () => {
@@ -60,7 +61,7 @@ export default function AdminContent() {
           media_type,
           media_url,
           user_id,
-          profiles (
+          profiles!posts_user_fkey (
             full_name,
             username,
             avatar_url

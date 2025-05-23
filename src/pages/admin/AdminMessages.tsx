@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +48,7 @@ interface AdminDirectMessage {
 export default function AdminMessages() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch direct messages with sender and recipient profiles using correct join syntax
+  // Fetch direct messages with sender and recipient profiles using foreign key constraints
   const { data: messages, isLoading } = useQuery({
     queryKey: ['admin-messages'],
     queryFn: async () => {
@@ -60,12 +61,12 @@ export default function AdminMessages() {
           read,
           recipient_id,
           sender_id,
-          sender_profile:profiles!direct_messages_sender_id_fkey (
+          sender_profile:profiles!dm_sender_fkey (
             full_name,
             username,
             avatar_url
           ),
-          recipient_profile:profiles!direct_messages_recipient_id_fkey (
+          recipient_profile:profiles!dm_recipient_fkey (
             full_name,
             username,
             avatar_url
