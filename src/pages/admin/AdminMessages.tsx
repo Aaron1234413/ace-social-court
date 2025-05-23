@@ -36,56 +36,46 @@ interface AdminDirectMessage {
     full_name: string | null;
     username: string | null;
     avatar_url: string | null;
-  } | null;
+  };
   recipient_profile: {
     full_name: string | null;
     username: string | null;
     avatar_url: string | null;
-  } | null;
+  };
 }
 
 export default function AdminMessages() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch direct messages with sender and recipient profiles using a simpler approach
+  // Fetch direct messages with sender and recipient profiles using correct join syntax
   const { data: messages, isLoading } = useQuery({
     queryKey: ['admin-messages'],
     queryFn: async () => {
-      // First get messages
-      const { data: messagesData, error: messagesError } = await supabase
+      const { data, error } = await supabase
         .from('direct_messages')
-        .select('*')
+        .select(`
+          id,
+          content,
+          created_at,
+          read,
+          recipient_id,
+          sender_id,
+          sender_profile:profiles!direct_messages_sender_id_fkey (
+            full_name,
+            username,
+            avatar_url
+          ),
+          recipient_profile:profiles!direct_messages_recipient_id_fkey (
+            full_name,
+            username,
+            avatar_url
+          )
+        `)
         .order('created_at', { ascending: false })
         .limit(100);
       
-      if (messagesError) throw messagesError;
-      if (!messagesData) return [];
-
-      // Get all unique user IDs from sender and recipient
-      const userIds = [...new Set([
-        ...messagesData.map(msg => msg.sender_id),
-        ...messagesData.map(msg => msg.recipient_id)
-      ])];
-
-      // Fetch all profiles for these users
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, username, avatar_url')
-        .in('id', userIds);
-      
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        // Continue without profiles if there's an error
-      }
-
-      // Combine messages with profiles
-      const messagesWithProfiles = messagesData.map(message => ({
-        ...message,
-        sender_profile: profilesData?.find(profile => profile.id === message.sender_id) || null,
-        recipient_profile: profilesData?.find(profile => profile.id === message.recipient_id) || null
-      }));
-
-      return messagesWithProfiles as AdminDirectMessage[];
+      if (error) throw error;
+      return data as AdminDirectMessage[];
     }
   });
 

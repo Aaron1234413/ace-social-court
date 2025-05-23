@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,44 +40,36 @@ interface AdminPost {
     full_name: string | null;
     username: string | null;
     avatar_url: string | null;
-  } | null;
+  };
 }
 
 export default function AdminContent() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch posts with user profiles using a simpler approach
+  // Fetch posts with user profiles using correct join syntax
   const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['admin-posts'],
     queryFn: async () => {
-      // First get posts
-      const { data: postsData, error: postsError } = await supabase
+      const { data, error } = await supabase
         .from('posts')
-        .select('*')
+        .select(`
+          id,
+          content,
+          created_at,
+          updated_at,
+          media_type,
+          media_url,
+          user_id,
+          profiles (
+            full_name,
+            username,
+            avatar_url
+          )
+        `)
         .order('created_at', { ascending: false });
       
-      if (postsError) throw postsError;
-      if (!postsData) return [];
-
-      // Then get profiles for all users
-      const userIds = [...new Set(postsData.map(post => post.user_id))];
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, username, avatar_url')
-        .in('id', userIds);
-      
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        // Continue without profiles if there's an error
-      }
-
-      // Combine posts with profiles
-      const postsWithProfiles = postsData.map(post => ({
-        ...post,
-        profiles: profilesData?.find(profile => profile.id === post.user_id) || null
-      }));
-
-      return postsWithProfiles as AdminPost[];
+      if (error) throw error;
+      return data as AdminPost[];
     }
   });
 
