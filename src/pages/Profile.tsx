@@ -44,7 +44,7 @@ const Profile = () => {
   
   // Handle different types of identifiers in the URL (username or ID)
   const [profileIdentifier, setProfileIdentifier] = useState<string | null>(null);
-  const isOwnProfile = user?.id === profileIdentifierFromUrl || user?.id === profileIdentifier;
+  const [isOwnProfile, setIsOwnProfile] = useState<boolean>(false);
 
   // Determine the correct profile identifier (user ID or username)
   useEffect(() => {
@@ -56,6 +56,7 @@ const Profile = () => {
     // If no username provided in URL, use current user's ID
     if (!profileIdentifierFromUrl && user) {
       setProfileIdentifier(user.id);
+      setIsOwnProfile(true);
     } else {
       // Use provided username/ID from the URL
       setProfileIdentifier(profileIdentifierFromUrl || null);
@@ -83,7 +84,13 @@ const Profile = () => {
         .eq('username', profileIdentifier)
         .single();
       
-      if (usernameData) return usernameData;
+      if (usernameData) {
+        // Check if this is the current user's profile
+        if (user && usernameData.id === user.id) {
+          setIsOwnProfile(true);
+        }
+        return usernameData;
+      }
       
       // If not found by username, try by user ID
       const { data: idData, error: idError } = await supabase
@@ -91,6 +98,13 @@ const Profile = () => {
         .select('*')
         .eq('id', profileIdentifier)
         .single();
+      
+      if (idData) {
+        // Check if this is the current user's profile
+        if (user && idData.id === user.id) {
+          setIsOwnProfile(true);
+        }
+      }
       
       if (idError && usernameError) {
         console.error('Profile not found:', { usernameError, idError });
