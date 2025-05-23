@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/components/AuthProvider';
@@ -26,6 +27,9 @@ import NotFound from '@/pages/NotFound';
 import { AdminRoute } from '@/components/admin/AdminRoute';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminUsers from '@/pages/admin/AdminUsers';
+import AdminContent from '@/pages/admin/AdminContent';
+import AdminMessages from '@/pages/admin/AdminMessages';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -67,7 +71,9 @@ function App() {
                 </AdminRoute>
               }>
                 <Route index element={<AdminDashboard />} />
-                {/* Future admin routes will be added here in subsequent phases */}
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="content" element={<AdminContent />} />
+                <Route path="messages" element={<AdminMessages />} />
               </Route>
               
               <Route path="/feed" element={

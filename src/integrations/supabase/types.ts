@@ -821,6 +821,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_logs: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -963,6 +993,16 @@ export type Database = {
       is_following: {
         Args: { follower_id: string; following_id: string }
         Returns: boolean
+      }
+      log_user_activity: {
+        Args: {
+          _user_id: string
+          _action_type: string
+          _action_details?: Json
+          _ip_address?: string
+          _user_agent?: string
+        }
+        Returns: string
       }
     }
     Enums: {
