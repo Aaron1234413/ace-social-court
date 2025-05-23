@@ -54,7 +54,12 @@ export default function AdminMessages() {
       const { data, error } = await supabase
         .from('direct_messages')
         .select(`
-          *,
+          id,
+          content,
+          created_at,
+          read,
+          recipient_id,
+          sender_id,
           sender_profile:profiles!direct_messages_sender_id_fkey (
             full_name,
             username,

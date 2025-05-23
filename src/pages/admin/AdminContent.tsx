@@ -53,7 +53,13 @@ export default function AdminContent() {
       const { data, error } = await supabase
         .from('posts')
         .select(`
-          *,
+          id,
+          content,
+          created_at,
+          updated_at,
+          media_type,
+          media_url,
+          user_id,
           profiles (
             full_name,
             username,
