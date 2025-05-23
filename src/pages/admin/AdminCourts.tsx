@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,24 +55,49 @@ export default function AdminCourts() {
   const [selectedCourt, setSelectedCourt] = useState<TennisCourt | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  // Fetch tennis courts with user profiles
+  // Fetch tennis courts with user profiles using separate queries
   const { data: courts, isLoading, refetch } = useQuery({
     queryKey: ['admin-courts'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get all tennis courts
+      const { data: courtsData, error: courtsError } = await supabase
         .from('tennis_courts')
-        .select(`
-          *,
-          profiles:created_by (
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data as TennisCourt[];
+      if (courtsError) throw courtsError;
+
+      // Get unique created_by user IDs (filtering out null values)
+      const userIds = [...new Set(courtsData
+        .map(court => court.created_by)
+        .filter(id => id !== null))] as string[];
+      
+      if (userIds.length === 0) {
+        // No user profiles to fetch, return courts without profiles
+        return courtsData.map(court => ({
+          ...court,
+          profiles: null
+        })) as TennisCourt[];
+      }
+
+      // Fetch profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url')
+        .in('id', userIds);
+      
+      if (profilesError) throw profilesError;
+
+      // Create a map of profiles by user ID
+      const profilesMap = new Map(profilesData.map(profile => [profile.id, profile]));
+
+      // Combine courts with profiles
+      const courtsWithProfiles = courtsData.map(court => ({
+        ...court,
+        profiles: court.created_by ? profilesMap.get(court.created_by) || null : null
+      }));
+
+      return courtsWithProfiles as TennisCourt[];
     }
   });
 

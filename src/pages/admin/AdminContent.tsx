@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,24 +38,25 @@ interface AdminPost {
   media_type: string | null;
   created_at: string;
   updated_at: string;
-  is_flagged: boolean;
+  is_flagged: boolean | null;
   flag_reason: string | null;
   profiles: {
     full_name: string | null;
     username: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 export default function AdminContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'flagged'>('all');
 
-  // Fetch posts with user profiles using the foreign key constraint
+  // Fetch posts with user profiles using separate queries
   const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['admin-posts'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get all posts
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
           id,
@@ -67,17 +67,33 @@ export default function AdminContent() {
           media_url,
           user_id,
           is_flagged,
-          flag_reason,
-          profiles!posts_user_id_fkey (
-            full_name,
-            username,
-            avatar_url
-          )
+          flag_reason
         `)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data as AdminPost[];
+      if (postsError) throw postsError;
+
+      // Get unique user IDs
+      const userIds = [...new Set(postsData.map(post => post.user_id))];
+      
+      // Fetch profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url')
+        .in('id', userIds);
+      
+      if (profilesError) throw profilesError;
+
+      // Create a map of profiles by user ID
+      const profilesMap = new Map(profilesData.map(profile => [profile.id, profile]));
+
+      // Combine posts with profiles
+      const postsWithProfiles = postsData.map(post => ({
+        ...post,
+        profiles: profilesMap.get(post.user_id) || null
+      }));
+
+      return postsWithProfiles as AdminPost[];
     }
   });
 
@@ -356,7 +372,7 @@ export default function AdminContent() {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => handleToggleFlag(post.id, post.is_flagged)}
+                    onClick={() => handleToggleFlag(post.id, post.is_flagged || false)}
                     className={post.is_flagged ? "text-green-600" : "text-amber-600"}
                   >
                     {post.is_flagged ? <FlagOff className="h-4 w-4" /> : <Flag className="h-4 w-4" />}
