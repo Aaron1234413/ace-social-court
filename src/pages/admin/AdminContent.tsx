@@ -68,7 +68,7 @@ export default function AdminContent() {
           user_id,
           is_flagged,
           flag_reason,
-          profiles!posts_user_fkey (
+          profiles!posts_user_id_fkey (
             full_name,
             username,
             avatar_url

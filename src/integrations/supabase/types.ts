@@ -495,7 +495,9 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          flag_reason: string | null
           id: string
+          is_flagged: boolean | null
           media_type: string | null
           media_url: string | null
           updated_at: string
@@ -504,7 +506,9 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          flag_reason?: string | null
           id?: string
+          is_flagged?: boolean | null
           media_type?: string | null
           media_url?: string | null
           updated_at?: string
@@ -513,7 +517,9 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          flag_reason?: string | null
           id?: string
+          is_flagged?: boolean | null
           media_type?: string | null
           media_url?: string | null
           updated_at?: string
@@ -670,6 +676,7 @@ export type Database = {
           has_pro_shop: boolean | null
           has_restrooms: boolean | null
           id: string
+          is_approved: boolean | null
           is_indoor: boolean | null
           is_public: boolean | null
           latitude: number
@@ -692,6 +699,7 @@ export type Database = {
           has_pro_shop?: boolean | null
           has_restrooms?: boolean | null
           id?: string
+          is_approved?: boolean | null
           is_indoor?: boolean | null
           is_public?: boolean | null
           latitude: number
@@ -714,6 +722,7 @@ export type Database = {
           has_pro_shop?: boolean | null
           has_restrooms?: boolean | null
           id?: string
+          is_approved?: boolean | null
           is_indoor?: boolean | null
           is_public?: boolean | null
           latitude?: number
