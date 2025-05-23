@@ -1,101 +1,77 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
   MessageSquare, 
-  FileText, 
-  BarChart3, 
-  Settings,
-  Shield
+  FileText,
+  MapPin,
+  Flag
 } from 'lucide-react';
 
-const adminNavItems = [
-  {
-    title: 'Dashboard',
-    href: '/admin',
-    icon: LayoutDashboard,
-    exact: true
-  },
-  {
-    title: 'Users',
-    href: '/admin/users',
-    icon: Users
-  },
-  {
-    title: 'Content',
-    href: '/admin/content',
-    icon: FileText
-  },
-  {
-    title: 'Messages',
-    href: '/admin/messages',
-    icon: MessageSquare
-  },
-  {
-    title: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart3
-  },
-  {
-    title: 'Settings',
-    href: '/admin/settings',
-    icon: Settings
-  }
-];
-
 export function AdminSidebar() {
-  const location = useLocation();
-
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-      {/* Logo/Brand */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Shield className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-sm text-gray-500">RallyPointX</p>
+    <aside className="w-64 bg-white border-r hidden md:flex flex-col">
+      <div className="py-6 px-4 border-b">
+        <h1 className="text-lg font-bold text-primary">Tennis App Admin</h1>
+      </div>
+      
+      <nav className="flex-1 px-2 py-4 space-y-1">
+        <NavItem to="/admin" icon={<LayoutDashboard size={20} />} exact>
+          Dashboard
+        </NavItem>
+        <NavItem to="/admin/users" icon={<Users size={20} />}>
+          Users
+        </NavItem>
+        <NavItem to="/admin/content" icon={<FileText size={20} />}>
+          Content
+        </NavItem>
+        <NavItem to="/admin/messages" icon={<MessageSquare size={20} />}>
+          Messages
+        </NavItem>
+        <NavItem to="/admin/courts" icon={<MapPin size={20} />}>
+          Tennis Courts
+        </NavItem>
+      </nav>
+      
+      <div className="p-4 border-t">
+        <div className="flex items-center">
+          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+            <Users size={14} className="text-primary" />
+          </div>
+          <div className="ml-3">
+            <p className="text-sm font-medium">Admin User</p>
+            <p className="text-xs text-gray-500">Administrator</p>
           </div>
         </div>
       </div>
+    </aside>
+  );
+}
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {adminNavItems.map((item) => {
-          const isActive = item.exact 
-            ? location.pathname === item.href
-            : location.pathname.startsWith(item.href);
-          
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-gray-700 hover:bg-gray-100"
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.title}
-            </Link>
-          );
-        })}
-      </nav>
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  exact?: boolean;
+}
 
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
-        >
-          ← Back to App
-        </Link>
-      </div>
-    </div>
+function NavItem({ to, icon, children, exact = false }: NavItemProps) {
+  return (
+    <NavLink
+      to={to}
+      end={exact}
+      className={({ isActive }) =>
+        `flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+          isActive
+            ? 'bg-primary/10 text-primary font-medium'
+            : 'text-gray-700 hover:bg-gray-100'
+        }`
+      }
+    >
+      <span className="mr-3 text-current opacity-75">{icon}</span>
+      {children}
+    </NavLink>
   );
 }

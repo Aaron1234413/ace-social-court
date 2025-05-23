@@ -30,6 +30,7 @@ import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminUsers from '@/pages/admin/AdminUsers';
 import AdminContent from '@/pages/admin/AdminContent';
 import AdminMessages from '@/pages/admin/AdminMessages';
+import AdminCourts from '@/pages/admin/AdminCourts';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -74,6 +75,7 @@ function App() {
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="content" element={<AdminContent />} />
                 <Route path="messages" element={<AdminMessages />} />
+                <Route path="courts" element={<AdminCourts />} />
               </Route>
               
               <Route path="/feed" element={
