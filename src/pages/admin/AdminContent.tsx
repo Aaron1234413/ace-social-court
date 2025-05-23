@@ -40,7 +40,7 @@ interface Post {
     full_name: string | null;
     username: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 export default function AdminContent() {
@@ -54,7 +54,7 @@ export default function AdminContent() {
         .from('posts')
         .select(`
           *,
-          profiles (
+          profiles!posts_user_id_fkey (
             full_name,
             username,
             avatar_url
@@ -69,8 +69,8 @@ export default function AdminContent() {
 
   const filteredPosts = posts?.filter(post =>
     post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.profiles.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.profiles.username?.toLowerCase().includes(searchTerm.toLowerCase())
+    post.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    post.profiles?.username?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleDeletePost = async (postId: string) => {
@@ -221,18 +221,18 @@ export default function AdminContent() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={post.profiles.avatar_url || undefined} />
+                        <AvatarImage src={post.profiles?.avatar_url || undefined} />
                         <AvatarFallback>
-                          {post.profiles.full_name?.charAt(0) || 
-                           post.profiles.username?.charAt(0) || '?'}
+                          {post.profiles?.full_name?.charAt(0) || 
+                           post.profiles?.username?.charAt(0) || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium">
-                          {post.profiles.full_name || 'No name'}
+                          {post.profiles?.full_name || 'No name'}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          @{post.profiles.username || 'no-username'}
+                          @{post.profiles?.username || 'no-username'}
                         </div>
                       </div>
                     </div>

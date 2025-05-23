@@ -36,12 +36,12 @@ interface DirectMessage {
     full_name: string | null;
     username: string | null;
     avatar_url: string | null;
-  };
+  } | null;
   recipient_profile: {
     full_name: string | null;
     username: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 export default function AdminMessages() {
@@ -90,8 +90,8 @@ export default function AdminMessages() {
 
   const filteredMessages = messages?.filter(message =>
     message.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    message.sender_profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    message.recipient_profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    message.sender_profile?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    message.recipient_profile?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const todayMessages = messages?.filter(m => 
@@ -210,18 +210,18 @@ export default function AdminMessages() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={message.sender_profile.avatar_url || undefined} />
+                        <AvatarImage src={message.sender_profile?.avatar_url || undefined} />
                         <AvatarFallback>
-                          {message.sender_profile.full_name?.charAt(0) || 
-                           message.sender_profile.username?.charAt(0) || '?'}
+                          {message.sender_profile?.full_name?.charAt(0) || 
+                           message.sender_profile?.username?.charAt(0) || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium">
-                          {message.sender_profile.full_name || 'No name'}
+                          {message.sender_profile?.full_name || 'No name'}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          @{message.sender_profile.username || 'no-username'}
+                          @{message.sender_profile?.username || 'no-username'}
                         </div>
                       </div>
                     </div>
@@ -229,18 +229,18 @@ export default function AdminMessages() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={message.recipient_profile.avatar_url || undefined} />
+                        <AvatarImage src={message.recipient_profile?.avatar_url || undefined} />
                         <AvatarFallback>
-                          {message.recipient_profile.full_name?.charAt(0) || 
-                           message.recipient_profile.username?.charAt(0) || '?'}
+                          {message.recipient_profile?.full_name?.charAt(0) || 
+                           message.recipient_profile?.username?.charAt(0) || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium">
-                          {message.recipient_profile.full_name || 'No name'}
+                          {message.recipient_profile?.full_name || 'No name'}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          @{message.recipient_profile.username || 'no-username'}
+                          @{message.recipient_profile?.username || 'no-username'}
                         </div>
                       </div>
                     </div>
