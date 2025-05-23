@@ -46,30 +46,38 @@ interface AdminPost {
 export default function AdminContent() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch posts with user profiles using proper foreign key syntax
+  // Fetch posts with user profiles using a simpler approach
   const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['admin-posts'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get posts
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select(`
-          id,
-          content,
-          created_at,
-          updated_at,
-          media_type,
-          media_url,
-          user_id,
-          profiles!posts_user_id_fkey (
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data as AdminPost[];
+      if (postsError) throw postsError;
+      if (!postsData) return [];
+
+      // Then get profiles for all users
+      const userIds = [...new Set(postsData.map(post => post.user_id))];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url')
+        .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        // Continue without profiles if there's an error
+      }
+
+      // Combine posts with profiles
+      const postsWithProfiles = postsData.map(post => ({
+        ...post,
+        profiles: profilesData?.find(profile => profile.id === post.user_id) || null
+      }));
+
+      return postsWithProfiles as AdminPost[];
     }
   });
 
