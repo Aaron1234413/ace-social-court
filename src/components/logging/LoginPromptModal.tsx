@@ -73,7 +73,7 @@ export function LoginPromptModal() {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent side="center" className="sm:max-w-lg sm:mx-auto rounded-lg">
         <SheetHeader className="text-center pb-6">
-          <SheetTitle className="text-2xl font-bold">Welcome back, {user.user_metadata?.full_name || 'Player'}!</SheetTitle>
+          <SheetTitle className="text-2xl font-bold">Game. Set. Match. {user.user_metadata?.full_name || 'Player'}!</SheetTitle>
           <SheetDescription className="text-lg">
             What would you like to log today?
           </SheetDescription>
