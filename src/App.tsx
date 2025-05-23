@@ -23,6 +23,9 @@ import UserTest from '@/pages/UserTest';
 import { ErrorBoundary } from 'react-error-boundary';
 import AppErrorFallback from '@/components/AppErrorFallback';
 import NotFound from '@/pages/NotFound';
+import { AdminRoute } from '@/components/admin/AdminRoute';
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
 
 function App() {
   // Initialize storage buckets when app loads
@@ -56,6 +59,17 @@ function App() {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              
+              {/* Admin Routes - Protected by AdminRoute */}
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <AdminLayout />
+                </AdminRoute>
+              }>
+                <Route index element={<AdminDashboard />} />
+                {/* Future admin routes will be added here in subsequent phases */}
+              </Route>
+              
               <Route path="/feed" element={
                 <MainLayout>
                   <Feed />
