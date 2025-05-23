@@ -28,7 +28,7 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
-interface Post {
+interface AdminPost {
   id: string;
   user_id: string;
   content: string;
@@ -54,7 +54,7 @@ export default function AdminContent() {
         .from('posts')
         .select(`
           *,
-          profiles!posts_user_id_fkey (
+          profiles (
             full_name,
             username,
             avatar_url
@@ -63,7 +63,7 @@ export default function AdminContent() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Post[];
+      return data as AdminPost[];
     }
   });
 

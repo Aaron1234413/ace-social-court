@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-interface DirectMessage {
+interface AdminDirectMessage {
   id: string;
   sender_id: string;
   recipient_id: string;
@@ -70,7 +70,7 @@ export default function AdminMessages() {
         .limit(100);
       
       if (error) throw error;
-      return data as DirectMessage[];
+      return data as AdminDirectMessage[];
     }
   });
 
