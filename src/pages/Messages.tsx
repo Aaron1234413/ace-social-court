@@ -13,6 +13,9 @@ import NewMessageButton from '@/components/messages/NewMessageButton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Loading } from '@/components/ui/loading';
 import { configureRealtime } from '@/utils/realtimeHelper';
+import { useCreateConversation } from '@/hooks/use-create-conversation';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Messages = () => {
   const { user } = useAuth();
@@ -22,12 +25,16 @@ const Messages = () => {
   const isMobile = useIsMobile();
   
   const [activeTab, setActiveTab] = useState<'conversations' | 'search'>('conversations');
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(chatId || null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [isProcessingUserId, setIsProcessingUserId] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
   // Extract state from navigation, if any
   const locationState = location.state || {};
   const { fromSearch, previousPath } = locationState;
+  
+  // Get conversation creation function
+  const { createConversation, isCreating } = useCreateConversation();
   
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -36,12 +43,69 @@ const Messages = () => {
     }
   }, [user, navigate]);
   
-  // Update selected conversation when route changes
+  // Check if the chatId is a user ID or a conversation ID
   useEffect(() => {
-    if (chatId) {
-      setSelectedConversationId(chatId);
-    }
-  }, [chatId]);
+    const checkChatIdType = async () => {
+      if (!chatId || !user || isProcessingUserId) return;
+      
+      try {
+        // First check if chatId is a valid conversation ID
+        const { data: conversationData, error: conversationError } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('id', chatId)
+          .maybeSingle();
+          
+        if (conversationData) {
+          // It's a valid conversation ID
+          console.log('Valid conversation ID found:', chatId);
+          setSelectedConversationId(chatId);
+          return;
+        }
+        
+        // If not a conversation ID, check if it's a valid user ID
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', chatId)
+          .maybeSingle();
+        
+        if (userData) {
+          // It's a user ID, initiate conversation creation
+          console.log('User ID detected, creating conversation with user:', chatId);
+          setIsProcessingUserId(true);
+          
+          createConversation(chatId, {
+            onSuccess: (conversationId) => {
+              console.log('Created/found conversation:', conversationId);
+              // Navigate to the actual conversation with the proper ID
+              navigate(`/messages/${conversationId}`, {
+                state: locationState,
+                replace: true // Replace current URL in history to avoid back button issues
+              });
+              setIsProcessingUserId(false);
+            },
+            onError: (error) => {
+              console.error('Error creating conversation:', error);
+              toast.error('Could not create conversation');
+              setError('Failed to create conversation. Please try again.');
+              setIsProcessingUserId(false);
+            }
+          });
+        } else {
+          // Not a valid user ID or conversation ID
+          setError(`Invalid ID: ${chatId}`);
+          console.error('Invalid ID provided, not a conversation or valid user');
+        }
+      } catch (err) {
+        console.error('Error checking chat ID type:', err);
+        setError('Error checking conversation details');
+        setIsProcessingUserId(false);
+      }
+    };
+    
+    checkChatIdType();
+  }, [chatId, user, navigate, createConversation, locationState, isProcessingUserId]);
   
   // Configure realtime subscriptions on component mount
   useEffect(() => {
@@ -62,8 +126,8 @@ const Messages = () => {
   }, [user]);
   
   // Handle selecting a conversation from the list
-  const handleConversationSelect = (userId: string) => {
-    navigate(`/messages/${userId}`);
+  const handleConversationSelect = (conversationId: string) => {
+    navigate(`/messages/${conversationId}`);
   };
   
   // Handle going back to search with state preservation
@@ -82,7 +146,9 @@ const Messages = () => {
   // Handle user selection from search
   const handleUserSelect = (user: any) => {
     if (user && user.id) {
-      navigate(`/messages/${user.id}`);
+      navigate(`/messages/${user.id}`, {
+        state: { fromSearch: true, previousPath: window.location.pathname }
+      });
     }
   };
   
@@ -100,6 +166,16 @@ const Messages = () => {
           <Button onClick={() => navigate('/auth')}>
             Go to Sign In
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isProcessingUserId || isCreating) {
+    return (
+      <div className="container max-w-6xl mx-auto px-4 py-16">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <Loading variant="spinner" text="Creating conversation..." />
         </div>
       </div>
     );

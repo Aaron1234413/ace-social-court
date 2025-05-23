@@ -59,15 +59,21 @@ const ChatInterface = ({ onError, chatId: propChatId }: ChatInterfaceProps) => {
       
       console.log(`Fetching conversation data for ID: ${conversationId}`);
       
+      // Use maybeSingle instead of single to avoid errors when no rows are returned
       const { data, error } = await supabase
         .from('conversations')
         .select('*')
         .eq('id', conversationId)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error("Error fetching conversation:", error);
         throw error;
+      }
+      
+      if (!data) {
+        console.error("Conversation not found:", conversationId);
+        throw new Error("Conversation not found");
       }
       
       console.log("Conversation data fetched successfully:", data);
