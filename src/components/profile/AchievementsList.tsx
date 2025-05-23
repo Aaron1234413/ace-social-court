@@ -4,7 +4,7 @@ import { Award, ChevronDown, ChevronUp, Star, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   Accordion, 
   AccordionContent, 
@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 
 interface AchievementsListProps {
   userId: string;
@@ -23,6 +24,7 @@ export const AchievementsList = ({ userId }: AchievementsListProps) => {
   const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const isOwnProfile = user?.id === userId;
+  const timelineRef = useRef<HTMLDivElement>(null);
 
   const { data: achievements, isLoading } = useQuery({
     queryKey: ['achievements', userId],
@@ -37,6 +39,36 @@ export const AchievementsList = ({ userId }: AchievementsListProps) => {
       return data;
     }
   });
+
+  // Track which achievements are visible for animations
+  const [visibleAchievements, setVisibleAchievements] = useState<Record<string, boolean>>({});
+
+  // Set up intersection observer for scroll animations
+  useEffect(() => {
+    if (!achievements?.length || !timelineRef.current) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setVisibleAchievements(prev => ({
+            ...prev,
+            [entry.target.id]: true
+          }));
+        }
+      });
+    }, { 
+      threshold: 0.2,
+      rootMargin: "0px 0px -100px 0px"
+    });
+
+    // Observe all timeline items
+    const timelineItems = timelineRef.current.querySelectorAll('.timeline-item');
+    timelineItems.forEach(item => observer.observe(item));
+
+    return () => {
+      timelineItems.forEach(item => observer.unobserve(item));
+    };
+  }, [achievements, isExpanded]);
 
   if (isLoading) {
     return null;
@@ -60,7 +92,7 @@ export const AchievementsList = ({ userId }: AchievementsListProps) => {
   };
 
   return (
-    <Card className="border shadow-sm">
+    <Card className="border shadow-sm overflow-hidden">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl font-semibold flex items-center gap-2">
           <Trophy className="h-5 w-5 text-primary" />
@@ -68,49 +100,71 @@ export const AchievementsList = ({ userId }: AchievementsListProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <Accordion type="single" collapsible className="w-full">
-          {displayedAchievements.map((achievement) => (
-            <AccordionItem 
-              key={achievement.id} 
-              value={achievement.id}
-              className="border border-muted rounded-md mb-3 last:mb-0 overflow-hidden"
-            >
-              <AccordionTrigger className="px-4 py-3 hover:bg-muted/50">
-                <div className="flex items-center gap-3 text-left">
+        <div 
+          className="relative timeline-container ml-4 pr-2" 
+          ref={timelineRef}
+        >
+          {/* Vertical timeline line */}
+          <div className="absolute left-5 top-1.5 bottom-10 w-0.5 bg-primary/20 rounded-full" />
+          
+          {/* Achievement timeline cards */}
+          <div className="space-y-8">
+            {displayedAchievements.map((achievement, index) => (
+              <motion.div
+                key={achievement.id}
+                id={`achievement-${achievement.id}`}
+                className={`timeline-item relative pl-12 ${index % 2 === 0 ? 'timeline-right' : 'timeline-left'}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={visibleAchievements[`achievement-${achievement.id}`] ? 
+                  { opacity: 1, y: 0 } : 
+                  { opacity: 0, y: 20 }
+                }
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                {/* Timeline dot/icon */}
+                <div className="absolute left-0 rounded-full p-2.5 bg-background border-2 border-primary/50 flex items-center justify-center z-10">
                   {getAchievementIcon(achievement.title)}
-                  <div>
-                    <div className="font-medium">{achievement.title}</div>
-                    {achievement.date_achieved && (
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(achievement.date_achieved), 'MMMM yyyy')}
-                      </div>
-                    )}
-                  </div>
                 </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pt-1 pb-3">
-                {achievement.description && (
-                  <p className="text-sm text-muted-foreground ml-8">
-                    {achievement.description}
-                  </p>
+                
+                {/* Achievement card */}
+                <Card className={`border shadow-sm overflow-hidden transition-all hover:shadow-md w-full md:w-[calc(100%-24px)]`}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold text-lg">{achievement.title}</h3>
+                      {achievement.date_achieved && (
+                        <Badge variant="outline" className="text-xs">
+                          {format(new Date(achievement.date_achieved), 'MMMM yyyy')}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {achievement.description && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {achievement.description}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+          
+          {/* Show more/less button */}
+          {hasMoreAchievements && (
+            <div className="mt-6 text-center relative z-10">
+              <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="inline-flex items-center justify-center gap-1 px-4 py-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors text-sm text-primary font-medium"
+              >
+                {isExpanded ? (
+                  <>Show less <ChevronUp className="h-4 w-4" /></>
+                ) : (
+                  <>Show all {achievements.length} achievements <ChevronDown className="h-4 w-4" /></>
                 )}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-
-        {hasMoreAchievements && (
-          <button 
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full mt-3 text-sm flex items-center justify-center gap-1 py-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {isExpanded ? (
-              <>Show less <ChevronUp className="h-4 w-4" /></>
-            ) : (
-              <>Show all {achievements.length} achievements <ChevronDown className="h-4 w-4" /></>
-            )}
-          </button>
-        )}
+              </button>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
