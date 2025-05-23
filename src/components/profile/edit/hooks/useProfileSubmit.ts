@@ -111,11 +111,12 @@ export const useProfileSubmit = (
       
       toast.success('Profile updated successfully');
       
-      // Redirect based on user state
+      // Redirect based on user state - FIX HERE
       if (isNewUser) {
         navigate('/feed');
       } else {
-        navigate('/profile');
+        // Navigate to the profile page with the user ID
+        navigate(`/profile/${user.id}`);
       }
     } catch (error: any) {
       console.error('Error updating profile:', error);

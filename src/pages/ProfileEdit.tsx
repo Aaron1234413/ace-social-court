@@ -41,8 +41,6 @@ const ProfileEdit = () => {
     );
   }
   
-  // If we have a user but no profile, we can still proceed with the edit form
-  // since ProfileEditContainer handles the case where profile is null
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6 px-4">

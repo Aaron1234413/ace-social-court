@@ -75,6 +75,12 @@ function App() {
                 </MainLayout>
               } />
               
+              <Route path="/profile" element={
+                <MainLayout>
+                  <Profile />
+                </MainLayout>
+              } />
+              
               <Route path="/messages" element={
                 <MainLayout>
                   <Messages />
