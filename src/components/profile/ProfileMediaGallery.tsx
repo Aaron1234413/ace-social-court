@@ -1,9 +1,8 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Video, Plus, Image, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,7 @@ import {
   PaginationPrevious 
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
+import { motion, useScroll, useSpring } from "framer-motion";
 
 interface ProfileMediaGalleryProps {
   userId: string;
@@ -66,6 +66,124 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
     setSelectedPost(null);
   };
 
+  const paginate = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const renderPaginationItems = () => {
+    const items = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if there are few
+      for (let i = 1; i <= totalPages; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink 
+              isActive={currentPage === i} 
+              onClick={() => paginate(i)}
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+    } else {
+      // Always show first page
+      items.push(
+        <PaginationItem key={1}>
+          <PaginationLink 
+            isActive={currentPage === 1} 
+            onClick={() => paginate(1)}
+          >
+            1
+          </PaginationLink>
+        </PaginationItem>
+      );
+
+      // Add ellipsis if current page is far from start
+      if (currentPage > 3) {
+        items.push(
+          <PaginationItem key="ellipsis-1">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      // Calculate range around current page
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+      // Ensure we don't show first or last page (they're always shown)
+      if (startPage === 1) startPage++;
+      if (endPage === totalPages) endPage--;
+
+      // Add pages in calculated range
+      for (let i = startPage; i <= endPage; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink 
+              isActive={currentPage === i} 
+              onClick={() => paginate(i)}
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+
+      // Add ellipsis if current page is far from end
+      if (currentPage < totalPages - 2) {
+        items.push(
+          <PaginationItem key="ellipsis-2">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      // Always show last page
+      if (totalPages > 1) {
+        items.push(
+          <PaginationItem key={totalPages}>
+            <PaginationLink 
+              isActive={currentPage === totalPages} 
+              onClick={() => paginate(totalPages)}
+            >
+              {totalPages}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+    }
+
+    return items;
+  };
+
+  const [showStickyButton, setShowStickyButton] = useState(false);
+
+  // Add scroll listener to show/hide sticky button
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show button when scrolled down 300px
+      if (window.scrollY > 300) {
+        setShowStickyButton(true);
+      } else {
+        setShowStickyButton(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Scroll progress animation for sticky header
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -90,10 +208,6 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   // Skip the featuredPosts when they're displayed in the carousel
   const currentPosts = mediaPosts.slice(indexOfFirstPost, indexOfLastPost);
-
-  const paginate = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-  };
 
   const renderPaginationItems = () => {
     const items = [];
@@ -211,9 +325,11 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
                 <CarouselContent>
                   {featuredPosts.map((post) => (
                     <CarouselItem key={post.id} className="md:basis-2/3 lg:basis-1/2">
-                      <div 
+                      <motion.div 
                         className="relative aspect-video cursor-pointer overflow-hidden rounded-lg group"
                         onClick={() => setSelectedPost(post)}
+                        whileHover={{ scale: 1.02 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
                       >
                         {post.media_type === 'image' ? (
                           <img
@@ -242,12 +358,17 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
                             </div>
                           </>
                         ) : null}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                        <motion.div 
+                          className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 flex flex-col justify-end p-4"
+                          initial={{ opacity: 0 }}
+                          whileHover={{ opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                        >
                           {post.content && (
                             <p className="text-white text-sm line-clamp-2 font-medium">{post.content}</p>
                           )}
-                        </div>
-                      </div>
+                        </motion.div>
+                      </motion.div>
                     </CarouselItem>
                   ))}
                 </CarouselContent>
@@ -257,15 +378,19 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
             </div>
           )}
 
-          {/* Grid layout with improved pagination */}
+          {/* Grid layout with improved animations */}
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">All Posts</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
-              {currentPosts.map((post) => (
-                <button
+              {currentPosts.map((post, index) => (
+                <motion.button
                   key={post.id}
                   className="relative aspect-square group overflow-hidden rounded-md"
                   onClick={() => setSelectedPost(post)}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  whileHover={{ y: -5 }}
                 >
                   {post.media_type === 'image' ? (
                     <img
@@ -286,12 +411,17 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
                       </div>
                     </div>
                   ) : null}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                  <motion.div 
+                    className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex flex-col justify-end p-2"
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {post.content && (
                       <p className="text-white text-xs line-clamp-2">{post.content}</p>
                     )}
-                  </div>
-                </button>
+                  </motion.div>
+                </motion.button>
               ))}
             </div>
 
@@ -323,25 +453,53 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
         <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
           {isOwnProfile ? (
             <>
-              <div className="bg-muted rounded-full p-4 mb-3">
-                <Image className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p>You haven't created any posts yet</p>
-              <Button 
-                onClick={() => setCreatePostModalOpen(true)} 
-                variant="outline" 
-                size="sm" 
-                className="mt-3"
+              <motion.div 
+                className="bg-muted rounded-full p-4 mb-3"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                Create Your First Post
-              </Button>
+                <Image className="h-6 w-6 text-muted-foreground" />
+              </motion.div>
+              <motion.p
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                You haven't created any posts yet
+              </motion.p>
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Button 
+                  onClick={() => setCreatePostModalOpen(true)} 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3"
+                >
+                  Create Your First Post
+                </Button>
+              </motion.div>
             </>
           ) : (
             <>
-              <div className="bg-muted rounded-full p-4 mb-3">
+              <motion.div 
+                className="bg-muted rounded-full p-4 mb-3"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
                 <Image className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p>No posts yet</p>
+              </motion.div>
+              <motion.p
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                No posts yet
+              </motion.p>
             </>
           )}
         </div>
@@ -402,6 +560,30 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
         </DialogContent>
       </Dialog>
 
+      {/* Sticky Create Post button that appears when scrolling */}
+      {isOwnProfile && showStickyButton && (
+        <motion.div
+          className="fixed bottom-20 right-6 z-50"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0, opacity: 0 }}
+        >
+          <Button
+            onClick={() => setCreatePostModalOpen(true)}
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-lg"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+          
+          {/* Scroll progress indicator */}
+          <motion.div
+            className="fixed top-0 left-0 right-0 h-1 bg-primary origin-left z-50"
+            style={{ scaleX }}
+          />
+        </motion.div>
+      )}
+
       <CreatePostModal 
         open={createPostModalOpen} 
         onOpenChange={setCreatePostModalOpen} 
@@ -410,4 +592,3 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
     </>
   );
 };
-

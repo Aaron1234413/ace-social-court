@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -16,6 +17,24 @@ import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import ProfileDashboardButton from '@/components/profile/ProfileDashboardButton';
 import { Card } from '@/components/ui/card';
+import { motion } from 'framer-motion';
+
+// Animation variants for staggered animations
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      staggerChildren: 0.15,
+      delayChildren: 0.2 
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { duration: 0.5 } }
+};
 
 const Profile = () => {
   
@@ -122,39 +141,46 @@ const Profile = () => {
         </Helmet>
       )}
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
-        <Card className="border-none shadow-sm overflow-hidden animate-fade-in">
-          <ProfileHeader userId={profile.id} isOwnProfile={isOwnProfile} />
-        </Card>
+      <motion.div 
+        className="container mx-auto px-4 py-8 max-w-4xl space-y-8" 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.div variants={itemVariants}>
+          <Card className="border-none shadow-sm overflow-hidden">
+            <ProfileHeader userId={profile.id} isOwnProfile={isOwnProfile} />
+          </Card>
+        </motion.div>
         
         {/* Add dashboard button if it's the user's own profile */}
         {isOwnProfile && (
-          <div className="flex justify-end">
+          <motion.div variants={itemVariants} className="flex justify-end">
             <ProfileDashboardButton userId={profile.id} isOwnProfile={isOwnProfile} />
-          </div>
+          </motion.div>
         )}
         
         <Separator className="my-8" />
         
-        <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <motion.div variants={itemVariants}>
           <ProfileMediaGallery userId={profile.id} />
-        </div>
+        </motion.div>
         
         <Separator className="my-8" />
         
-        <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+        <motion.div variants={itemVariants}>
           <AchievementsList userId={profile.id} />
-        </div>
+        </motion.div>
         
         {profile.user_type === 'coach' && (
           <>
             <Separator className="my-8" />
-            <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <motion.div variants={itemVariants}>
               <CertificationsList userId={profile.id} />
-            </div>
+            </motion.div>
           </>
         )}
-      </div>
+      </motion.div>
     </>
   );
 };
