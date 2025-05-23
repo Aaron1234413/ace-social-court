@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -109,7 +108,7 @@ const AuthForm = () => {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-center">Welcome to TennisMatch</CardTitle>
+        <CardTitle className="text-center">welcome to rallypointx</CardTitle>
         <CardDescription className="text-center">
           Sign in to your account or create a new one
         </CardDescription>
