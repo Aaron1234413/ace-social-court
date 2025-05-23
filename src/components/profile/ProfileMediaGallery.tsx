@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Video, Plus, Image, ChevronLeft, ChevronRight } from "lucide-react";
+import { Video, Plus, Image, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -19,6 +19,16 @@ import {
 } from "@/components/ui/carousel";
 import LikeButton from "@/components/social/LikeButton";
 import CommentButton from "@/components/social/CommentButton";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationEllipsis, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
 
 interface ProfileMediaGalleryProps {
   userId: string;
@@ -29,6 +39,8 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [createPostModalOpen, setCreatePostModalOpen] = useState(false);
   const isOwnProfile = user?.id === userId;
+  const [currentPage, setCurrentPage] = useState(1);
+  const postsPerPage = 9;
 
   const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['profile-media', userId],
@@ -71,8 +83,106 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
   
   // For the carousel, show the first 5 media posts at most
   const featuredPosts = mediaPosts.slice(0, 5);
-  // For the grid, show remaining posts
-  const remainingPosts = mediaPosts.length > 5 ? mediaPosts.slice(5) : [];
+  
+  // Pagination for the grid
+  const totalPages = Math.ceil(mediaPosts.length / postsPerPage);
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  // Skip the featuredPosts when they're displayed in the carousel
+  const currentPosts = mediaPosts.slice(indexOfFirstPost, indexOfLastPost);
+
+  const paginate = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const renderPaginationItems = () => {
+    const items = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if there are few
+      for (let i = 1; i <= totalPages; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink 
+              isActive={currentPage === i} 
+              onClick={() => paginate(i)}
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+    } else {
+      // Always show first page
+      items.push(
+        <PaginationItem key={1}>
+          <PaginationLink 
+            isActive={currentPage === 1} 
+            onClick={() => paginate(1)}
+          >
+            1
+          </PaginationLink>
+        </PaginationItem>
+      );
+
+      // Add ellipsis if current page is far from start
+      if (currentPage > 3) {
+        items.push(
+          <PaginationItem key="ellipsis-1">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      // Calculate range around current page
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+
+      // Ensure we don't show first or last page (they're always shown)
+      if (startPage === 1) startPage++;
+      if (endPage === totalPages) endPage--;
+
+      // Add pages in calculated range
+      for (let i = startPage; i <= endPage; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink 
+              isActive={currentPage === i} 
+              onClick={() => paginate(i)}
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+
+      // Add ellipsis if current page is far from end
+      if (currentPage < totalPages - 2) {
+        items.push(
+          <PaginationItem key="ellipsis-2">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      // Always show last page
+      if (totalPages > 1) {
+        items.push(
+          <PaginationItem key={totalPages}>
+            <PaginationLink 
+              isActive={currentPage === totalPages} 
+              onClick={() => paginate(totalPages)}
+            >
+              {totalPages}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+    }
+
+    return items;
+  };
 
   return (
     <>
@@ -92,8 +202,8 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
       </div>
 
       {mediaPosts.length > 0 ? (
-        <div className="space-y-6">
-          {/* Featured carousel for the first few posts */}
+        <div className="space-y-8">
+          {/* Enhanced carousel for featured posts */}
           {featuredPosts.length > 0 && (
             <div className="mb-8">
               <h3 className="text-sm font-medium text-muted-foreground mb-3">Featured</h3>
@@ -102,63 +212,112 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
                   {featuredPosts.map((post) => (
                     <CarouselItem key={post.id} className="md:basis-2/3 lg:basis-1/2">
                       <div 
-                        className="relative aspect-video cursor-pointer overflow-hidden rounded-lg"
+                        className="relative aspect-video cursor-pointer overflow-hidden rounded-lg group"
                         onClick={() => setSelectedPost(post)}
                       >
                         {post.media_type === 'image' ? (
                           <img
                             src={post.media_url!}
                             alt=""
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover transition-transform group-hover:scale-110 duration-300"
                           />
                         ) : post.media_type === 'video' ? (
-                          <div className="h-full w-full bg-gray-100 flex items-center justify-center">
-                            <Video className="w-8 h-8 text-muted-foreground" />
-                          </div>
+                          <>
+                            <div className="h-full w-full bg-black/10 relative">
+                              <video 
+                                src={post.media_url!} 
+                                className="h-full w-full object-cover"
+                                muted
+                              />
+                              {/* Play button overlay that appears on hover */}
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  size="icon" 
+                                  variant="secondary" 
+                                  className="h-12 w-12 rounded-full bg-white/80 hover:bg-white shadow-lg"
+                                >
+                                  <Play className="h-6 w-6 text-gray-800 ml-1" />
+                                </Button>
+                              </div>
+                            </div>
+                          </>
                         ) : null}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
                           {post.content && (
-                            <p className="text-white text-sm line-clamp-2">{post.content}</p>
+                            <p className="text-white text-sm line-clamp-2 font-medium">{post.content}</p>
                           )}
                         </div>
                       </div>
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="hidden md:flex -left-4" />
-                <CarouselNext className="hidden md:flex -right-4" />
+                <CarouselPrevious className="hidden md:flex -left-4 h-9 w-9 border-muted-foreground/20 bg-white/80 hover:bg-white" />
+                <CarouselNext className="hidden md:flex -right-4 h-9 w-9 border-muted-foreground/20 bg-white/80 hover:bg-white" />
               </Carousel>
             </div>
           )}
 
-          {/* Grid layout for remaining posts */}
-          {remainingPosts.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">All Posts</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 md:gap-2">
-                {remainingPosts.map((post) => (
-                  <button
-                    key={post.id}
-                    className="relative aspect-square group overflow-hidden rounded-md"
-                    onClick={() => setSelectedPost(post)}
-                  >
-                    {post.media_type === 'image' ? (
-                      <img
-                        src={post.media_url!}
-                        alt=""
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          {/* Grid layout with improved pagination */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">All Posts</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3">
+              {currentPosts.map((post) => (
+                <button
+                  key={post.id}
+                  className="relative aspect-square group overflow-hidden rounded-md"
+                  onClick={() => setSelectedPost(post)}
+                >
+                  {post.media_type === 'image' ? (
+                    <img
+                      src={post.media_url!}
+                      alt=""
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-300"
+                    />
+                  ) : post.media_type === 'video' ? (
+                    <div className="w-full h-full relative">
+                      <video 
+                        src={post.media_url!} 
+                        className="w-full h-full object-cover"
+                        muted
                       />
-                    ) : post.media_type === 'video' ? (
-                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                        <Video className="w-6 h-6 text-muted-foreground" />
+                      {/* Play button overlay that appears on hover */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Play className="h-8 w-8 text-white" />
                       </div>
-                    ) : null}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
-              </div>
+                    </div>
+                  ) : null}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                    {post.content && (
+                      <p className="text-white text-xs line-clamp-2">{post.content}</p>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
-          )}
+
+            {/* Improved pagination */}
+            {totalPages > 1 && (
+              <Pagination className="mt-6">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => currentPage > 1 && paginate(currentPage - 1)}
+                      className={cn(currentPage === 1 ? "opacity-50 pointer-events-none" : "")}
+                    />
+                  </PaginationItem>
+                  
+                  {renderPaginationItems()}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
+                      className={cn(currentPage === totalPages ? "opacity-50 pointer-events-none" : "")}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </div>
         </div>
       ) : (
         <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
@@ -251,3 +410,4 @@ export const ProfileMediaGallery = ({ userId }: ProfileMediaGalleryProps) => {
     </>
   );
 };
+
