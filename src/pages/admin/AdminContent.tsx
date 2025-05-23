@@ -46,7 +46,7 @@ interface AdminPost {
 export default function AdminContent() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch posts with user profiles
+  // Fetch posts with user profiles using proper foreign key syntax
   const { data: posts, isLoading, refetch } = useQuery({
     queryKey: ['admin-posts'],
     queryFn: async () => {
@@ -60,7 +60,7 @@ export default function AdminContent() {
           media_type,
           media_url,
           user_id,
-          profiles (
+          profiles!posts_user_id_fkey (
             full_name,
             username,
             avatar_url

@@ -47,7 +47,7 @@ interface AdminDirectMessage {
 export default function AdminMessages() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch direct messages with sender and recipient profiles
+  // Fetch direct messages with sender and recipient profiles using proper foreign key syntax
   const { data: messages, isLoading } = useQuery({
     queryKey: ['admin-messages'],
     queryFn: async () => {
