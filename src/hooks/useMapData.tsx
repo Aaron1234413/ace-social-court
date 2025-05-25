@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -299,29 +300,83 @@ export const useMapData = () => {
     enabled: !!userPosition && filters.showStaticLocations,
   });
   
-  // Query for users that the current user is following
+  // IMPROVED Query for users that the current user is following
   const { data: followingData } = useQuery({
     queryKey: ['following-users', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
       try {
-        console.log('🔍 Fetching following users for user:', user.id);
-        const { data, error } = await supabase
+        console.log('🔍 DIAGNOSTIC: Fetching following users for user:', user.id);
+        
+        // Method 1: Direct table query with detailed debugging
+        console.log('📋 METHOD 1: Direct followers table query...');
+        const { data: directData, error: directError } = await supabase
           .from('followers')
-          .select('following_id')
+          .select('following_id, follower_id, created_at')
           .eq('follower_id', user.id);
         
-        if (error) {
-          console.error('❌ Error fetching followed users:', error);
-          return [];
+        console.log('📊 DIRECT QUERY Results:');
+        console.log('   - Raw data:', directData);
+        console.log('   - Error:', directError);
+        console.log('   - Count:', directData?.length || 0);
+        
+        if (directError) {
+          console.error('❌ Direct query error details:', {
+            message: directError.message,
+            details: directError.details,
+            hint: directError.hint,
+            code: directError.code
+          });
         }
         
-        console.log('✅ Following data fetched:', data);
-        console.log('📊 Number of people you follow:', data?.length || 0);
-        return data.map(row => row.following_id);
+        // Method 2: Test what data exists in followers table at all
+        console.log('📋 METHOD 2: Check all followers data...');
+        const { data: allFollowers, error: allError } = await supabase
+          .from('followers')
+          .select('*')
+          .limit(10);
+        
+        console.log('📊 ALL FOLLOWERS in database (first 10):');
+        console.log('   - Data:', allFollowers);
+        console.log('   - Error:', allError);
+        
+        // Method 3: Test specific Brian relationship if we can find his ID
+        console.log('📋 METHOD 3: Looking for Brian Peck specifically...');
+        const { data: brianProfile } = await supabase
+          .from('profiles')
+          .select('id, username, full_name')
+          .or('username.ilike.%brian%,full_name.ilike.%brian%')
+          .limit(5);
+        
+        console.log('🔍 Found potential Brian profiles:', brianProfile);
+        
+        if (brianProfile && brianProfile.length > 0) {
+          for (const profile of brianProfile) {
+            console.log(`🧪 Testing RPC for ${profile.full_name || profile.username} (${profile.id})...`);
+            const { data: rpcResult, error: rpcError } = await supabase
+              .rpc('is_following', {
+                follower_id: user.id,
+                following_id: profile.id
+              });
+            
+            console.log(`   - RPC Result: ${rpcResult}, Error: ${rpcError?.message || 'none'}`);
+            
+            // Also test direct query for this specific relationship
+            const { data: directTest } = await supabase
+              .from('followers')
+              .select('*')
+              .eq('follower_id', user.id)
+              .eq('following_id', profile.id);
+            
+            console.log(`   - Direct Query Result: ${JSON.stringify(directTest)}`);
+          }
+        }
+        
+        console.log('✅ Diagnostic complete. Using direct query results.');
+        return directData?.map(row => row.following_id) || [];
       } catch (err) {
-        console.error('💥 Exception fetching followed users:', err);
+        console.error('💥 Exception in following query:', err);
         return [];
       }
     },
