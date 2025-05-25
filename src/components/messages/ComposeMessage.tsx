@@ -13,7 +13,6 @@ interface ComposeMessageProps {
 }
 
 const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps) => {
-  const [message, setMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { 
     sendMessage, 
@@ -28,7 +27,6 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
   // Set initial message if provided
   useEffect(() => {
     if (initialMessage) {
-      setMessage(initialMessage);
       setNewMessage(initialMessage);
     }
   }, [initialMessage, setNewMessage]);
@@ -45,21 +43,19 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
       e.preventDefault();
     }
     
-    if ((!message.trim() && !mediaPreview) || !conversationId) {
+    if ((!newMessage.trim() && !mediaPreview) || !conversationId) {
       if (!conversationId) {
         toast.error('Please select a conversation first');
-      } else if (!message.trim() && !mediaPreview) {
+      } else if (!newMessage.trim() && !mediaPreview) {
         toast.error('Please enter a message or add media');
       }
       return;
     }
     
-    console.log(`Preparing to send message: "${message}" to conversation: ${conversationId}`);
-    setNewMessage(message);
+    console.log(`Preparing to send message: "${newMessage}" to conversation: ${conversationId}`);
     
     try {
       sendMessage();
-      setMessage('');
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
@@ -146,8 +142,8 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
         
         <Input
           placeholder="Type a message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isSending || !conversationId}
           className="flex-1 bg-accent/50 border-0 focus-visible:ring-1 focus-visible:ring-primary"
@@ -158,7 +154,7 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
         <Button 
           type="submit" 
           size="icon" 
-          disabled={(!message.trim() && !mediaPreview) || isSending || !conversationId}
+          disabled={(!newMessage.trim() && !mediaPreview) || isSending || !conversationId}
           className="rounded-full h-9 w-9 bg-primary hover:bg-primary/90 transition-colors"
           aria-label="Send message"
         >
