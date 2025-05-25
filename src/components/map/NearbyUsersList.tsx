@@ -20,15 +20,18 @@ export interface NearbyUser {
   latitude: number;
   longitude: number;
   skill_level?: string | null; // Add skill level property
+  is_following?: boolean;
 }
 
 interface NearbyUsersListProps {
   users: NearbyUser[];
   isLoading: boolean;
   onUserSelect: (user: NearbyUser) => void;
+  followingCount?: number;
+  isLoadingFollowing?: boolean;
 }
 
-const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProps) => {
+const NearbyUsersList = ({ users, isLoading, onUserSelect, followingCount = 0, isLoadingFollowing = false }: NearbyUsersListProps) => {
   const navigate = useNavigate();
   const { filters, handleFilterChange } = useMapExplorer();
   const [selectedType, setSelectedType] = useState<'all' | 'player' | 'coach'>('all');
@@ -66,6 +69,25 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
   
   return (
     <div className="bg-card rounded-xl border shadow-sm p-4 w-full">
+      {/* Following indicator when filter is active */}
+      {filters.showFollowing && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-2 text-sm text-blue-700">
+            <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+            <span className="font-medium">Following Filter Active</span>
+          </div>
+          <div className="mt-1 text-xs text-blue-600">
+            {isLoadingFollowing ? (
+              "Loading followed users..."
+            ) : followingCount === 0 ? (
+              "No followed users with location data found"
+            ) : (
+              `Showing ${filteredUsers.length} of ${followingCount} followed users`
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-lg">Nearby Tennis Community</h3>
         <div className="flex gap-2">
@@ -129,10 +151,15 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
               <Users className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground">
-              {users.length === 0 
-                ? "No players or coaches found nearby" 
-                : `No ${selectedType === 'all' ? 'users' : selectedType + 's'} found${filters.skillLevel ? ` with ${filters.skillLevel} skill level` : ''}`
-              }
+              {filters.showFollowing ? (
+                followingCount === 0 ? 
+                  "You're not following anyone with location data yet" :
+                  `No ${selectedType === 'all' ? 'users' : selectedType + 's'} found${filters.skillLevel ? ` with ${filters.skillLevel} skill level` : ''} among your followed users`
+              ) : (
+                users.length === 0 
+                  ? "No players or coaches found nearby" 
+                  : `No ${selectedType === 'all' ? 'users' : selectedType + 's'} found${filters.skillLevel ? ` with ${filters.skillLevel} skill level` : ''}`
+              )}
             </p>
           </div>
         ) : (
@@ -155,7 +182,14 @@ const NearbyUsersList = ({ users, isLoading, onUserSelect }: NearbyUsersListProp
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{user.full_name || user.username}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm truncate">{user.full_name || user.username}</p>
+                    {user.is_following && (
+                      <Badge variant="outline" className="text-xs bg-red-50 border-red-200 text-red-700">
+                        Following
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="default" className={`text-xs ${getUserTypeColor(user.user_type)}`}>
                       {user.user_type === 'coach' ? 'Coach' : 'Player'}

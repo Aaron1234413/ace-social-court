@@ -33,86 +33,81 @@ export const useMapData = () => {
     courtsPerPage 
   } = useMapExplorer();
 
-  // DIAGNOSTIC LOGGING - Always runs to help debug following issues
-  React.useEffect(() => {
-    console.log('🚨 FOLLOWING DIAGNOSTIC START 🚨');
-    console.log('   - Current user:', user?.id || 'NOT LOGGED IN');
-    console.log('   - Show following filter:', filters.showFollowing);
-    console.log('   - User position:', userPosition ? 'Available' : 'Not available');
-  }, [user, filters.showFollowing, userPosition]);
-
-  // Basic diagnostic query - always runs when user is logged in
-  const { data: diagnosticData } = useQuery({
-    queryKey: ['diagnostic-following', user?.id],
+  // Query for users that the current user is following
+  const { data: followingUsers, isLoading: isLoadingFollowing } = useQuery({
+    queryKey: ['following-users-with-locations', user?.id, filters.showFollowing],
     queryFn: async () => {
-      if (!user) {
-        console.log('❌ DIAGNOSTIC: No user logged in');
-        return null;
+      if (!user || !filters.showFollowing) {
+        return [];
       }
-      
-      console.log('🔍 DIAGNOSTIC: Running basic following checks...');
       
       try {
-        // Test 1: Check if followers table has any data at all
-        console.log('📋 TEST 1: Checking followers table...');
-        const { data: allFollowers, error: allError } = await supabase
+        // Get all users I'm following
+        const { data: followingData, error: followingError } = await supabase
           .from('followers')
-          .select('*')
-          .limit(10);
-        
-        console.log('   - All followers query result:', allFollowers);
-        console.log('   - All followers error:', allError);
-        
-        // Test 2: Check if current user follows anyone
-        console.log('📋 TEST 2: Checking if current user follows anyone...');
-        const { data: myFollowing, error: myError } = await supabase
-          .from('followers')
-          .select('*')
+          .select('following_id')
           .eq('follower_id', user.id);
         
-        console.log('   - My following data:', myFollowing);
-        console.log('   - My following error:', myError);
-        console.log('   - I am following', myFollowing?.length || 0, 'people');
-        
-        // Test 3: Check specific user IDs I'm following
-        if (myFollowing && myFollowing.length > 0) {
-          const followingIds = myFollowing.map(f => f.following_id);
-          console.log('   - Following these user IDs:', followingIds);
-          
-          // Test 4: Check if followed users have profiles
-          console.log('📋 TEST 3: Checking profiles of followed users...');
-          const { data: followedProfiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, full_name, username, latitude, longitude')
-            .in('id', followingIds);
-          
-          console.log('   - Followed users profiles:', followedProfiles);
-          console.log('   - Profiles error:', profilesError);
-          
-          if (followedProfiles) {
-            followedProfiles.forEach(profile => {
-              console.log(`   - ${profile.full_name || profile.username} (${profile.id}): Location ${profile.latitude ? 'Available' : 'NOT SET'}`);
-            });
-          }
+        if (followingError) {
+          console.error('Error fetching following relationships:', followingError);
+          return [];
         }
+
+        if (!followingData || followingData.length === 0) {
+          return [];
+        }
+
+        const followingIds = followingData.map(f => f.following_id);
         
-        return { allFollowers, myFollowing };
+        // Get profiles of followed users with location data
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name, skill_level')
+          .in('id', followingIds)
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null);
+        
+        if (profilesError) {
+          console.error('Error fetching followed users profiles:', profilesError);
+          return [];
+        }
+
+        // Apply filters and calculate distance if user position is available
+        let filteredProfiles = (profiles || []).filter(profile => {
+          // Filter by user type
+          if (!(profile.user_type === 'player' && filters.showPlayers) && 
+              !(profile.user_type === 'coach' && filters.showCoaches)) {
+            return false;
+          }
+          
+          // Filter by skill level if specified
+          if (filters.skillLevel && profile.skill_level !== filters.skillLevel) {
+            return false;
+          }
+          
+          return true;
+        });
+
+        // Add distance and other properties
+        return filteredProfiles.map(profile => {
+          const distance = userPosition 
+            ? calculateDistance(userPosition.lat, userPosition.lng, profile.latitude!, profile.longitude!)
+            : 0;
+            
+          return {
+            ...profile,
+            distance,
+            is_following: true
+          } as NearbyUser;
+        }).filter(user => !userPosition || user.distance <= filters.distance);
+        
       } catch (err) {
-        console.error('💥 DIAGNOSTIC ERROR:', err);
-        return null;
+        console.error('Exception fetching following users:', err);
+        return [];
       }
     },
-    enabled: !!user,
+    enabled: !!user && filters.showFollowing,
   });
-
-  // Log when showFollowing filter changes
-  React.useEffect(() => {
-    if (filters.showFollowing) {
-      console.log('🎯 FOLLOWING FILTER ENABLED - Should show only followed users');
-    } else {
-      console.log('🎯 FOLLOWING FILTER DISABLED - Should show all users');
-    }
-  }, [filters.showFollowing]);
 
   // Query for nearby users using our Supabase function
   const { data: nearbyActiveUsers, isLoading: isLoadingNearbyUsers } = useQuery({
@@ -376,196 +371,57 @@ export const useMapData = () => {
     enabled: !!userPosition && filters.showStaticLocations,
   });
   
-  // ENHANCED Query for users that the current user is following
-  const { data: followingData } = useQuery({
-    queryKey: ['following-users', user?.id, filters.showFollowing],
-    queryFn: async () => {
-      if (!user) {
-        console.log('⚠️ FOLLOWING QUERY: No user logged in');
-        return [];
-      }
-      
-      console.log('🔍 FOLLOWING QUERY: Fetching following users for user:', user.id);
-      console.log('🔍 FOLLOWING QUERY: showFollowing filter is:', filters.showFollowing);
-      
-      try {
-        const { data: directData, error: directError } = await supabase
-          .from('followers')
-          .select('following_id, follower_id, created_at')
-          .eq('follower_id', user.id);
-        
-        console.log('📊 FOLLOWING QUERY Results:');
-        console.log('   - Raw data:', directData);
-        console.log('   - Error:', directError);
-        console.log('   - Count:', directData?.length || 0);
-        
-        if (directError) {
-          console.error('❌ FOLLOWING QUERY Error:', directError);
-          return [];
-        }
-        
-        const followingIds = directData?.map(row => row.following_id) || [];
-        console.log('✅ FOLLOWING QUERY: Following user IDs:', followingIds);
-        
-        return followingIds;
-      } catch (err) {
-        console.error('💥 FOLLOWING QUERY Exception:', err);
-        return [];
-      }
-    },
-    enabled: !!user,
-  });
-
-  // NEW QUERY: Fetch location data for all users being followed
-  const { data: followedUsersLocations } = useQuery({
-    queryKey: ['followed-users-locations', followingData],
-    queryFn: async () => {
-      if (!followingData || followingData.length === 0) {
-        console.log('⚠️ FOLLOWED LOCATIONS: No following data available');
-        return [];
-      }
-      
-      console.log('🔍 FOLLOWED LOCATIONS: Fetching locations for user IDs:', followingData);
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type, latitude, longitude, location_name, skill_level')
-          .in('id', followingData)
-          .not('latitude', 'is', null)
-          .not('longitude', 'is', null);
-        
-        if (error) {
-          console.error('❌ FOLLOWED LOCATIONS Error:', error);
-          return [];
-        }
-
-        console.log('✅ FOLLOWED LOCATIONS: Found', data?.length || 0, 'followed users with locations');
-        
-        if (data) {
-          data.forEach(user => {
-            console.log(`📍 FOLLOWED USER: ${user.full_name || user.username} (${user.id}) at lat:${user.latitude}, lng:${user.longitude}`);
-          });
-        }
-        
-        // Add is_following flag and calculate distance if user position is available
-        return data.map(user => {
-          const distance = userPosition 
-            ? calculateDistance(userPosition.lat, userPosition.lng, user.latitude!, user.longitude!)
-            : 0;
-            
-          return {
-            ...user,
-            distance,
-            is_following: true
-          };
-        });
-      } catch (err) {
-        console.error('💥 FOLLOWED LOCATIONS Exception:', err);
-        return [];
-      }
-    },
-    enabled: !!followingData && followingData.length > 0,
-  });
-  
-  // Enhanced combine logic with detailed logging
+  // Simplified combine logic
   const nearbyUsers: NearbyUser[] = React.useMemo(() => {
-    console.log('🔄 COMBINING USERS: Starting combination process');
+    // If showing following filter is enabled, ONLY show followed users
+    if (filters.showFollowing) {
+      return followingUsers || [];
+    }
     
+    // Otherwise, show normal users with following status marked
     const activeUsers = nearbyActiveUsers || [];
     const staticUsers = staticLocationUsers || [];
-    const followingIds = new Set(followingData || []);
-    const followedUsers = followedUsersLocations || [];
-    
-    console.log('📊 COMBINING USERS: Data summary:');
-    console.log('   - Active users:', activeUsers.length);
-    console.log('   - Static users:', staticUsers.length);
-    console.log('   - Following IDs:', Array.from(followingIds));
-    console.log('   - Followed users with locations:', followedUsers.length);
-    console.log('   - Show following filter:', filters.showFollowing);
+    const followingIds = new Set((followingUsers || []).map(u => u.id));
     
     const uniqueUsers = new Map<string, NearbyUser>();
     
-    // Add followed users first if filter is enabled
-    if (filters.showFollowing) {
-      console.log('✅ COMBINING: Adding followed users to map...');
-      followedUsers.forEach(user => {
-        console.log(`   + Adding followed user: ${user.full_name || user.username} (${user.id})`);
-        uniqueUsers.set(user.id, {
-          ...user,
-          is_following: true
-        });
-      });
-    }
-    
     // Add active users
     activeUsers.forEach(user => {
-      const isFollowing = followingIds.has(user.id);
-      console.log(`🔍 Active user ${user.id} (${user.full_name || user.username}) is followed: ${isFollowing}`);
       uniqueUsers.set(user.id, {
         ...user,
-        is_following: isFollowing
+        is_following: followingIds.has(user.id)
       });
     });
     
     // Add static users
     staticUsers.forEach(user => {
       if (!uniqueUsers.has(user.id)) {
-        const isFollowing = followingIds.has(user.id);
-        console.log(`🔍 Static user ${user.id} (${user.full_name || user.username}) is followed: ${isFollowing}`);
         uniqueUsers.set(user.id, {
           ...user,
-          is_following: isFollowing
+          is_following: followingIds.has(user.id)
         } as NearbyUser);
       }
     });
     
     // Add own profile if enabled
     if (userProfileLocation && filters.showOwnLocation) {
-      console.log('✅ COMBINING: Adding own profile location');
       uniqueUsers.set(userProfileLocation.id, userProfileLocation as NearbyUser);
     }
     
-    let users = Array.from(uniqueUsers.values());
-    
-    // Filter to only followed users if the filter is enabled
-    if (filters.showFollowing) {
-      console.log('🎯 COMBINING: Filtering to show only followed users...');
-      const beforeFilter = users.length;
-      users = users.filter(user => user.is_following || user.is_own_profile);
-      console.log(`   - Before filter: ${beforeFilter} users`);
-      console.log(`   - After filter: ${users.length} users`);
-      
-      if (users.length === 0) {
-        console.log('⚠️ COMBINING: NO USERS AFTER FOLLOWING FILTER!');
-        console.log('   - Check: Do you follow anyone with location data?');
-        console.log('   - Check: Are their privacy settings allowing map display?');
-      }
-    }
-    
-    // Apply skill level filter if specified
-    if (filters.skillLevel) {
-      const beforeSkillFilter = users.length;
-      users = users.filter(user => 
-        !filters.skillLevel || user.skill_level === filters.skillLevel
-      );
-      console.log(`🎯 SKILL FILTER: ${beforeSkillFilter} → ${users.length} users`);
-    }
-    
-    console.log('🎯 FINAL RESULT: Displaying', users.length, 'users on map');
-    
-    return users;
-  }, [nearbyActiveUsers, staticLocationUsers, userProfileLocation, followedUsersLocations, followingData, filters.showOwnLocation, filters.showFollowing, filters.skillLevel]);
+    return Array.from(uniqueUsers.values());
+  }, [nearbyActiveUsers, staticLocationUsers, userProfileLocation, followingUsers, filters.showOwnLocation, filters.showFollowing]);
   
   return {
     nearbyUsers,
-    isLoadingNearbyUsers,
+    isLoadingNearbyUsers: isLoadingNearbyUsers || isLoadingFollowing,
     nearbyCourts,
     isLoadingCourts,
     refetchCourts,
     totalCourts,
     totalPages,
     availableStates,
+    followingUsersCount: followingUsers?.length || 0,
+    isLoadingFollowing,
     userProfileLocation
   };
 };
