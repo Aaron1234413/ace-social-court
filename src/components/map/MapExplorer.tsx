@@ -16,6 +16,7 @@ import TennisCourtCard from '@/components/map/TennisCourtCard';
 import { TennisCourt } from '@/components/map/TennisCourtsLayer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import AddTennisCourtDialog from '@/components/map/AddTennisCourtDialog';
 
 // Define types
 interface LocationPrivacySettings {
@@ -645,15 +646,18 @@ const MapExplorer = () => {
           <p className="text-muted-foreground">Find courts, players, and coaches near you</p>
         </div>
         
-        <MapFiltersSheet 
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          locationPrivacy={locationPrivacy}
-          onPrivacyChange={togglePrivacySetting}
-          userLocationEnabled={userLocationEnabled}
-          isUserLoggedIn={!!user}
-          availableStates={availableStates || []}
-        />
+        <div className="flex gap-2">
+          <AddTennisCourtDialog />
+          <MapFiltersSheet 
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            locationPrivacy={locationPrivacy}
+            onPrivacyChange={togglePrivacySetting}
+            userLocationEnabled={userLocationEnabled}
+            isUserLoggedIn={!!user}
+            availableStates={availableStates || []}
+          />
+        </div>
       </div>
       
       {locationError && (
