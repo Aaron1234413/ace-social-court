@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,7 +85,7 @@ export const MapExplorerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     showEvents: false,
     showStaticLocations: true,
     showOwnLocation: true,
-    showFollowing: true, // Enable by default to automatically show followers
+    showFollowing: false,
     distance: 25, // in miles
     state: null, // Default to no state filter
     skillLevel: null, // Default to no skill level filter

@@ -90,29 +90,6 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
         </SheetHeader>
         
         <div className="space-y-6">
-          {/* Following Filter - Make it prominent at the top for logged in users */}
-          {isUserLoggedIn && (
-            <>
-              <div className="bg-accent/50 p-4 rounded-lg border">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-following" className="flex items-center gap-2 font-medium">
-                    <Heart className="h-5 w-5 text-red-500" />
-                    Show Only People I Follow
-                  </Label>
-                  <Switch 
-                    id="show-following" 
-                    checked={filters.showFollowing || false}
-                    onCheckedChange={(checked) => onFilterChange('showFollowing', checked)}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Toggle this to see only the players and coaches you follow on the map
-                </p>
-              </div>
-              <Separator />
-            </>
-          )}
-
           {/* Location Search */}
           <div>
             <h3 className="text-sm font-medium mb-3">Search Location</h3>
@@ -199,6 +176,20 @@ const MapFiltersSheet: React.FC<MapFiltersSheetProps> = ({
                   onCheckedChange={(checked) => onFilterChange('showCoaches', checked)}
                 />
               </div>
+
+              {isUserLoggedIn && (
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="show-following" className="flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-primary" />
+                    Only Show People I Follow
+                  </Label>
+                  <Switch 
+                    id="show-following" 
+                    checked={filters.showFollowing || false}
+                    onCheckedChange={(checked) => onFilterChange('showFollowing', checked)}
+                  />
+                </div>
+              )}
             </div>
           </div>
           

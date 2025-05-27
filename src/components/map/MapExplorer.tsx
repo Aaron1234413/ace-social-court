@@ -17,7 +17,6 @@ import { TennisCourt } from '@/components/map/TennisCourtsLayer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AddTennisCourtDialog from '@/components/map/AddTennisCourtDialog';
-import FollowingToggleButton from '@/components/map/FollowingToggleButton';
 
 // Define types
 interface LocationPrivacySettings {
@@ -33,7 +32,6 @@ interface FilterSettings {
   showEvents: boolean;
   showStaticLocations: boolean;
   showOwnLocation: boolean;
-  showFollowing: boolean;
   distance: number; // in miles
   state: string | null; // New filter for state
 }
@@ -60,7 +58,6 @@ const MapExplorer = () => {
     showEvents: true,
     showStaticLocations: true,
     showOwnLocation: true,
-    showFollowing: true,
     distance: 25, // in miles
     state: null, // Default to no state filter
   });
@@ -650,7 +647,6 @@ const MapExplorer = () => {
         </div>
         
         <div className="flex gap-2">
-          <FollowingToggleButton />
           <AddTennisCourtDialog />
           <MapFiltersSheet 
             filters={filters}

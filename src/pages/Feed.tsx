@@ -17,21 +17,11 @@ import { useLocation } from 'react-router-dom';
 type SortOption = 'recent' | 'popular' | 'commented';
 
 const Feed = () => {
-  console.log('Feed component: Starting render');
-  
   const location = useLocation();
   const { user, profile, isProfileComplete } = useAuth();
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [storageInitialized, setStorageInitialized] = useState(false);
-  
-  console.log('Feed component: State initialized', {
-    pathname: location.pathname,
-    userId: user?.id,
-    hasProfile: !!profile,
-    personalized,
-    sortOption
-  });
   
   // Debug logging for Feed component
   useEffect(() => {
@@ -51,12 +41,6 @@ const Feed = () => {
   const { posts, isLoading, fetchPosts } = usePosts({ 
     personalize: personalized,
     sortBy: sortOption 
-  });
-
-  console.log('Feed component: Posts hook result', {
-    postsCount: posts?.length || 0,
-    isLoading,
-    hasError: !posts && !isLoading
   });
 
   useEffect(() => {
@@ -99,13 +83,11 @@ const Feed = () => {
   }, [user, profile, isProfileComplete]);
 
   const togglePersonalization = () => {
-    console.log('Feed: Toggling personalization from', personalized, 'to', !personalized);
     setPersonalized(!personalized);
   };
 
   const handleSortChange = (value: string) => {
     if (value) {
-      console.log('Feed: Changing sort from', sortOption, 'to', value);
       setSortOption(value as SortOption);
     }
   };
@@ -115,82 +97,69 @@ const Feed = () => {
     fetchPosts();
   };
 
-  console.log('Feed component: About to render JSX');
-
-  try {
-    return (
-      <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
-        <div className="flex items-center justify-between mb-4 md:mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">Home Feed</h1>
-          
-          {user && (
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="personalized" 
-                checked={personalized}
-                onCheckedChange={togglePersonalization}
-              />
-              <Label htmlFor="personalized">Personalized</Label>
-            </div>
-          )}
-        </div>
+  return (
+    <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold">Home Feed</h1>
         
         {user && (
-          <div className="mb-5 overflow-x-auto pb-1">
-            <ToggleGroup 
-              type="single" 
-              value={sortOption}
-              onValueChange={handleSortChange}
-              className="justify-start whitespace-nowrap"
-            >
-              <ToggleGroupItem value="recent" aria-label="Sort by recent">
-                <Clock className="h-4 w-4 mr-1" /> Recent
-              </ToggleGroupItem>
-              <ToggleGroupItem value="popular" aria-label="Sort by likes">
-                <Heart className="h-4 w-4 mr-1" /> Popular
-              </ToggleGroupItem>
-              <ToggleGroupItem value="commented" aria-label="Sort by comments">
-                <MessageSquare className="h-4 w-4 mr-1" /> Discussed
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-        )}
-        
-        {user ? (
-          <>
-            <div className="mb-6">
-              <CreatePostForm onPostCreated={fetchPosts} />
-            </div>
-            
-            {isLoading ? (
-              <Loading variant="skeleton" count={3} text="Loading posts..." />
-            ) : (
-              <PostList 
-                posts={posts || []}
-                currentUserId={user.id}
-                isLoading={false}
-                onPostUpdated={handlePostUpdated}
-              />
-            )}
-          </>
-        ) : (
-          <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
-            <p className="text-base md:text-lg mb-4">Please log in to view your personalized feed</p>
-            <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="personalized" 
+              checked={personalized}
+              onCheckedChange={togglePersonalization}
+            />
+            <Label htmlFor="personalized">Personalized</Label>
           </div>
         )}
       </div>
-    );
-  } catch (error) {
-    console.error('Feed component: Error during render', error);
-    return (
-      <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <strong>Error:</strong> Something went wrong loading the feed. Please refresh the page.
+      
+      {user && (
+        <div className="mb-5 overflow-x-auto pb-1">
+          <ToggleGroup 
+            type="single" 
+            value={sortOption}
+            onValueChange={handleSortChange}
+            className="justify-start whitespace-nowrap"
+          >
+            <ToggleGroupItem value="recent" aria-label="Sort by recent">
+              <Clock className="h-4 w-4 mr-1" /> Recent
+            </ToggleGroupItem>
+            <ToggleGroupItem value="popular" aria-label="Sort by likes">
+              <Heart className="h-4 w-4 mr-1" /> Popular
+            </ToggleGroupItem>
+            <ToggleGroupItem value="commented" aria-label="Sort by comments">
+              <MessageSquare className="h-4 w-4 mr-1" /> Discussed
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
-      </div>
-    );
-  }
+      )}
+      
+      {user ? (
+        <>
+          <div className="mb-6">
+            <CreatePostForm onPostCreated={fetchPosts} />
+          </div>
+          
+          {isLoading ? (
+            <Loading variant="skeleton" count={3} text="Loading posts..." />
+          ) : (
+            <PostList 
+              posts={posts}
+              currentUserId={user.id}
+              isLoading={false}
+              onPostUpdated={handlePostUpdated}
+            />
+          )}
+        </>
+      ) : (
+        <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
+          <p className="text-base md:text-lg mb-4">Please log in to view your personalized feed</p>
+          <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default Feed;
