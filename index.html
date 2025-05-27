@@ -25,6 +25,19 @@
   <body>
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <script>
+      console.log('Loading GPT Engineer script...');
+      window.addEventListener('load', () => {
+        console.log('Page loaded, checking GPT Engineer availability...');
+        setTimeout(() => {
+          if (window.gptEngineer) {
+            console.log('GPT Engineer loaded successfully');
+          } else {
+            console.error('GPT Engineer failed to load - this may affect live preview');
+          }
+        }, 2000);
+      });
+    </script>
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
