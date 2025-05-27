@@ -33,29 +33,39 @@ import AdminMessages from '@/pages/admin/AdminMessages';
 import AdminCourts from '@/pages/admin/AdminCourts';
 
 function App() {
+  console.log('App: Component starting');
+  
   // Initialize storage buckets when app loads
   useEffect(() => {
+    console.log('App: Initializing storage');
     import('./integrations/supabase/storage')
       .then(({ initializeStorage }) => {
         initializeStorage()
           .then((success) => {
             if (success) {
-              console.log('Storage initialization successful');
+              console.log('App: Storage initialization successful');
             } else {
-              console.error('Storage initialization failed');
+              console.error('App: Storage initialization failed');
             }
           })
           .catch((err) => {
-            console.error('Error during storage initialization:', err);
+            console.error('App: Error during storage initialization:', err);
           });
       })
       .catch((err) => {
-        console.error('Error importing storage module:', err);
+        console.error('App: Error importing storage module:', err);
       });
   }, []);
 
+  console.log('App: About to render');
+
   return (
-    <ErrorBoundary FallbackComponent={AppErrorFallback}>
+    <ErrorBoundary 
+      FallbackComponent={AppErrorFallback}
+      onError={(error, errorInfo) => {
+        console.error('App: Error boundary caught an error:', error, errorInfo);
+      }}
+    >
       <AuthProvider>
         <HelmetProvider>
           <Router>

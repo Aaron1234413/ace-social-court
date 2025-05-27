@@ -16,6 +16,8 @@ interface CreatePostFormProps {
 }
 
 const CreatePostForm: React.FC<CreatePostFormProps> = ({ onPostCreated }) => {
+  console.log('CreatePostForm: Component rendering');
+  
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, profile } = useAuth();
@@ -23,23 +25,36 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onPostCreated }) => {
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isUploaderVisible, setIsUploaderVisible] = useState(false);
 
+  console.log('CreatePostForm: State', {
+    hasUser: !!user,
+    hasProfile: !!profile,
+    contentLength: content.length,
+    hasMedia: !!mediaUrl,
+    isSubmitting
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('CreatePostForm: Submit triggered');
 
     if (!user) {
+      console.log('CreatePostForm: No user found');
       toast.error('You must be logged in to create a post.');
       return;
     }
 
     if (!content.trim() && !mediaUrl) {
+      console.log('CreatePostForm: No content or media');
       toast.error('Please enter some text or upload media to create a post.');
       return;
     }
 
     setIsSubmitting(true);
+    console.log('CreatePostForm: Starting submission process');
 
     try {
       const postId = uuidv4();
+      console.log('CreatePostForm: Generated post ID:', postId);
 
       const { data, error } = await supabase
         .from('posts')
@@ -54,9 +69,10 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onPostCreated }) => {
         ]);
 
       if (error) {
-        console.error('Error creating post:', error);
+        console.error('CreatePostForm: Error creating post:', error);
         toast.error('Failed to create post. Please try again.');
       } else {
+        console.log('CreatePostForm: Post created successfully');
         toast.success('Post created successfully!');
         setContent('');
         setMediaUrl(null);
@@ -67,115 +83,127 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onPostCreated }) => {
         }
       }
     } catch (error) {
-      console.error('Error creating post:', error);
+      console.error('CreatePostForm: Exception during post creation:', error);
       toast.error('Failed to create post. Please try again.');
     } finally {
       setIsSubmitting(false);
+      console.log('CreatePostForm: Submission process completed');
     }
   };
 
   const handleMediaUpload = (url: string, type: 'image' | 'video') => {
+    console.log('CreatePostForm: Media uploaded', { url, type });
     setMediaUrl(url);
     setMediaType(type);
     setIsUploaderVisible(false);
   };
 
   const removeMedia = () => {
+    console.log('CreatePostForm: Removing media');
     setMediaUrl(null);
     setMediaType(null);
   };
 
-  return (
-    <Card className="w-full overflow-hidden border-muted/70">
-      <div className="bg-gradient-to-r from-muted/30 to-background p-4 border-b">
-        <h3 className="font-medium text-sm md:text-base">Create Post</h3>
-      </div>
-      <div className="flex items-start space-x-4 p-4">
-        <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-muted">
-          {profile?.avatar_url ? (
-            <AvatarImage
-              src={profile.avatar_url}
-              alt={profile?.full_name || "User"}
+  try {
+    return (
+      <Card className="w-full overflow-hidden border-muted/70">
+        <div className="bg-gradient-to-r from-muted/30 to-background p-4 border-b">
+          <h3 className="font-medium text-sm md:text-base">Create Post</h3>
+        </div>
+        <div className="flex items-start space-x-4 p-4">
+          <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-muted">
+            {profile?.avatar_url ? (
+              <AvatarImage
+                src={profile.avatar_url}
+                alt={profile?.full_name || "User"}
+              />
+            ) : (
+              <AvatarFallback className={profile?.user_type === 'coach' 
+                ? "bg-gradient-to-br from-purple-100 to-purple-300 text-purple-800 font-semibold" 
+                : "bg-gradient-to-br from-blue-100 to-blue-300 text-blue-800 font-semibold"
+              }>
+                {profile?.full_name?.charAt(0) || '?'}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <div className="flex-1 space-y-3">
+            <Textarea
+              placeholder="What's on your mind?"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={3}
+              className="resize-none focus:ring-primary text-base"
             />
-          ) : (
-            <AvatarFallback className={profile?.user_type === 'coach' 
-              ? "bg-gradient-to-br from-purple-100 to-purple-300 text-purple-800 font-semibold" 
-              : "bg-gradient-to-br from-blue-100 to-blue-300 text-blue-800 font-semibold"
-            }>
-              {profile?.full_name?.charAt(0) || '?'}
-            </AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 space-y-3">
-          <Textarea
-            placeholder="What's on your mind?"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
-            className="resize-none focus:ring-primary text-base"
-          />
-          
-          {mediaUrl && (
-            <div className="relative rounded-md overflow-hidden border border-muted/50">
-              {mediaType === 'image' ? (
-                <img src={mediaUrl} alt="Upload preview" className="max-h-48 w-full object-contain bg-muted/30" />
-              ) : (
-                <video src={mediaUrl} className="max-h-48 w-full" controls />
-              )}
-              <Button 
-                size="sm" 
-                variant="destructive" 
-                className="absolute top-2 right-2 h-8 w-8 p-0 rounded-full opacity-80 hover:opacity-100"
-                onClick={removeMedia}
+            
+            {mediaUrl && (
+              <div className="relative rounded-md overflow-hidden border border-muted/50">
+                {mediaType === 'image' ? (
+                  <img src={mediaUrl} alt="Upload preview" className="max-h-48 w-full object-contain bg-muted/30" />
+                ) : (
+                  <video src={mediaUrl} className="max-h-48 w-full" controls />
+                )}
+                <Button 
+                  size="sm" 
+                  variant="destructive" 
+                  className="absolute top-2 right-2 h-8 w-8 p-0 rounded-full opacity-80 hover:opacity-100"
+                  onClick={removeMedia}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            
+            {isUploaderVisible && (
+              <div className="bg-muted/30 rounded-md p-4 border border-dashed border-muted">
+                <MediaUploader
+                  onMediaUpload={handleMediaUpload}
+                  allowedTypes={['image', 'video']}
+                />
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                onClick={() => setIsUploaderVisible(!isUploaderVisible)}
               >
-                <X className="h-4 w-4" />
+                <Image className="mr-2 h-4 w-4" />
+                {mediaUrl ? 'Change Media' : 'Add Media'}
+              </Button>
+              
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-tennis-blue to-primary hover:from-primary hover:to-tennis-blue transition-all duration-300"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Posting...
+                  </>
+                ) : (
+                  <>
+                    Post
+                    <Send className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
-          )}
-          
-          {isUploaderVisible && (
-            <div className="bg-muted/30 rounded-md p-4 border border-dashed border-muted">
-              <MediaUploader
-                onMediaUpload={handleMediaUpload}
-                allowedTypes={['image', 'video']}
-              />
-            </div>
-          )}
-          
-          <div className="flex justify-between items-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              onClick={() => setIsUploaderVisible(!isUploaderVisible)}
-            >
-              <Image className="mr-2 h-4 w-4" />
-              {mediaUrl ? 'Change Media' : 'Add Media'}
-            </Button>
-            
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-gradient-to-r from-tennis-blue to-primary hover:from-primary hover:to-tennis-blue transition-all duration-300"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Posting...
-                </>
-              ) : (
-                <>
-                  Post
-                  <Send className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
           </div>
         </div>
-      </div>
-    </Card>
-  );
+      </Card>
+    );
+  } catch (error) {
+    console.error('CreatePostForm: Error during render:', error);
+    return (
+      <Card className="w-full p-4 border-red-200 bg-red-50">
+        <p className="text-red-600">Error loading create post form. Please refresh the page.</p>
+      </Card>
+    );
+  }
 };
 
 export default CreatePostForm;
