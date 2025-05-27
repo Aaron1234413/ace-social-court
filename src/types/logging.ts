@@ -56,6 +56,12 @@ export interface Session {
     username: string | null;
     full_name: string | null;
   } | null;
+  participants?: {
+    id: string;
+    avatar_url: string | null;
+    username: string | null;
+    full_name: string | null;
+  }[];
 }
 
 export interface SessionDrill {

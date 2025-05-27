@@ -23,10 +23,11 @@ const STEPS = [
 ];
 
 export default function LogSession() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const { submitSession, isSubmitting } = useSessionSubmit();
+  const isCoach = profile?.user_type === 'coach';
 
   const form = useForm<SessionFormValues>({
     resolver: zodResolver(sessionSchema),
@@ -36,6 +37,7 @@ export default function LogSession() {
       drills: [],
       next_steps: [],
       session_note: "",
+      participants: [],
     }
   });
 
@@ -69,14 +71,6 @@ export default function LogSession() {
     setCurrentStep(Math.max(currentStep - 1, 0));
   };
 
-  // Check if current step is valid
-  const isCurrentStepValid = async (): Promise<boolean> => {
-    if (currentStep === 0) {
-      return await form.trigger(['session_date', 'focus_areas']);
-    }
-    return true;
-  };
-
   // Get the current UI step
   const currentStepId = STEPS[currentStep].id;
 
@@ -84,7 +78,9 @@ export default function LogSession() {
     <div className="container mx-auto py-6 px-4 md:px-6">
       {!user && <LoginPromptModal />}
       
-      <h1 className="text-2xl font-bold mb-6">Log a Training Session</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        {isCoach ? 'Log a Training Session for Players' : 'Log a Training Session'}
+      </h1>
       
       {/* Stepper */}
       <div className="mb-8">
@@ -146,7 +142,10 @@ export default function LogSession() {
                 <CardHeader>
                   <CardTitle>Session Basics</CardTitle>
                   <CardDescription>
-                    Enter the basic information about your training session
+                    {isCoach 
+                      ? "Enter the basic information about the training session and select players"
+                      : "Enter the basic information about your training session"
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

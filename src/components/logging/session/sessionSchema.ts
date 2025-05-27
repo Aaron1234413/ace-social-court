@@ -6,6 +6,7 @@ export const sessionSchema = z.object({
     required_error: "Session date is required.",
   }),
   coach_id: z.string().optional(),
+  participants: z.array(z.string()).optional().default([]),
   focus_areas: z.array(z.string()).min(1, {
     message: "Please select at least one focus area.",
   }),

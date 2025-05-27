@@ -8,11 +8,15 @@ import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 import CoachSearch from './CoachSearch';
 import FocusAreaSelect from './FocusAreaSelect';
+import PlayerSearch from './PlayerSearch';
 
 export default function SessionBasicsForm() {
   const form = useFormContext();
+  const { profile } = useAuth();
+  const isCoach = profile?.user_type === 'coach';
   
   return (
     <div className="space-y-6">
@@ -63,27 +67,52 @@ export default function SessionBasicsForm() {
         )}
       />
       
-      {/* Coach Selection */}
-      <FormField
-        control={form.control}
-        name="coach_id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Coach</FormLabel>
-            <FormControl>
-              <CoachSearch
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-              />
-            </FormControl>
-            <FormDescription>
-              Select the coach who led this session (optional)
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* Coach Selection - only show for players */}
+      {!isCoach && (
+        <FormField
+          control={form.control}
+          name="coach_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Coach</FormLabel>
+              <FormControl>
+                <CoachSearch
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              </FormControl>
+              <FormDescription>
+                Select the coach who led this session (optional)
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+      
+      {/* Player Selection - only show for coaches */}
+      {isCoach && (
+        <FormField
+          control={form.control}
+          name="participants"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Players</FormLabel>
+              <FormControl>
+                <PlayerSearch
+                  selectedPlayers={field.value || []}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormDescription>
+                Select the players who participated in this session
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
       
       {/* Focus Areas */}
       <FormField

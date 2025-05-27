@@ -7,7 +7,7 @@ import { SessionFormValues } from '@/components/logging/session/sessionSchema';
 import { toast } from 'sonner';
 
 export function useSessionSubmit() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -18,10 +18,12 @@ export function useSessionSubmit() {
       setIsSubmitting(true);
       
       try {
+        const isCoach = profile?.user_type === 'coach';
+        
         // Format the data for database
         const sessionRecord = {
-          user_id: user.id,
-          coach_id: sessionData.coach_id || null,
+          user_id: isCoach ? null : user.id, // For coach-initiated sessions, user_id can be null
+          coach_id: isCoach ? user.id : (sessionData.coach_id || null),
           session_date: sessionData.session_date.toISOString(),
           focus_areas: sessionData.focus_areas,
           drills: sessionData.drills || [],
@@ -39,6 +41,23 @@ export function useSessionSubmit() {
         if (error) {
           console.error('Error storing session data:', error);
           throw error;
+        }
+        
+        // If coach is creating session for players, add participants
+        if (isCoach && sessionData.participants && sessionData.participants.length > 0) {
+          const participantRecords = sessionData.participants.map(playerId => ({
+            session_id: data.id,
+            player_id: playerId
+          }));
+          
+          const { error: participantsError } = await supabase
+            .from('session_participants')
+            .insert(participantRecords);
+            
+          if (participantsError) {
+            console.error('Error adding session participants:', participantsError);
+            throw participantsError;
+          }
         }
         
         // Log the session submission in the prompts table for analytics
