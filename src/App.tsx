@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/components/AuthProvider';
@@ -20,7 +19,6 @@ import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
 import MapExplorer from '@/pages/MapExplorer';
 import Search from '@/pages/Search';
-import UserTest from '@/pages/UserTest';
 import { ErrorBoundary } from 'react-error-boundary';
 import AppErrorFallback from '@/components/AppErrorFallback';
 import NotFound from '@/pages/NotFound';
@@ -136,12 +134,6 @@ function App() {
               <Route path="/settings" element={
                 <MainLayout>
                   <Settings />
-                </MainLayout>
-              } />
-              {/* User Testing Route */}
-              <Route path="/user-testing" element={
-                <MainLayout>
-                  <UserTest />
                 </MainLayout>
               } />
               {/* Log routes */}
