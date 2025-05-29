@@ -42,18 +42,23 @@ const Dashboard = () => {
         <meta name="description" content="Your tennis training dashboard" />
       </Helmet>
       
-      {/* Testing Tools Button */}
-      <div className="container mb-4">
-        <Link to="/user-testing" className="inline-block">
-          <Button variant="outline" className="flex items-center gap-2">
-            <BeakerIcon size={16} />
-            <span>User Testing Guide</span>
-          </Button>
-        </Link>
+      {/* Mobile-optimized container with proper spacing */}
+      <div className="min-h-screen bg-background">
+        {/* Testing Tools Button - Mobile optimized */}
+        <div className="container py-4">
+          <Link to="/user-testing" className="inline-block">
+            <Button variant="outline" className="flex items-center gap-2 h-12 px-4 touch-manipulation">
+              <BeakerIcon size={16} />
+              <span className="text-sm">User Testing Guide</span>
+            </Button>
+          </Link>
+        </div>
+        
+        {/* Role-based Dashboard Rendering */}
+        <div className="container pb-20 md:pb-8">
+          {isCoach ? <CoachDashboard /> : <PlayerDashboard />}
+        </div>
       </div>
-      
-      {/* Role-based Dashboard Rendering */}
-      {isCoach ? <CoachDashboard /> : <PlayerDashboard />}
     </>
   );
 };

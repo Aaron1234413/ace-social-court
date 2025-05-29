@@ -235,59 +235,59 @@ const PlayerDashboard = () => {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-            <Flame className="h-4 w-4 text-orange-500" />
+    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
+      {/* Mobile-optimized Stats Overview with larger touch targets */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <Card className="touch-manipulation">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Current Streak</CardTitle>
+            <Flame className="h-5 w-5 md:h-4 md:w-4 text-orange-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentStreak || 0}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pb-3 md:pb-6">
+            <div className="text-xl md:text-2xl font-bold">{currentStreak || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               {currentStreak && currentStreak > 0 ? "days active" : "Start logging!"}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-            <Target className="h-4 w-4 text-blue-500" />
+        <Card className="touch-manipulation">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Total Sessions</CardTitle>
+            <Target className="h-5 w-5 md:h-4 md:w-4 text-blue-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sessionsCount || 0}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pb-3 md:pb-6">
+            <div className="text-xl md:text-2xl font-bold">{sessionsCount || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               training sessions logged
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Matches</CardTitle>
-            <Trophy className="h-4 w-4 text-green-500" />
+        <Card className="touch-manipulation">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Total Matches</CardTitle>
+            <Trophy className="h-5 w-5 md:h-4 md:w-4 text-green-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{matchesCount || 0}</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pb-3 md:pb-6">
+            <div className="text-xl md:text-2xl font-bold">{matchesCount || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               matches played
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Goal</CardTitle>
-            <Calendar className="h-4 w-4 text-purple-500" />
+        <Card className="touch-manipulation">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">Weekly Goal</CardTitle>
+            <Calendar className="h-5 w-5 md:h-4 md:w-4 text-purple-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="pb-3 md:pb-6">
+            <div className="text-xl md:text-2xl font-bold">
               {weeklyProgress?.current || 0}/{weeklyProgress?.goal || 5}
             </div>
             <div className="mt-2">
-              <Progress value={weeklyProgress?.percentage || 0} className="h-1" />
+              <Progress value={weeklyProgress?.percentage || 0} className="h-2" />
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               sessions this week
@@ -296,29 +296,35 @@ const PlayerDashboard = () => {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      {/* Mobile-optimized Quick Actions with larger buttons */}
+      <Card className="touch-manipulation">
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Plus className="h-5 w-5" />
             Quick Actions
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button asChild className="h-auto p-4 justify-start">
+        <CardContent className="pb-4 md:pb-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+            <Button asChild className="h-16 md:h-auto p-4 justify-start text-left touch-manipulation">
               <Link to="/log-session">
-                <div>
-                  <div className="font-semibold">Log Training Session</div>
-                  <div className="text-sm text-muted-foreground">Record your practice session</div>
+                <div className="flex items-center gap-3 w-full">
+                  <Target className="h-6 w-6 md:h-5 md:w-5 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold text-sm md:text-base">Log Training Session</div>
+                    <div className="text-xs md:text-sm text-muted-foreground">Record your practice session</div>
+                  </div>
                 </div>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-auto p-4 justify-start">
+            <Button asChild variant="outline" className="h-16 md:h-auto p-4 justify-start text-left touch-manipulation">
               <Link to="/log-match">
-                <div>
-                  <div className="font-semibold">Log Match</div>
-                  <div className="text-sm text-muted-foreground">Record your match results</div>
+                <div className="flex items-center gap-3 w-full">
+                  <Trophy className="h-6 w-6 md:h-5 md:w-5 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold text-sm md:text-base">Log Match</div>
+                    <div className="text-xs md:text-sm text-muted-foreground">Record your match results</div>
+                  </div>
                 </div>
               </Link>
             </Button>
@@ -326,31 +332,31 @@ const PlayerDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      {/* Mobile-optimized Recent Activity */}
+      <Card className="touch-manipulation">
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <BarChart2 className="h-5 w-5" />
             Recent Activity
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-4 md:pb-6">
           {recentActivity && recentActivity.length > 0 ? (
             <div className="space-y-3">
               {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={index} className="flex items-center justify-between p-4 md:p-3 border rounded-lg touch-manipulation">
                   <div className="flex items-center gap-3">
                     {activity.type === 'session' ? (
-                      <Target className="h-4 w-4 text-blue-500" />
+                      <Target className="h-5 w-5 md:h-4 md:w-4 text-blue-500 flex-shrink-0" />
                     ) : (
-                      <Trophy className="h-4 w-4 text-green-500" />
+                      <Trophy className="h-5 w-5 md:h-4 md:w-4 text-green-500 flex-shrink-0" />
                     )}
-                    <div>
-                      <div className="font-medium">{activity.title}</div>
-                      <div className="text-sm text-muted-foreground">{activity.description}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm md:text-base">{activity.title}</div>
+                      <div className="text-xs md:text-sm text-muted-foreground truncate">{activity.description}</div>
                     </div>
                   </div>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="ml-2 flex-shrink-0 text-xs">
                     {new Date(activity.date).toLocaleDateString()}
                   </Badge>
                 </div>
@@ -359,8 +365,8 @@ const PlayerDashboard = () => {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No activity logged yet</p>
-              <p className="text-sm">Start by logging your first session or match!</p>
+              <p className="text-sm md:text-base">No activity logged yet</p>
+              <p className="text-xs md:text-sm">Start by logging your first session or match!</p>
             </div>
           )}
         </CardContent>
