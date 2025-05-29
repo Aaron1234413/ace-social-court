@@ -246,7 +246,9 @@ const CoachDashboard = () => {
                     <Target className="h-4 w-4 text-green-500" />
                     <div>
                       <div className="font-medium">
-                        Session with {session.profiles?.full_name || session.profiles?.username || 'Student'}
+                        Session with {Array.isArray(session.profiles) && session.profiles.length > 0 
+                          ? session.profiles[0]?.full_name || session.profiles[0]?.username || 'Student'
+                          : 'Student'}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {session.focus_areas?.length > 0 
