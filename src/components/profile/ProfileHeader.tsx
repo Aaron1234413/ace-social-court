@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,70 +30,105 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['profile-header', userId],
     queryFn: async () => {
+      console.log('ProfileHeader: Fetching profile for userId:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('ProfileHeader: Error fetching profile:', error);
+        throw error;
+      }
+      console.log('ProfileHeader: Profile data fetched:', data);
       return data;
-    }
+    },
+    enabled: !!userId
   });
 
+  // Real following count from database
   const { data: followingCount } = useQuery({
     queryKey: ['following-count', userId],
     queryFn: async () => {
+      console.log('ProfileHeader: Fetching following count for userId:', userId);
       const { data, error } = await supabase
         .rpc('get_following_count', { user_id: userId });
       
-      if (error) throw error;
-      return data;
-    }
+      if (error) {
+        console.error('ProfileHeader: Error fetching following count:', error);
+        throw error;
+      }
+      console.log('ProfileHeader: Following count fetched:', data);
+      return data || 0;
+    },
+    enabled: !!userId
   });
 
+  // Real followers count from database
   const { data: followersCount } = useQuery({
     queryKey: ['followers-count', userId],
     queryFn: async () => {
+      console.log('ProfileHeader: Fetching followers count for userId:', userId);
       const { data, error } = await supabase
         .rpc('get_followers_count', { user_id: userId });
       
-      if (error) throw error;
-      return data;
-    }
+      if (error) {
+        console.error('ProfileHeader: Error fetching followers count:', error);
+        throw error;
+      }
+      console.log('ProfileHeader: Followers count fetched:', data);
+      return data || 0;
+    },
+    enabled: !!userId
   });
 
-  // Add queries for match and session counts
+  // Real matches count from database
   const { data: matchesCount } = useQuery({
     queryKey: ['matches-count', userId],
     queryFn: async () => {
+      console.log('ProfileHeader: Fetching matches count for userId:', userId);
       const { count, error } = await supabase
         .from('matches')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('ProfileHeader: Error fetching matches count:', error);
+        throw error;
+      }
+      console.log('ProfileHeader: Matches count fetched:', count);
       return count || 0;
-    }
+    },
+    enabled: !!userId
   });
 
+  // Real sessions count from database
   const { data: sessionsCount } = useQuery({
     queryKey: ['sessions-count', userId],
     queryFn: async () => {
+      console.log('ProfileHeader: Fetching sessions count for userId:', userId);
       const { count, error } = await supabase
         .from('sessions')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('ProfileHeader: Error fetching sessions count:', error);
+        throw error;
+      }
+      console.log('ProfileHeader: Sessions count fetched:', count);
       return count || 0;
-    }
+    },
+    enabled: !!userId
   });
 
   // Calculate real streak from actual session/match data
   const { data: currentStreak } = useQuery({
     queryKey: ['current-streak', userId],
     queryFn: async () => {
+      console.log('ProfileHeader: Calculating current streak for userId:', userId);
+      
       // Get all sessions and matches for the user, ordered by date descending
       const [sessionsResult, matchesResult] = await Promise.all([
         supabase
@@ -110,7 +144,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
       ]);
 
       if (sessionsResult.error || matchesResult.error) {
-        console.error('Error fetching activity data:', { sessionsResult, matchesResult });
+        console.error('ProfileHeader: Error fetching activity data:', { sessionsResult, matchesResult });
         return 0;
       }
 
@@ -120,7 +154,12 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         ...(matchesResult.data || []).map(m => new Date(m.match_date))
       ].sort((a, b) => b.getTime() - a.getTime());
 
-      if (allActivities.length === 0) return 0;
+      console.log('ProfileHeader: All activities found:', allActivities.length);
+
+      if (allActivities.length === 0) {
+        console.log('ProfileHeader: No activities found, streak is 0');
+        return 0;
+      }
 
       // Calculate streak - consecutive days with activity
       let streak = 0;
@@ -159,14 +198,18 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         }
       }
 
+      console.log('ProfileHeader: Calculated streak:', streak);
       return streak;
-    }
+    },
+    enabled: !!userId
   });
 
   // Calculate weekly progress from real session data
   const { data: weeklyProgress } = useQuery({
     queryKey: ['weekly-progress', userId],
     queryFn: async () => {
+      console.log('ProfileHeader: Calculating weekly progress for userId:', userId);
+      
       const today = new Date();
       const startOfWeek = new Date(today);
       startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
@@ -183,7 +226,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         .lt('session_date', endOfWeek.toISOString().split('T')[0]);
 
       if (error) {
-        console.error('Error fetching weekly sessions:', error);
+        console.error('ProfileHeader: Error fetching weekly sessions:', error);
         return { current: 0, goal: 5, percentage: 0 };
       }
 
@@ -191,18 +234,22 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
       const weeklyGoal = 5; // Default goal, could be user-configurable later
       const percentage = Math.min((sessionsThisWeek / weeklyGoal) * 100, 100);
 
+      console.log('ProfileHeader: Weekly progress calculated:', { current: sessionsThisWeek, goal: weeklyGoal, percentage });
       return {
         current: sessionsThisWeek,
         goal: weeklyGoal,
         percentage
       };
-    }
+    },
+    enabled: !!userId
   });
   
-  // Query skill ratings from matches
+  // Query skill ratings from real match data
   const { data: skillRatings } = useQuery({
     queryKey: ['skill-ratings', userId],
     queryFn: async () => {
+      console.log('ProfileHeader: Fetching skill ratings for userId:', userId);
+      
       const { data, error } = await supabase
         .from('matches')
         .select('serve_rating, return_rating, endurance_rating')
@@ -210,15 +257,18 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         .order('match_date', { ascending: false })
         .limit(5);
       
-      if (error) throw error;
+      if (error) {
+        console.error('ProfileHeader: Error fetching skill ratings:', error);
+        throw error;
+      }
       
       // Calculate average ratings from recent matches
       const avgRatings = {
         serve: 0,
         return: 0,
         endurance: 0,
-        forehand: Math.floor(Math.random() * 5) + 1, // Placeholder for demo
-        backhand: Math.floor(Math.random() * 5) + 1, // Placeholder for demo
+        forehand: 0, // Will be 0 since we don't track this yet
+        backhand: 0, // Will be 0 since we don't track this yet
       };
       
       if (data && data.length > 0) {
@@ -247,8 +297,10 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         }
       }
       
+      console.log('ProfileHeader: Skill ratings calculated:', avgRatings);
       return avgRatings;
-    }
+    },
+    enabled: !!userId
   });
 
   // Enhanced avatar upload handler
