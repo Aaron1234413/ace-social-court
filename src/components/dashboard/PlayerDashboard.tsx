@@ -13,7 +13,8 @@ import {
   Plus,
   BarChart2,
   Flame,
-  Award
+  Award,
+  CalendarPlus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -178,33 +179,37 @@ const PlayerDashboard = () => {
     enabled: !!user?.id
   });
 
-  // Get recent activity for "upcoming activities" section (no real upcoming data, so show recent)
-  const { data: recentActivity } = useQuery({
-    queryKey: ['dashboard-recent-activity', user?.id],
+  // Get upcoming activities (future sessions and matches)
+  const { data: upcomingActivities } = useQuery({
+    queryKey: ['dashboard-upcoming-activities', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      // Get recent sessions and matches
-      const [recentSessions, recentMatches] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get upcoming sessions and matches
+      const [upcomingSessions, upcomingMatches] = await Promise.all([
         supabase
           .from('sessions')
           .select('id, session_date, focus_areas')
           .eq('user_id', user.id)
-          .order('session_date', { ascending: false })
+          .gte('session_date', today)
+          .order('session_date', { ascending: true })
           .limit(3),
         supabase
           .from('matches')
           .select('id, match_date, score, location')
           .eq('user_id', user.id)
-          .order('match_date', { ascending: false })
+          .gte('match_date', today)
+          .order('match_date', { ascending: true })
           .limit(3)
       ]);
 
       const activities = [];
       
-      // Add recent sessions
-      if (recentSessions.data) {
-        recentSessions.data.forEach(session => {
+      // Add upcoming sessions
+      if (upcomingSessions.data) {
+        upcomingSessions.data.forEach(session => {
           activities.push({
             type: 'session',
             date: session.session_date,
@@ -214,116 +219,75 @@ const PlayerDashboard = () => {
         });
       }
 
-      // Add recent matches
-      if (recentMatches.data) {
-        recentMatches.data.forEach(match => {
+      // Add upcoming matches
+      if (upcomingMatches.data) {
+        upcomingMatches.data.forEach(match => {
           activities.push({
             type: 'match',
             date: match.match_date,
             title: `Match`,
-            description: match.location || match.score || 'Tennis match'
+            description: match.location || 'Tennis match'
           });
         });
       }
 
-      // Sort by date and return most recent
+      // Sort by date and return most upcoming
       return activities
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .slice(0, 3);
     },
     enabled: !!user?.id
   });
 
   return (
-    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
-      {/* Mobile-optimized Stats Overview with larger touch targets */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <Card className="touch-manipulation">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Current Streak</CardTitle>
-            <Flame className="h-5 w-5 md:h-4 md:w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent className="pb-3 md:pb-6">
-            <div className="text-xl md:text-2xl font-bold">{currentStreak || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {currentStreak && currentStreak > 0 ? "days active" : "Start logging!"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="touch-manipulation">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Sessions</CardTitle>
-            <Target className="h-5 w-5 md:h-4 md:w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent className="pb-3 md:pb-6">
-            <div className="text-xl md:text-2xl font-bold">{sessionsCount || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              training sessions logged
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="touch-manipulation">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Matches</CardTitle>
-            <Trophy className="h-5 w-5 md:h-4 md:w-4 text-green-500" />
-          </CardHeader>
-          <CardContent className="pb-3 md:pb-6">
-            <div className="text-xl md:text-2xl font-bold">{matchesCount || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              matches played
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="touch-manipulation">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Weekly Goal</CardTitle>
-            <Calendar className="h-5 w-5 md:h-4 md:w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent className="pb-3 md:pb-6">
-            <div className="text-xl md:text-2xl font-bold">
-              {weeklyProgress?.current || 0}/{weeklyProgress?.goal || 5}
+    <div className="space-y-6 px-4 md:px-0">
+      {/* Hero Section with Streak */}
+      <div className="text-center py-8 md:py-12">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <Flame className="h-8 w-8 md:h-10 md:w-10 text-orange-500" />
+          <div>
+            <div className="text-3xl md:text-4xl font-bold">{currentStreak || 0}</div>
+            <div className="text-lg md:text-xl text-muted-foreground">
+              {currentStreak && currentStreak > 0 ? "day streak" : "Start your streak!"}
             </div>
-            <div className="mt-2">
-              <Progress value={weeklyProgress?.percentage || 0} className="h-2" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              sessions this week
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+        <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto">
+          {currentStreak && currentStreak > 0 
+            ? "Keep the momentum going! Log today's session to maintain your streak."
+            : "Log your first session or match to start building your training streak."
+          }
+        </p>
       </div>
 
-      {/* Mobile-optimized Quick Actions with larger buttons */}
+      {/* Quick Actions Panel */}
       <Card className="touch-manipulation">
-        <CardHeader className="pb-3 md:pb-6">
+        <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Plus className="h-5 w-5" />
             Quick Actions
           </CardTitle>
         </CardHeader>
-        <CardContent className="pb-4 md:pb-6">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
-            <Button asChild className="h-16 md:h-auto p-4 justify-start text-left touch-manipulation">
+        <CardContent className="pb-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Button asChild size="lg" className="h-16 p-4 justify-start text-left touch-manipulation">
               <Link to="/log-session">
                 <div className="flex items-center gap-3 w-full">
-                  <Target className="h-6 w-6 md:h-5 md:w-5 flex-shrink-0" />
+                  <Target className="h-6 w-6 flex-shrink-0" />
                   <div>
-                    <div className="font-semibold text-sm md:text-base">Log Training Session</div>
-                    <div className="text-xs md:text-sm text-muted-foreground">Record your practice session</div>
+                    <div className="font-semibold">Log Today's Session</div>
+                    <div className="text-sm text-muted-foreground">Record your practice session</div>
                   </div>
                 </div>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-16 md:h-auto p-4 justify-start text-left touch-manipulation">
-              <Link to="/log-match">
+            <Button asChild variant="outline" size="lg" className="h-16 p-4 justify-start text-left touch-manipulation">
+              <Link to="/schedule-match">
                 <div className="flex items-center gap-3 w-full">
-                  <Trophy className="h-6 w-6 md:h-5 md:w-5 flex-shrink-0" />
+                  <CalendarPlus className="h-6 w-6 flex-shrink-0" />
                   <div>
-                    <div className="font-semibold text-sm md:text-base">Log Match</div>
-                    <div className="text-xs md:text-sm text-muted-foreground">Record your match results</div>
+                    <div className="font-semibold">Schedule Match</div>
+                    <div className="text-sm text-muted-foreground">Set up your next match</div>
                   </div>
                 </div>
               </Link>
@@ -332,28 +296,112 @@ const PlayerDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Mobile-optimized Recent Activity */}
+      {/* This Week's Sessions */}
       <Card className="touch-manipulation">
-        <CardHeader className="pb-3 md:pb-6">
+        <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <BarChart2 className="h-5 w-5" />
-            Recent Activity
+            <Calendar className="h-5 w-5" />
+            This Week's Sessions
           </CardTitle>
         </CardHeader>
-        <CardContent className="pb-4 md:pb-6">
-          {recentActivity && recentActivity.length > 0 ? (
+        <CardContent className="pb-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                {weeklyProgress?.current || 0} of {weeklyProgress?.goal || 5} sessions completed
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {Math.round(weeklyProgress?.percentage || 0)}%
+              </span>
+            </div>
+            <Progress value={weeklyProgress?.percentage || 0} className="h-3" />
+            <p className="text-xs text-muted-foreground">
+              {weeklyProgress?.current === weeklyProgress?.goal 
+                ? "🎉 Week completed! Great job staying consistent."
+                : `${(weeklyProgress?.goal || 5) - (weeklyProgress?.current || 0)} more sessions to reach your weekly goal.`
+              }
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="touch-manipulation">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
+            <Target className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent className="pb-6">
+            <div className="text-2xl font-bold">{sessionsCount || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              training sessions logged
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="touch-manipulation">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Matches</CardTitle>
+            <Trophy className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent className="pb-6">
+            <div className="text-2xl font-bold">{matchesCount || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              matches played
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="touch-manipulation">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent className="pb-6">
+            <div className="text-2xl font-bold">{Math.max(sessionsCount || 0, matchesCount || 0)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              activities logged
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="touch-manipulation">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Best Streak</CardTitle>
+            <Award className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent className="pb-6">
+            <div className="text-2xl font-bold">{currentStreak || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              consecutive days
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Upcoming Activities */}
+      <Card className="touch-manipulation">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <BarChart2 className="h-5 w-5" />
+            Upcoming Activities
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-6">
+          {upcomingActivities && upcomingActivities.length > 0 ? (
             <div className="space-y-3">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-4 md:p-3 border rounded-lg touch-manipulation">
+              {upcomingActivities.map((activity, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded-lg touch-manipulation">
                   <div className="flex items-center gap-3">
                     {activity.type === 'session' ? (
-                      <Target className="h-5 w-5 md:h-4 md:w-4 text-blue-500 flex-shrink-0" />
+                      <Target className="h-4 w-4 text-blue-500 flex-shrink-0" />
                     ) : (
-                      <Trophy className="h-5 w-5 md:h-4 md:w-4 text-green-500 flex-shrink-0" />
+                      <Trophy className="h-4 w-4 text-green-500 flex-shrink-0" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm md:text-base">{activity.title}</div>
-                      <div className="text-xs md:text-sm text-muted-foreground truncate">{activity.description}</div>
+                      <div className="font-medium text-sm">{activity.title}</div>
+                      <div className="text-xs text-muted-foreground truncate">{activity.description}</div>
                     </div>
                   </div>
                   <Badge variant="outline" className="ml-2 flex-shrink-0 text-xs">
@@ -365,8 +413,8 @@ const PlayerDashboard = () => {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm md:text-base">No activity logged yet</p>
-              <p className="text-xs md:text-sm">Start by logging your first session or match!</p>
+              <p className="text-sm">No upcoming activities scheduled</p>
+              <p className="text-xs">Schedule your next session or match to see them here!</p>
             </div>
           )}
         </CardContent>
