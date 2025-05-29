@@ -244,28 +244,49 @@ const PlayerDashboard = () => {
 
   return (
     <div className="space-y-4 md:space-y-6 px-3 md:px-4 lg:px-0">
-      {/* Hero Section with Streak - Enhanced Mobile Design */}
-      <div className="text-center py-6 md:py-8 lg:py-12 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl mx-1 md:mx-0">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="relative">
-            <Flame className="h-10 w-10 md:h-12 md:w-12 text-orange-500 drop-shadow-lg" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-orange-600 rounded-full"></div>
+      {/* Hero Section with Streak - Redesigned Layout */}
+      <div className="relative py-8 md:py-12 lg:py-16 bg-gradient-to-br from-orange-50 via-red-50 to-orange-100 rounded-3xl mx-1 md:mx-0 overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-200/30 rounded-full -translate-y-8 translate-x-8"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-red-200/30 rounded-full translate-y-6 -translate-x-6"></div>
+        
+        <div className="relative text-center px-4 md:px-6">
+          {/* Main streak display */}
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="relative">
+              <div className="flex items-center justify-center gap-4">
+                <div className="relative">
+                  <Flame className="h-12 w-12 md:h-16 md:w-16 text-orange-500 drop-shadow-xl animate-pulse" />
+                  <div className="absolute -top-1 -right-1 w-5 h-5 md:w-6 md:h-6 bg-orange-600 rounded-full animate-pulse"></div>
+                </div>
+                <div className="text-center">
+                  <div className="text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-orange-600 via-red-600 to-orange-700 bg-clip-text text-transparent drop-shadow-sm">
+                    {currentStreak || 0}
+                  </div>
+                  <div className="text-xl md:text-2xl lg:text-3xl text-gray-700 font-semibold -mt-2">
+                    {currentStreak && currentStreak > 0 
+                      ? currentStreak === 1 ? "day streak" : "day streak" 
+                      : "days"
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-              {currentStreak || 0}
-            </div>
-            <div className="text-lg md:text-xl lg:text-2xl text-gray-700 font-medium">
-              {currentStreak && currentStreak > 0 ? "day streak" : "Start your streak!"}
-            </div>
+
+          {/* Streak message */}
+          <div className="max-w-lg mx-auto">
+            <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-3">
+              {currentStreak && currentStreak > 0 ? "Keep it going!" : "Start your streak!"}
+            </h3>
+            <p className="text-base md:text-lg text-gray-600 leading-relaxed">
+              {currentStreak && currentStreak > 0 
+                ? "Amazing consistency! Log today's session to maintain your training momentum."
+                : "Begin your tennis journey today. Log your first session or match to start building your training streak."
+              }
+            </p>
           </div>
         </div>
-        <p className="text-sm md:text-base text-gray-600 max-w-md mx-auto px-4">
-          {currentStreak && currentStreak > 0 
-            ? "Keep the momentum going! Log today's session to maintain your streak."
-            : "Log your first session or match to start building your training streak."
-          }
-        </p>
       </div>
 
       {/* Quick Actions Panel - Enhanced Mobile Touch */}
