@@ -1,232 +1,244 @@
 
 import React, { useState } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { sessionSchema, SessionFormValues } from '@/components/logging/session/sessionSchema';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Save, Loader2 } from 'lucide-react';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { useSessionSubmit } from '@/hooks/use-session-submit';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import SessionBasicsForm from '@/components/logging/session/SessionBasicsForm';
-import SessionDrillsForm from '@/components/logging/session/SessionDrillsForm';
-import SessionNextStepsForm from '@/components/logging/session/SessionNextStepsForm';
 import { useAuth } from '@/components/AuthProvider';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
 
-// Steps for the wizard
-const STEPS = [
-  { id: "basics", title: "Session Basics", description: "Date, coach, and focus areas" },
-  { id: "drills", title: "Session Drills", description: "What drills did you do?" },
-  { id: "next-steps", title: "Notes & Next Steps", description: "Reflection and follow-up" }
-];
+type Pillar = 'physical' | 'mental' | 'technical';
+
+interface PillarData {
+  physical?: any;
+  mental?: any;
+  technical?: any;
+}
 
 export default function LogSession() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
-  const { submitSession, isSubmitting } = useSessionSubmit();
-  const isCoach = profile?.user_type === 'coach';
+  const [selectedPillars, setSelectedPillars] = useState<Pillar[]>([]);
+  const [completedPillars, setCompletedPillars] = useState<Pillar[]>([]);
+  const [currentStep, setCurrentStep] = useState<'selection' | Pillar | 'summary'>('selection');
+  const [pillarData, setPillarData] = useState<PillarData>({});
 
-  const form = useForm<SessionFormValues>({
-    resolver: zodResolver(sessionSchema),
-    defaultValues: {
-      session_date: new Date(),
-      focus_areas: [],
-      drills: [],
-      next_steps: [],
-      session_note: "",
-      participants: [],
+  const pillars = [
+    {
+      id: 'physical' as Pillar,
+      title: 'PHYSICAL',
+      emoji: '💪',
+      description: 'Energy, endurance, and court coverage',
+      gradient: 'from-red-500 to-orange-500'
+    },
+    {
+      id: 'mental' as Pillar,
+      title: 'MENTAL',
+      emoji: '🧠',
+      description: 'Focus, confidence, and mindset',
+      gradient: 'from-blue-500 to-purple-500'
+    },
+    {
+      id: 'technical' as Pillar,
+      title: 'TECHNICAL',
+      emoji: '🎾',
+      description: 'Strokes, technique, and skills',
+      gradient: 'from-green-500 to-teal-500'
     }
-  });
+  ];
 
-  // Handle form submission
-  const onSubmit = async (data: SessionFormValues) => {
-    try {
-      const result = await submitSession(data);
-      if (result) {
-        navigate('/feed');
-      }
-    } catch (error) {
-      console.error('Error submitting session:', error);
-    }
+  const togglePillar = (pillar: Pillar) => {
+    setSelectedPillars(prev => 
+      prev.includes(pillar) 
+        ? prev.filter(p => p !== pillar)
+        : [...prev, pillar]
+    );
   };
 
-  // Navigate to next step
-  const nextStep = () => {
-    const currentFields = STEPS[currentStep].id === 'basics' 
-      ? ['session_date', 'focus_areas'] 
-      : [];
-    
-    form.trigger(currentFields as any).then((isValid) => {
-      if (isValid) {
-        setCurrentStep(Math.min(currentStep + 1, STEPS.length - 1));
-      }
-    });
+  const isPillarSelected = (pillar: Pillar) => selectedPillars.includes(pillar);
+  const isPillarCompleted = (pillar: Pillar) => completedPillars.includes(pillar);
+
+  const startLogging = () => {
+    if (selectedPillars.length === 0) return;
+    setCurrentStep(selectedPillars[0]);
   };
 
-  // Navigate to previous step
-  const prevStep = () => {
-    setCurrentStep(Math.max(currentStep - 1, 0));
+  const goBackToSelection = () => {
+    setCurrentStep('selection');
   };
 
-  // Get the current UI step
-  const currentStepId = STEPS[currentStep].id;
+  if (currentStep !== 'selection') {
+    // Placeholder for pillar detail pages (will be implemented in next steps)
+    return (
+      <div className="container mx-auto py-6 px-4 md:px-6">
+        <div className="max-w-2xl mx-auto">
+          <Button 
+            variant="ghost" 
+            onClick={goBackToSelection}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Pillar Selection
+          </Button>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">
+              {pillars.find(p => p.id === currentStep)?.emoji}
+            </div>
+            <h2 className="text-2xl font-bold mb-2">
+              {pillars.find(p => p.id === currentStep)?.title} Tracker
+            </h2>
+            <p className="text-gray-600">
+              Coming in the next step - {pillars.find(p => p.id === currentStep)?.description}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6 px-4 md:px-6">
       {!user && <LoginPromptModal />}
       
-      <h1 className="text-2xl font-bold mb-6">
-        {isCoach ? 'Log a Training Session for Players' : 'Log a Training Session'}
-      </h1>
-      
-      {/* Stepper */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          {STEPS.map((step, index) => (
-            <div 
-              key={step.id} 
-              className="flex flex-col items-center space-y-2 w-full"
-            >
-              <div className="relative w-full">
-                {/* Line connecting steps */}
-                {index > 0 && (
-                  <div className="absolute top-4 left-0 w-full h-1 bg-muted -translate-y-1/2">
-                    <div 
-                      className="h-full bg-tennis-green transition-all duration-300 ease-in-out"
-                      style={{ 
-                        width: currentStep >= index ? '100%' : '0%'
-                      }}
-                    />
-                  </div>
-                )}
-                
-                {/* Step circle */}
-                <div className="relative z-10 flex justify-center">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            How did today's tennis go?
+          </h1>
+          <p className="text-lg text-gray-600">
+            Choose which aspects you'd like to track from your session
+          </p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-12">
+          <div className="flex justify-center items-center space-x-4 mb-4">
+            {pillars.map((pillar, index) => (
+              <div key={pillar.id} className="flex items-center">
+                <div className="flex flex-col items-center">
                   <div 
                     className={`
-                      flex items-center justify-center w-8 h-8 rounded-full 
-                      text-sm font-medium transition-colors duration-300
-                      ${currentStep >= index 
-                        ? 'bg-tennis-green text-white' 
-                        : 'bg-muted text-muted-foreground'
+                      w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold transition-all duration-300
+                      ${isPillarSelected(pillar.id) 
+                        ? isPillarCompleted(pillar.id)
+                          ? 'bg-green-500 text-white'
+                          : `bg-gradient-to-r ${pillar.gradient} text-white shadow-lg scale-110`
+                        : 'bg-gray-200 text-gray-400'
                       }
                     `}
                   >
-                    {index + 1}
+                    {isPillarCompleted(pillar.id) ? (
+                      <CheckCircle2 className="h-6 w-6" />
+                    ) : (
+                      pillar.emoji
+                    )}
                   </div>
+                  <span className={`text-xs mt-2 font-medium ${isPillarSelected(pillar.id) ? 'text-gray-900' : 'text-gray-400'}`}>
+                    {pillar.title}
+                  </span>
                 </div>
+                {index < pillars.length - 1 && (
+                  <div className={`w-8 h-1 mx-4 rounded-full transition-colors duration-300 ${
+                    isPillarSelected(pillars[index + 1].id) ? 'bg-gray-300' : 'bg-gray-200'
+                  }`} />
+                )}
               </div>
-
-              {/* Step title and description - only show on medium screens and up */}
-              <div className="hidden md:block text-center">
-                <div className={`text-sm font-medium ${currentStep === index ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  {step.title}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5 hidden lg:block">
-                  {step.description}
-                </div>
-              </div>
+            ))}
+          </div>
+          
+          {selectedPillars.length > 0 && (
+            <div className="text-center text-sm text-gray-600">
+              {selectedPillars.length} pillar{selectedPillars.length !== 1 ? 's' : ''} selected
             </div>
+          )}
+        </div>
+
+        {/* Pillar Selection Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          {pillars.map((pillar) => (
+            <Card 
+              key={pillar.id}
+              className={`
+                cursor-pointer transition-all duration-300 transform hover:scale-105 relative overflow-hidden
+                ${isPillarSelected(pillar.id) 
+                  ? 'ring-4 ring-offset-2 shadow-2xl' 
+                  : 'hover:shadow-lg'
+                }
+              `}
+              style={{
+                ringColor: isPillarSelected(pillar.id) 
+                  ? pillar.id === 'physical' ? '#f97316' 
+                    : pillar.id === 'mental' ? '#8b5cf6'
+                    : '#10b981'
+                  : 'transparent'
+              }}
+              onClick={() => togglePillar(pillar.id)}
+            >
+              {/* Background Gradient Overlay */}
+              <div 
+                className={`absolute inset-0 bg-gradient-to-br ${pillar.gradient} opacity-0 transition-opacity duration-300 ${
+                  isPillarSelected(pillar.id) ? 'opacity-10' : 'hover:opacity-5'
+                }`}
+              />
+              
+              <CardHeader className="text-center pb-4 relative z-10">
+                <div className="text-6xl mb-4 transform transition-transform duration-300 hover:scale-110">
+                  {pillar.emoji}
+                </div>
+                <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
+                  {pillar.title}
+                </CardTitle>
+              </CardHeader>
+              
+              <CardContent className="text-center relative z-10">
+                <p className="text-gray-600 mb-6">
+                  {pillar.description}
+                </p>
+                
+                <div className={`
+                  w-8 h-8 mx-auto rounded-full border-2 transition-all duration-300 flex items-center justify-center
+                  ${isPillarSelected(pillar.id) 
+                    ? 'border-white bg-gradient-to-r ' + pillar.gradient + ' text-white' 
+                    : 'border-gray-300'
+                  }
+                `}>
+                  {isPillarSelected(pillar.id) && (
+                    <CheckCircle2 className="h-5 w-5" />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
+
+        {/* Continue Button */}
+        <div className="text-center">
+          <Button
+            onClick={startLogging}
+            disabled={selectedPillars.length === 0}
+            size="lg"
+            className={`
+              px-12 py-4 text-lg font-semibold rounded-2xl transition-all duration-300 transform
+              ${selectedPillars.length > 0 
+                ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-xl hover:scale-105 hover:shadow-2xl' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }
+            `}
+          >
+            {selectedPillars.length === 0 
+              ? 'Select at least one pillar to continue'
+              : `Start tracking ${selectedPillars.length} pillar${selectedPillars.length !== 1 ? 's' : ''}`
+            }
+          </Button>
+          
+          {selectedPillars.length > 0 && (
+            <p className="text-sm text-gray-500 mt-4">
+              You can always come back and edit your selections
+            </p>
+          )}
+        </div>
       </div>
-      
-      <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <Tabs value={currentStepId} className="w-full">
-            <TabsContent value="basics" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Session Basics</CardTitle>
-                  <CardDescription>
-                    {isCoach 
-                      ? "Enter the basic information about the training session and select players"
-                      : "Enter the basic information about your training session"
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SessionBasicsForm />
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="ghost" type="button" disabled>
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button type="button" onClick={nextStep}>
-                    Next
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="drills" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Session Drills</CardTitle>
-                  <CardDescription>
-                    What drills did you do during this session and how did they go?
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SessionDrillsForm />
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="ghost" type="button" onClick={prevStep}>
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button type="button" onClick={nextStep}>
-                    Next
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="next-steps" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Session Notes & Next Steps</CardTitle>
-                  <CardDescription>
-                    Add your overall notes and steps to follow up on
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SessionNextStepsForm />
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="ghost" type="button" onClick={prevStep}>
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-tennis-green hover:bg-tennis-darkGreen"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Session
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </form>
-      </FormProvider>
     </div>
   );
 }
