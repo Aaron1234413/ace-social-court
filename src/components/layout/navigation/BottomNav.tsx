@@ -18,11 +18,11 @@ const BottomNav = () => {
 
   if (!isMobile || !user) return null;
 
-  // Select only the most critical navigation items for the bottom bar
+  // Select the most critical navigation items for the bottom bar with Dashboard first
   const criticalNavItems = [
+    mainNavItems.find(item => item.title === "Dashboard"),
     mainNavItems.find(item => item.title === "Feed"),
     userNavItems.find(item => item.title === "Messages"),
-    userNavItems.find(item => item.title === "Notifications"),
     userNavItems.find(item => item.title === "Profile")
   ].filter(Boolean) as Array<{
     title: string;
@@ -63,8 +63,8 @@ const BottomNav = () => {
               <div className="relative">
                 {item.icon}
                 
-                {/* Add notification badge for Messages and Notifications */}
-                {item.title === "Notifications" && unreadCount > 0 && (
+                {/* Add notification badge for Messages */}
+                {item.title === "Messages" && unreadCount > 0 && (
                   <Badge 
                     variant="destructive" 
                     className="absolute -top-1 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-tennis-accent"

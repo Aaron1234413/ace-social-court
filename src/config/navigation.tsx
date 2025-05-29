@@ -9,7 +9,8 @@ import {
   Bell,
   Brain,
   PlusSquare,
-  CalendarPlus
+  CalendarPlus,
+  BarChart3
 } from 'lucide-react';
 import { ReactNode } from 'react';
 
@@ -21,8 +22,14 @@ export interface NavItem {
   isAction?: boolean;
 }
 
-// Primary navigation items
+// Primary navigation items - Dashboard moved to first position
 export const mainNavItems: NavItem[] = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: <BarChart3 className="h-5 w-5" />,
+    mobileLabel: "Dashboard"
+  },
   {
     title: "Feed",
     href: "/feed",
