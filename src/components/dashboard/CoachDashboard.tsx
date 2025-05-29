@@ -44,7 +44,7 @@ const CoachDashboard = () => {
         .from('sessions')
         .select(`
           *,
-          player:profiles!sessions_user_id_fkey (
+          profiles!sessions_user_id_fkey (
             username,
             full_name
           )
@@ -73,7 +73,7 @@ const CoachDashboard = () => {
         .from('sessions')
         .select(`
           *,
-          player:profiles!sessions_user_id_fkey (
+          profiles!sessions_user_id_fkey (
             username,
             full_name
           )
@@ -239,7 +239,7 @@ const CoachDashboard = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold text-base text-gray-900">
-                            {lesson.player?.username || lesson.player?.full_name || 'Unknown Player'}
+                            {lesson.profiles?.username || lesson.profiles?.full_name || 'Unknown Player'}
                           </div>
                           <div className="text-sm text-gray-600">
                             {new Date(lesson.session_date).toLocaleTimeString()} • {lesson.location || 'No location set'}
@@ -312,7 +312,7 @@ const CoachDashboard = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold text-base text-gray-900">
-                            {activity.player?.username || activity.player?.full_name || 'Unknown Player'}
+                            {activity.profiles?.username || activity.profiles?.full_name || 'Unknown Player'}
                           </div>
                           <div className="text-sm text-gray-600">
                             Session on {new Date(activity.session_date).toLocaleDateString()}
