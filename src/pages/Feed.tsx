@@ -100,7 +100,7 @@ const Feed = () => {
   return (
     <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
       <div className="flex items-center justify-between mb-4 md:mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold">Home Feed</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Social Feed</h1>
         
         {user && (
           <div className="flex items-center space-x-2">
@@ -154,7 +154,7 @@ const Feed = () => {
         </>
       ) : (
         <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
-          <p className="text-base md:text-lg mb-4">Please log in to view your personalized feed</p>
+          <p className="text-base md:text-lg mb-4">Please log in to view the social feed</p>
           <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
         </div>
       )}

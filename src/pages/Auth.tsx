@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -14,19 +15,19 @@ const Auth = () => {
   const fromPath = query.get('from');
   
   useEffect(() => {
-    console.log('Auth: User detected, redirecting to feed');
+    console.log('Auth: User detected, redirecting to dashboard');
     console.log('Auth: Current location path:', location.pathname);
     console.log('Auth: fromPath parameter detected:', fromPath);
     
-    // If user is already authenticated, redirect them
+    // If user is already authenticated, redirect them to dashboard instead of feed
     if (user && !isLoading) {
       if (fromPath) {
         console.log('Auth: Redirecting to:', fromPath);
         navigate(fromPath);
       } else {
-        console.log('Auth: No specific redirect path, going to feed');
-        console.log('Auth: About to navigate to /feed');
-        navigate('/feed');
+        console.log('Auth: No specific redirect path, going to dashboard');
+        console.log('Auth: About to navigate to /dashboard');
+        navigate('/dashboard');
       }
     }
   }, [user, isLoading, navigate, fromPath, location.pathname]);
