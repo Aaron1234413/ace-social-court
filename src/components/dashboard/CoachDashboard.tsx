@@ -231,55 +231,58 @@ const CoachDashboard = () => {
             <CardContent className="p-4 md:p-6">
               {todaysLessons && todaysLessons.length > 0 ? (
                 <div className="space-y-4">
-                  {todaysLessons.map((lesson) => (
-                    <div key={lesson.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm space-y-3 md:space-y-0">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Target className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-base text-gray-900">
-                            {lesson.profiles?.username || lesson.profiles?.full_name || 'Unknown Player'}
+                  {todaysLessons.map((lesson) => {
+                    const profile = lesson.profiles?.[0];
+                    return (
+                      <div key={lesson.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm space-y-3 md:space-y-0">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Target className="h-5 w-5 text-blue-600" />
                           </div>
-                          <div className="text-sm text-gray-600">
-                            {new Date(lesson.session_date).toLocaleTimeString()} • {lesson.location || 'No location set'}
-                          </div>
-                          {lesson.focus_areas && lesson.focus_areas.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {lesson.focus_areas.slice(0, 2).map((area, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {area}
-                                </Badge>
-                              ))}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-base text-gray-900">
+                              {profile?.username || profile?.full_name || 'Unknown Player'}
                             </div>
-                          )}
+                            <div className="text-sm text-gray-600">
+                              {new Date(lesson.session_date).toLocaleTimeString()} • {lesson.location || 'No location set'}
+                            </div>
+                            {lesson.focus_areas && lesson.focus_areas.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {lesson.focus_areas.slice(0, 2).map((area, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {area}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2 w-full md:w-auto">
+                          <Button
+                            variant={lesson.status === 'completed' ? 'default' : 'outline'}
+                            size="sm"
+                            className="flex-1 md:flex-none"
+                            onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'completed' })}
+                            disabled={updateLessonStatus.isPending}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Complete
+                          </Button>
+                          <Button
+                            variant={lesson.status === 'cancelled' ? 'destructive' : 'outline'}
+                            size="sm"
+                            className="flex-1 md:flex-none"
+                            onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'cancelled' })}
+                            disabled={updateLessonStatus.isPending}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Cancel
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2 w-full md:w-auto">
-                        <Button
-                          variant={lesson.status === 'completed' ? 'default' : 'outline'}
-                          size="sm"
-                          className="flex-1 md:flex-none"
-                          onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'completed' })}
-                          disabled={updateLessonStatus.isPending}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Complete
-                        </Button>
-                        <Button
-                          variant={lesson.status === 'cancelled' ? 'destructive' : 'outline'}
-                          size="sm"
-                          className="flex-1 md:flex-none"
-                          onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'cancelled' })}
-                          disabled={updateLessonStatus.isPending}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
@@ -304,54 +307,57 @@ const CoachDashboard = () => {
             <CardContent className="p-4 md:p-6">
               {studentActivities && studentActivities.length > 0 ? (
                 <div className="space-y-4">
-                  {studentActivities.map((activity) => (
-                    <div key={activity.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm space-y-3 md:space-y-0">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <BookOpen className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-base text-gray-900">
-                            {activity.profiles?.username || activity.profiles?.full_name || 'Unknown Player'}
+                  {studentActivities.map((activity) => {
+                    const profile = activity.profiles?.[0];
+                    return (
+                      <div key={activity.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm space-y-3 md:space-y-0">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <BookOpen className="h-5 w-5 text-green-600" />
                           </div>
-                          <div className="text-sm text-gray-600">
-                            Session on {new Date(activity.session_date).toLocaleDateString()}
-                          </div>
-                          {activity.focus_areas && activity.focus_areas.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {activity.focus_areas.slice(0, 3).map((area, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {area}
-                                </Badge>
-                              ))}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-base text-gray-900">
+                              {profile?.username || profile?.full_name || 'Unknown Player'}
                             </div>
-                          )}
+                            <div className="text-sm text-gray-600">
+                              Session on {new Date(activity.session_date).toLocaleDateString()}
+                            </div>
+                            {activity.focus_areas && activity.focus_areas.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {activity.focus_areas.slice(0, 3).map((area, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {area}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2 w-full md:w-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 md:flex-none"
+                            onClick={() => {/* TODO: Navigate to log session for player */}}
+                          >
+                            <Target className="h-4 w-4 mr-1" />
+                            Log Session
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1 md:flex-none"
+                            onClick={() => signOffSession.mutate(activity.id)}
+                            disabled={signOffSession.isPending}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Sign Off
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2 w-full md:w-auto">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 md:flex-none"
-                          onClick={() => {/* TODO: Navigate to log session for player */}}
-                        >
-                          <Target className="h-4 w-4 mr-1" />
-                          Log Session
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="flex-1 md:flex-none"
-                          onClick={() => signOffSession.mutate(activity.id)}
-                          disabled={signOffSession.isPending}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Sign Off
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
