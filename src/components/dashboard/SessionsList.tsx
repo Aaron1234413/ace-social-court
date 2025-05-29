@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useRealtimeDashboard } from '@/hooks/use-realtime-dashboard';
 import { Session, SessionDrill, SessionNextStep } from '@/types/logging';
 import { FilterState } from './DashboardContent';
 import SessionCard from './cards/SessionCard';
@@ -15,6 +15,9 @@ interface SessionsListProps {
 
 export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) => {
   const { user } = useAuth();
+  
+  // Set up real-time subscriptions
+  useRealtimeDashboard();
   
   const { data: sessions, isLoading, error } = useQuery({
     queryKey: ['sessions', filters, isCoach],

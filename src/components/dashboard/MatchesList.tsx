@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useRealtimeDashboard } from '@/hooks/use-realtime-dashboard';
 import { Match, MatchHighlight } from '@/types/logging';
 import { FilterState } from './DashboardContent';
 import MatchCard from './cards/MatchCard';
@@ -14,6 +14,9 @@ interface MatchesListProps {
 
 export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
   const { user } = useAuth();
+  
+  // Set up real-time subscriptions
+  useRealtimeDashboard();
   
   const { data: matches, isLoading, error } = useQuery({
     queryKey: ['matches', filters],

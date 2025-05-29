@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,12 +25,16 @@ import {
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useRealtimeDashboard } from '@/hooks/use-realtime-dashboard';
 import { toast } from 'sonner';
 
 const CoachDashboard = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("lessons");
+
+  // Set up real-time subscriptions
+  useRealtimeDashboard();
 
   // Real sessions where this coach was involved
   const { data: coachSessionsCount } = useQuery({

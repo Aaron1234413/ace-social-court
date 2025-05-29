@@ -75,8 +75,15 @@ export function useSessionSubmit() {
       }
     },
     onSuccess: () => {
-      // Invalidate queries that might depend on this data
+      // Invalidate all relevant queries to trigger real-time updates
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-sessions-count'] });
+      queryClient.invalidateQueries({ queryKey: ['coach-dashboard-sessions-count'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-current-streak'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-weekly-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-upcoming-activities'] });
+      queryClient.invalidateQueries({ queryKey: ['coach-todays-lessons'] });
+      queryClient.invalidateQueries({ queryKey: ['coach-student-activities'] });
       toast.success("Training session logged successfully!");
     },
     onError: (error) => {
