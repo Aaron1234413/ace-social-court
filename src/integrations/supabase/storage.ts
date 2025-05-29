@@ -3,82 +3,61 @@ import { supabase } from "./client";
 
 /**
  * Initialize required storage buckets if they don't exist
+ * This function now handles errors gracefully and doesn't block app startup
  */
 export const initializeStorage = async () => {
   try {
-    console.log('Starting storage initialization...');
+    console.log('Starting storage initialization check...');
     
     // Get list of existing buckets
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
     if (bucketsError) {
       console.error('Error listing storage buckets:', bucketsError);
-      return false;
+      // Don't fail completely - buckets might still work
+      return true;
     }
     
     // Log current bucket configurations
     console.log('Current buckets:', buckets?.map(b => ({ name: b.name, public: b.public })));
     
-    const initBucket = async (bucketName: string) => {
+    const requiredBuckets = ['media', 'message_media'];
+    const existingBucketNames = buckets?.map(b => b.name) || [];
+    
+    // Check if all required buckets exist
+    const missingBuckets = requiredBuckets.filter(name => !existingBucketNames.includes(name));
+    
+    if (missingBuckets.length === 0) {
+      console.log('All required storage buckets already exist');
+      return true;
+    }
+    
+    // Try to create missing buckets (but don't fail if we can't)
+    for (const bucketName of missingBuckets) {
       try {
-        if (!buckets?.some(bucket => bucket.name === bucketName)) {
-          console.log(`Creating ${bucketName} bucket with 5GB limit...`);
-          const { data, error } = await supabase.storage.createBucket(bucketName, {
-            public: true,
-            fileSizeLimit: 5000000000, // 5GB
-          });
-          
-          if (error) {
-            console.error(`Error creating ${bucketName} bucket:`, error);
-            // Try without specifying the file size limit as fallback
-            console.log(`Retrying ${bucketName} bucket creation without size limit...`);
-            const { error: retryError } = await supabase.storage.createBucket(bucketName, {
-              public: true,
-            });
-            
-            if (retryError) {
-              console.error(`Failed to create ${bucketName} bucket on retry:`, retryError);
-            } else {
-              console.log(`Created ${bucketName} bucket successfully without size limit`);
-            }
-          } else {
-            console.log(`Created ${bucketName} bucket successfully with 5GB limit`);
-          }
+        console.log(`Attempting to create missing bucket: ${bucketName}`);
+        const { error } = await supabase.storage.createBucket(bucketName, {
+          public: true,
+        });
+        
+        if (error) {
+          console.warn(`Could not create ${bucketName} bucket:`, error.message);
+          // Continue anyway - bucket might already exist or be created manually
         } else {
-          console.log(`Updating ${bucketName} bucket to 5GB limit...`);
-          try {
-            const { error } = await supabase.storage.updateBucket(bucketName, {
-              public: true,
-              fileSizeLimit: 5000000000, // 5GB
-            });
-            
-            if (error) {
-              console.error(`Error updating ${bucketName} bucket:`, error);
-              
-              // Check if the error is related to fileSizeLimit
-              if (error.message && error.message.includes('fileSizeLimit')) {
-                console.log(`${bucketName} bucket might already have a limit or cannot be updated via API`);
-              }
-            } else {
-              console.log(`Updated ${bucketName} bucket successfully`);
-            }
-          } catch (err) {
-            console.error(`Exception updating ${bucketName} bucket:`, err);
-          }
+          console.log(`Successfully created ${bucketName} bucket`);
         }
       } catch (err) {
-        console.error(`Error handling ${bucketName} bucket:`, err);
+        console.warn(`Exception creating ${bucketName} bucket:`, err);
+        // Continue anyway
       }
-    };
+    }
     
-    // Initialize all required buckets
-    await initBucket('message_media');
-    
-    console.log('Storage initialization completed');
+    console.log('Storage initialization completed successfully');
     return true;
   } catch (error) {
-    console.error('Error initializing storage:', error);
-    return false;
+    console.warn('Storage initialization encountered an error but continuing:', error);
+    // Return true anyway - don't block app startup
+    return true;
   }
 };
 

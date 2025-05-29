@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/components/AuthProvider';
@@ -31,24 +32,21 @@ import AdminMessages from '@/pages/admin/AdminMessages';
 import AdminCourts from '@/pages/admin/AdminCourts';
 
 function App() {
-  // Initialize storage buckets when app loads
+  // Initialize storage buckets when app loads (non-blocking)
   useEffect(() => {
+    // Run storage initialization in the background without blocking app startup
     import('./integrations/supabase/storage')
       .then(({ initializeStorage }) => {
         initializeStorage()
           .then((success) => {
-            if (success) {
-              console.log('Storage initialization successful');
-            } else {
-              console.error('Storage initialization failed');
-            }
+            console.log('Background storage initialization result:', success);
           })
           .catch((err) => {
-            console.error('Error during storage initialization:', err);
+            console.warn('Background storage initialization failed:', err);
           });
       })
       .catch((err) => {
-        console.error('Error importing storage module:', err);
+        console.warn('Error importing storage module:', err);
       });
   }, []);
 

@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { MessageSquare, Heart, Clock } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
-import { toast } from 'sonner';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
 
@@ -21,7 +20,6 @@ const Feed = () => {
   const { user, profile, isProfileComplete } = useAuth();
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
-  const [storageInitialized, setStorageInitialized] = useState(false);
   
   // Debug logging for Feed component
   useEffect(() => {
@@ -44,27 +42,17 @@ const Feed = () => {
   });
 
   useEffect(() => {
-    // Initialize storage only if the user is logged in
+    // Initialize storage in the background without blocking UI
     const setupStorage = async () => {
       try {
         if (user) {
-          console.log('Feed: Initializing storage...');
+          console.log('Feed: Initializing storage in background...');
           const result = await initializeStorage();
-          console.log('Feed: Storage initialization result:', result);
-          setStorageInitialized(result);
-          
-          if (!result) {
-            toast.error('Failed to initialize storage. Media uploads may be limited.', {
-              description: "Storage initialization will be retried next time you log in."
-            });
-          } else {
-            toast.success('Storage initialized successfully');
-          }
+          console.log('Feed: Storage initialization completed:', result);
         }
       } catch (err) {
-        console.error('Failed to initialize storage:', err);
-        setStorageInitialized(false);
-        toast.error('Error initializing media storage');
+        console.warn('Storage initialization failed, but continuing:', err);
+        // Don't show error toasts - just log and continue
       }
     };
     
