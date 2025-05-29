@@ -44,7 +44,10 @@ const CoachDashboard = () => {
         .from('sessions')
         .select(`
           *,
-          player:profiles!sessions_user_id_fkey (username, full_name)
+          player:profiles!sessions_user_id_fkey (
+            username,
+            full_name
+          )
         `)
         .eq('coach_id', user.id)
         .eq('session_date', today)
@@ -70,7 +73,10 @@ const CoachDashboard = () => {
         .from('sessions')
         .select(`
           *,
-          player:profiles!sessions_user_id_fkey (username, full_name)
+          player:profiles!sessions_user_id_fkey (
+            username,
+            full_name
+          )
         `)
         .eq('coach_id', user.id)
         .order('session_date', { ascending: false });
