@@ -644,10 +644,13 @@ export type Database = {
           drills: Json | null
           focus_areas: string[] | null
           id: string
+          location: string | null
           next_steps: Json | null
           reminder_date: string | null
           session_date: string
           session_note: string | null
+          signed_off: boolean | null
+          status: string | null
           updated_at: string | null
           user_id: string
         }
@@ -657,10 +660,13 @@ export type Database = {
           drills?: Json | null
           focus_areas?: string[] | null
           id?: string
+          location?: string | null
           next_steps?: Json | null
           reminder_date?: string | null
           session_date?: string
           session_note?: string | null
+          signed_off?: boolean | null
+          status?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -670,10 +676,13 @@ export type Database = {
           drills?: Json | null
           focus_areas?: string[] | null
           id?: string
+          location?: string | null
           next_steps?: Json | null
           reminder_date?: string | null
           session_date?: string
           session_note?: string | null
+          signed_off?: boolean | null
+          status?: string | null
           updated_at?: string | null
           user_id?: string
         }

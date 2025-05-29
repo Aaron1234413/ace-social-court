@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +44,7 @@ const CoachDashboard = () => {
         .from('sessions')
         .select(`
           *,
-          player:user_profiles (username, full_name)
+          player:profiles!sessions_user_id_fkey (username, full_name)
         `)
         .eq('coach_id', user.id)
         .eq('session_date', today)
@@ -69,7 +70,7 @@ const CoachDashboard = () => {
         .from('sessions')
         .select(`
           *,
-          player:user_profiles (username, full_name)
+          player:profiles!sessions_user_id_fkey (username, full_name)
         `)
         .eq('coach_id', user.id)
         .order('session_date', { ascending: false });
@@ -110,7 +111,7 @@ const CoachDashboard = () => {
 
   // Mutation to update lesson status
   const updateLessonStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: 'completed' | 'cancelled' }) => {
+    mutationFn: async ({ id, status }: { id: string, status: 'completed' | 'cancelled' | 'scheduled' }) => {
       if (!user) throw new Error('User not authenticated');
       
       const { data, error } = await supabase
