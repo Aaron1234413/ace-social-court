@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -249,8 +248,8 @@ const PlayerDashboard = () => {
       <div className="text-center py-6 md:py-8 lg:py-12 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl mx-1 md:mx-0">
         <div className="flex items-center justify-center gap-3 mb-4">
           <div className="relative">
-            <Flame className="h-10 w-10 md:h-12 md:w-12 text-orange-500 drop-shadow-lg animate-pulse-subtle" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-orange-600 rounded-full animate-bounce-subtle"></div>
+            <Flame className="h-10 w-10 md:h-12 md:w-12 text-orange-500 drop-shadow-lg" />
+            <div className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-orange-600 rounded-full"></div>
           </div>
           <div>
             <div className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
@@ -263,8 +262,8 @@ const PlayerDashboard = () => {
         </div>
         <p className="text-sm md:text-base text-gray-600 max-w-md mx-auto px-4">
           {currentStreak && currentStreak > 0 
-            ? "🔥 Keep the momentum going! Log today's session to maintain your streak."
-            : "🔥 Log your first session or match to start building your training streak."
+            ? "Keep the momentum going! Log today's session to maintain your streak."
+            : "Log your first session or match to start building your training streak."
           }
         </p>
       </div>
