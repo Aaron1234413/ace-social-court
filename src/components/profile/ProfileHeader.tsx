@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -87,6 +88,114 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
       
       if (error) throw error;
       return count || 0;
+    }
+  });
+
+  // Calculate real streak from actual session/match data
+  const { data: currentStreak } = useQuery({
+    queryKey: ['current-streak', userId],
+    queryFn: async () => {
+      // Get all sessions and matches for the user, ordered by date descending
+      const [sessionsResult, matchesResult] = await Promise.all([
+        supabase
+          .from('sessions')
+          .select('session_date')
+          .eq('user_id', userId)
+          .order('session_date', { ascending: false }),
+        supabase
+          .from('matches')
+          .select('match_date')
+          .eq('user_id', userId)
+          .order('match_date', { ascending: false })
+      ]);
+
+      if (sessionsResult.error || matchesResult.error) {
+        console.error('Error fetching activity data:', { sessionsResult, matchesResult });
+        return 0;
+      }
+
+      // Combine and sort all activity dates
+      const allActivities = [
+        ...(sessionsResult.data || []).map(s => new Date(s.session_date)),
+        ...(matchesResult.data || []).map(m => new Date(m.match_date))
+      ].sort((a, b) => b.getTime() - a.getTime());
+
+      if (allActivities.length === 0) return 0;
+
+      // Calculate streak - consecutive days with activity
+      let streak = 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Check if there's activity today or yesterday (to account for timezone differences)
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      let checkDate = today;
+      let lastActivityDate = allActivities[0];
+      lastActivityDate.setHours(0, 0, 0, 0);
+
+      // If the most recent activity is today or yesterday, start counting
+      if (lastActivityDate.getTime() === today.getTime() || lastActivityDate.getTime() === yesterday.getTime()) {
+        checkDate = lastActivityDate;
+        streak = 1;
+
+        // Look for consecutive days
+        for (let i = 1; i < allActivities.length; i++) {
+          const activityDate = new Date(allActivities[i]);
+          activityDate.setHours(0, 0, 0, 0);
+          
+          const expectedDate = new Date(checkDate);
+          expectedDate.setDate(expectedDate.getDate() - 1);
+
+          if (activityDate.getTime() === expectedDate.getTime()) {
+            streak++;
+            checkDate = activityDate;
+          } else if (activityDate.getTime() < expectedDate.getTime()) {
+            // Gap found, break the streak
+            break;
+          }
+          // If same date, continue (multiple activities same day)
+        }
+      }
+
+      return streak;
+    }
+  });
+
+  // Calculate weekly progress from real session data
+  const { data: weeklyProgress } = useQuery({
+    queryKey: ['weekly-progress', userId],
+    queryFn: async () => {
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('session_date')
+        .eq('user_id', userId)
+        .gte('session_date', startOfWeek.toISOString().split('T')[0])
+        .lt('session_date', endOfWeek.toISOString().split('T')[0]);
+
+      if (error) {
+        console.error('Error fetching weekly sessions:', error);
+        return { current: 0, goal: 5, percentage: 0 };
+      }
+
+      const sessionsThisWeek = data?.length || 0;
+      const weeklyGoal = 5; // Default goal, could be user-configurable later
+      const percentage = Math.min((sessionsThisWeek / weeklyGoal) * 100, 100);
+
+      return {
+        current: sessionsThisWeek,
+        goal: weeklyGoal,
+        percentage
+      };
     }
   });
   
@@ -318,19 +427,21 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Current Streak */}
+              {/* Current Streak - Real Data */}
               <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
                 <div className="flex items-center gap-1">
                   <Flame className="h-6 w-6 text-orange-500" />
-                  <span className="text-2xl font-bold">4</span>
+                  <span className="text-2xl font-bold">{currentStreak || 0}</span>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Day Streak</p>
-                  <p className="text-xs text-muted-foreground">Keep it going!</p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentStreak && currentStreak > 0 ? "Keep it going!" : "Start logging!"}
+                  </p>
                 </div>
               </div>
               
-              {/* Total Sessions */}
+              {/* Total Sessions - Real Data */}
               <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
                 <div className="flex items-center gap-1">
                   <Target className="h-6 w-6 text-blue-500" />
@@ -342,7 +453,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
                 </div>
               </div>
               
-              {/* Total Matches */}
+              {/* Total Matches - Real Data */}
               <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
                 <div className="flex items-center gap-1">
                   <Trophy className="h-6 w-6 text-green-500" />
@@ -355,13 +466,15 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
               </div>
             </div>
             
-            {/* This Week's Progress */}
+            {/* This Week's Progress - Real Data */}
             <div className="mt-4 p-3 bg-background/50 rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium">This Week's Sessions</span>
-                <span className="text-sm text-muted-foreground">3 of 5</span>
+                <span className="text-sm text-muted-foreground">
+                  {weeklyProgress?.current || 0} of {weeklyProgress?.goal || 5}
+                </span>
               </div>
-              <Progress value={60} className="h-2" />
+              <Progress value={weeklyProgress?.percentage || 0} className="h-2" />
             </div>
           </CardContent>
         </Card>
@@ -516,7 +629,6 @@ const SkillProgressBar = ({ label, value, maxValue, color }: SkillProgressBarPro
   );
 };
 
-// Profile Stat Card Component
 interface ProfileStatCardProps {
   icon: "users" | "users-round" | "award" | "calendar-days";
   count: number;
@@ -525,7 +637,6 @@ interface ProfileStatCardProps {
 }
 
 const ProfileStatCard = ({ icon, count, label, href }: ProfileStatCardProps) => {
-  // Import the appropriate icon based on the icon prop
   let IconComponent;
   if (icon === "users") {
     IconComponent = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
