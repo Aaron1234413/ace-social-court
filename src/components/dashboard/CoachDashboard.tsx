@@ -2,27 +2,22 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Users, 
+  Trophy, 
+  Target, 
   Calendar, 
   TrendingUp, 
-  Plus,
-  BarChart2,
+  Users,
   Award,
-  Target,
-  Clock,
-  MapPin,
   CheckCircle,
+  Clock,
   XCircle,
-  Circle,
-  Trophy,
-  Star,
-  Activity
+  UserCheck,
+  BookOpen,
+  Star
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRealtimeDashboard } from '@/hooks/use-realtime-dashboard';
@@ -31,56 +26,12 @@ import { toast } from 'sonner';
 const CoachDashboard = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("lessons");
-
+  const [activeTab, setActiveTab] = useState<string>("lessons");
+  
   // Set up real-time subscriptions
   useRealtimeDashboard();
 
-  // Real sessions where this coach was involved
-  const { data: coachSessionsCount } = useQuery({
-    queryKey: ['coach-dashboard-sessions-count', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return 0;
-      
-      const { count, error } = await supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('coach_id', user.id);
-      
-      if (error) {
-        console.error('Error fetching coach sessions count:', error);
-        return 0;
-      }
-      
-      return count || 0;
-    },
-    enabled: !!user?.id
-  });
-
-  // Count unique students this coach has worked with
-  const { data: studentsCount } = useQuery({
-    queryKey: ['coach-dashboard-students-count', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return 0;
-      
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('user_id')
-        .eq('coach_id', user.id);
-      
-      if (error) {
-        console.error('Error fetching coach students:', error);
-        return 0;
-      }
-      
-      // Get unique student IDs
-      const uniqueStudents = [...new Set(data?.map(session => session.user_id) || [])];
-      return uniqueStudents.length;
-    },
-    enabled: !!user?.id
-  });
-
-  // Get today's lessons (sessions scheduled for today)
+  // Real todays lessons from database
   const { data: todaysLessons } = useQuery({
     queryKey: ['coach-todays-lessons', user?.id],
     queryFn: async () => {
@@ -91,442 +42,424 @@ const CoachDashboard = () => {
       const { data, error } = await supabase
         .from('sessions')
         .select(`
-          id,
-          session_date,
-          focus_areas,
-          session_note,
-          user_id,
-          profiles!sessions_user_id_fkey(username, full_name)
+          *,
+          player:user_profiles (username, full_name)
         `)
         .eq('coach_id', user.id)
         .eq('session_date', today)
-        .order('session_date', { ascending: true });
-
+        .order('session_date', { ascending: false });
+      
       if (error) {
-        console.error('Error fetching today\'s lessons:', error);
+        console.error('Error fetching todays lessons:', error);
         return [];
       }
-
+      
       return data || [];
     },
     enabled: !!user?.id
   });
 
-  // Get student activities that need review
+  // Real student activities from database
   const { data: studentActivities } = useQuery({
     queryKey: ['coach-student-activities', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      // Get sessions where coach_id is null (logged by players) or sessions that need sign-off
       const { data, error } = await supabase
         .from('sessions')
         .select(`
-          id,
-          session_date,
-          focus_areas,
-          session_note,
-          user_id,
-          drills,
-          profiles!sessions_user_id_fkey(username, full_name)
+          *,
+          player:user_profiles (username, full_name)
         `)
-        .is('coach_id', null)
-        .order('session_date', { ascending: false })
-        .limit(10);
-
+        .eq('coach_id', user.id)
+        .order('session_date', { ascending: false });
+      
       if (error) {
         console.error('Error fetching student activities:', error);
         return [];
       }
-
+      
       return data || [];
     },
     enabled: !!user?.id
   });
 
-  // Get coaching milestones
-  const { data: coachingMilestones } = useQuery({
-    queryKey: ['coaching-milestones', user?.id],
+  // Real sessions count from database
+  const { data: totalSessionsCoached } = useQuery({
+    queryKey: ['coach-dashboard-sessions-count', user?.id],
     queryFn: async () => {
-      const sessionCount = coachSessionsCount || 0;
-      const milestones = [];
+      if (!user?.id) return 0;
       
-      if (sessionCount >= 100) milestones.push({ title: "🎖️ Century Coach", description: "100+ Sessions Coached" });
-      if (sessionCount >= 50) milestones.push({ title: "🏆 Expert Coach", description: "50+ Sessions Coached" });
-      if (sessionCount >= 25) milestones.push({ title: "⭐ Rising Coach", description: "25+ Sessions Coached" });
-      if (sessionCount >= 10) milestones.push({ title: "🎾 Active Coach", description: "10+ Sessions Coached" });
+      const { count, error } = await supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('coach_id', user.id);
       
-      return milestones.slice(0, 3); // Show top 3 milestones
+      if (error) {
+        console.error('Error fetching sessions count:', error);
+        return 0;
+      }
+      
+      return count || 0;
     },
-    enabled: !!coachSessionsCount
+    enabled: !!user?.id
   });
+
+  // Mock coach ranking
+  const coachRanking = Math.floor(Math.random() * 100) + 1;
 
   // Mutation to update lesson status
   const updateLessonStatus = useMutation({
-    mutationFn: async ({ sessionId, status }: { sessionId: string, status: string }) => {
-      // For now, we'll use session_note to store status
-      // In a full implementation, you'd add a status column to the sessions table
-      const { error } = await supabase
+    mutationFn: async ({ id, status }: { id: string, status: 'completed' | 'cancelled' }) => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase
         .from('sessions')
-        .update({ 
-          session_note: `Status: ${status}${status === 'COMPLETED' ? ' - Lesson completed' : status === 'CANCELLED' ? ' - Lesson cancelled' : ' - Lesson scheduled'}`
-        })
-        .eq('id', sessionId);
-
-      if (error) throw error;
+        .update({ status })
+        .eq('id', id)
+        .select();
+        
+      if (error) {
+        console.error('Error updating session status:', error);
+        throw error;
+      }
+      
+      return data;
     },
     onSuccess: () => {
+      // Invalidate all relevant queries to trigger real-time updates
       queryClient.invalidateQueries({ queryKey: ['coach-todays-lessons'] });
+      queryClient.invalidateQueries({ queryKey: ['coach-student-activities'] });
       toast.success("Lesson status updated successfully!");
     },
     onError: (error) => {
-      console.error('Error updating lesson status:', error);
+      console.error('Session status update error:', error);
       toast.error("Failed to update lesson status");
     }
   });
 
-  // Mutation to sign off student session
+  // Mutation to sign off session
   const signOffSession = useMutation({
-    mutationFn: async (sessionId: string) => {
-      const { error } = await supabase
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase
         .from('sessions')
-        .update({ coach_id: user?.id })
-        .eq('id', sessionId);
-
-      if (error) throw error;
+        .update({ signed_off: true })
+        .eq('id', id)
+        .select();
+        
+      if (error) {
+        console.error('Error signing off session:', error);
+        throw error;
+      }
+      
+      return data;
     },
     onSuccess: () => {
+      // Invalidate all relevant queries to trigger real-time updates
       queryClient.invalidateQueries({ queryKey: ['coach-student-activities'] });
-      queryClient.invalidateQueries({ queryKey: ['coach-dashboard-sessions-count'] });
       toast.success("Session signed off successfully!");
     },
     onError: (error) => {
-      console.error('Error signing off session:', error);
+      console.error('Session sign off error:', error);
       toast.error("Failed to sign off session");
     }
   });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'CANCELLED': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return <Circle className="h-4 w-4 text-blue-500" />;
-    }
-  };
-
-  const getStatusFromNote = (note: string | null) => {
-    if (!note) return 'ON';
-    if (note.includes('Status: COMPLETED')) return 'COMPLETED';
-    if (note.includes('Status: CANCELLED')) return 'CANCELLED';
-    return 'ON';
-  };
-
   return (
-    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
-      {/* Mobile-optimized Stats Overview for Coaches */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        <Card className="touch-manipulation">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-5 w-5 md:h-4 md:w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent className="pb-3 md:pb-6">
-            <div className="text-xl md:text-2xl font-bold">{studentsCount || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              unique students coached
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="touch-manipulation">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Sessions</CardTitle>
-            <Target className="h-5 w-5 md:h-4 md:w-4 text-green-500" />
-          </CardHeader>
-          <CardContent className="pb-3 md:pb-6">
-            <div className="text-xl md:text-2xl font-bold">{coachSessionsCount || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              coaching sessions conducted
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="touch-manipulation col-span-2 lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Today's Lessons</CardTitle>
-            <Calendar className="h-5 w-5 md:h-4 md:w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent className="pb-3 md:pb-6">
-            <div className="text-xl md:text-2xl font-bold">
-              {todaysLessons?.length || 0}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              scheduled for today
-            </p>
-          </CardContent>
-        </Card>
+    <div className="space-y-4 md:space-y-6 px-3 md:px-4 lg:px-0">
+      {/* Coach Header */}
+      <div className="text-center py-6 md:py-8 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl mx-1 md:mx-0">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="p-3 bg-white rounded-full shadow-lg">
+            <UserCheck className="h-8 w-8 md:h-10 md:w-10 text-blue-600" />
+          </div>
+          <div>
+            <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-800">Coach Dashboard</div>
+            <div className="text-sm md:text-base text-blue-600">Manage your lessons and students</div>
+          </div>
+        </div>
       </div>
 
-      {/* Mobile-optimized Quick Actions for Coaches */}
-      <Card className="touch-manipulation">
-        <CardHeader className="pb-3 md:pb-6">
-          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <Plus className="h-5 w-5" />
-            Coach Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4 md:pb-6">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
-            <Button asChild className="h-16 md:h-auto p-4 justify-start text-left touch-manipulation">
-              <Link to="/log-session">
-                <div className="flex items-center gap-3 w-full">
-                  <Target className="h-6 w-6 md:h-5 md:w-5 flex-shrink-0" />
-                  <div>
-                    <div className="font-semibold text-sm md:text-base">Log Coaching Session</div>
-                    <div className="text-xs md:text-sm text-muted-foreground">Record a student training session</div>
-                  </div>
-                </div>
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-16 md:h-auto p-4 justify-start text-left touch-manipulation">
-              <Link to="/search">
-                <div className="flex items-center gap-3 w-full">
-                  <Users className="h-6 w-6 md:h-5 md:w-5 flex-shrink-0" />
-                  <div>
-                    <div className="font-semibold text-sm md:text-base">Find Students</div>
-                    <div className="text-xs md:text-sm text-muted-foreground">Connect with new players</div>
-                  </div>
-                </div>
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Modern Pill-Style Tabs */}
+      <Tabs 
+        value={activeTab} 
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto h-12 md:h-14 p-1 bg-gray-100 rounded-2xl shadow-inner">
+          <TabsTrigger 
+            value="lessons" 
+            className="rounded-xl h-10 md:h-12 font-semibold text-xs md:text-sm transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-primary data-[state=active]:scale-[1.02] px-2 md:px-4"
+          >
+            <Calendar className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Today's</span> Lessons
+          </TabsTrigger>
+          <TabsTrigger 
+            value="activity"
+            className="rounded-xl h-10 md:h-12 font-semibold text-xs md:text-sm transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-primary data-[state=active]:scale-[1.02] px-2 md:px-4"
+          >
+            <Users className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Student</span> Activity
+          </TabsTrigger>
+          <TabsTrigger 
+            value="growth"
+            className="rounded-xl h-10 md:h-12 font-semibold text-xs md:text-sm transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-primary data-[state=active]:scale-[1.02] px-2 md:px-4"
+          >
+            <Award className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Growth</span> Hub
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Tabbed Interface */}
-      <Card className="touch-manipulation">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg md:text-xl">Coach Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
-              <TabsTrigger value="lessons" className="text-xs md:text-sm">Today's Lessons</TabsTrigger>
-              <TabsTrigger value="activity" className="text-xs md:text-sm">Student Activity</TabsTrigger>
-              <TabsTrigger value="growth" className="text-xs md:text-sm">Growth Hub</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="lessons" className="mt-0">
-              <div className="space-y-3">
-                {todaysLessons && todaysLessons.length > 0 ? (
-                  todaysLessons.map((lesson) => {
-                    const status = getStatusFromNote(lesson.session_note);
-                    return (
-                      <div key={lesson.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <div className="font-medium text-sm md:text-base">
-                                {Array.isArray(lesson.profiles) && lesson.profiles.length > 0 
-                                  ? lesson.profiles[0]?.full_name || lesson.profiles[0]?.username || 'Student'
-                                  : 'Student'}
-                              </div>
-                              {getStatusIcon(status)}
-                            </div>
-                            <div className="flex items-center gap-4 mt-1 text-xs md:text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>Today</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>Tennis Court</span>
-                              </div>
-                            </div>
-                            {lesson.focus_areas && lesson.focus_areas.length > 0 && (
-                              <div className="mt-2">
-                                <div className="text-xs text-muted-foreground">Focus Areas:</div>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {lesson.focus_areas.map((area, index) => (
-                                    <Badge key={index} variant="outline" className="text-xs">
-                                      {area}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+        {/* Today's Lessons Tab */}
+        <TabsContent value="lessons" className="mt-6">
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                Today's Lessons
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 md:p-6">
+              {todaysLessons && todaysLessons.length > 0 ? (
+                <div className="space-y-4">
+                  {todaysLessons.map((lesson) => (
+                    <div key={lesson.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm space-y-3 md:space-y-0">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Target className="h-5 w-5 text-blue-600" />
                         </div>
-                        
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant={status === 'ON' ? 'default' : 'outline'}
-                            onClick={() => updateLessonStatus.mutate({ sessionId: lesson.id, status: 'ON' })}
-                            disabled={updateLessonStatus.isPending}
-                            className="text-xs"
-                          >
-                            ON
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={status === 'CANCELLED' ? 'destructive' : 'outline'}
-                            onClick={() => updateLessonStatus.mutate({ sessionId: lesson.id, status: 'CANCELLED' })}
-                            disabled={updateLessonStatus.isPending}
-                            className="text-xs"
-                          >
-                            CANCELLED
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={status === 'COMPLETED' ? 'default' : 'outline'}
-                            onClick={() => updateLessonStatus.mutate({ sessionId: lesson.id, status: 'COMPLETED' })}
-                            disabled={updateLessonStatus.isPending}
-                            className="text-xs"
-                          >
-                            COMPLETED
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-sm md:text-base">No lessons scheduled for today</p>
-                    <p className="text-xs md:text-sm">Check back tomorrow or schedule new lessons!</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="activity" className="mt-0">
-              <div className="space-y-3">
-                {studentActivities && studentActivities.length > 0 ? (
-                  studentActivities.map((activity) => (
-                    <div key={activity.id} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm md:text-base">
-                            {Array.isArray(activity.profiles) && activity.profiles.length > 0 
-                              ? activity.profiles[0]?.full_name || activity.profiles[0]?.username || 'Student'
-                              : 'Student'}
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-base text-gray-900">
+                            {lesson.player?.username || lesson.player?.full_name || 'Unknown Player'}
                           </div>
-                          <div className="text-xs md:text-sm text-muted-foreground">
-                            Session on {new Date(activity.session_date).toLocaleDateString()}
+                          <div className="text-sm text-gray-600">
+                            {new Date(lesson.session_date).toLocaleTimeString()} • {lesson.location || 'No location set'}
                           </div>
-                          {activity.focus_areas && activity.focus_areas.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {activity.focus_areas.map((area, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
+                          {lesson.focus_areas && lesson.focus_areas.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {lesson.focus_areas.slice(0, 2).map((area, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
                                   {area}
                                 </Badge>
                               ))}
                             </div>
                           )}
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          Needs Review
-                        </Badge>
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 w-full md:w-auto">
                         <Button
+                          variant={lesson.status === 'completed' ? 'default' : 'outline'}
                           size="sm"
-                          onClick={() => signOffSession.mutate(activity.id)}
-                          disabled={signOffSession.isPending}
-                          className="text-xs"
+                          className="flex-1 md:flex-none"
+                          onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'completed' })}
+                          disabled={updateLessonStatus.isPending}
                         >
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Sign Off
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Complete
                         </Button>
                         <Button
+                          variant={lesson.status === 'cancelled' ? 'destructive' : 'outline'}
                           size="sm"
-                          variant="outline"
-                          asChild
-                          className="text-xs"
+                          className="flex-1 md:flex-none"
+                          onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'cancelled' })}
+                          disabled={updateLessonStatus.isPending}
                         >
-                          <Link to={`/log-session?player=${activity.user_id}`}>
-                            <Plus className="h-3 w-3 mr-1" />
-                            Log Session
-                          </Link>
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Cancel
                         </Button>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-sm md:text-base">No student activities to review</p>
-                    <p className="text-xs md:text-sm">Student sessions will appear here when they need your review!</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="growth" className="mt-0">
-              <div className="space-y-4">
-                {/* Coaching Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-yellow-500" />
-                        Total Sessions
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{coachSessionsCount || 0}</div>
-                      <p className="text-xs text-muted-foreground">sessions coached</p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Star className="h-4 w-4 text-blue-500" />
-                        Ranking
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">#1</div>
-                      <p className="text-xs text-muted-foreground">in your area</p>
-                    </CardContent>
-                  </Card>
+                  ))}
                 </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-40" />
+                  <p className="text-base font-medium">No lessons scheduled for today</p>
+                  <p className="text-sm mt-1">Your upcoming lessons will appear here</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                {/* Coaching Milestones */}
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Award className="h-4 w-4" />
-                    Recent Milestones
-                  </h4>
-                  <div className="space-y-2">
-                    {coachingMilestones && coachingMilestones.length > 0 ? (
-                      coachingMilestones.map((milestone, index) => (
-                        <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                          <div className="text-lg">{milestone.title.split(' ')[0]}</div>
-                          <div>
-                            <div className="font-medium text-sm">{milestone.title.substring(2)}</div>
-                            <div className="text-xs text-muted-foreground">{milestone.description}</div>
-                          </div>
+        {/* Student Activity Tab */}
+        <TabsContent value="activity" className="mt-6">
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                <Users className="h-5 w-5 text-green-600" />
+                Student Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 md:p-6">
+              {studentActivities && studentActivities.length > 0 ? (
+                <div className="space-y-4">
+                  {studentActivities.map((activity) => (
+                    <div key={activity.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm space-y-3 md:space-y-0">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <BookOpen className="h-5 w-5 text-green-600" />
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-6 text-muted-foreground">
-                        <Award className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Keep coaching to unlock milestones!</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-base text-gray-900">
+                            {activity.player?.username || activity.player?.full_name || 'Unknown Player'}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Session on {new Date(activity.session_date).toLocaleDateString()}
+                          </div>
+                          {activity.focus_areas && activity.focus_areas.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {activity.focus_areas.slice(0, 3).map((area, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {area}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
+                      
+                      <div className="flex gap-2 w-full md:w-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 md:flex-none"
+                          onClick={() => {/* TODO: Navigate to log session for player */}}
+                        >
+                          <Target className="h-4 w-4 mr-1" />
+                          Log Session
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1 md:flex-none"
+                          onClick={() => signOffSession.mutate(activity.id)}
+                          disabled={signOffSession.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Sign Off
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-40" />
+                  <p className="text-base font-medium">No pending student activities</p>
+                  <p className="text-sm mt-1">Student sessions needing review will appear here</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Growth Hub Tab */}
+        <TabsContent value="growth" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {/* Total Sessions Coached */}
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-purple-50 to-indigo-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Trophy className="h-5 w-5 text-purple-600" />
+                  Sessions Coached
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl md:text-4xl font-bold text-purple-800">{totalSessionsCoached || 0}</div>
+                <p className="text-sm text-purple-600 mt-1">Total sessions completed</p>
+              </CardContent>
+            </Card>
+
+            {/* Leaderboard Ranking */}
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-yellow-50 to-orange-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Star className="h-5 w-5 text-yellow-600" />
+                  Ranking
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl md:text-4xl font-bold text-yellow-800">#{coachRanking || '?'}</div>
+                <p className="text-sm text-yellow-600 mt-1">Coach leaderboard</p>
+              </CardContent>
+            </Card>
+
+            {/* Recent Milestones */}
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-green-50 to-emerald-100 md:col-span-2 lg:col-span-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Award className="h-5 w-5 text-green-600" />
+                  Milestones
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {getMilestones(totalSessionsCoached || 0).map((milestone, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                      <div className="text-2xl">{milestone.icon}</div>
+                      <div>
+                        <div className="font-semibold text-sm text-green-800">{milestone.title}</div>
+                        <div className="text-xs text-green-600">{milestone.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {getMilestones(totalSessionsCoached || 0).length === 0 && (
+                    <div className="text-center py-4 text-green-600">
+                      <Award className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                      <p className="text-sm">Complete sessions to earn milestones!</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
+};
+
+// Helper function to get milestones
+const getMilestones = (sessionCount: number) => {
+  const milestones = [];
+  
+  if (sessionCount >= 10) {
+    milestones.push({
+      icon: "🏆",
+      title: "First Milestone",
+      description: "10 Sessions Coached"
+    });
+  }
+  
+  if (sessionCount >= 50) {
+    milestones.push({
+      icon: "🎯",
+      title: "Coach Professional",
+      description: "50 Sessions Coached"
+    });
+  }
+  
+  if (sessionCount >= 100) {
+    milestones.push({
+      icon: "🎖",
+      title: "Master Coach",
+      description: "100 Sessions Coached"
+    });
+  }
+  
+  if (sessionCount >= 250) {
+    milestones.push({
+      icon: "👑",
+      title: "Elite Coach",
+      description: "250 Sessions Coached"
+    });
+  }
+  
+  return milestones.slice(-3); // Show last 3 milestones
 };
 
 export default CoachDashboard;
