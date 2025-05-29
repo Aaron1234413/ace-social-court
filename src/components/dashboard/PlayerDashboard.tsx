@@ -264,7 +264,7 @@ const PlayerDashboard = () => {
         <p className="text-sm md:text-base text-gray-600 max-w-md mx-auto px-4">
           {currentStreak && currentStreak > 0 
             ? "🔥 Keep the momentum going! Log today's session to maintain your streak."
-            : "✨ Log your first session or match to start building your training streak."
+            : "🔥 Log your first session or match to start building your training streak."
           }
         </p>
       </div>
