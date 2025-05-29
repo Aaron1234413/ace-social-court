@@ -5,7 +5,6 @@ import { useAuth } from '@/components/AuthProvider';
 import PlayerDashboard from '@/components/dashboard/PlayerDashboard';
 import CoachDashboard from '@/components/dashboard/CoachDashboard';
 import { Link } from 'react-router-dom';
-import { BeakerIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 
@@ -44,16 +43,6 @@ const Dashboard = () => {
       
       {/* Mobile-optimized container with proper spacing */}
       <div className="min-h-screen bg-background">
-        {/* Testing Tools Button - Mobile optimized */}
-        <div className="container py-4">
-          <Link to="/user-testing" className="inline-block">
-            <Button variant="outline" className="flex items-center gap-2 h-12 px-4 touch-manipulation">
-              <BeakerIcon size={16} />
-              <span className="text-sm">User Testing Guide</span>
-            </Button>
-          </Link>
-        </div>
-        
         {/* Role-based Dashboard Rendering */}
         <div className="container pb-20 md:pb-8">
           {isCoach ? <CoachDashboard /> : <PlayerDashboard />}
