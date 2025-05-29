@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
@@ -15,7 +14,6 @@ import { toast } from 'sonner';
 import { Loader2, BarChart2 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
-import ProfileDashboardButton from '@/components/profile/ProfileDashboardButton';
 import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 
@@ -166,13 +164,6 @@ const Profile = () => {
             <ProfileHeader userId={profile.id} isOwnProfile={isOwnProfile} />
           </Card>
         </motion.div>
-        
-        {/* Add dashboard button if it's the user's own profile */}
-        {isOwnProfile && (
-          <motion.div variants={itemVariants} className="flex justify-end">
-            <ProfileDashboardButton userId={profile.id} isOwnProfile={isOwnProfile} />
-          </motion.div>
-        )}
         
         <Separator className="my-8" />
         

@@ -1,9 +1,10 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Pencil, MapPin, Calendar, Award, Upload, Image } from 'lucide-react';
+import { Pencil, MapPin, Calendar, Award, Upload, Image, BarChart2, Flame, Target, Trophy } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import MessageButton from '@/components/messages/MessageButton';
 import { Progress } from '@/components/ui/progress';
@@ -13,6 +14,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
 import { uploadFileWithProgress } from '@/integrations/supabase/storage';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ProfileHeaderProps {
   userId: string;
@@ -217,12 +219,20 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
         {/* Action buttons - positioned top right */}
         <div className="absolute top-0 right-0">
           {isOwnProfile ? (
-            <Button asChild size="sm" variant="secondary" className="bg-primary/90 text-primary-foreground hover:bg-primary shadow-md">
-              <Link to="/profile/edit">
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild size="sm" variant="outline" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <Link to="/dashboard">
+                  <BarChart2 className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="secondary" className="bg-secondary/90 text-secondary-foreground hover:bg-secondary">
+                <Link to="/profile/edit">
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Link>
+              </Button>
+            </div>
           ) : (
             <div className="flex gap-2">
               <FollowButton userId={userId} />
@@ -288,6 +298,73 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
           </div>
         )}
       </div>
+
+      {/* Dashboard Preview Section - Only for own profile */}
+      {isOwnProfile && (
+        <Card className="border border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <BarChart2 className="h-5 w-5 text-primary" />
+                Your Progress
+              </CardTitle>
+              <Button asChild size="sm" variant="default">
+                <Link to="/dashboard">
+                  View Full Dashboard
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Current Streak */}
+              <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
+                <div className="flex items-center gap-1">
+                  <Flame className="h-6 w-6 text-orange-500" />
+                  <span className="text-2xl font-bold">4</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Day Streak</p>
+                  <p className="text-xs text-muted-foreground">Keep it going!</p>
+                </div>
+              </div>
+              
+              {/* Total Sessions */}
+              <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
+                <div className="flex items-center gap-1">
+                  <Target className="h-6 w-6 text-blue-500" />
+                  <span className="text-2xl font-bold">{sessionsCount || 0}</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Sessions</p>
+                  <p className="text-xs text-muted-foreground">Total logged</p>
+                </div>
+              </div>
+              
+              {/* Total Matches */}
+              <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
+                <div className="flex items-center gap-1">
+                  <Trophy className="h-6 w-6 text-green-500" />
+                  <span className="text-2xl font-bold">{matchesCount || 0}</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Matches</p>
+                  <p className="text-xs text-muted-foreground">This season</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* This Week's Progress */}
+            <div className="mt-4 p-3 bg-background/50 rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">This Week's Sessions</span>
+                <span className="text-sm text-muted-foreground">3 of 5</span>
+              </div>
+              <Progress value={60} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Profile Stats Bar */}
       <div className="flex flex-wrap justify-center gap-4 my-8">
@@ -399,7 +476,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
               <div className="mt-4">
                 <Link to="/dashboard">
                   <Button variant="outline" size="sm" className="w-full mt-2">
-                    View Full Stats
+                    View Full Dashboard
                   </Button>
                 </Link>
               </div>
