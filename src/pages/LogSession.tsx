@@ -29,21 +29,24 @@ export default function LogSession() {
       title: 'PHYSICAL',
       emoji: '💪',
       description: 'Energy, endurance, and court coverage',
-      gradient: 'from-red-500 to-orange-500'
+      gradient: 'from-red-500 to-orange-500',
+      ringColor: 'ring-orange-500'
     },
     {
       id: 'mental' as Pillar,
       title: 'MENTAL',
       emoji: '🧠',
       description: 'Focus, confidence, and mindset',
-      gradient: 'from-blue-500 to-purple-500'
+      gradient: 'from-blue-500 to-purple-500',
+      ringColor: 'ring-purple-500'
     },
     {
       id: 'technical' as Pillar,
       title: 'TECHNICAL',
       emoji: '🎾',
       description: 'Strokes, technique, and skills',
-      gradient: 'from-green-500 to-teal-500'
+      gradient: 'from-green-500 to-teal-500',
+      ringColor: 'ring-teal-500'
     }
   ];
 
@@ -162,17 +165,10 @@ export default function LogSession() {
               className={`
                 cursor-pointer transition-all duration-300 transform hover:scale-105 relative overflow-hidden
                 ${isPillarSelected(pillar.id) 
-                  ? 'ring-4 ring-offset-2 shadow-2xl' 
+                  ? `ring-4 ring-offset-2 shadow-2xl ${pillar.ringColor}` 
                   : 'hover:shadow-lg'
                 }
               `}
-              style={{
-                ringColor: isPillarSelected(pillar.id) 
-                  ? pillar.id === 'physical' ? '#f97316' 
-                    : pillar.id === 'mental' ? '#8b5cf6'
-                    : '#10b981'
-                  : 'transparent'
-              }}
               onClick={() => togglePillar(pillar.id)}
             >
               {/* Background Gradient Overlay */}
