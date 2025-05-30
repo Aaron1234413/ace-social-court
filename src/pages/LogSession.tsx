@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
 import PhysicalTracker from '@/components/logging/session/PhysicalTracker';
+import MentalTracker from '@/components/logging/session/MentalTracker';
 
 type Pillar = 'physical' | 'mental' | 'technical';
 
@@ -93,6 +94,10 @@ export default function LogSession() {
     setPillarData(prev => ({ ...prev, physical: data }));
   };
 
+  const handleMentalDataChange = (data: any) => {
+    setPillarData(prev => ({ ...prev, mental: data }));
+  };
+
   // Handle Physical Tracker Step
   if (currentStep === 'physical') {
     return (
@@ -125,6 +130,45 @@ export default function LogSession() {
               className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white"
             >
               {selectedPillars.indexOf('physical') === selectedPillars.length - 1 ? 'Finish' : 'Next Pillar'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle Mental Tracker Step
+  if (currentStep === 'mental') {
+    return (
+      <div className="container mx-auto py-6 px-4 md:px-6">
+        <div className="max-w-2xl mx-auto">
+          <Button 
+            variant="ghost" 
+            onClick={goBackToSelection}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Pillar Selection
+          </Button>
+          
+          <MentalTracker 
+            onDataChange={handleMentalDataChange}
+            initialData={pillarData.mental}
+          />
+          
+          <div className="flex justify-between mt-8">
+            <Button 
+              variant="outline" 
+              onClick={goBackToSelection}
+            >
+              Back
+            </Button>
+            <Button
+              onClick={() => handlePillarComplete('mental', pillarData.mental)}
+              disabled={!pillarData.mental?.emotionEmoji}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
+            >
+              {selectedPillars.indexOf('mental') === selectedPillars.length - 1 ? 'Finish' : 'Next Pillar'}
             </Button>
           </div>
         </div>
