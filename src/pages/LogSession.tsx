@@ -8,6 +8,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
 import PhysicalTracker from '@/components/logging/session/PhysicalTracker';
 import MentalTracker from '@/components/logging/session/MentalTracker';
+import TechnicalTracker from '@/components/logging/session/TechnicalTracker';
 
 type Pillar = 'physical' | 'mental' | 'technical';
 
@@ -98,6 +99,10 @@ export default function LogSession() {
     setPillarData(prev => ({ ...prev, mental: data }));
   };
 
+  const handleTechnicalDataChange = (data: any) => {
+    setPillarData(prev => ({ ...prev, technical: data }));
+  };
+
   // Handle Physical Tracker Step
   if (currentStep === 'physical') {
     return (
@@ -176,7 +181,46 @@ export default function LogSession() {
     );
   }
 
-  // Handle other pillar steps (placeholder for now)
+  // Handle Technical Tracker Step
+  if (currentStep === 'technical') {
+    return (
+      <div className="container mx-auto py-6 px-4 md:px-6">
+        <div className="max-w-2xl mx-auto">
+          <Button 
+            variant="ghost" 
+            onClick={goBackToSelection}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Pillar Selection
+          </Button>
+          
+          <TechnicalTracker 
+            onDataChange={handleTechnicalDataChange}
+            initialData={pillarData.technical}
+          />
+          
+          <div className="flex justify-between mt-8">
+            <Button 
+              variant="outline" 
+              onClick={goBackToSelection}
+            >
+              Back
+            </Button>
+            <Button
+              onClick={() => handlePillarComplete('technical', pillarData.technical)}
+              disabled={!pillarData.technical?.selectedStrokes || Object.keys(pillarData.technical.selectedStrokes).length === 0}
+              className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
+            >
+              {selectedPillars.indexOf('technical') === selectedPillars.length - 1 ? 'Finish' : 'Next Pillar'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle other pillar steps (placeholder for now) - this section is no longer needed since all trackers are implemented
   if (currentStep !== 'selection' && currentStep !== 'summary') {
     return (
       <div className="container mx-auto py-6 px-4 md:px-6">
