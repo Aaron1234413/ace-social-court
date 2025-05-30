@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import AIPromptHelper from './AIPromptHelper';
 
 interface PhysicalData {
   energyLevel: string;
@@ -27,14 +28,6 @@ const energyOptions = [
   { emoji: '😐', label: 'Neutral', value: 'neutral' }
 ];
 
-const aiSuggestions = [
-  "Great cardio workout",
-  "Heavy baseline movement today",
-  "Felt energized throughout",
-  "Good court positioning",
-  "Strong finish to the session"
-];
-
 export default function PhysicalTracker({ onDataChange, initialData = {} }: PhysicalTrackerProps) {
   const [data, setData] = useState<PhysicalData>({
     energyLevel: initialData.energyLevel || '',
@@ -45,7 +38,6 @@ export default function PhysicalTracker({ onDataChange, initialData = {} }: Phys
   });
 
   const [showSliders, setShowSliders] = useState(false);
-  const [showAISuggestions, setShowAISuggestions] = useState(false);
 
   const updateData = (updates: Partial<PhysicalData>) => {
     const newData = { ...data, ...updates };
@@ -61,11 +53,15 @@ export default function PhysicalTracker({ onDataChange, initialData = {} }: Phys
     updateData({ [field]: value[0] });
   };
 
-  const handleSuggestionSelect = (suggestion: string) => {
+  const handleAISuggestion = (suggestion: string) => {
     const currentNotes = data.notes;
     const newNotes = currentNotes ? `${currentNotes} ${suggestion}` : suggestion;
     updateData({ notes: newNotes });
-    setShowAISuggestions(false);
+  };
+
+  const getEnergyContext = () => {
+    const selectedEnergy = energyOptions.find(opt => opt.value === data.energyLevel);
+    return selectedEnergy ? `Player felt ${selectedEnergy.label.toLowerCase()} during the session` : 'Tennis training session';
   };
 
   return (
@@ -166,38 +162,12 @@ export default function PhysicalTracker({ onDataChange, initialData = {} }: Phys
         </CollapsibleContent>
       </Collapsible>
 
-      {/* AI Suggestions */}
-      <Card>
-        <CardContent className="pt-6">
-          <Button
-            variant="outline"
-            className="w-full justify-center space-x-2 mb-4"
-            onClick={() => setShowAISuggestions(!showAISuggestions)}
-          >
-            <Lightbulb className="h-4 w-4" />
-            <span>Need help logging this?</span>
-          </Button>
-
-          {showAISuggestions && (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600 mb-3">Try these suggestions:</p>
-              <div className="flex flex-wrap gap-2">
-                {aiSuggestions.map((suggestion, index) => (
-                  <Button
-                    key={index}
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleSuggestionSelect(suggestion)}
-                    className="text-xs"
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* AI Prompt Helper */}
+      <AIPromptHelper
+        pillar="physical"
+        context={getEnergyContext()}
+        onSuggestionSelect={handleAISuggestion}
+      />
 
       {/* Notes Section */}
       <Card>

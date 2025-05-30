@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import AIPromptHelper from './AIPromptHelper';
 
 interface MentalData {
   emotionEmoji: string;
@@ -29,15 +30,6 @@ const emotionOptions = [
   { emoji: '🔥', label: 'Fired Up', value: 'fired_up' }
 ];
 
-const aiSuggestions = [
-  "Frustrated with backhand",
-  "Felt sharp on pressure points",
-  "Lost focus mid-session",
-  "Great mental clarity today",
-  "Struggled with match pressure",
-  "Confident on big points"
-];
-
 export default function MentalTracker({ onDataChange, initialData = {} }: MentalTrackerProps) {
   const [data, setData] = useState<MentalData>({
     emotionEmoji: initialData.emotionEmoji || '',
@@ -49,7 +41,6 @@ export default function MentalTracker({ onDataChange, initialData = {} }: Mental
   });
 
   const [showSliders, setShowSliders] = useState(false);
-  const [showAISuggestions, setShowAISuggestions] = useState(false);
 
   const updateData = (updates: Partial<MentalData>) => {
     const newData = { ...data, ...updates };
@@ -65,11 +56,15 @@ export default function MentalTracker({ onDataChange, initialData = {} }: Mental
     updateData({ [field]: value[0] });
   };
 
-  const handleSuggestionSelect = (suggestion: string) => {
+  const handleAISuggestion = (suggestion: string) => {
     const currentReflection = data.reflection;
     const newReflection = currentReflection ? `${currentReflection} ${suggestion}` : suggestion;
     updateData({ reflection: newReflection });
-    setShowAISuggestions(false);
+  };
+
+  const getEmotionContext = () => {
+    const selectedEmotion = emotionOptions.find(opt => opt.value === data.emotionEmoji);
+    return selectedEmotion ? `Player felt ${selectedEmotion.label.toLowerCase()} during the session` : 'Tennis training session mental state';
   };
 
   return (
@@ -107,38 +102,12 @@ export default function MentalTracker({ onDataChange, initialData = {} }: Mental
         </CardContent>
       </Card>
 
-      {/* AI Suggestions */}
-      <Card>
-        <CardContent className="pt-6">
-          <Button
-            variant="outline"
-            className="w-full justify-center space-x-2 mb-4"
-            onClick={() => setShowAISuggestions(!showAISuggestions)}
-          >
-            <Lightbulb className="h-4 w-4" />
-            <span>Need help describing how you felt?</span>
-          </Button>
-
-          {showAISuggestions && (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600 mb-3">Try these suggestions:</p>
-              <div className="flex flex-wrap gap-2">
-                {aiSuggestions.map((suggestion, index) => (
-                  <Button
-                    key={index}
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleSuggestionSelect(suggestion)}
-                    className="text-xs"
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* AI Prompt Helper */}
+      <AIPromptHelper
+        pillar="mental"
+        context={getEmotionContext()}
+        onSuggestionSelect={handleAISuggestion}
+      />
 
       {/* Collapsible Sliders */}
       <Collapsible open={showSliders} onOpenChange={setShowSliders}>

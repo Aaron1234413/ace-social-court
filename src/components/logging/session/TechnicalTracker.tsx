@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Lightbulb } from 'lucide-react';
+import AIPromptHelper from './AIPromptHelper';
 
 interface TechnicalData {
   selectedStrokes: {
@@ -130,6 +130,19 @@ export default function TechnicalTracker({ onDataChange, initialData = {} }: Tec
     setShowDrillSuggestions(false);
   };
 
+  const handleAISuggestion = (suggestion: string) => {
+    const currentNotes = data.notes;
+    const newNotes = currentNotes ? `${currentNotes} ${suggestion}` : suggestion;
+    updateData({ notes: newNotes });
+  };
+
+  const getStrokesContext = () => {
+    const selectedStrokeNames = getSelectedStrokeNames();
+    return selectedStrokeNames.length > 0 
+      ? `Working on ${selectedStrokeNames.join(', ')} strokes`
+      : 'Tennis technical training session';
+  };
+
   const selectedStrokeNames = getSelectedStrokeNames();
 
   return (
@@ -223,6 +236,13 @@ export default function TechnicalTracker({ onDataChange, initialData = {} }: Tec
         </Card>
       )}
 
+      {/* AI Prompt Helper */}
+      <AIPromptHelper
+        pillar="technical"
+        context={getStrokesContext()}
+        onSuggestionSelect={handleAISuggestion}
+      />
+
       {/* Drill Suggestions */}
       {selectedStrokeNames.length > 0 && (
         <Card>
@@ -232,7 +252,6 @@ export default function TechnicalTracker({ onDataChange, initialData = {} }: Tec
               className="w-full justify-center space-x-2 mb-4"
               onClick={() => setShowDrillSuggestions(!showDrillSuggestions)}
             >
-              <Lightbulb className="h-4 w-4" />
               <span>Want drill suggestions for {selectedStrokeNames.join(', ')}?</span>
             </Button>
 
