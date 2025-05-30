@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
+import PhysicalTracker from '@/components/logging/session/PhysicalTracker';
 
 type Pillar = 'physical' | 'mental' | 'technical';
 
@@ -70,8 +71,69 @@ export default function LogSession() {
     setCurrentStep('selection');
   };
 
-  if (currentStep !== 'selection') {
-    // Placeholder for pillar detail pages (will be implemented in next steps)
+  const handlePillarComplete = (pillar: Pillar, data: any) => {
+    setPillarData(prev => ({ ...prev, [pillar]: data }));
+    
+    if (!completedPillars.includes(pillar)) {
+      setCompletedPillars(prev => [...prev, pillar]);
+    }
+
+    // Move to next pillar or summary
+    const currentIndex = selectedPillars.indexOf(pillar);
+    const nextPillar = selectedPillars[currentIndex + 1];
+    
+    if (nextPillar) {
+      setCurrentStep(nextPillar);
+    } else {
+      setCurrentStep('summary');
+    }
+  };
+
+  const handlePhysicalDataChange = (data: any) => {
+    setPillarData(prev => ({ ...prev, physical: data }));
+  };
+
+  // Handle Physical Tracker Step
+  if (currentStep === 'physical') {
+    return (
+      <div className="container mx-auto py-6 px-4 md:px-6">
+        <div className="max-w-2xl mx-auto">
+          <Button 
+            variant="ghost" 
+            onClick={goBackToSelection}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Pillar Selection
+          </Button>
+          
+          <PhysicalTracker 
+            onDataChange={handlePhysicalDataChange}
+            initialData={pillarData.physical}
+          />
+          
+          <div className="flex justify-between mt-8">
+            <Button 
+              variant="outline" 
+              onClick={goBackToSelection}
+            >
+              Back
+            </Button>
+            <Button
+              onClick={() => handlePillarComplete('physical', pillarData.physical)}
+              disabled={!pillarData.physical?.energyLevel}
+              className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white"
+            >
+              {selectedPillars.indexOf('physical') === selectedPillars.length - 1 ? 'Finish' : 'Next Pillar'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle other pillar steps (placeholder for now)
+  if (currentStep !== 'selection' && currentStep !== 'summary') {
     return (
       <div className="container mx-auto py-6 px-4 md:px-6">
         <div className="max-w-2xl mx-auto">
