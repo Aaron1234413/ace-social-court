@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MatchData } from '../MatchLogger';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MatchMentalStateStepProps {
   data: MatchData;
@@ -34,6 +35,7 @@ const EMOTION_OPTIONS = [
 ];
 
 export default function MatchMentalStateStep({ data, onDataChange, onValidationChange }: MatchMentalStateStepProps) {
+  const isMobile = useIsMobile();
   
   // Validation effect
   useEffect(() => {
@@ -53,31 +55,40 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
   ) => (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{title} *</CardTitle>
+        <CardTitle className="text-base md:text-lg">{title} *</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
           {options.map((option) => (
             <Button
               key={option.value}
               variant={selectedValue === option.value ? "default" : "outline"}
               onClick={() => handleSelectionChange(type, option.value)}
-              className={`h-auto py-4 flex flex-col gap-2 transition-all ${
+              className={`${isMobile ? 'h-20 py-6' : 'h-auto py-4'} flex flex-col gap-2 transition-all touch-manipulation ${
                 selectedValue === option.value
-                  ? 'ring-2 ring-primary ring-offset-2 scale-105'
-                  : 'hover:scale-105'
+                  ? 'ring-2 ring-primary ring-offset-2 scale-105 bg-primary text-primary-foreground'
+                  : 'hover:scale-105 active:scale-95'
               }`}
             >
-              <span className="text-2xl">{option.emoji}</span>
+              <span className={`${isMobile ? 'text-3xl' : 'text-2xl'}`}>{option.emoji}</span>
               <div className="text-center">
-                <div className="font-medium text-sm">{option.label}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {option.description}
-                </div>
+                <div className={`font-medium ${isMobile ? 'text-sm' : 'text-sm'}`}>{option.label}</div>
+                {!isMobile && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {option.description}
+                  </div>
+                )}
               </div>
             </Button>
           ))}
         </div>
+        {isMobile && selectedValue && (
+          <div className="mt-3 p-3 bg-muted rounded-lg">
+            <div className="text-sm text-muted-foreground text-center">
+              {options.find(o => o.value === selectedValue)?.description}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -85,8 +96,8 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-lg font-semibold mb-2">How Did You Feel?</h3>
-        <p className="text-muted-foreground">
+        <h3 className="text-lg md:text-xl font-semibold mb-2">How Did You Feel?</h3>
+        <p className="text-muted-foreground text-sm md:text-base">
           Record your mental and emotional state during the match
         </p>
       </div>
@@ -114,13 +125,13 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
 
       {/* Summary */}
       {data.energy_emoji && data.focus_emoji && data.emotion_emoji && (
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-lg">
           <CardContent className="pt-6">
-            <h4 className="font-medium mb-3">Your Mental State Summary:</h4>
-            <div className="flex flex-wrap gap-4 text-sm">
+            <h4 className="font-medium mb-3 text-center">Your Mental State Summary:</h4>
+            <div className="flex flex-wrap justify-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span>Energy:</span>
-                <span className="text-lg">
+                <span className="text-xl">
                   {ENERGY_OPTIONS.find(o => o.value === data.energy_emoji)?.emoji}
                 </span>
                 <span className="font-medium">
@@ -129,7 +140,7 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
               </div>
               <div className="flex items-center gap-2">
                 <span>Focus:</span>
-                <span className="text-lg">
+                <span className="text-xl">
                   {FOCUS_OPTIONS.find(o => o.value === data.focus_emoji)?.emoji}
                 </span>
                 <span className="font-medium">
@@ -138,7 +149,7 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
               </div>
               <div className="flex items-center gap-2">
                 <span>Emotion:</span>
-                <span className="text-lg">
+                <span className="text-xl">
                   {EMOTION_OPTIONS.find(o => o.value === data.emotion_emoji)?.emoji}
                 </span>
                 <span className="font-medium">
@@ -150,8 +161,11 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
         </Card>
       )}
 
-      <div className="bg-green-50 p-4 rounded-lg">
-        <h4 className="font-medium text-green-900 mb-2">🧠 Mental Game Tips</h4>
+      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+        <h4 className="font-medium text-green-900 mb-2 flex items-center gap-2">
+          <span className="text-lg">🧠</span>
+          Mental Game Tips
+        </h4>
         <ul className="text-sm text-green-800 space-y-1">
           <li>• Your mental state significantly impacts performance</li>
           <li>• Track patterns to identify what affects your mindset</li>
