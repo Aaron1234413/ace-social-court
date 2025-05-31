@@ -10,6 +10,7 @@ import PhysicalTracker from '@/components/logging/session/PhysicalTracker';
 import MentalTracker from '@/components/logging/session/MentalTracker';
 import TechnicalTracker from '@/components/logging/session/TechnicalTracker';
 import SessionSummary from '@/components/logging/session/SessionSummary';
+import SessionValidation from '@/components/logging/session/SessionValidation';
 import { toast } from 'sonner';
 
 type Pillar = 'physical' | 'mental' | 'technical';
@@ -28,6 +29,7 @@ export default function LogSession() {
   const [currentStep, setCurrentStep] = useState<'selection' | Pillar | 'summary'>('selection');
   const [pillarData, setPillarData] = useState<PillarData>({});
   const [aiSuggestionsUsed, setAiSuggestionsUsed] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   const pillars = [
     {
@@ -69,14 +71,18 @@ export default function LogSession() {
 
   const startLogging = () => {
     if (selectedPillars.length === 0) return;
+    console.log('Starting logging flow with pillars:', selectedPillars);
     setCurrentStep(selectedPillars[0]);
   };
 
   const goBackToSelection = () => {
+    console.log('Returning to pillar selection');
     setCurrentStep('selection');
   };
 
   const handlePillarComplete = (pillar: Pillar, data: any) => {
+    console.log(`Completing pillar ${pillar} with data:`, data);
+    
     setPillarData(prev => ({ ...prev, [pillar]: data }));
     
     if (!completedPillars.includes(pillar)) {
@@ -88,36 +94,47 @@ export default function LogSession() {
     const nextPillar = selectedPillars[currentIndex + 1];
     
     if (nextPillar) {
+      console.log(`Moving to next pillar: ${nextPillar}`);
       setCurrentStep(nextPillar);
     } else {
+      console.log('All pillars completed, moving to summary');
       setCurrentStep('summary');
     }
   };
 
   const handleEditPillar = (pillar: string) => {
+    console.log(`Editing pillar: ${pillar}`);
     setCurrentStep(pillar as Pillar);
   };
 
   const handleSessionSuccess = () => {
+    console.log('Session submitted successfully');
     toast.success("Training session logged successfully!");
     navigate('/dashboard');
   };
 
   const handlePhysicalDataChange = (data: any) => {
+    console.log('Physical data changed:', data);
     setPillarData(prev => ({ ...prev, physical: data }));
   };
 
   const handleMentalDataChange = (data: any) => {
+    console.log('Mental data changed:', data);
     setPillarData(prev => ({ ...prev, mental: data }));
   };
 
   const handleTechnicalDataChange = (data: any) => {
+    console.log('Technical data changed:', data);
     setPillarData(prev => ({ ...prev, technical: data }));
   };
 
   const handleAISuggestionUsed = () => {
+    console.log('AI suggestion used');
     setAiSuggestionsUsed(true);
   };
+
+  const completionPercentage = selectedPillars.length > 0 ? 
+    (completedPillars.length / selectedPillars.length) * 100 : 0;
 
   // Handle Session Summary Step
   if (currentStep === 'summary') {
@@ -133,6 +150,29 @@ export default function LogSession() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Pillar Selection
             </Button>
+            
+            {/* Toggle Validation View */}
+            <div className="mb-6 flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setShowValidation(!showValidation)}
+                className="flex items-center gap-2"
+              >
+                {showValidation ? 'Hide' : 'Show'} Validation Details
+              </Button>
+            </div>
+
+            {/* Validation Component */}
+            {showValidation && (
+              <div className="mb-6">
+                <SessionValidation
+                  pillarData={pillarData}
+                  selectedPillars={selectedPillars}
+                  completedPillars={completedPillars}
+                  aiSuggestionsUsed={aiSuggestionsUsed}
+                />
+              </div>
+            )}
             
             <SessionSummary
               pillarData={pillarData}
@@ -263,7 +303,7 @@ export default function LogSession() {
             </p>
           </div>
 
-          {/* Progress Bar - Enhanced */}
+          {/* Progress Bar - Enhanced with Validation */}
           <div className="mb-8 md:mb-12">
             <div className="flex justify-center items-center space-x-2 md:space-x-4 mb-4">
               {pillars.map((pillar, index) => (
@@ -299,14 +339,24 @@ export default function LogSession() {
               ))}
             </div>
             
+            {/* Progress Information */}
             {selectedPillars.length > 0 && (
-              <div className="text-center">
+              <div className="text-center space-y-2">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 rounded-full shadow-sm">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   <span className="text-sm font-medium text-green-700">
                     {selectedPillars.length} pillar{selectedPillars.length !== 1 ? 's' : ''} selected
                   </span>
                 </div>
+                
+                {completedPillars.length > 0 && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full shadow-sm">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">
+                      {completedPillars.length}/{selectedPillars.length} completed ({Math.round(completionPercentage)}%)
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>

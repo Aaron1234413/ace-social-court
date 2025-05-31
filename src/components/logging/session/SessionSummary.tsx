@@ -9,27 +9,33 @@ import MentalSummary from './summary/MentalSummary';
 import TechnicalSummary from './summary/TechnicalSummary';
 import SessionActions from './summary/SessionActions';
 
+interface PhysicalData {
+  energyLevel: string;
+  courtCoverage: number;
+  endurance: number;
+  strengthFeeling: number;
+  notes: string;
+}
+
+interface MentalData {
+  emotionEmoji: string;
+  confidence: number;
+  motivation: number;
+  anxiety: number;
+  focus: number;
+  reflection: string;
+}
+
+interface TechnicalData {
+  selectedStrokes: Record<string, any>;
+  notes: string;
+  drillSuggestions: string[];
+}
+
 interface PillarData {
-  physical?: {
-    energyLevel: string;
-    courtCoverage: number;
-    endurance: number;
-    strengthFeeling: number;
-    notes: string;
-  };
-  mental?: {
-    emotionEmoji: string;
-    confidence: number;
-    motivation: number;
-    anxiety: number;
-    focus: number;
-    reflection: string;
-  };
-  technical?: {
-    selectedStrokes: Record<string, any>;
-    notes: string;
-    drillSuggestions: string[];
-  };
+  physical?: PhysicalData;
+  mental?: MentalData;
+  technical?: TechnicalData;
 }
 
 interface SessionSummaryProps {
@@ -92,8 +98,46 @@ export default function SessionSummary({
     setExpandedSections(prev => ({ ...prev, [pillar]: !prev[pillar] }));
   };
 
+  const validatePillarData = () => {
+    console.log('Validating pillar data:', { pillarData, selectedPillars });
+    
+    for (const pillar of selectedPillars) {
+      const data = pillarData[pillar as keyof PillarData];
+      
+      if (!data) {
+        console.error(`Missing data for pillar: ${pillar}`);
+        return false;
+      }
+      
+      // Validate required fields for each pillar
+      if (pillar === 'physical' && (!data.energyLevel || !data.courtCoverage)) {
+        console.error('Physical pillar missing required fields');
+        return false;
+      }
+      
+      if (pillar === 'mental' && (!data.emotionEmoji || !data.confidence)) {
+        console.error('Mental pillar missing required fields');
+        return false;
+      }
+      
+      if (pillar === 'technical' && (!data.selectedStrokes || Object.keys(data.selectedStrokes).length === 0)) {
+        console.error('Technical pillar missing selected strokes');
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async () => {
     try {
+      console.log('Starting session submission...');
+      
+      if (!validatePillarData()) {
+        console.error('Validation failed - cannot submit session');
+        return;
+      }
+
       // Convert pillar data to session format with proper structure
       const sessionData: SessionFormValues = {
         session_date: new Date(),
@@ -119,7 +163,9 @@ export default function SessionSummary({
         }));
       }
 
+      console.log('Submitting session data:', sessionData);
       await submitSession(sessionData);
+      console.log('Session submitted successfully');
       onSuccess();
     } catch (error) {
       console.error('Error submitting session:', error);
@@ -175,6 +221,11 @@ export default function SessionSummary({
         const config = pillarsConfig[pillar as keyof typeof pillarsConfig];
         const data = pillarData[pillar as keyof PillarData];
         
+        if (!data) {
+          console.warn(`No data found for pillar: ${pillar}`);
+          return null;
+        }
+        
         return (
           <PillarSummaryCard
             key={pillar}
@@ -184,21 +235,21 @@ export default function SessionSummary({
             onToggleExpand={() => toggleSection(pillar)}
             onEdit={() => onEdit(pillar)}
           >
-            {pillar === 'physical' && data && (
+            {pillar === 'physical' && (
               <PhysicalSummary 
-                data={data as PillarData['physical'] & { energyLevel: string; courtCoverage: number; endurance: number; strengthFeeling: number; notes: string }} 
+                data={data as PhysicalData} 
                 isExpanded={expandedSections[pillar]} 
               />
             )}
-            {pillar === 'mental' && data && (
+            {pillar === 'mental' && (
               <MentalSummary 
-                data={data as PillarData['mental'] & { emotionEmoji: string; confidence: number; motivation: number; anxiety: number; focus: number; reflection: string }} 
+                data={data as MentalData} 
                 isExpanded={expandedSections[pillar]} 
               />
             )}
-            {pillar === 'technical' && data && (
+            {pillar === 'technical' && (
               <TechnicalSummary 
-                data={data as PillarData['technical'] & { selectedStrokes: Record<string, any>; notes: string; drillSuggestions: string[] }} 
+                data={data as TechnicalData} 
                 isExpanded={expandedSections[pillar]} 
               />
             )}

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,7 @@ interface TechnicalData {
     [stroke: string]: string[];
   };
   notes: string;
+  drillSuggestions: string[];
 }
 
 interface TechnicalTrackerProps {
@@ -79,16 +80,22 @@ const drillSuggestions = {
 export default function TechnicalTracker({ onDataChange, initialData = {}, onBack }: TechnicalTrackerProps) {
   const [data, setData] = useState<TechnicalData>({
     selectedStrokes: initialData.selectedStrokes || {},
-    notes: initialData.notes || ''
+    notes: initialData.notes || '',
+    drillSuggestions: initialData.drillSuggestions || []
   });
 
   const [selectedStroke, setSelectedStroke] = useState<string | null>(null);
   const [showDrillSuggestions, setShowDrillSuggestions] = useState(false);
 
+  // Update parent component whenever data changes
+  useEffect(() => {
+    onDataChange(data);
+  }, [data, onDataChange]);
+
   const updateData = (updates: Partial<TechnicalData>) => {
     const newData = { ...data, ...updates };
     setData(newData);
-    onDataChange(newData);
+    console.log('Technical data updated:', newData);
   };
 
   const handleStrokeSelect = (stroke: string) => {
@@ -126,9 +133,19 @@ export default function TechnicalTracker({ onDataChange, initialData = {}, onBac
   };
 
   const handleDrillSuggestionSelect = (drill: string) => {
+    // Add to drill suggestions array
+    const newDrillSuggestions = [...data.drillSuggestions, drill];
+    
+    // Also add to notes
     const currentNotes = data.notes;
     const newNotes = currentNotes ? `${currentNotes}\n• ${drill}` : `• ${drill}`;
-    updateData({ notes: newNotes });
+    
+    updateData({ 
+      notes: newNotes,
+      drillSuggestions: newDrillSuggestions
+    });
+    
+    console.log('Added drill suggestion:', drill);
     setShowDrillSuggestions(false);
   };
 
@@ -303,9 +320,11 @@ export default function TechnicalTracker({ onDataChange, initialData = {}, onBac
                           variant="secondary"
                           size="sm"
                           onClick={() => handleDrillSuggestionSelect(drill)}
-                          className="text-xs h-10 md:h-12 touch-manipulation shadow-sm hover:shadow-md transition-all duration-200"
+                          disabled={data.drillSuggestions.includes(drill)}
+                          className="text-xs h-10 md:h-12 touch-manipulation shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50"
                         >
                           {drill}
+                          {data.drillSuggestions.includes(drill) && ' ✓'}
                         </Button>
                       ))}
                     </div>
@@ -323,6 +342,11 @@ export default function TechnicalTracker({ onDataChange, initialData = {}, onBac
           <CardTitle className="text-base md:text-lg flex items-center gap-2">
             <span className="text-xl">📝</span>
             Additional Details
+            {data.drillSuggestions.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {data.drillSuggestions.length} drill{data.drillSuggestions.length !== 1 ? 's' : ''} added
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
