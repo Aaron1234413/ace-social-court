@@ -105,7 +105,7 @@ export default function MatchRecapCard({ matchData, isVisible, onClose }: MatchR
           )}
 
           {/* Coach Notification */}
-          {matchData.notify_coach && (matchData.coach_id || matchData.assigned_coach_id) && (
+          {matchData.notify_coach && matchData.coach_id && (
             <div className="bg-orange-50 p-3 rounded-lg border border-orange-200 flex items-center gap-3">
               <MessageSquare className="h-5 w-5 text-orange-600 flex-shrink-0" />
               <div className="text-sm">
