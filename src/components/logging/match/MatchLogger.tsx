@@ -46,14 +46,14 @@ export interface MatchData {
     timestamp?: number;
   }>;
   
-  // Mental state
+  // Mental state and performance
   energy_emoji?: string;
   focus_emoji?: string;
   emotion_emoji?: string;
+  tags?: string[];
   
   // Reflection and notes
   reflection_note?: string;
-  tags?: string[];
   
   // Coach integration
   coach_id?: string;
@@ -67,10 +67,10 @@ export interface MatchData {
 const STEPS = [
   { id: 'overview', title: 'Match Overview', emoji: '🎾' },
   { id: 'basics', title: 'Match Details', emoji: '📋' },
-  { id: 'performance', title: 'Performance', emoji: '📊' },
+  { id: 'performance', title: 'Performance', emoji: '🧠' },
   { id: 'highlights', title: 'Key Moments', emoji: '⭐' },
-  { id: 'mental', title: 'Mental State', emoji: '🧠' },
-  { id: 'reflection', title: 'Reflection', emoji: '💭' },
+  { id: 'mental', title: 'Mental State', emoji: '💭' },
+  { id: 'reflection', title: 'Reflection', emoji: '📝' },
   { id: 'summary', title: 'Summary', emoji: '✅' }
 ];
 
@@ -95,7 +95,7 @@ export default function MatchLogger() {
     1: false, // basics
     2: false, // performance  
     3: true,  // highlights (optional)
-    4: false, // mental
+    4: true,  // mental (optional)
     5: true,  // reflection (optional)
     6: true   // summary (always valid)
   });
