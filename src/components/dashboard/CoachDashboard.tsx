@@ -117,7 +117,7 @@ const CoachDashboard = () => {
 
   // Mutation to update lesson status
   const updateLessonStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: 'completed' | 'cancelled' | 'scheduled' }) => {
+    mutationFn: async ({ id, status }: { id: string, status: 'Logged' | 'Signed Off' | 'Scheduled' }) => {
       if (!user) throw new Error('User not authenticated');
       
       const { data, error } = await supabase
@@ -260,20 +260,20 @@ const CoachDashboard = () => {
                         
                         <div className="flex gap-2 w-full md:w-auto">
                           <Button
-                            variant={lesson.status === 'completed' ? 'default' : 'outline'}
+                            variant={lesson.status === 'Logged' ? 'default' : 'outline'}
                             size="sm"
                             className="flex-1 md:flex-none"
-                            onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'completed' })}
+                            onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'Logged' })}
                             disabled={updateLessonStatus.isPending}
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Complete
                           </Button>
                           <Button
-                            variant={lesson.status === 'cancelled' ? 'destructive' : 'outline'}
+                            variant={lesson.status === 'Signed Off' ? 'destructive' : 'outline'}
                             size="sm"
                             className="flex-1 md:flex-none"
-                            onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'cancelled' })}
+                            onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'Signed Off' })}
                             disabled={updateLessonStatus.isPending}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
