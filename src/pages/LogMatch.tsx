@@ -19,13 +19,17 @@ import MatchMediaForm from '@/components/logging/match/MatchMediaForm';
 import { useAuth } from '@/components/AuthProvider';
 import { matchFormSchema } from '@/components/logging/match/matchSchema';
 import { useMatchSubmit } from '@/hooks/use-match-submit';
+import { useRealtimeMatches } from '@/hooks/use-realtime-matches';
 import { MatchData } from '@/components/logging/match/MatchLogger';
 
 export default function LogMatch() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState('basics');
   const { submitMatch, isSubmitting } = useMatchSubmit();
+  
+  // Set up real-time updates
+  useRealtimeMatches();
 
   // Define form with zod validation
   const form = useForm<z.infer<typeof matchFormSchema>>({
@@ -66,9 +70,9 @@ export default function LogMatch() {
     }
 
     try {
-      // Transform the form data to match MatchData interface
+      // Transform the form data to match MatchData interface with new schema
       const matchData: MatchData = {
-        match_date: data.match_date, // This is required in MatchData
+        match_date: data.match_date,
         opponent_id: data.opponent_id,
         opponent_name: data.opponent_name,
         surface: data.surface as 'hard' | 'clay' | 'grass' | 'other' | undefined,
@@ -85,9 +89,13 @@ export default function LogMatch() {
         reflection_note: data.reflection_note,
         media_url: data.media_url,
         media_type: data.media_type,
-        // Default values for new fields
+        // New fields for enhanced schema
         tags: [],
-        notify_coach: false
+        energy_emoji: undefined,
+        focus_emoji: undefined,
+        emotion_emoji: undefined,
+        notify_coach: false,
+        coach_id: profile?.assigned_coach_id || null
       };
 
       await submitMatch(matchData);

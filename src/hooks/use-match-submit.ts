@@ -18,12 +18,16 @@ export function useMatchSubmit() {
     try {
       console.log('Submitting match data:', matchData);
       
-      // Prepare match data for database
+      // Get assigned coach ID from profile
+      const assignedCoachId = profile?.assigned_coach_id || null;
+      
+      // Prepare match data for database with new schema
       const matchRecord = {
         user_id: user.id,
-        match_date: matchData.match_date.toISOString().split('T')[0], // Convert to date string
+        match_date: matchData.match_date.toISOString().split('T')[0],
         opponent_id: matchData.opponent_id || null,
         surface: matchData.surface,
+        surface_type: matchData.surface, // Map to the new surface_type column
         location: matchData.location,
         score: matchData.score,
         serve_rating: matchData.serve_rating,
@@ -31,14 +35,17 @@ export function useMatchSubmit() {
         endurance_rating: matchData.endurance_rating,
         highlights: matchData.highlights || [],
         energy_emoji: matchData.energy_emoji,
+        energy_emoji_type: matchData.energy_emoji, // Map to new typed column
         focus_emoji: matchData.focus_emoji,
+        focus_emoji_type: matchData.focus_emoji, // Map to new typed column
         emotion_emoji: matchData.emotion_emoji,
+        emotion_emoji_type: matchData.emotion_emoji, // Map to new typed column
         tags: matchData.tags || [],
         reflection_note: matchData.reflection_note,
         media_url: matchData.media_url,
         media_type: matchData.media_type,
         notify_coach: matchData.notify_coach || false,
-        coach_id: matchData.coach_id || null
+        coach_id: matchData.coach_id || assignedCoachId
       };
 
       // Insert match record
@@ -56,11 +63,12 @@ export function useMatchSubmit() {
       console.log('Match inserted successfully:', match);
 
       // If coach notification is enabled and we have a coach, create notification
-      if (matchData.notify_coach && matchData.coach_id) {
+      if (matchData.notify_coach && (matchData.coach_id || assignedCoachId)) {
+        const coachId = matchData.coach_id || assignedCoachId;
         const { error: notificationError } = await supabase
           .from('notifications')
           .insert([{
-            user_id: matchData.coach_id,
+            user_id: coachId,
             sender_id: user.id,
             type: 'match_logged',
             content: `${profile?.full_name || profile?.username || 'A student'} logged a new match`,

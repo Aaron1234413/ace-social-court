@@ -336,9 +336,12 @@ export type Database = {
           coach_notes: string | null
           created_at: string | null
           emotion_emoji: string | null
+          emotion_emoji_type: string | null
           endurance_rating: number | null
           energy_emoji: string | null
+          energy_emoji_type: string | null
           focus_emoji: string | null
+          focus_emoji_type: string | null
           highlights: Json | null
           id: string
           location: string | null
@@ -352,6 +355,7 @@ export type Database = {
           score: string | null
           serve_rating: number | null
           surface: string | null
+          surface_type: string | null
           tags: string[] | null
           updated_at: string | null
           user_id: string
@@ -361,9 +365,12 @@ export type Database = {
           coach_notes?: string | null
           created_at?: string | null
           emotion_emoji?: string | null
+          emotion_emoji_type?: string | null
           endurance_rating?: number | null
           energy_emoji?: string | null
+          energy_emoji_type?: string | null
           focus_emoji?: string | null
+          focus_emoji_type?: string | null
           highlights?: Json | null
           id?: string
           location?: string | null
@@ -377,6 +384,7 @@ export type Database = {
           score?: string | null
           serve_rating?: number | null
           surface?: string | null
+          surface_type?: string | null
           tags?: string[] | null
           updated_at?: string | null
           user_id: string
@@ -386,9 +394,12 @@ export type Database = {
           coach_notes?: string | null
           created_at?: string | null
           emotion_emoji?: string | null
+          emotion_emoji_type?: string | null
           endurance_rating?: number | null
           energy_emoji?: string | null
+          energy_emoji_type?: string | null
           focus_emoji?: string | null
+          focus_emoji_type?: string | null
           highlights?: Json | null
           id?: string
           location?: string | null
@@ -402,6 +413,7 @@ export type Database = {
           score?: string | null
           serve_rating?: number | null
           surface?: string | null
+          surface_type?: string | null
           tags?: string[] | null
           updated_at?: string | null
           user_id?: string
@@ -558,6 +570,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          assigned_coach_id: string | null
           avatar_url: string | null
           bio: string | null
           cover_photo_url: string | null
@@ -579,6 +592,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          assigned_coach_id?: string | null
           avatar_url?: string | null
           bio?: string | null
           cover_photo_url?: string | null
@@ -600,6 +614,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          assigned_coach_id?: string | null
           avatar_url?: string | null
           bio?: string | null
           cover_photo_url?: string | null
@@ -620,7 +635,15 @@ export type Database = {
           user_type?: Database["public"]["Enums"]["user_type"]
           username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_assigned_coach_id_fkey"
+            columns: ["assigned_coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       session_participants: {
         Row: {
