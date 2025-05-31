@@ -19,6 +19,7 @@ import MatchMediaForm from '@/components/logging/match/MatchMediaForm';
 import { useAuth } from '@/components/AuthProvider';
 import { matchFormSchema } from '@/components/logging/match/matchSchema';
 import { useMatchSubmit } from '@/hooks/use-match-submit';
+import { MatchData } from '@/components/logging/match/MatchLogger';
 
 export default function LogMatch() {
   const { user } = useAuth();
@@ -65,7 +66,27 @@ export default function LogMatch() {
     }
 
     try {
-      await submitMatch(data);
+      // Transform the form data to match MatchData interface
+      const matchData: MatchData = {
+        match_date: data.match_date, // This is required in MatchData
+        opponent_id: data.opponent_id,
+        opponent_name: data.opponent_name,
+        surface: data.surface as 'hard' | 'clay' | 'grass' | 'other' | undefined,
+        location: data.location,
+        score: data.score,
+        serve_rating: data.serve_rating,
+        return_rating: data.return_rating,
+        endurance_rating: data.endurance_rating,
+        highlights: data.highlights,
+        reflection_note: data.reflection_note,
+        media_url: data.media_url,
+        media_type: data.media_type,
+        // Default values for new fields
+        tags: [],
+        notify_coach: false
+      };
+
+      await submitMatch(matchData);
       toast.success("Match logged successfully!");
       navigate('/feed');
     } catch (error) {
