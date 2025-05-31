@@ -30,7 +30,12 @@ export function useSessionSubmit() {
           next_steps: sessionData.next_steps || [],
           session_note: sessionData.session_note || null,
           reminder_date: sessionData.reminder_date ? sessionData.reminder_date.toISOString() : null,
-          status: 'logged' as const,
+          status: 'Logged' as const,
+          // Store detailed pillar data in new JSONB columns
+          physical_data: sessionData.physical_data || null,
+          mental_data: sessionData.mental_data || null,
+          technical_data: sessionData.technical_data || null,
+          ai_suggestions_used: sessionData.ai_suggestions_used || false,
         };
         
         const { data, error } = await supabase

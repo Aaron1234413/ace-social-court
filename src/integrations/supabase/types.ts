@@ -639,50 +639,62 @@ export type Database = {
       }
       sessions: {
         Row: {
+          ai_suggestions_used: boolean | null
           coach_id: string | null
           created_at: string | null
           drills: Json | null
           focus_areas: string[] | null
           id: string
           location: string | null
+          mental_data: Json | null
           next_steps: Json | null
+          physical_data: Json | null
           reminder_date: string | null
           session_date: string
           session_note: string | null
           signed_off: boolean | null
-          status: string | null
+          status: Database["public"]["Enums"]["session_status_enum"] | null
+          technical_data: Json | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          ai_suggestions_used?: boolean | null
           coach_id?: string | null
           created_at?: string | null
           drills?: Json | null
           focus_areas?: string[] | null
           id?: string
           location?: string | null
+          mental_data?: Json | null
           next_steps?: Json | null
+          physical_data?: Json | null
           reminder_date?: string | null
           session_date?: string
           session_note?: string | null
           signed_off?: boolean | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["session_status_enum"] | null
+          technical_data?: Json | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          ai_suggestions_used?: boolean | null
           coach_id?: string | null
           created_at?: string | null
           drills?: Json | null
           focus_areas?: string[] | null
           id?: string
           location?: string | null
+          mental_data?: Json | null
           next_steps?: Json | null
+          physical_data?: Json | null
           reminder_date?: string | null
           session_date?: string
           session_note?: string | null
           signed_off?: boolean | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["session_status_enum"] | null
+          technical_data?: Json | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1093,6 +1105,7 @@ export type Database = {
         | "intermediate"
         | "advanced"
         | "professional"
+      session_status_enum: "Scheduled" | "In Progress" | "Logged" | "Signed Off"
       tag_category:
         | "technique"
         | "match"
@@ -1223,6 +1236,7 @@ export const Constants = {
         "advanced",
         "professional",
       ],
+      session_status_enum: ["Scheduled", "In Progress", "Logged", "Signed Off"],
       tag_category: [
         "technique",
         "match",
