@@ -69,6 +69,35 @@ const PlayerDashboard = () => {
     enabled: !!user?.id
   });
 
+  // Calculate activity ranking: (matches × 2) + (coaching sessions × 1.5)
+  const { data: activityRanking } = useQuery({
+    queryKey: ['dashboard-activity-ranking', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 0;
+      
+      // Get matches and sessions counts
+      const [matchesResult, sessionsResult] = await Promise.all([
+        supabase
+          .from('matches')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+        supabase
+          .from('sessions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+      ]);
+
+      const matchesCount = matchesResult.count || 0;
+      const sessionsCount = sessionsResult.count || 0;
+      
+      // Calculate ranking: matches × 2 + sessions × 1.5
+      const ranking = (matchesCount * 2) + (sessionsCount * 1.5);
+      
+      return Math.round(ranking);
+    },
+    enabled: !!user?.id
+  });
+
   // Calculate real streak from actual session/match data
   const { data: currentStreak } = useQuery({
     queryKey: ['dashboard-current-streak', user?.id],
@@ -157,24 +186,36 @@ const PlayerDashboard = () => {
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 7);
 
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('session_date')
-        .eq('user_id', user.id)
-        .gte('session_date', startOfWeek.toISOString().split('T')[0])
-        .lt('session_date', endOfWeek.toISOString().split('T')[0]);
+      // Count both sessions and matches for weekly progress
+      const [sessionsResult, matchesResult] = await Promise.all([
+        supabase
+          .from('sessions')
+          .select('session_date')
+          .eq('user_id', user.id)
+          .gte('session_date', startOfWeek.toISOString().split('T')[0])
+          .lt('session_date', endOfWeek.toISOString().split('T')[0]),
+        supabase
+          .from('matches')
+          .select('match_date')
+          .eq('user_id', user.id)
+          .gte('match_date', startOfWeek.toISOString().split('T')[0])
+          .lt('match_date', endOfWeek.toISOString().split('T')[0])
+      ]);
 
-      if (error) {
-        console.error('Error fetching weekly sessions:', error);
+      if (sessionsResult.error || matchesResult.error) {
+        console.error('Error fetching weekly activity data');
         return { current: 0, goal: 5, percentage: 0 };
       }
 
-      const sessionsThisWeek = data?.length || 0;
+      const sessionsThisWeek = sessionsResult.data?.length || 0;
+      const matchesThisWeek = matchesResult.data?.length || 0;
+      const totalActivitiesThisWeek = sessionsThisWeek + matchesThisWeek;
+      
       const weeklyGoal = 5; // Default goal, could be user-configurable later
-      const percentage = Math.min((sessionsThisWeek / weeklyGoal) * 100, 100);
+      const percentage = Math.min((totalActivitiesThisWeek / weeklyGoal) * 100, 100);
 
       return {
-        current: sessionsThisWeek,
+        current: totalActivitiesThisWeek,
         goal: weeklyGoal,
         percentage
       };
@@ -304,13 +345,13 @@ const PlayerDashboard = () => {
               size="lg" 
               className="h-16 md:h-20 p-4 justify-start text-left bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation"
             >
-              <Link to="/log-session">
+              <Link to="/log/session">
                 <div className="flex items-center gap-4 w-full">
                   <div className="p-2 bg-white/20 rounded-lg">
                     <Target className="h-6 w-6 md:h-7 md:w-7 flex-shrink-0 text-white" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-bold text-white text-base md:text-lg">Log Today's Session</div>
+                    <div className="font-bold text-white text-base md:text-lg">Log Training Session</div>
                     <div className="text-xs md:text-sm text-white/80">Record your practice session</div>
                   </div>
                 </div>
@@ -322,14 +363,14 @@ const PlayerDashboard = () => {
               size="lg" 
               className="h-16 md:h-20 p-4 justify-start text-left border-2 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] touch-manipulation"
             >
-              <Link to="/schedule-match">
+              <Link to="/log/match">
                 <div className="flex items-center gap-4 w-full">
                   <div className="p-2 bg-primary/10 rounded-lg">
-                    <CalendarPlus className="h-6 w-6 md:h-7 md:w-7 flex-shrink-0 text-primary" />
+                    <Trophy className="h-6 w-6 md:h-7 md:w-7 flex-shrink-0 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-bold text-gray-900 text-base md:text-lg">Schedule Match</div>
-                    <div className="text-xs md:text-sm text-gray-600">Set up your next match</div>
+                    <div className="font-bold text-gray-900 text-base md:text-lg">Log Match</div>
+                    <div className="text-xs md:text-sm text-gray-600">Record your latest match</div>
                   </div>
                 </div>
               </Link>
@@ -338,19 +379,19 @@ const PlayerDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* This Week's Sessions - Enhanced Progress */}
+      {/* This Week's Activity - Enhanced Progress */}
       <Card className="shadow-lg border-0">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl font-bold">
             <Calendar className="h-5 w-5 text-blue-500" />
-            This Week's Sessions
+            This Week's Activity
           </CardTitle>
         </CardHeader>
         <CardContent className="pb-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm md:text-base font-medium text-gray-700">
-                {weeklyProgress?.current || 0} of {weeklyProgress?.goal || 5} sessions completed
+                {weeklyProgress?.current || 0} of {weeklyProgress?.goal || 5} activities completed
               </span>
               <div className="flex items-center gap-2">
                 <span className="text-sm md:text-base font-bold text-primary">
@@ -368,7 +409,7 @@ const PlayerDashboard = () => {
             <p className="text-xs md:text-sm text-gray-600 text-center p-3 bg-gray-50 rounded-lg">
               {weeklyProgress?.current === weeklyProgress?.goal 
                 ? "🎉 Week completed! Great job staying consistent."
-                : `🎯 ${(weeklyProgress?.goal || 5) - (weeklyProgress?.current || 0)} more sessions to reach your weekly goal.`
+                : `🎯 ${(weeklyProgress?.goal || 5) - (weeklyProgress?.current || 0)} more activities to reach your weekly goal.`
               }
             </p>
           </div>
@@ -409,15 +450,15 @@ const PlayerDashboard = () => {
 
         <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-purple-50 to-purple-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-purple-700">This Month</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium text-purple-700">Activity Score</CardTitle>
             <div className="p-2 bg-purple-500 rounded-lg">
               <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-white" />
             </div>
           </CardHeader>
           <CardContent className="pb-4 md:pb-6">
-            <div className="text-xl md:text-2xl font-bold text-purple-800">{Math.max(sessionsCount || 0, matchesCount || 0)}</div>
+            <div className="text-xl md:text-2xl font-bold text-purple-800">{activityRanking || 0}</div>
             <p className="text-xs text-purple-600 mt-1">
-              activities logged
+              activity ranking
             </p>
           </CardContent>
         </Card>
@@ -474,7 +515,7 @@ const PlayerDashboard = () => {
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-40" />
               <p className="text-sm md:text-base font-medium">No upcoming activities scheduled</p>
-              <p className="text-xs md:text-sm mt-1">Schedule your next session or match to see them here!</p>
+              <p className="text-xs md:text-sm mt-1">Log your next session or match to see them here!</p>
             </div>
           )}
         </CardContent>

@@ -1,74 +1,90 @@
 
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { MatchFormValues } from '@/components/logging/match/matchSchema';
+import { MatchData } from '@/components/logging/match/MatchLogger';
 
 export function useMatchSubmit() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user, profile } = useAuth();
 
-  const matchMutation = useMutation({
-    mutationFn: async (matchData: MatchFormValues) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      setIsSubmitting(true);
-      
-      try {
-        // Format the data for database
-        const matchRecord = {
-          user_id: user.id,
-          opponent_id: matchData.opponent_id || null,
-          match_date: matchData.match_date.toISOString(),
-          surface: matchData.surface || null,
-          location: matchData.location || null,
-          score: matchData.score || null,
-          highlights: matchData.highlights || [],
-          serve_rating: matchData.serve_rating,
-          return_rating: matchData.return_rating,
-          endurance_rating: matchData.endurance_rating,
-          reflection_note: matchData.reflection_note || null,
-          media_url: matchData.media_url || null,
-          media_type: matchData.media_type || null
-        };
-        
-        const { data, error } = await supabase
-          .from('matches')
-          .insert(matchRecord)
-          .select()
-          .single();
-          
-        if (error) {
-          console.error('Error storing match data:', error);
-          throw error;
-        }
-        
-        // Log the match submission in the prompts table for analytics
-        await supabase
-          .from('log_prompts')
-          .insert({
-            user_id: user.id,
-            prompt_type: 'match_submission',
-            action_taken: 'complete'
-          });
-          
-        return data;
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    onSuccess: () => {
-      // Invalidate queries that might depend on this data
-      queryClient.invalidateQueries({ queryKey: ['matches'] });
+  const submitMatch = async (matchData: MatchData) => {
+    if (!user) {
+      throw new Error('User must be logged in to submit a match');
     }
-  });
-  
-  const submitMatch = async (data: MatchFormValues) => {
-    return matchMutation.mutateAsync(data);
+
+    setIsSubmitting(true);
+    
+    try {
+      console.log('Submitting match data:', matchData);
+      
+      // Prepare match data for database
+      const matchRecord = {
+        user_id: user.id,
+        match_date: matchData.match_date.toISOString().split('T')[0], // Convert to date string
+        opponent_id: matchData.opponent_id || null,
+        surface: matchData.surface,
+        location: matchData.location,
+        score: matchData.score,
+        serve_rating: matchData.serve_rating,
+        return_rating: matchData.return_rating,
+        endurance_rating: matchData.endurance_rating,
+        highlights: matchData.highlights || [],
+        energy_emoji: matchData.energy_emoji,
+        focus_emoji: matchData.focus_emoji,
+        emotion_emoji: matchData.emotion_emoji,
+        tags: matchData.tags || [],
+        reflection_note: matchData.reflection_note,
+        media_url: matchData.media_url,
+        media_type: matchData.media_type,
+        notify_coach: matchData.notify_coach || false,
+        coach_id: matchData.coach_id || null
+      };
+
+      // Insert match record
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .insert([matchRecord])
+        .select()
+        .single();
+
+      if (matchError) {
+        console.error('Error inserting match:', matchError);
+        throw matchError;
+      }
+
+      console.log('Match inserted successfully:', match);
+
+      // If coach notification is enabled and we have a coach, create notification
+      if (matchData.notify_coach && matchData.coach_id) {
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert([{
+            user_id: matchData.coach_id,
+            sender_id: user.id,
+            type: 'match_logged',
+            content: `${profile?.full_name || profile?.username || 'A student'} logged a new match`,
+            entity_type: 'match',
+            entity_id: match.id
+          }]);
+
+        if (notificationError) {
+          console.error('Error creating coach notification:', notificationError);
+          // Don't throw here - match was still created successfully
+        } else {
+          console.log('Coach notification created successfully');
+        }
+      }
+
+      return match;
+    } catch (error) {
+      console.error('Error in submitMatch:', error);
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
+
   return {
     submitMatch,
     isSubmitting

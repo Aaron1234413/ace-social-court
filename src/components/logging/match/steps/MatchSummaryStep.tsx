@@ -1,10 +1,22 @@
 
 import React from 'react';
-import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Calendar, MapPin, Trophy, TrendingUp, Zap, Battery, Heart, Brain, Target } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Trophy, 
+  Calendar, 
+  MapPin, 
+  Target, 
+  Star, 
+  MessageSquare,
+  User,
+  Users,
+  Medal,
+  Handshake,
+  Edit3
+} from 'lucide-react';
 import { MatchData } from '../MatchLogger';
 
 interface MatchSummaryStepProps {
@@ -12,236 +24,286 @@ interface MatchSummaryStepProps {
   onEdit: (stepIndex: number) => void;
 }
 
-const SURFACE_LABELS = {
-  hard: '🏟️ Hard Court',
-  clay: '🟤 Clay Court', 
-  grass: '🌱 Grass Court',
-  other: '🏓 Other'
+const EMOJI_LABELS = {
+  energy_emoji: {
+    'low': { emoji: '😫', label: 'Low Energy' },
+    'moderate': { emoji: '😐', label: 'Moderate' },
+    'high': { emoji: '💪', label: 'High Energy' }
+  },
+  focus_emoji: {
+    'distracted': { emoji: '😰', label: 'Distracted' },
+    'normal': { emoji: '😊', label: 'Normal Focus' },
+    'locked_in': { emoji: '🔥', label: 'Locked In' }
+  },
+  emotion_emoji: {
+    'determined': { emoji: '🎯', label: 'Determined' },
+    'frustrated': { emoji: '😤', label: 'Frustrated' },
+    'disappointed': { emoji: '😞', label: 'Disappointed' },
+    'confident': { emoji: '😎', label: 'Confident' }
+  }
 };
 
-const RATING_LABELS = {
-  1: { label: 'Poor', color: 'text-red-600' },
-  2: { label: 'Below Average', color: 'text-orange-600' },
-  3: { label: 'Average', color: 'text-yellow-600' },
-  4: { label: 'Good', color: 'text-green-600' },
-  5: { label: 'Excellent', color: 'text-emerald-600' }
-};
-
-const HIGHLIGHT_LABELS = {
-  ace: '🎯 Ace',
-  winner: '⚡ Winner',
-  breakpoint: '🔥 Break Point',
-  error: '❌ Error'
+const OUTCOME_LABELS = {
+  'won': { icon: Trophy, label: 'Victory', color: 'text-green-600 bg-green-50' },
+  'lost': { icon: Medal, label: 'Loss', color: 'text-red-600 bg-red-50' },
+  'tie': { icon: Handshake, label: 'Tie', color: 'text-blue-600 bg-blue-50' }
 };
 
 export default function MatchSummaryStep({ data, onEdit }: MatchSummaryStepProps) {
-  
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const outcomeInfo = data.match_outcome ? OUTCOME_LABELS[data.match_outcome] : null;
+  const OutcomeIcon = outcomeInfo?.icon;
+
   return (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <div className="text-6xl mb-4">✅</div>
-        <h3 className="text-2xl font-bold mb-2">Match Summary</h3>
+      <div className="text-center">
+        <h3 className="text-lg font-semibold mb-2">Match Summary</h3>
         <p className="text-muted-foreground">
           Review your match details before saving
         </p>
       </div>
 
-      {/* Match Basics */}
+      {/* Match Overview */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Match Details
+          <CardTitle className="text-base flex items-center gap-2">
+            {data.match_type === 'singles' ? <User className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+            Match Overview
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={() => onEdit(0)}>
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
+          <Button variant="ghost" size="sm" onClick={() => onEdit(0)}>
+            <Edit3 className="h-3 w-3" />
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <span className="text-sm text-muted-foreground">Date</span>
-              <p className="font-medium">{format(data.match_date, 'PPP')}</p>
-            </div>
-            <div>
-              <span className="text-sm text-muted-foreground">Opponent</span>
-              <p className="font-medium">{data.opponent_name || 'Not specified'}</p>
-            </div>
-            {data.location && (
-              <div>
-                <span className="text-sm text-muted-foreground">Location</span>
-                <p className="font-medium flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  {data.location}
-                </p>
-              </div>
-            )}
-            {data.surface && (
-              <div>
-                <span className="text-sm text-muted-foreground">Surface</span>
-                <p className="font-medium">{SURFACE_LABELS[data.surface]}</p>
-              </div>
-            )}
-            {data.score && (
-              <div>
-                <span className="text-sm text-muted-foreground">Score</span>
-                <p className="font-medium flex items-center gap-1">
-                  <Trophy className="h-4 w-4" />
-                  {data.score}
-                </p>
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Type:</span>
+            <Badge variant="outline">
+              {data.match_type === 'singles' ? 'Singles' : 'Doubles'}
+            </Badge>
           </div>
+          
+          {data.match_outcome && outcomeInfo && OutcomeIcon && (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Outcome:</span>
+              <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${outcomeInfo.color}`}>
+                <OutcomeIcon className="h-3 w-3" />
+                <span className="text-sm font-medium">{outcomeInfo.label}</span>
+              </div>
+            </div>
+          )}
+
+          {data.score && (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Score:</span>
+              <span className="text-sm">{data.score}</span>
+            </div>
+          )}
+
+          {data.surface && (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Surface:</span>
+              <Badge variant="secondary">{data.surface}</Badge>
+            </div>
+          )}
+
+          {data.match_type === 'doubles' && (
+            <>
+              {data.partner_name && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Partner:</span>
+                  <span className="text-sm">{data.partner_name}</span>
+                </div>
+              )}
+              {data.opponents_names && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Opponents:</span>
+                  <span className="text-sm">{data.opponents_names}</span>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Match Details */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Match Details
+          </CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => onEdit(1)}>
+            <Edit3 className="h-3 w-3" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">{formatDate(data.match_date)}</span>
+          </div>
+          
+          {data.location && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{data.location}</span>
+            </div>
+          )}
+
+          {data.opponent_name && (
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">vs {data.opponent_name}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Performance Ratings */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Performance Ratings
+          <CardTitle className="text-base flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Performance
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={() => onEdit(1)}>
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { key: 'serve_rating', label: 'Serve', icon: <Zap className="h-4 w-4" /> },
-              { key: 'return_rating', label: 'Return', icon: <Target className="h-4 w-4" /> },
-              { key: 'endurance_rating', label: 'Endurance', icon: <Battery className="h-4 w-4" /> }
-            ].map(({ key, label, icon }) => {
-              const rating = data[key as keyof MatchData] as number || 3;
-              const ratingInfo = RATING_LABELS[rating as keyof typeof RATING_LABELS];
-              
-              return (
-                <div key={key} className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    {icon}
-                    <span className="font-medium">{label}</span>
-                  </div>
-                  <div className="text-2xl font-bold mb-1">{rating}</div>
-                  <div className={`text-sm ${ratingInfo.color}`}>
-                    {ratingInfo.label}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Highlights */}
-      {data.highlights && data.highlights.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Key Moments ({data.highlights.length})</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => onEdit(2)}>
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {data.highlights.map((highlight, index) => (
-                <div key={index} className="flex items-start gap-3 p-2 bg-gray-50 rounded">
-                  <span>{HIGHLIGHT_LABELS[highlight.type]}</span>
-                  {highlight.note && (
-                    <span className="text-sm text-muted-foreground flex-1">
-                      {highlight.note}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Mental State */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            Mental State
-          </CardTitle>
-          <Button variant="outline" size="sm" onClick={() => onEdit(3)}>
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { key: 'energy_emoji', label: 'Energy' },
-              { key: 'focus_emoji', label: 'Focus' },
-              { key: 'emotion_emoji', label: 'Emotion' }
-            ].map(({ key, label }) => {
-              const value = data[key as keyof MatchData] as string;
-              return (
-                <div key={key} className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="font-medium mb-1">{label}</div>
-                  <div className="text-sm text-muted-foreground capitalize">
-                    {value?.replace('_', ' ') || 'Not set'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Reflection & Tags */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5" />
-            Reflection & Notes
-          </CardTitle>
-          <Button variant="outline" size="sm" onClick={() => onEdit(4)}>
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
+          <Button variant="ghost" size="sm" onClick={() => onEdit(2)}>
+            <Edit3 className="h-3 w-3" />
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {data.reflection_note && (
-            <div>
-              <span className="text-sm text-muted-foreground block mb-2">Match Reflection</span>
-              <p className="text-sm bg-gray-50 p-3 rounded">
-                {data.reflection_note}
-              </p>
+          {/* Emoji States */}
+          {(data.energy_emoji || data.focus_emoji || data.emotion_emoji) && (
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Mental State</h4>
+              <div className="flex flex-wrap gap-3">
+                {data.energy_emoji && EMOJI_LABELS.energy_emoji[data.energy_emoji] && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-lg">
+                    <span className="text-lg">{EMOJI_LABELS.energy_emoji[data.energy_emoji].emoji}</span>
+                    <span className="text-xs font-medium">{EMOJI_LABELS.energy_emoji[data.energy_emoji].label}</span>
+                  </div>
+                )}
+                {data.focus_emoji && EMOJI_LABELS.focus_emoji[data.focus_emoji] && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-lg">
+                    <span className="text-lg">{EMOJI_LABELS.focus_emoji[data.focus_emoji].emoji}</span>
+                    <span className="text-xs font-medium">{EMOJI_LABELS.focus_emoji[data.focus_emoji].label}</span>
+                  </div>
+                )}
+                {data.emotion_emoji && EMOJI_LABELS.emotion_emoji[data.emotion_emoji] && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-lg">
+                    <span className="text-lg">{EMOJI_LABELS.emotion_emoji[data.emotion_emoji].emoji}</span>
+                    <span className="text-xs font-medium">{EMOJI_LABELS.emotion_emoji[data.emotion_emoji].label}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
-          
+
+          {/* Performance Ratings */}
+          {(data.serve_rating || data.return_rating || data.endurance_rating) && (
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Skill Ratings</h4>
+              <div className="grid grid-cols-3 gap-4">
+                {data.serve_rating && (
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Serve</div>
+                    <div className="text-lg font-bold text-primary">{data.serve_rating}/5</div>
+                  </div>
+                )}
+                {data.return_rating && (
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Return</div>
+                    <div className="text-lg font-bold text-primary">{data.return_rating}/5</div>
+                  </div>
+                )}
+                {data.endurance_rating && (
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Endurance</div>
+                    <div className="text-lg font-bold text-primary">{data.endurance_rating}/5</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Tags */}
           {data.tags && data.tags.length > 0 && (
-            <div>
-              <span className="text-sm text-muted-foreground block mb-2">Tags</span>
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Match Tags</h4>
               <div className="flex flex-wrap gap-2">
-                {data.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">{tag}</Badge>
+                {data.tags.map((tag, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {tag}
+                  </Badge>
                 ))}
               </div>
             </div>
           )}
 
+          {/* Coach Notification */}
           {data.notify_coach && (
-            <div className="flex items-center gap-2 text-sm">
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                ✓ Coach will be notified
-              </Badge>
+            <div className="flex items-center gap-2 text-sm text-blue-600">
+              <Star className="h-4 w-4" />
+              <span>Coach will be notified</span>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg text-center">
-        <h4 className="font-semibold text-lg mb-2">Ready to Save Your Match! 🎾</h4>
-        <p className="text-muted-foreground">
-          Your match data is complete and ready to be saved to your tennis journal.
+      {/* Highlights & Reflection */}
+      {(data.highlights && data.highlights.length > 0) || data.reflection_note ? (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Notes & Highlights
+            </CardTitle>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" onClick={() => onEdit(3)}>
+                <Edit3 className="h-3 w-3" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => onEdit(5)}>
+                <Edit3 className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {data.highlights && data.highlights.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm mb-2">Key Moments</h4>
+                <div className="space-y-2">
+                  {data.highlights.map((highlight, index) => (
+                    <div key={index} className="flex items-start gap-2 text-sm">
+                      <Badge variant="outline" className="text-xs">
+                        {highlight.type}
+                      </Badge>
+                      {highlight.note && <span>{highlight.note}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {data.reflection_note && (
+              <div>
+                <h4 className="font-medium text-sm mb-2">Reflection</h4>
+                <p className="text-sm text-muted-foreground">{data.reflection_note}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="bg-green-50 p-4 rounded-lg">
+        <h4 className="font-medium text-green-900 mb-2">🎾 Ready to Save!</h4>
+        <p className="text-sm text-green-800">
+          Your match will be saved to your dashboard and contribute to your tennis progress tracking.
         </p>
       </div>
     </div>
