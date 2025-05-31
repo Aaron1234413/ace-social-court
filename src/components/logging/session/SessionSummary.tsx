@@ -185,13 +185,22 @@ export default function SessionSummary({
             onEdit={() => onEdit(pillar)}
           >
             {pillar === 'physical' && data && (
-              <PhysicalSummary data={data as PillarData['physical']!} isExpanded={expandedSections[pillar]} />
+              <PhysicalSummary 
+                data={data as PillarData['physical'] & { energyLevel: string; courtCoverage: number; endurance: number; strengthFeeling: number; notes: string }} 
+                isExpanded={expandedSections[pillar]} 
+              />
             )}
             {pillar === 'mental' && data && (
-              <MentalSummary data={data as PillarData['mental']!} isExpanded={expandedSections[pillar]} />
+              <MentalSummary 
+                data={data as PillarData['mental'] & { emotionEmoji: string; confidence: number; motivation: number; anxiety: number; focus: number; reflection: string }} 
+                isExpanded={expandedSections[pillar]} 
+              />
             )}
             {pillar === 'technical' && data && (
-              <TechnicalSummary data={data as PillarData['technical']!} isExpanded={expandedSections[pillar]} />
+              <TechnicalSummary 
+                data={data as PillarData['technical'] & { selectedStrokes: Record<string, any>; notes: string; drillSuggestions: string[] }} 
+                isExpanded={expandedSections[pillar]} 
+              />
             )}
           </PillarSummaryCard>
         );
