@@ -21,37 +21,6 @@ export const initializeStorage = async () => {
     // Log current bucket configurations
     console.log('Current buckets:', buckets?.map(b => ({ name: b.name, public: b.public })));
     
-    const requiredBuckets = ['media', 'message_media'];
-    const existingBucketNames = buckets?.map(b => b.name) || [];
-    
-    // Check if all required buckets exist
-    const missingBuckets = requiredBuckets.filter(name => !existingBucketNames.includes(name));
-    
-    if (missingBuckets.length === 0) {
-      console.log('All required storage buckets already exist');
-      return true;
-    }
-    
-    // Try to create missing buckets (but don't fail if we can't)
-    for (const bucketName of missingBuckets) {
-      try {
-        console.log(`Attempting to create missing bucket: ${bucketName}`);
-        const { error } = await supabase.storage.createBucket(bucketName, {
-          public: true,
-        });
-        
-        if (error) {
-          console.warn(`Could not create ${bucketName} bucket:`, error.message);
-          // Continue anyway - bucket might already exist or be created manually
-        } else {
-          console.log(`Successfully created ${bucketName} bucket`);
-        }
-      } catch (err) {
-        console.warn(`Exception creating ${bucketName} bucket:`, err);
-        // Continue anyway
-      }
-    }
-    
     console.log('Storage initialization completed successfully');
     return true;
   } catch (error) {
@@ -144,7 +113,11 @@ export const uploadFileWithProgress = async (
   });
 
   try {
-    // Standard upload without progress tracking since supabase client doesn't support progress
+    // Update progress to show upload starting
+    if (onProgress) {
+      onProgress(10);
+    }
+    
     console.log('Using standard upload method');
     
     const { data, error } = await supabase.storage
@@ -158,6 +131,11 @@ export const uploadFileWithProgress = async (
     if (error) {
       console.error('Upload error:', error);
       throw error;
+    }
+    
+    // Update progress to show upload complete
+    if (onProgress) {
+      onProgress(100);
     }
     
     console.log('Upload completed successfully via standard method');

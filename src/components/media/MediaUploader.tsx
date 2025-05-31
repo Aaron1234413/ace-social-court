@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -12,9 +13,9 @@ interface MediaUploaderProps {
   onValidateFile?: (file: File) => Promise<boolean> | boolean;
   allowedTypes?: ('image' | 'video')[];
   bucketName?: string;
-  existingUrl?: string; // Added property for existing media URL
-  existingType?: string; // Added property for existing media type
-  maxFileSizeMB?: number; // Added property for max file size
+  existingUrl?: string;
+  existingType?: string;
+  maxFileSizeMB?: number;
 }
 
 const MediaUploader = ({ 
@@ -35,7 +36,6 @@ const MediaUploader = ({
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(existingType as 'image' | 'video' | null || null);
   const [fileDetails, setFileDetails] = useState<{name: string, size: string, type: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Maximum file sizes with upgraded storage
   const MAX_IMAGE_SIZE_MB = maxFileSizeMB || 100; // 100MB for images
@@ -105,7 +105,6 @@ const MediaUploader = ({
       try {
         const isValid = await onValidateFile(file);
         if (!isValid) {
-          // Error should have been handled in validate function
           return;
         }
       } catch (error: any) {
@@ -161,7 +160,7 @@ const MediaUploader = ({
       
       // Enhanced error messages for common issues
       if (error.message?.includes('413') || error.message?.includes('too large')) {
-        errorMessage = `File too large for server. Check Supabase storage limits (maximum file size allowed: image=${MAX_IMAGE_SIZE_MB}MB, video=${MAX_VIDEO_SIZE_MB}MB)`;
+        errorMessage = `File too large for server. Check storage limits (maximum: image=${MAX_IMAGE_SIZE_MB}MB, video=${MAX_VIDEO_SIZE_MB}MB)`;
       } else if (error.message?.includes('401') || error.message?.includes('403')) {
         errorMessage = 'Authorization error. Please log out and log back in.';
       } else if (error.message?.includes('CORS')) {
@@ -296,7 +295,6 @@ const MediaUploader = ({
           ) : (
             <div className="flex items-center justify-center bg-gray-100">
               <video 
-                ref={videoRef}
                 src={preview} 
                 controls 
                 className="max-h-48 max-w-full"
@@ -333,7 +331,7 @@ const MediaUploader = ({
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
             <div 
-              className="bg-blue-500 h-1.5 rounded-full" 
+              className="bg-blue-500 h-1.5 rounded-full transition-all duration-300" 
               style={{ width: `${uploadProgress}%` }}
             ></div>
           </div>
