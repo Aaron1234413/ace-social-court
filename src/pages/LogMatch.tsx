@@ -77,7 +77,11 @@ export default function LogMatch() {
         serve_rating: data.serve_rating,
         return_rating: data.return_rating,
         endurance_rating: data.endurance_rating,
-        highlights: data.highlights,
+        highlights: data.highlights?.filter(h => h.type).map(h => ({
+          type: h.type!,
+          note: h.note,
+          timestamp: h.timestamp
+        })) || [],
         reflection_note: data.reflection_note,
         media_url: data.media_url,
         media_type: data.media_type,
