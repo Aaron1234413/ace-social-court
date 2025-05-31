@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { X, Plus } from 'lucide-react';
-import CoachSearch from '../../session/CoachSearch';
 import { MatchData } from '../MatchLogger';
 
 interface MatchReflectionStepProps {
@@ -195,12 +194,22 @@ export default function MatchReflectionStep({ data, onDataChange, onValidationCh
         </CardContent>
       </Card>
 
-      {/* Coach Search Modal */}
+      {/* Simple Coach Search Modal */}
       {showCoachSearch && (
-        <CoachSearch
-          onSelect={handleCoachSelect}
-          onClose={() => setShowCoachSearch(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Search Coach</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              This feature will be enhanced to search registered coaches. For now, please continue without selecting a coach.
+            </p>
+            <Button
+              onClick={() => setShowCoachSearch(false)}
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
       )}
 
       <div className="bg-purple-50 p-4 rounded-lg">

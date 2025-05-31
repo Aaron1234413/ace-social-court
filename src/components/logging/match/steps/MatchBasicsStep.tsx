@@ -9,7 +9,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import OpponentSearch from '../OpponentSearch';
 import { MatchData } from '../MatchLogger';
 
 interface MatchBasicsStepProps {
@@ -30,7 +29,7 @@ export default function MatchBasicsStep({ data, onDataChange, onValidationChange
 
   // Validation effect
   useEffect(() => {
-    const isValid = data.match_date && (data.opponent_id || data.opponent_name);
+    const isValid = Boolean(data.match_date && (data.opponent_id || data.opponent_name));
     onValidationChange(isValid);
   }, [data.match_date, data.opponent_id, data.opponent_name, onValidationChange]);
 
@@ -109,7 +108,7 @@ export default function MatchBasicsStep({ data, onDataChange, onValidationChange
         <div className="flex gap-2">
           <Input
             id="opponent"
-            placeholder="Enter opponent's name or search users..."
+            placeholder="Enter opponent's name..."
             value={data.opponent_name || ''}
             onChange={(e) => handleOpponentNameChange(e.target.value)}
             className="flex-1"
@@ -153,12 +152,22 @@ export default function MatchBasicsStep({ data, onDataChange, onValidationChange
         </p>
       </div>
 
-      {/* Opponent Search Modal */}
+      {/* Simple Opponent Search Modal */}
       {showOpponentSearch && (
-        <OpponentSearch
-          onSelect={handleOpponentSelect}
-          onClose={() => setShowOpponentSearch(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Search Opponent</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              This feature will be enhanced to search registered users. For now, please enter the opponent's name manually.
+            </p>
+            <Button
+              onClick={() => setShowOpponentSearch(false)}
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
