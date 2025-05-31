@@ -37,13 +37,19 @@ const EMOTION_OPTIONS = [
 export default function MatchMentalStateStep({ data, onDataChange, onValidationChange }: MatchMentalStateStepProps) {
   const isMobile = useIsMobile();
   
-  // Validation effect
+  // Enhanced validation effect with clear logging
   useEffect(() => {
-    const isValid = data.energy_emoji && data.focus_emoji && data.emotion_emoji;
-    onValidationChange(!!isValid);
+    const hasEnergy = !!data.energy_emoji;
+    const hasFocus = !!data.focus_emoji;
+    const hasEmotion = !!data.emotion_emoji;
+    const isValid = hasEnergy && hasFocus && hasEmotion;
+    
+    console.log('Mental state validation:', { hasEnergy, hasFocus, hasEmotion, isValid });
+    onValidationChange(isValid);
   }, [data.energy_emoji, data.focus_emoji, data.emotion_emoji, onValidationChange]);
 
   const handleSelectionChange = (type: 'energy_emoji' | 'focus_emoji' | 'emotion_emoji', value: string) => {
+    console.log(`Mental state selection: ${type} = ${value}`);
     onDataChange({ [type]: value });
   };
 
@@ -55,7 +61,11 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
   ) => (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base md:text-lg">{title} *</CardTitle>
+        <CardTitle className="text-base md:text-lg flex items-center gap-2">
+          {title} 
+          <span className="text-red-500">*</span>
+          {selectedValue && <span className="text-green-600 text-sm">✓</span>}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
@@ -93,6 +103,12 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
     </Card>
   );
 
+  const completedSections = [
+    !!data.energy_emoji,
+    !!data.focus_emoji, 
+    !!data.emotion_emoji
+  ].filter(Boolean).length;
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -100,6 +116,9 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
         <p className="text-muted-foreground text-sm md:text-base">
           Record your mental and emotional state during the match
         </p>
+        <div className="mt-2 text-sm text-gray-600">
+          Progress: {completedSections}/3 sections completed
+        </div>
       </div>
 
       {renderOptionSection(
@@ -123,39 +142,51 @@ export default function MatchMentalStateStep({ data, onDataChange, onValidationC
         data.emotion_emoji
       )}
 
-      {/* Summary */}
-      {data.energy_emoji && data.focus_emoji && data.emotion_emoji && (
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-lg">
+      {/* Enhanced Summary with completion status */}
+      {completedSections > 0 && (
+        <Card className={`border-2 transition-all duration-300 ${
+          completedSections === 3 
+            ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-200 shadow-lg' 
+            : 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200'
+        }`}>
           <CardContent className="pt-6">
-            <h4 className="font-medium mb-3 text-center">Your Mental State Summary:</h4>
+            <h4 className="font-medium mb-3 text-center">
+              {completedSections === 3 ? '✅ Mental State Complete!' : `🔄 ${completedSections}/3 Completed`}
+            </h4>
             <div className="flex flex-wrap justify-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <span>Energy:</span>
-                <span className="text-xl">
-                  {ENERGY_OPTIONS.find(o => o.value === data.energy_emoji)?.emoji}
-                </span>
-                <span className="font-medium">
-                  {ENERGY_OPTIONS.find(o => o.value === data.energy_emoji)?.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Focus:</span>
-                <span className="text-xl">
-                  {FOCUS_OPTIONS.find(o => o.value === data.focus_emoji)?.emoji}
-                </span>
-                <span className="font-medium">
-                  {FOCUS_OPTIONS.find(o => o.value === data.focus_emoji)?.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Emotion:</span>
-                <span className="text-xl">
-                  {EMOTION_OPTIONS.find(o => o.value === data.emotion_emoji)?.emoji}
-                </span>
-                <span className="font-medium">
-                  {EMOTION_OPTIONS.find(o => o.value === data.emotion_emoji)?.label}
-                </span>
-              </div>
+              {data.energy_emoji && (
+                <div className="flex items-center gap-2">
+                  <span>Energy:</span>
+                  <span className="text-xl">
+                    {ENERGY_OPTIONS.find(o => o.value === data.energy_emoji)?.emoji}
+                  </span>
+                  <span className="font-medium">
+                    {ENERGY_OPTIONS.find(o => o.value === data.energy_emoji)?.label}
+                  </span>
+                </div>
+              )}
+              {data.focus_emoji && (
+                <div className="flex items-center gap-2">
+                  <span>Focus:</span>
+                  <span className="text-xl">
+                    {FOCUS_OPTIONS.find(o => o.value === data.focus_emoji)?.emoji}
+                  </span>
+                  <span className="font-medium">
+                    {FOCUS_OPTIONS.find(o => o.value === data.focus_emoji)?.label}
+                  </span>
+                </div>
+              )}
+              {data.emotion_emoji && (
+                <div className="flex items-center gap-2">
+                  <span>Emotion:</span>
+                  <span className="text-xl">
+                    {EMOTION_OPTIONS.find(o => o.value === data.emotion_emoji)?.emoji}
+                  </span>
+                  <span className="font-medium">
+                    {EMOTION_OPTIONS.find(o => o.value === data.emotion_emoji)?.label}
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

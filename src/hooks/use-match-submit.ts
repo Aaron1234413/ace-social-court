@@ -16,10 +16,11 @@ export function useMatchSubmit() {
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting match data:', matchData);
+      console.log('🎾 Starting match submission:', matchData);
       
       // Get assigned coach ID from profile
       const assignedCoachId = profile?.assigned_coach_id || null;
+      console.log('📋 Assigned coach ID:', assignedCoachId);
       
       // Prepare match data for database with new schema
       const matchRecord = {
@@ -48,6 +49,8 @@ export function useMatchSubmit() {
         coach_id: matchData.coach_id || assignedCoachId
       };
 
+      console.log('💾 Prepared match record for database:', matchRecord);
+
       // Insert match record
       const { data: match, error: matchError } = await supabase
         .from('matches')
@@ -56,15 +59,26 @@ export function useMatchSubmit() {
         .single();
 
       if (matchError) {
-        console.error('Error inserting match:', matchError);
+        console.error('❌ Error inserting match:', matchError);
         throw matchError;
       }
 
-      console.log('Match inserted successfully:', match);
+      console.log('✅ Match inserted successfully:', match);
+
+      // Coach notification logic with enhanced logging
+      const shouldNotifyCoach = matchData.notify_coach && (matchData.coach_id || assignedCoachId);
+      console.log('🔔 Coach notification check:', {
+        notify_coach: matchData.notify_coach,
+        coach_id: matchData.coach_id,
+        assignedCoachId,
+        shouldNotifyCoach
+      });
 
       // If coach notification is enabled and we have a coach, create notification
-      if (matchData.notify_coach && (matchData.coach_id || assignedCoachId)) {
+      if (shouldNotifyCoach) {
         const coachId = matchData.coach_id || assignedCoachId;
+        console.log('📤 Creating coach notification for coach:', coachId);
+        
         const { error: notificationError } = await supabase
           .from('notifications')
           .insert([{
@@ -77,16 +91,19 @@ export function useMatchSubmit() {
           }]);
 
         if (notificationError) {
-          console.error('Error creating coach notification:', notificationError);
+          console.error('❌ Error creating coach notification:', notificationError);
           // Don't throw here - match was still created successfully
         } else {
-          console.log('Coach notification created successfully');
+          console.log('✅ Coach notification created successfully');
         }
+      } else {
+        console.log('🔕 No coach notification needed');
       }
 
+      console.log('🎉 Match submission completed successfully!');
       return match;
     } catch (error) {
-      console.error('Error in submitMatch:', error);
+      console.error('💥 Error in submitMatch:', error);
       throw error;
     } finally {
       setIsSubmitting(false);
