@@ -11,7 +11,6 @@ import ProfileEdit from '@/pages/ProfileEdit';
 import Messages from '@/pages/Messages';
 import TennisAI from '@/pages/TennisAI';
 import Feed from '@/pages/Feed';
-import LogMatch from '@/pages/LogMatch';
 import LogSession from '@/pages/LogSession';
 import Dashboard from '@/pages/Dashboard';
 import MainLayout from '@/components/layout/MainLayout';
@@ -30,6 +29,7 @@ import AdminUsers from '@/pages/admin/AdminUsers';
 import AdminContent from '@/pages/admin/AdminContent';
 import AdminMessages from '@/pages/admin/AdminMessages';
 import AdminCourts from '@/pages/admin/AdminCourts';
+import MatchLogger from '@/components/logging/match/MatchLogger';
 
 function App() {
   // Initialize storage buckets when app loads (non-blocking)
@@ -134,10 +134,10 @@ function App() {
                   <Settings />
                 </MainLayout>
               } />
-              {/* Log routes */}
+              {/* Log routes - Updated to use new MatchLogger component */}
               <Route path="/log/match" element={
                 <MainLayout>
-                  <LogMatch />
+                  <MatchLogger />
                 </MainLayout>
               } />
               <Route path="/log/session" element={
