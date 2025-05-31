@@ -6,7 +6,7 @@ import { useEditPost } from '@/hooks/use-posts';
 import { Post } from '@/types/post';
 import { Loader2 } from 'lucide-react';
 import MentionInput from './MentionInput';
-import MediaUploader from '../media/MediaUploader';
+import SocialMediaUploader from '@/components/media/SocialMediaUploader';
 
 interface EditPostModalProps {
   post: Post;
@@ -22,7 +22,6 @@ export const EditPostModal = ({ post, open, onOpenChange, onPostEdited }: EditPo
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const { editPost, isEditing } = useEditPost();
 
-  // Initialize state when modal opens
   useEffect(() => {
     if (open) {
       setContent(post.content || '');
@@ -84,7 +83,7 @@ export const EditPostModal = ({ post, open, onOpenChange, onPostEdited }: EditPo
           
           {showMediaUploader ? (
             <div>
-              <MediaUploader
+              <SocialMediaUploader
                 onMediaUpload={handleMediaUpload}
                 bucketName="posts"
                 allowedTypes={['image', 'video']}

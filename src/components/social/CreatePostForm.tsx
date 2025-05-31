@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { v4 as uuidv4 } from 'uuid';
-import MediaUploader from '@/components/media/MediaUploader';
+import SocialMediaUploader from '@/components/media/SocialMediaUploader';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Loader2, Send, Image, X } from 'lucide-react';
@@ -135,7 +135,7 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onPostCreated }) => {
           
           {isUploaderVisible && (
             <div className="bg-muted/30 rounded-md p-4 border border-dashed border-muted">
-              <MediaUploader
+              <SocialMediaUploader
                 onMediaUpload={handleMediaUpload}
                 allowedTypes={['image', 'video']}
               />

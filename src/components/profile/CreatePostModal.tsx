@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
-import MediaUploader from '@/components/media/MediaUploader';
+import SocialMediaUploader from '@/components/media/SocialMediaUploader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -17,21 +18,16 @@ interface CreatePostModalProps {
 export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePostModalProps) => {
   const { user } = useAuth();
   const [caption, setCaption] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     if (!open) {
-      // Reset form when modal closes
       setCaption('');
-      setMediaFile(null);
-      setMediaPreview(null);
-      setMediaType(null);
       setMediaUrl(null);
+      setMediaType(null);
       setUploadProgress(0);
     }
   }, [open]);
@@ -59,7 +55,6 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
     try {
       const postId = uuidv4();
       
-      // Create the post
       const { error: postError } = await supabase
         .from('posts')
         .insert({
@@ -74,7 +69,6 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
         throw postError;
       }
       
-      // Try to create notifications but handle errors gracefully
       try {
         const { error: notifyError } = await supabase
           .from('notifications')
@@ -97,7 +91,6 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
       
       toast.success('Post created successfully!');
       
-      // Close modal and refresh the parent component
       onOpenChange(false);
       if (onPostCreated) {
         onPostCreated();
@@ -132,7 +125,7 @@ export const CreatePostModal = ({ open, onOpenChange, onPostCreated }: CreatePos
           </div>
           
           <div className="space-y-2">
-            <MediaUploader
+            <SocialMediaUploader
               onMediaUpload={handleMediaUpload}
               onProgress={setUploadProgress}
               allowedTypes={['image', 'video']}

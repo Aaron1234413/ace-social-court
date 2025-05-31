@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileVideo, AlertTriangle, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { isValidVideo } from '@/integrations/supabase/storage';
 
 interface VideoAnalysisUploaderProps {
   onVideoUploaded: (url: string, fileId: string) => void;
@@ -26,6 +25,27 @@ const VideoAnalysisUploader = ({
 
   // Maximum file size for videos with upgraded storage
   const MAX_VIDEO_SIZE_GB = 5; // 5GB for videos
+
+  const isValidVideo = (file: File): boolean => {
+    if (!file.type.startsWith('video/')) {
+      console.log('File is not a video:', file.type);
+      return false;
+    }
+    
+    const maxSizeBytes = 5000000000; // 5GB
+    if (file.size > maxSizeBytes) {
+      console.log('Video file too large:', file.size, 'Max size:', maxSizeBytes);
+      return false;
+    }
+    
+    console.log('Valid video file:', {
+      name: file.name,
+      type: file.type,
+      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+    });
+    
+    return true;
+  };
 
   const checkVideoDuration = (file: File): Promise<number> => {
     return new Promise((resolve, reject) => {

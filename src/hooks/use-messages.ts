@@ -1,11 +1,10 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { Message } from '@/types/messages';
 import { toast } from 'sonner';
-import { useMediaUpload } from './use-media-upload';
+import { useSocialMediaUpload } from './use-social-media-upload';
 import { useMessageReactions } from './use-message-reactions';
 import { useMessageOperations } from './use-message-operations';
 
@@ -23,7 +22,7 @@ export const useMessages = (conversationId?: string | null) => {
     setUploadProgress,
     handleMediaSelect,
     clearMedia
-  } = useMediaUpload();
+  } = useSocialMediaUpload();
   
   const { addReaction, removeReaction } = useMessageReactions(conversationId);
   const { deleteMessage } = useMessageOperations(conversationId);
