@@ -43,8 +43,6 @@ export function useMatchSubmit() {
         emotion_emoji_type: matchData.emotion_emoji, // Map to new typed column
         tags: matchData.tags || [],
         reflection_note: matchData.reflection_note,
-        media_url: matchData.media_url,
-        media_type: matchData.media_type,
         notify_coach: matchData.notify_coach || false,
         coach_id: matchData.coach_id || assignedCoachId
       };

@@ -58,10 +58,6 @@ export interface MatchData {
   // Coach integration
   coach_id?: string;
   notify_coach?: boolean;
-  
-  // Media
-  media_url?: string;
-  media_type?: string;
 }
 
 const STEPS = [

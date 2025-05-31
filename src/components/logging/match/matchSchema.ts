@@ -19,8 +19,6 @@ export const matchFormSchema = z.object({
   return_rating: z.number().min(1).max(5),
   endurance_rating: z.number().min(1).max(5),
   reflection_note: z.string().optional(),
-  media_url: z.string().optional(),
-  media_type: z.string().optional(),
 });
 
 export type MatchFormValues = z.infer<typeof matchFormSchema>;
