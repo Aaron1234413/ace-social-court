@@ -332,56 +332,77 @@ export type Database = {
       }
       matches: {
         Row: {
+          coach_id: string | null
+          coach_notes: string | null
           created_at: string | null
+          emotion_emoji: string | null
           endurance_rating: number | null
+          energy_emoji: string | null
+          focus_emoji: string | null
           highlights: Json | null
           id: string
           location: string | null
           match_date: string
           media_type: string | null
           media_url: string | null
+          notify_coach: boolean | null
           opponent_id: string | null
           reflection_note: string | null
           return_rating: number | null
           score: string | null
           serve_rating: number | null
           surface: string | null
+          tags: string[] | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          coach_id?: string | null
+          coach_notes?: string | null
           created_at?: string | null
+          emotion_emoji?: string | null
           endurance_rating?: number | null
+          energy_emoji?: string | null
+          focus_emoji?: string | null
           highlights?: Json | null
           id?: string
           location?: string | null
           match_date?: string
           media_type?: string | null
           media_url?: string | null
+          notify_coach?: boolean | null
           opponent_id?: string | null
           reflection_note?: string | null
           return_rating?: number | null
           score?: string | null
           serve_rating?: number | null
           surface?: string | null
+          tags?: string[] | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          coach_id?: string | null
+          coach_notes?: string | null
           created_at?: string | null
+          emotion_emoji?: string | null
           endurance_rating?: number | null
+          energy_emoji?: string | null
+          focus_emoji?: string | null
           highlights?: Json | null
           id?: string
           location?: string | null
           match_date?: string
           media_type?: string | null
           media_url?: string | null
+          notify_coach?: boolean | null
           opponent_id?: string | null
           reflection_note?: string | null
           return_rating?: number | null
           score?: string | null
           serve_rating?: number | null
           surface?: string | null
+          tags?: string[] | null
           updated_at?: string | null
           user_id?: string
         }
