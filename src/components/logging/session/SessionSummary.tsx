@@ -109,20 +109,29 @@ export default function SessionSummary({
         return false;
       }
       
-      // Validate required fields for each pillar
-      if (pillar === 'physical' && (!data.energyLevel || !data.courtCoverage)) {
-        console.error('Physical pillar missing required fields');
-        return false;
+      // Validate required fields for each pillar with proper type checking
+      if (pillar === 'physical') {
+        const physicalData = data as PhysicalData;
+        if (!physicalData.energyLevel || !physicalData.courtCoverage) {
+          console.error('Physical pillar missing required fields');
+          return false;
+        }
       }
       
-      if (pillar === 'mental' && (!data.emotionEmoji || !data.confidence)) {
-        console.error('Mental pillar missing required fields');
-        return false;
+      if (pillar === 'mental') {
+        const mentalData = data as MentalData;
+        if (!mentalData.emotionEmoji || !mentalData.confidence) {
+          console.error('Mental pillar missing required fields');
+          return false;
+        }
       }
       
-      if (pillar === 'technical' && (!data.selectedStrokes || Object.keys(data.selectedStrokes).length === 0)) {
-        console.error('Technical pillar missing selected strokes');
-        return false;
+      if (pillar === 'technical') {
+        const technicalData = data as TechnicalData;
+        if (!technicalData.selectedStrokes || Object.keys(technicalData.selectedStrokes).length === 0) {
+          console.error('Technical pillar missing selected strokes');
+          return false;
+        }
       }
     }
     

@@ -4,27 +4,33 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 
+interface PhysicalData {
+  energyLevel: string;
+  courtCoverage: number;
+  endurance: number;
+  strengthFeeling: number;
+  notes: string;
+}
+
+interface MentalData {
+  emotionEmoji: string;
+  confidence: number;
+  motivation: number;
+  anxiety: number;
+  focus: number;
+  reflection: string;
+}
+
+interface TechnicalData {
+  selectedStrokes: Record<string, any>;
+  notes: string;
+  drillSuggestions: string[];
+}
+
 interface PillarData {
-  physical?: {
-    energyLevel: string;
-    courtCoverage: number;
-    endurance: number;
-    strengthFeeling: number;
-    notes: string;
-  };
-  mental?: {
-    emotionEmoji: string;
-    confidence: number;
-    motivation: number;
-    anxiety: number;
-    focus: number;
-    reflection: string;
-  };
-  technical?: {
-    selectedStrokes: Record<string, any>;
-    notes: string;
-    drillSuggestions: string[];
-  };
+  physical?: PhysicalData;
+  mental?: MentalData;
+  technical?: TechnicalData;
 }
 
 interface SessionValidationProps {
@@ -47,17 +53,20 @@ export default function SessionValidation({
     
     switch (pillar) {
       case 'physical':
-        if (!data.energyLevel) return { valid: false, message: 'Energy level required' };
-        if (!data.courtCoverage) return { valid: false, message: 'Court coverage required' };
+        const physicalData = data as PhysicalData;
+        if (!physicalData.energyLevel) return { valid: false, message: 'Energy level required' };
+        if (!physicalData.courtCoverage) return { valid: false, message: 'Court coverage required' };
         return { valid: true, message: 'Complete' };
         
       case 'mental':
-        if (!data.emotionEmoji) return { valid: false, message: 'Emotion state required' };
-        if (!data.confidence) return { valid: false, message: 'Confidence rating required' };
+        const mentalData = data as MentalData;
+        if (!mentalData.emotionEmoji) return { valid: false, message: 'Emotion state required' };
+        if (!mentalData.confidence) return { valid: false, message: 'Confidence rating required' };
         return { valid: true, message: 'Complete' };
         
       case 'technical':
-        if (!data.selectedStrokes || Object.keys(data.selectedStrokes).length === 0) {
+        const technicalData = data as TechnicalData;
+        if (!technicalData.selectedStrokes || Object.keys(technicalData.selectedStrokes).length === 0) {
           return { valid: false, message: 'At least one stroke required' };
         }
         return { valid: true, message: 'Complete' };
