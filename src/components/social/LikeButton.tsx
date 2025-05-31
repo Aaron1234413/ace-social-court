@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useNotifications } from "@/components/notifications/useNotifications";
+import LikesModal from "./LikesModal";
 
 interface LikeButtonProps {
   postId: string;
@@ -26,6 +27,7 @@ const LikeButton = ({
   const [likeCount, setLikeCount] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showLikesModal, setShowLikesModal] = useState(false);
   const { createNotification } = useNotifications();
 
   useEffect(() => {
@@ -153,27 +155,48 @@ const LikeButton = ({
     }
   };
 
+  const handleShowLikes = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (likeCount > 0) {
+      setShowLikesModal(true);
+    }
+  };
+
   return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={handleLike}
-      disabled={isLoading}
-      className={`flex items-center gap-1 transition-all duration-200 ${
-        hasLiked 
-          ? 'text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30' 
-          : 'text-muted-foreground hover:text-foreground'
-      }`}
-      aria-label={hasLiked ? "Unlike post" : "Like post"}
-    >
-      <Heart 
-        className={`h-4 w-4 transition-all ${hasLiked ? 'fill-current scale-110' : 'scale-100'}`} 
+    <>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={handleLike}
+        disabled={isLoading}
+        className={`flex items-center gap-1 transition-all duration-200 ${
+          hasLiked 
+            ? 'text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30' 
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+        aria-label={hasLiked ? "Unlike post" : "Like post"}
+      >
+        <Heart 
+          className={`h-4 w-4 transition-all ${hasLiked ? 'fill-current scale-110' : 'scale-100'}`} 
+        />
+        <button
+          onClick={handleShowLikes}
+          className={`tabular-nums hover:underline ${likeCount > 0 ? 'cursor-pointer' : 'cursor-default'}`}
+          disabled={likeCount === 0}
+        >
+          {likeCount}
+        </button>
+        <span className="sr-only md:not-sr-only md:ml-1">
+          {likeCount === 1 ? 'Like' : 'Likes'}
+        </span>
+      </Button>
+
+      <LikesModal
+        isOpen={showLikesModal}
+        onClose={() => setShowLikesModal(false)}
+        postId={postId}
       />
-      <span className="tabular-nums">{likeCount}</span>
-      <span className="sr-only md:not-sr-only md:ml-1">
-        {likeCount === 1 ? 'Like' : 'Likes'}
-      </span>
-    </Button>
+    </>
   );
 };
 
