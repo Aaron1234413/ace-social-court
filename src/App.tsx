@@ -134,7 +134,7 @@ function App() {
                   <Settings />
                 </MainLayout>
               } />
-              {/* Log routes - Updated to use new MatchLogger component */}
+              {/* Log routes - MOVED BEFORE 404 route to fix routing issue */}
               <Route path="/log/match" element={
                 <MainLayout>
                   <MatchLogger />
