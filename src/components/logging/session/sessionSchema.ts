@@ -1,6 +1,32 @@
 
 import * as z from "zod";
 
+// Physical pillar data schema
+const physicalDataSchema = z.object({
+  energyLevel: z.string(),
+  courtCoverage: z.number().min(1).max(10),
+  endurance: z.number().min(1).max(10),
+  strengthFeeling: z.number().min(1).max(10),
+  notes: z.string().optional(),
+}).optional();
+
+// Mental pillar data schema
+const mentalDataSchema = z.object({
+  emotionEmoji: z.string(),
+  confidence: z.number().min(1).max(10),
+  motivation: z.number().min(1).max(10),
+  anxiety: z.number().min(1).max(10),
+  focus: z.number().min(1).max(10),
+  reflection: z.string().optional(),
+}).optional();
+
+// Technical pillar data schema
+const technicalDataSchema = z.object({
+  selectedStrokes: z.record(z.any()),
+  notes: z.string().optional(),
+  drillSuggestions: z.array(z.string()).optional(),
+}).optional();
+
 export const sessionSchema = z.object({
   session_date: z.date({
     required_error: "Session date is required.",
@@ -21,6 +47,11 @@ export const sessionSchema = z.object({
   })).optional().default([]),
   session_note: z.string().optional(),
   reminder_date: z.date().optional(),
+  // New pillar data fields
+  physical_data: physicalDataSchema,
+  mental_data: mentalDataSchema,
+  technical_data: technicalDataSchema,
+  ai_suggestions_used: z.boolean().optional().default(false),
 });
 
 export type SessionFormValues = z.infer<typeof sessionSchema>;

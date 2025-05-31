@@ -9,6 +9,8 @@ import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
 import PhysicalTracker from '@/components/logging/session/PhysicalTracker';
 import MentalTracker from '@/components/logging/session/MentalTracker';
 import TechnicalTracker from '@/components/logging/session/TechnicalTracker';
+import SessionSummary from '@/components/logging/session/SessionSummary';
+import { toast } from 'sonner';
 
 type Pillar = 'physical' | 'mental' | 'technical';
 
@@ -25,6 +27,7 @@ export default function LogSession() {
   const [completedPillars, setCompletedPillars] = useState<Pillar[]>([]);
   const [currentStep, setCurrentStep] = useState<'selection' | Pillar | 'summary'>('selection');
   const [pillarData, setPillarData] = useState<PillarData>({});
+  const [aiSuggestionsUsed, setAiSuggestionsUsed] = useState(false);
 
   const pillars = [
     {
@@ -91,6 +94,15 @@ export default function LogSession() {
     }
   };
 
+  const handleEditPillar = (pillar: string) => {
+    setCurrentStep(pillar as Pillar);
+  };
+
+  const handleSessionSuccess = () => {
+    toast.success("Training session logged successfully!");
+    navigate('/dashboard');
+  };
+
   const handlePhysicalDataChange = (data: any) => {
     setPillarData(prev => ({ ...prev, physical: data }));
   };
@@ -102,6 +114,37 @@ export default function LogSession() {
   const handleTechnicalDataChange = (data: any) => {
     setPillarData(prev => ({ ...prev, technical: data }));
   };
+
+  const handleAISuggestionUsed = () => {
+    setAiSuggestionsUsed(true);
+  };
+
+  // Handle Session Summary Step
+  if (currentStep === 'summary') {
+    return (
+      <div className="container mx-auto py-6 px-4 md:px-6">
+        <div className="max-w-2xl mx-auto">
+          <Button 
+            variant="ghost" 
+            onClick={goBackToSelection}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Pillar Selection
+          </Button>
+          
+          <SessionSummary
+            pillarData={pillarData}
+            selectedPillars={selectedPillars}
+            aiSuggestionsUsed={aiSuggestionsUsed}
+            onBack={goBackToSelection}
+            onEdit={handleEditPillar}
+            onSuccess={handleSessionSuccess}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // Handle Physical Tracker Step
   if (currentStep === 'physical') {

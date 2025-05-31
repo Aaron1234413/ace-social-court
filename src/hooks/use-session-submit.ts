@@ -22,7 +22,7 @@ export function useSessionSubmit() {
         
         // Format the data for database
         const sessionRecord = {
-          user_id: isCoach ? null : user.id, // For coach-initiated sessions, user_id can be null
+          user_id: isCoach ? null : user.id,
           coach_id: isCoach ? user.id : (sessionData.coach_id || null),
           session_date: sessionData.session_date.toISOString(),
           focus_areas: sessionData.focus_areas,
@@ -30,6 +30,7 @@ export function useSessionSubmit() {
           next_steps: sessionData.next_steps || [],
           session_note: sessionData.session_note || null,
           reminder_date: sessionData.reminder_date ? sessionData.reminder_date.toISOString() : null,
+          status: 'logged' as const,
         };
         
         const { data, error } = await supabase
@@ -68,6 +69,17 @@ export function useSessionSubmit() {
             prompt_type: 'session_submission',
             action_taken: 'complete'
           });
+          
+        // Log AI usage if applicable
+        if (sessionData.ai_suggestions_used) {
+          await supabase
+            .from('log_prompts')
+            .insert({
+              user_id: user.id,
+              prompt_type: 'ai_suggestion_usage',
+              action_taken: 'used'
+            });
+        }
           
         return data;
       } finally {
