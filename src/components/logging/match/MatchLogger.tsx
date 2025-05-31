@@ -10,6 +10,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useMatchSubmit } from '@/hooks/use-match-submit';
 
 // Import step components
+import MatchOverviewStep from './steps/MatchOverviewStep';
 import MatchBasicsStep from './steps/MatchBasicsStep';
 import MatchPerformanceStep from './steps/MatchPerformanceStep';
 import MatchHighlightsStep from './steps/MatchHighlightsStep';
@@ -19,6 +20,12 @@ import MatchSummaryStep from './steps/MatchSummaryStep';
 
 // Enhanced match data interface
 export interface MatchData {
+  // Match overview
+  match_type?: 'singles' | 'doubles';
+  match_outcome?: 'won' | 'lost' | 'tie';
+  partner_name?: string;
+  opponents_names?: string;
+  
   // Basic match info
   match_date: Date;
   opponent_id?: string;
@@ -58,7 +65,8 @@ export interface MatchData {
 }
 
 const STEPS = [
-  { id: 'basics', title: 'Match Basics', emoji: '🎾' },
+  { id: 'overview', title: 'Match Overview', emoji: '🎾' },
+  { id: 'basics', title: 'Match Details', emoji: '📋' },
   { id: 'performance', title: 'Performance', emoji: '📊' },
   { id: 'highlights', title: 'Key Moments', emoji: '⭐' },
   { id: 'mental', title: 'Mental State', emoji: '🧠' },
@@ -83,12 +91,13 @@ export default function MatchLogger() {
   });
 
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({
-    0: false, // basics
-    1: false, // performance  
-    2: true,  // highlights (optional)
-    3: false, // mental
-    4: true,  // reflection (optional)
-    5: true   // summary (always valid)
+    0: false, // overview
+    1: false, // basics
+    2: false, // performance  
+    3: true,  // highlights (optional)
+    4: false, // mental
+    5: true,  // reflection (optional)
+    6: true   // summary (always valid)
   });
 
   const updateMatchData = useCallback((updates: Partial<MatchData>) => {
@@ -139,7 +148,7 @@ export default function MatchLogger() {
     switch (currentStep) {
       case 0:
         return (
-          <MatchBasicsStep
+          <MatchOverviewStep
             data={matchData}
             onDataChange={updateMatchData}
             onValidationChange={(isValid) => updateStepValidation(0, isValid)}
@@ -147,7 +156,7 @@ export default function MatchLogger() {
         );
       case 1:
         return (
-          <MatchPerformanceStep
+          <MatchBasicsStep
             data={matchData}
             onDataChange={updateMatchData}
             onValidationChange={(isValid) => updateStepValidation(1, isValid)}
@@ -155,7 +164,7 @@ export default function MatchLogger() {
         );
       case 2:
         return (
-          <MatchHighlightsStep
+          <MatchPerformanceStep
             data={matchData}
             onDataChange={updateMatchData}
             onValidationChange={(isValid) => updateStepValidation(2, isValid)}
@@ -163,7 +172,7 @@ export default function MatchLogger() {
         );
       case 3:
         return (
-          <MatchMentalStateStep
+          <MatchHighlightsStep
             data={matchData}
             onDataChange={updateMatchData}
             onValidationChange={(isValid) => updateStepValidation(3, isValid)}
@@ -171,13 +180,21 @@ export default function MatchLogger() {
         );
       case 4:
         return (
-          <MatchReflectionStep
+          <MatchMentalStateStep
             data={matchData}
             onDataChange={updateMatchData}
             onValidationChange={(isValid) => updateStepValidation(4, isValid)}
           />
         );
       case 5:
+        return (
+          <MatchReflectionStep
+            data={matchData}
+            onDataChange={updateMatchData}
+            onValidationChange={(isValid) => updateStepValidation(5, isValid)}
+          />
+        );
+      case 6:
         return (
           <MatchSummaryStep
             data={matchData}
