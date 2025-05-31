@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +14,7 @@ interface Profile {
   latitude?: number | null;
   longitude?: number | null;
   avatar_url?: string | null;
+  assigned_coach_id?: string | null;
 }
 
 interface AuthContextType {
