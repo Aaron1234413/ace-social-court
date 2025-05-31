@@ -34,7 +34,7 @@ const LikesModal = ({ isOpen, onClose, postId }: LikesModalProps) => {
           id,
           user_id,
           created_at,
-          user:profiles!user_id (
+          profiles!user_id (
             full_name,
             username,
             avatar_url
@@ -44,7 +44,18 @@ const LikesModal = ({ isOpen, onClose, postId }: LikesModalProps) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as LikeWithUser[];
+      
+      // Transform the data to match our expected structure
+      return data?.map(like => ({
+        id: like.id,
+        user_id: like.user_id,
+        created_at: like.created_at,
+        user: like.profiles || {
+          full_name: null,
+          username: null,
+          avatar_url: null
+        }
+      })) as LikeWithUser[];
     },
     enabled: isOpen,
   });
