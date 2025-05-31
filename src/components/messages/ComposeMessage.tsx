@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { Send, Image, Smile, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -76,7 +75,7 @@ const ComposeMessage = ({ conversationId, initialMessage }: ComposeMessageProps)
     fileInput.onchange = (e: any) => {
       const file = e.target.files?.[0];
       if (file) {
-        handleMediaSelect(file, 'image');
+        handleMediaSelect(e);
       }
     };
     fileInput.click();
