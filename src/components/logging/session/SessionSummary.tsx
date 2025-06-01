@@ -8,6 +8,8 @@ import PhysicalSummary from './summary/PhysicalSummary';
 import MentalSummary from './summary/MentalSummary';
 import TechnicalSummary from './summary/TechnicalSummary';
 import SessionActions from './summary/SessionActions';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PhysicalData {
   energyLevel: string;
@@ -101,49 +103,55 @@ export default function SessionSummary({
   const validatePillarData = () => {
     console.log('Validating pillar data:', { pillarData, selectedPillars });
     
+    const validationErrors: string[] = [];
+    
     for (const pillar of selectedPillars) {
       const data = pillarData[pillar as keyof PillarData];
       
       if (!data) {
-        console.error(`Missing data for pillar: ${pillar}`);
-        return false;
+        validationErrors.push(`Missing data for ${pillar} pillar`);
+        continue;
       }
       
       // Validate required fields for each pillar with proper type checking
       if (pillar === 'physical') {
         const physicalData = data as PhysicalData;
-        if (!physicalData.energyLevel || !physicalData.courtCoverage) {
-          console.error('Physical pillar missing required fields');
-          return false;
+        if (!physicalData.energyLevel) {
+          validationErrors.push('Physical pillar requires energy level selection');
+        }
+        if (!physicalData.courtCoverage) {
+          validationErrors.push('Physical pillar requires court coverage rating');
         }
       }
       
       if (pillar === 'mental') {
         const mentalData = data as MentalData;
-        if (!mentalData.emotionEmoji || !mentalData.confidence) {
-          console.error('Mental pillar missing required fields');
-          return false;
+        if (!mentalData.emotionEmoji) {
+          validationErrors.push('Mental pillar requires emotion selection');
+        }
+        if (!mentalData.confidence) {
+          validationErrors.push('Mental pillar requires confidence rating');
         }
       }
       
       if (pillar === 'technical') {
         const technicalData = data as TechnicalData;
         if (!technicalData.selectedStrokes || Object.keys(technicalData.selectedStrokes).length === 0) {
-          console.error('Technical pillar missing selected strokes');
-          return false;
+          validationErrors.push('Technical pillar requires at least one stroke selection');
         }
       }
     }
     
-    return true;
+    return validationErrors;
   };
 
   const handleSubmit = async () => {
     try {
       console.log('Starting session submission...');
       
-      if (!validatePillarData()) {
-        console.error('Validation failed - cannot submit session');
+      const validationErrors = validatePillarData();
+      if (validationErrors.length > 0) {
+        console.error('Validation failed:', validationErrors);
         return;
       }
 
@@ -209,6 +217,9 @@ export default function SessionSummary({
     return note;
   };
 
+  const validationErrors = validatePillarData();
+  const canSubmit = validationErrors.length === 0;
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
@@ -216,6 +227,21 @@ export default function SessionSummary({
         <div className="text-6xl mb-4">✅</div>
         <h2 className="text-2xl font-bold mb-2">Session Summary</h2>
         <p className="text-gray-600">Review your session before submitting</p>
+        
+        {/* Validation Status */}
+        {canSubmit ? (
+          <div className="flex items-center justify-center gap-2 mt-4 px-4 py-2 bg-green-100 rounded-full">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-medium text-green-700">Ready to submit</span>
+          </div>
+        ) : (
+          <Alert className="mt-4 border-amber-200 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700">
+              Please complete all required fields before submitting
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* Session Overview */}
@@ -224,6 +250,20 @@ export default function SessionSummary({
         aiSuggestionsUsed={aiSuggestionsUsed}
         pillarsConfig={pillarsConfig}
       />
+
+      {/* Validation Errors */}
+      {validationErrors.length > 0 && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            <ul className="list-disc list-inside space-y-1">
+              {validationErrors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Pillar Details */}
       {selectedPillars.map((pillar) => {
@@ -271,6 +311,7 @@ export default function SessionSummary({
         onBack={onBack}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
+        canSubmit={canSubmit}
       />
     </div>
   );

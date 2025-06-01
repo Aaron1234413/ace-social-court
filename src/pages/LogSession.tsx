@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { LoginPromptModal } from '@/components/logging/LoginPromptModal';
@@ -38,7 +38,8 @@ export default function LogSession() {
       emoji: '💪',
       description: 'Energy, endurance, and court coverage',
       gradient: 'from-red-500 to-orange-500',
-      ringColor: 'ring-orange-500'
+      ringColor: 'ring-orange-500',
+      bgGradient: 'from-red-50 to-orange-50'
     },
     {
       id: 'mental' as Pillar,
@@ -46,7 +47,8 @@ export default function LogSession() {
       emoji: '🧠',
       description: 'Focus, confidence, and mindset',
       gradient: 'from-blue-500 to-purple-500',
-      ringColor: 'ring-purple-500'
+      ringColor: 'ring-purple-500',
+      bgGradient: 'from-blue-50 to-purple-50'
     },
     {
       id: 'technical' as Pillar,
@@ -54,7 +56,8 @@ export default function LogSession() {
       emoji: '🎾',
       description: 'Strokes, technique, and skills',
       gradient: 'from-green-500 to-teal-500',
-      ringColor: 'ring-teal-500'
+      ringColor: 'ring-teal-500',
+      bgGradient: 'from-green-50 to-teal-50'
     }
   ];
 
@@ -128,11 +131,6 @@ export default function LogSession() {
     setPillarData(prev => ({ ...prev, technical: data }));
   };
 
-  const handleAISuggestionUsed = () => {
-    console.log('AI suggestion used');
-    setAiSuggestionsUsed(true);
-  };
-
   const completionPercentage = selectedPillars.length > 0 ? 
     (completedPillars.length / selectedPillars.length) * 100 : 0;
 
@@ -191,7 +189,7 @@ export default function LogSession() {
   // Handle Physical Tracker Step
   if (currentStep === 'physical') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
+      <div className={`min-h-screen bg-gradient-to-br ${pillars[0].bgGradient}`}>
         <div className="container mx-auto py-4 md:py-6">
           <PhysicalTracker 
             onDataChange={handlePhysicalDataChange}
@@ -203,7 +201,7 @@ export default function LogSession() {
             <Button 
               variant="outline" 
               onClick={goBackToSelection}
-              className="h-12 md:h-14 px-6 shadow-md bg-white/80 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-200 touch-manipulation"
+              className="h-12 md:h-14 px-6 shadow-md bg-white/80 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-200"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
@@ -211,9 +209,9 @@ export default function LogSession() {
             <Button
               onClick={() => handlePillarComplete('physical', pillarData.physical)}
               disabled={!pillarData.physical?.energyLevel}
-              className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white h-12 md:h-14 px-6 shadow-lg hover:shadow-xl transition-all duration-200 touch-manipulation disabled:opacity-50"
+              className={`bg-gradient-to-r ${pillars[0].gradient} hover:from-red-600 hover:to-orange-600 text-white h-12 md:h-14 px-6 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50`}
             >
-              {selectedPillars.indexOf('physical') === selectedPillars.length - 1 ? 'Finish' : 'Next Pillar'}
+              {selectedPillars.indexOf('physical') === selectedPillars.length - 1 ? 'Complete Session' : 'Next Pillar'}
             </Button>
           </div>
         </div>
@@ -224,7 +222,7 @@ export default function LogSession() {
   // Handle Mental Tracker Step
   if (currentStep === 'mental') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      <div className={`min-h-screen bg-gradient-to-br ${pillars[1].bgGradient}`}>
         <div className="container mx-auto py-4 md:py-6">
           <MentalTracker 
             onDataChange={handleMentalDataChange}
@@ -236,7 +234,7 @@ export default function LogSession() {
             <Button 
               variant="outline" 
               onClick={goBackToSelection}
-              className="h-12 md:h-14 px-6 shadow-md bg-white/80 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-200 touch-manipulation"
+              className="h-12 md:h-14 px-6 shadow-md bg-white/80 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-200"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
@@ -244,9 +242,9 @@ export default function LogSession() {
             <Button
               onClick={() => handlePillarComplete('mental', pillarData.mental)}
               disabled={!pillarData.mental?.emotionEmoji}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white h-12 md:h-14 px-6 shadow-lg hover:shadow-xl transition-all duration-200 touch-manipulation disabled:opacity-50"
+              className={`bg-gradient-to-r ${pillars[1].gradient} hover:from-blue-600 hover:to-purple-600 text-white h-12 md:h-14 px-6 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50`}
             >
-              {selectedPillars.indexOf('mental') === selectedPillars.length - 1 ? 'Finish' : 'Next Pillar'}
+              {selectedPillars.indexOf('mental') === selectedPillars.length - 1 ? 'Complete Session' : 'Next Pillar'}
             </Button>
           </div>
         </div>
@@ -257,7 +255,7 @@ export default function LogSession() {
   // Handle Technical Tracker Step
   if (currentStep === 'technical') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-50">
+      <div className={`min-h-screen bg-gradient-to-br ${pillars[2].bgGradient}`}>
         <div className="container mx-auto py-4 md:py-6">
           <TechnicalTracker 
             onDataChange={handleTechnicalDataChange}
@@ -269,7 +267,7 @@ export default function LogSession() {
             <Button 
               variant="outline" 
               onClick={goBackToSelection}
-              className="h-12 md:h-14 px-6 shadow-md bg-white/80 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-200 touch-manipulation"
+              className="h-12 md:h-14 px-6 shadow-md bg-white/80 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-200"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
@@ -277,9 +275,9 @@ export default function LogSession() {
             <Button
               onClick={() => handlePillarComplete('technical', pillarData.technical)}
               disabled={!pillarData.technical?.selectedStrokes || Object.keys(pillarData.technical.selectedStrokes).length === 0}
-              className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white h-12 md:h-14 px-6 shadow-lg hover:shadow-xl transition-all duration-200 touch-manipulation disabled:opacity-50"
+              className={`bg-gradient-to-r ${pillars[2].gradient} hover:from-green-600 hover:to-teal-600 text-white h-12 md:h-14 px-6 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50`}
             >
-              {selectedPillars.indexOf('technical') === selectedPillars.length - 1 ? 'Finish' : 'Next Pillar'}
+              {selectedPillars.indexOf('technical') === selectedPillars.length - 1 ? 'Complete Session' : 'Next Pillar'}
             </Button>
           </div>
         </div>
@@ -303,7 +301,7 @@ export default function LogSession() {
             </p>
           </div>
 
-          {/* Progress Bar - Enhanced with Validation */}
+          {/* Progress Bar with Enhanced Visual Feedback */}
           <div className="mb-8 md:mb-12">
             <div className="flex justify-center items-center space-x-2 md:space-x-4 mb-4">
               {pillars.map((pillar, index) => (
@@ -314,9 +312,9 @@ export default function LogSession() {
                         w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-lg md:text-xl font-bold transition-all duration-300 shadow-md
                         ${isPillarSelected(pillar.id) 
                           ? isPillarCompleted(pillar.id)
-                            ? 'bg-green-500 text-white shadow-lg'
+                            ? 'bg-green-500 text-white shadow-lg scale-110'
                             : `bg-gradient-to-r ${pillar.gradient} text-white shadow-lg scale-110`
-                          : 'bg-white text-gray-400 border-2 border-gray-200'
+                          : 'bg-white text-gray-400 border-2 border-gray-200 hover:border-gray-300'
                         }
                       `}
                     >
@@ -326,7 +324,9 @@ export default function LogSession() {
                         pillar.emoji
                       )}
                     </div>
-                    <span className={`text-xs mt-1 md:mt-2 font-medium text-center ${isPillarSelected(pillar.id) ? 'text-gray-900' : 'text-gray-400'}`}>
+                    <span className={`text-xs mt-1 md:mt-2 font-medium text-center ${
+                      isPillarSelected(pillar.id) ? 'text-gray-900' : 'text-gray-400'
+                    }`}>
                       {pillar.title}
                     </span>
                   </div>
@@ -361,16 +361,16 @@ export default function LogSession() {
             )}
           </div>
 
-          {/* Pillar Selection Cards - Mobile Optimized */}
+          {/* Enhanced Pillar Selection Cards */}
           <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
             {pillars.map((pillar) => (
               <Card 
                 key={pillar.id}
                 className={`
-                  cursor-pointer transition-all duration-300 transform hover:scale-105 relative overflow-hidden touch-manipulation shadow-lg
+                  cursor-pointer transition-all duration-300 transform hover:scale-105 relative overflow-hidden shadow-lg hover:shadow-xl
                   ${isPillarSelected(pillar.id) 
-                    ? `ring-4 ring-offset-2 shadow-2xl ${pillar.ringColor}` 
-                    : 'hover:shadow-xl'
+                    ? `ring-4 ring-offset-2 ${pillar.ringColor} shadow-2xl` 
+                    : 'hover:shadow-xl border-2 border-transparent hover:border-gray-200'
                   }
                 `}
                 onClick={() => togglePillar(pillar.id)}
@@ -399,7 +399,7 @@ export default function LogSession() {
                   <div className={`
                     w-6 h-6 md:w-8 md:h-8 mx-auto rounded-full border-2 transition-all duration-300 flex items-center justify-center
                     ${isPillarSelected(pillar.id) 
-                      ? 'border-white bg-gradient-to-r ' + pillar.gradient + ' text-white' 
+                      ? `border-white bg-gradient-to-r ${pillar.gradient} text-white` 
                       : 'border-gray-300'
                     }
                   `}>
@@ -412,24 +412,28 @@ export default function LogSession() {
             ))}
           </div>
 
-          {/* Continue Button - Mobile Optimized */}
+          {/* Enhanced Continue Button */}
           <div className="text-center">
             <Button
               onClick={startLogging}
               disabled={selectedPillars.length === 0}
               size="lg"
               className={`
-                px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-semibold rounded-2xl transition-all duration-300 transform touch-manipulation h-14 md:h-16
+                px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-semibold rounded-2xl transition-all duration-300 transform h-14 md:h-16
                 ${selectedPillars.length > 0 
                   ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-xl hover:scale-105 hover:shadow-2xl' 
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }
               `}
             >
-              {selectedPillars.length === 0 
-                ? 'Select at least one pillar to continue'
-                : `Start tracking ${selectedPillars.length} pillar${selectedPillars.length !== 1 ? 's' : ''}`
-              }
+              {selectedPillars.length === 0 ? (
+                'Select at least one pillar to continue'
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Play className="h-5 w-5" />
+                  Start tracking {selectedPillars.length} pillar{selectedPillars.length !== 1 ? 's' : ''}
+                </div>
+              )}
             </Button>
             
             {selectedPillars.length > 0 && (

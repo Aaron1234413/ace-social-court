@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -144,7 +145,7 @@ export default function MatchLogger() {
         setShowRecapCard(false);
         toast.success("Match logged successfully!");
         navigate('/dashboard');
-      }, 3000);
+      }, 2500);
     } catch (error) {
       console.error("Error logging match:", error);
       setShowRecapCard(false);
