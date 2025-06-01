@@ -15,28 +15,32 @@ export function useSessionSubmit() {
     mutationFn: async (sessionData: SessionFormValues) => {
       if (!user) throw new Error('User not authenticated');
       
+      console.log('🚀 Starting session submission with data:', sessionData);
       setIsSubmitting(true);
       
       try {
         const isCoach = profile?.user_type === 'coach';
+        console.log('👤 User type:', isCoach ? 'coach' : 'player');
         
         // Format the data for database
         const sessionRecord = {
           user_id: isCoach ? null : user.id,
           coach_id: isCoach ? user.id : (sessionData.coach_id || null),
           session_date: sessionData.session_date.toISOString(),
-          focus_areas: sessionData.focus_areas,
+          focus_areas: sessionData.focus_areas || [],
           drills: sessionData.drills || [],
           next_steps: sessionData.next_steps || [],
           session_note: sessionData.session_note || null,
           reminder_date: sessionData.reminder_date ? sessionData.reminder_date.toISOString() : null,
           status: 'Logged' as const,
-          // Store detailed pillar data in new JSONB columns
+          // Store detailed pillar data in JSONB columns
           physical_data: sessionData.physical_data || null,
           mental_data: sessionData.mental_data || null,
           technical_data: sessionData.technical_data || null,
           ai_suggestions_used: sessionData.ai_suggestions_used || false,
         };
+        
+        console.log('💾 Prepared session record:', sessionRecord);
         
         const { data, error } = await supabase
           .from('sessions')
@@ -45,12 +49,16 @@ export function useSessionSubmit() {
           .single();
           
         if (error) {
-          console.error('Error storing session data:', error);
-          throw error;
+          console.error('❌ Database error:', error);
+          throw new Error(`Failed to save session: ${error.message}`);
         }
+        
+        console.log('✅ Session saved successfully:', data);
         
         // If coach is creating session for players, add participants
         if (isCoach && sessionData.participants && sessionData.participants.length > 0) {
+          console.log('👥 Adding participants:', sessionData.participants);
+          
           const participantRecords = sessionData.participants.map(playerId => ({
             session_id: data.id,
             player_id: playerId
@@ -61,37 +69,47 @@ export function useSessionSubmit() {
             .insert(participantRecords);
             
           if (participantsError) {
-            console.error('Error adding session participants:', participantsError);
-            throw participantsError;
+            console.error('❌ Participants error:', participantsError);
+            // Don't throw here, session was saved successfully
+          } else {
+            console.log('✅ Participants added successfully');
           }
         }
         
-        // Log the session submission in the prompts table for analytics
-        await supabase
-          .from('log_prompts')
-          .insert({
-            user_id: user.id,
-            prompt_type: 'session_submission',
-            action_taken: 'complete'
-          });
-          
-        // Log AI usage if applicable
-        if (sessionData.ai_suggestions_used) {
+        // Log the session submission for analytics (don't fail if this errors)
+        try {
           await supabase
             .from('log_prompts')
             .insert({
               user_id: user.id,
-              prompt_type: 'ai_suggestion_usage',
-              action_taken: 'used'
+              prompt_type: 'session_submission',
+              action_taken: 'complete'
             });
+            
+          // Log AI usage if applicable
+          if (sessionData.ai_suggestions_used) {
+            await supabase
+              .from('log_prompts')
+              .insert({
+                user_id: user.id,
+                prompt_type: 'ai_suggestion_usage',
+                action_taken: 'used'
+              });
+          }
+        } catch (logError) {
+          console.warn('⚠️ Analytics logging failed (non-critical):', logError);
         }
           
         return data;
+      } catch (error) {
+        console.error('💥 Session submission failed:', error);
+        throw error;
       } finally {
         setIsSubmitting(false);
       }
     },
     onSuccess: () => {
+      console.log('🎉 Session mutation completed successfully');
       // Invalidate all relevant queries to trigger real-time updates
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-sessions-count'] });
@@ -104,8 +122,8 @@ export function useSessionSubmit() {
       toast.success("Training session logged successfully!");
     },
     onError: (error) => {
-      console.error('Session submission error:', error);
-      toast.error("Failed to save training session");
+      console.error('💥 Session submission error:', error);
+      toast.error(`Failed to save training session: ${error.message}`);
     }
   });
   

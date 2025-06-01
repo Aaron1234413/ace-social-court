@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Clipboard, CalendarDays, MapPin } from "lucide-react";
+import { Clipboard, CalendarDays } from "lucide-react";
 import { useLogPrompts } from '@/hooks/use-log-prompts';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -38,6 +38,8 @@ export function LoginPromptModal() {
   }, [user, isLoading, shownToday, logPrompt]);
   
   const handleAction = (action: 'match' | 'session' | 'explore') => {
+    console.log("LoginPromptModal: User selected action:", action);
+    
     // Log user's choice
     logPrompt({ promptType: 'daily_login', actionTaken: action });
     
@@ -53,19 +55,14 @@ export function LoginPromptModal() {
     // For 'explore', just close the modal and let user continue
   };
   
-  // Force modal to open if conditions are right but modal is closed
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (user && !isLoading && shownToday === false && !isOpen) {
-        console.log("LoginPromptModal: Modal should be shown but isn't - forcing open");
-        setIsOpen(true);
-      }
-    }, 1000); // Check after a short delay to allow other state to settle
-    
-    return () => clearTimeout(timeoutId);
-  }, [user, isLoading, shownToday, isOpen]);
+  // If not logged in, don't show the modal
+  if (!user) {
+    console.log("LoginPromptModal: No user found, not showing modal");
+    return null;
+  }
   
-  if (isLoading || !user) {
+  if (isLoading) {
+    console.log("LoginPromptModal: Still loading...");
     return null;
   }
   

@@ -40,7 +40,7 @@ export function ErrorAlert({
       className={cn("flex flex-col space-y-2", className)}
     >
       <div className="flex items-start">
-        <Icon className="h-5 w-5 mr-2" />
+        <Icon className="h-5 w-5 mr-2 flex-shrink-0" />
         <div className="flex-1">
           <AlertTitle>{title || defaultTitle}</AlertTitle>
           <AlertDescription>
