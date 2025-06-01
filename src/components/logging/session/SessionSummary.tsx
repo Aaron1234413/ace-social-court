@@ -31,7 +31,7 @@ interface SessionSummaryProps {
   onSuccess: () => void;
 }
 
-export default function SessionSummary({ 
+export function SessionSummary({ 
   pillarData, 
   selectedPillars, 
   aiSuggestionsUsed,
