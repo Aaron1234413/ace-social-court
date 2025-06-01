@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { PhysicalTracker } from '@/components/logging/session/PhysicalTracker';
-import { MentalTracker } from '@/components/logging/session/MentalTracker';
-import { TechnicalTracker } from '@/components/logging/session/TechnicalTracker';
+import PhysicalTracker from '@/components/logging/session/PhysicalTracker';
+import MentalTracker from '@/components/logging/session/MentalTracker';
+import TechnicalTracker from '@/components/logging/session/TechnicalTracker';
 import { SessionSummary } from '@/components/logging/session/SessionSummary';
 import { PillarData, PILLARS_CONFIG } from '@/types/logging';
 

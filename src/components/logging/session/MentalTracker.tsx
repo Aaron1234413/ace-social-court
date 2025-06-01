@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft } from 'lucide-react';
 import { MentalData } from '@/types/logging';
-import { AIPromptHelper } from './AIPromptHelper';
+import AIPromptHelper from './AIPromptHelper';
 
 interface MentalTrackerProps {
   onDataChange: (data: MentalData) => void;
