@@ -1,14 +1,6 @@
 
 import React from 'react';
-
-interface MentalData {
-  emotionEmoji: string;
-  confidence: number;
-  motivation: number;
-  anxiety: number;
-  focus: number;
-  reflection: string;
-}
+import { MentalData } from '@/types/logging';
 
 interface MentalSummaryProps {
   data: MentalData;

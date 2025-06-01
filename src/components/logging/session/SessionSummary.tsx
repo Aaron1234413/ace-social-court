@@ -12,6 +12,9 @@ import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   PillarData, 
+  PhysicalData,
+  MentalData,
+  TechnicalData,
   ENERGY_OPTIONS, 
   EMOTION_OPTIONS, 
   PILLARS_CONFIG,
@@ -49,14 +52,12 @@ export default function SessionSummary({
     const validationErrors: string[] = [];
     
     for (const pillar of selectedPillars) {
-      const data = pillarData[pillar as keyof PillarData];
-      
-      if (!data) {
-        validationErrors.push(`Missing data for ${pillar} pillar`);
-        continue;
-      }
-      
       if (pillar === 'physical') {
+        const data = pillarData.physical;
+        if (!data) {
+          validationErrors.push('Missing data for physical pillar');
+          continue;
+        }
         if (!data.energyLevel) {
           validationErrors.push('Physical pillar requires energy level selection');
         }
@@ -66,6 +67,11 @@ export default function SessionSummary({
       }
       
       if (pillar === 'mental') {
+        const data = pillarData.mental;
+        if (!data) {
+          validationErrors.push('Missing data for mental pillar');
+          continue;
+        }
         if (!data.emotionEmoji) {
           validationErrors.push('Mental pillar requires emotion selection');
         }
@@ -75,6 +81,11 @@ export default function SessionSummary({
       }
       
       if (pillar === 'technical') {
+        const data = pillarData.technical;
+        if (!data) {
+          validationErrors.push('Missing data for technical pillar');
+          continue;
+        }
         if (!data.selectedStrokes || Object.keys(data.selectedStrokes).length === 0) {
           validationErrors.push('Technical pillar requires at least one stroke selection');
         }
@@ -204,42 +215,63 @@ export default function SessionSummary({
       {/* Pillar Details */}
       {selectedPillars.map((pillar) => {
         const config = PILLARS_CONFIG[pillar as keyof typeof PILLARS_CONFIG];
-        const data = pillarData[pillar as keyof PillarData];
         
-        if (!data) {
-          console.warn(`No data found for pillar: ${pillar}`);
-          return null;
+        if (pillar === 'physical' && pillarData.physical) {
+          return (
+            <PillarSummaryCard
+              key={pillar}
+              pillar={pillar}
+              config={config}
+              isExpanded={expandedSections[pillar]}
+              onToggleExpand={() => toggleSection(pillar)}
+              onEdit={() => onEdit(pillar)}
+            >
+              <PhysicalSummary 
+                data={pillarData.physical} 
+                isExpanded={expandedSections[pillar]} 
+              />
+            </PillarSummaryCard>
+          );
         }
         
-        return (
-          <PillarSummaryCard
-            key={pillar}
-            pillar={pillar}
-            config={config}
-            isExpanded={expandedSections[pillar]}
-            onToggleExpand={() => toggleSection(pillar)}
-            onEdit={() => onEdit(pillar)}
-          >
-            {pillar === 'physical' && (
-              <PhysicalSummary 
-                data={data} 
-                isExpanded={expandedSections[pillar]} 
-              />
-            )}
-            {pillar === 'mental' && (
+        if (pillar === 'mental' && pillarData.mental) {
+          return (
+            <PillarSummaryCard
+              key={pillar}
+              pillar={pillar}
+              config={config}
+              isExpanded={expandedSections[pillar]}
+              onToggleExpand={() => toggleSection(pillar)}
+              onEdit={() => onEdit(pillar)}
+            >
               <MentalSummary 
-                data={data} 
+                data={pillarData.mental} 
                 isExpanded={expandedSections[pillar]} 
               />
-            )}
-            {pillar === 'technical' && (
+            </PillarSummaryCard>
+          );
+        }
+        
+        if (pillar === 'technical' && pillarData.technical) {
+          return (
+            <PillarSummaryCard
+              key={pillar}
+              pillar={pillar}
+              config={config}
+              isExpanded={expandedSections[pillar]}
+              onToggleExpand={() => toggleSection(pillar)}
+              onEdit={() => onEdit(pillar)}
+            >
               <TechnicalSummary 
-                data={data} 
+                data={pillarData.technical} 
                 isExpanded={expandedSections[pillar]} 
               />
-            )}
-          </PillarSummaryCard>
-        );
+            </PillarSummaryCard>
+          );
+        }
+        
+        console.warn(`No data found for pillar: ${pillar}`);
+        return null;
       })}
 
       {/* Action Buttons */}

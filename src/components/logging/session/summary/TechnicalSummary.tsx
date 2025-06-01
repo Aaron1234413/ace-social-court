@@ -1,12 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-
-interface TechnicalData {
-  selectedStrokes: Record<string, any>;
-  notes: string;
-  drillSuggestions: string[];
-}
+import { TechnicalData } from '@/types/logging';
 
 interface TechnicalSummaryProps {
   data: TechnicalData;
@@ -43,7 +38,7 @@ export default function TechnicalSummary({ data, isExpanded }: TechnicalSummaryP
             <span className="font-medium">All Strokes: </span>
             <span>{strokes.join(', ')}</span>
           </div>
-          {data.drillSuggestions?.length > 0 && (
+          {data.drillSuggestions && data.drillSuggestions.length > 0 && (
             <div className="text-sm">
               <span className="font-medium">Drill Suggestions: </span>
               <span>{data.drillSuggestions.join(', ')}</span>

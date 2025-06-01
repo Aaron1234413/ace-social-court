@@ -1,14 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-
-interface PhysicalData {
-  energyLevel: string;
-  courtCoverage: number;
-  endurance: number;
-  strengthFeeling: number;
-  notes: string;
-}
+import { PhysicalData } from '@/types/logging';
 
 interface PhysicalSummaryProps {
   data: PhysicalData;
