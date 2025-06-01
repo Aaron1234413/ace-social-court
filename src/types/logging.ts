@@ -1,4 +1,3 @@
-
 export interface LogPrompt {
   id: string;
   user_id: string;
@@ -69,6 +68,30 @@ export interface MatchHighlight {
   timestamp?: number;
 }
 
+// Standalone pillar data type exports
+export interface PhysicalData {
+  energyLevel: string;
+  courtCoverage: number;
+  endurance: number;
+  strengthFeeling: number;
+  notes?: string;
+}
+
+export interface MentalData {
+  emotionEmoji: string;
+  confidence: number;
+  motivation: number;
+  anxiety: number;
+  focus: number;
+  reflection?: string;
+}
+
+export interface TechnicalData {
+  selectedStrokes: Record<string, any>;
+  notes?: string;
+  drillSuggestions?: string[];
+}
+
 // Enhanced session interface with pillar data
 export interface Session {
   id: string;
@@ -83,26 +106,9 @@ export interface Session {
   reminder_date?: string;
   
   // Pillar data stored as JSONB
-  physical_data?: {
-    energyLevel: string;
-    courtCoverage: number;
-    endurance: number;
-    strengthFeeling: number;
-    notes?: string;
-  };
-  mental_data?: {
-    emotionEmoji: string;
-    confidence: number;
-    motivation: number;
-    anxiety: number;
-    focus: number;
-    reflection?: string;
-  };
-  technical_data?: {
-    selectedStrokes: Record<string, any>;
-    notes?: string;
-    drillSuggestions?: string[];
-  };
+  physical_data?: PhysicalData;
+  mental_data?: MentalData;
+  technical_data?: TechnicalData;
   
   // AI integration
   ai_suggestions_used?: boolean;
@@ -143,26 +149,9 @@ export interface SessionNextStep {
 
 // Pillar data interfaces for type safety
 export interface PillarData {
-  physical?: {
-    energyLevel: string;
-    courtCoverage: number;
-    endurance: number;
-    strengthFeeling: number;
-    notes?: string;
-  };
-  mental?: {
-    emotionEmoji: string;
-    confidence: number;
-    motivation: number;
-    anxiety: number;
-    focus: number;
-    reflection?: string;
-  };
-  technical?: {
-    selectedStrokes: Record<string, any>;
-    notes?: string;
-    drillSuggestions?: string[];
-  };
+  physical?: PhysicalData;
+  mental?: MentalData;
+  technical?: TechnicalData;
 }
 
 // Energy and emotion options for consistency
