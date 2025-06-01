@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -93,17 +94,23 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
             ? session.focus_areas 
             : [];
 
-          // Type cast pillar data from Json to proper types
-          const physicalData: PhysicalData | undefined = session.physical_data 
-            ? session.physical_data as PhysicalData
+          // Type cast pillar data from Json to proper types with proper type guards
+          const physicalData: PhysicalData | undefined = session.physical_data && 
+            typeof session.physical_data === 'object' && 
+            !Array.isArray(session.physical_data)
+            ? session.physical_data as unknown as PhysicalData
             : undefined;
           
-          const mentalData: MentalData | undefined = session.mental_data
-            ? session.mental_data as MentalData
+          const mentalData: MentalData | undefined = session.mental_data && 
+            typeof session.mental_data === 'object' && 
+            !Array.isArray(session.mental_data)
+            ? session.mental_data as unknown as MentalData
             : undefined;
             
-          const technicalData: TechnicalData | undefined = session.technical_data
-            ? session.technical_data as TechnicalData
+          const technicalData: TechnicalData | undefined = session.technical_data && 
+            typeof session.technical_data === 'object' && 
+            !Array.isArray(session.technical_data)
+            ? session.technical_data as unknown as TechnicalData
             : undefined;
 
           if (session.coach_id) {
