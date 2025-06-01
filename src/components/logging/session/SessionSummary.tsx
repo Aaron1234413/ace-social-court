@@ -10,35 +10,14 @@ import TechnicalSummary from './summary/TechnicalSummary';
 import SessionActions from './summary/SessionActions';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-interface PhysicalData {
-  energyLevel: string;
-  courtCoverage: number;
-  endurance: number;
-  strengthFeeling: number;
-  notes: string;
-}
-
-interface MentalData {
-  emotionEmoji: string;
-  confidence: number;
-  motivation: number;
-  anxiety: number;
-  focus: number;
-  reflection: string;
-}
-
-interface TechnicalData {
-  selectedStrokes: Record<string, any>;
-  notes: string;
-  drillSuggestions: string[];
-}
-
-interface PillarData {
-  physical?: PhysicalData;
-  mental?: MentalData;
-  technical?: TechnicalData;
-}
+import { 
+  PillarData, 
+  ENERGY_OPTIONS, 
+  EMOTION_OPTIONS, 
+  PILLARS_CONFIG,
+  type EnergyType,
+  type EmotionType
+} from '@/types/logging';
 
 interface SessionSummaryProps {
   pillarData: PillarData;
@@ -48,42 +27,6 @@ interface SessionSummaryProps {
   onEdit: (pillar: string) => void;
   onSuccess: () => void;
 }
-
-const pillarsConfig = {
-  physical: {
-    title: 'PHYSICAL',
-    emoji: '💪',
-    gradient: 'from-red-500 to-orange-500',
-    bgGradient: 'from-red-50 to-orange-50'
-  },
-  mental: {
-    title: 'MENTAL', 
-    emoji: '🧠',
-    gradient: 'from-blue-500 to-purple-500',
-    bgGradient: 'from-blue-50 to-purple-50'
-  },
-  technical: {
-    title: 'TECHNICAL',
-    emoji: '🎾', 
-    gradient: 'from-green-500 to-teal-500',
-    bgGradient: 'from-green-50 to-teal-50'
-  }
-};
-
-const energyOptions = {
-  strong: { emoji: '💪', label: 'Strong' },
-  intense: { emoji: '🔥', label: 'Intense' },
-  drained: { emoji: '😫', label: 'Drained' },
-  neutral: { emoji: '😐', label: 'Neutral' }
-};
-
-const emotionOptions = {
-  focused: { emoji: '🎯', label: 'Focused' },
-  determined: { emoji: '😤', label: 'Determined' },
-  anxious: { emoji: '😰', label: 'Anxious' },
-  happy: { emoji: '😊', label: 'Happy' },
-  fired_up: { emoji: '🔥', label: 'Fired Up' }
-};
 
 export default function SessionSummary({ 
   pillarData, 
@@ -113,30 +56,26 @@ export default function SessionSummary({
         continue;
       }
       
-      // Validate required fields for each pillar with proper type checking
       if (pillar === 'physical') {
-        const physicalData = data as PhysicalData;
-        if (!physicalData.energyLevel) {
+        if (!data.energyLevel) {
           validationErrors.push('Physical pillar requires energy level selection');
         }
-        if (!physicalData.courtCoverage) {
+        if (!data.courtCoverage) {
           validationErrors.push('Physical pillar requires court coverage rating');
         }
       }
       
       if (pillar === 'mental') {
-        const mentalData = data as MentalData;
-        if (!mentalData.emotionEmoji) {
+        if (!data.emotionEmoji) {
           validationErrors.push('Mental pillar requires emotion selection');
         }
-        if (!mentalData.confidence) {
+        if (!data.confidence) {
           validationErrors.push('Mental pillar requires confidence rating');
         }
       }
       
       if (pillar === 'technical') {
-        const technicalData = data as TechnicalData;
-        if (!technicalData.selectedStrokes || Object.keys(technicalData.selectedStrokes).length === 0) {
+        if (!data.selectedStrokes || Object.keys(data.selectedStrokes).length === 0) {
           validationErrors.push('Technical pillar requires at least one stroke selection');
         }
       }
@@ -155,7 +94,6 @@ export default function SessionSummary({
         return;
       }
 
-      // Convert pillar data to session format with proper structure
       const sessionData: SessionFormValues = {
         session_date: new Date(),
         focus_areas: selectedPillars,
@@ -165,14 +103,12 @@ export default function SessionSummary({
         participants: [],
         reminder_date: undefined,
         coach_id: undefined,
-        // Pass the structured pillar data to be stored in JSONB columns
         physical_data: pillarData.physical || undefined,
         mental_data: pillarData.mental || undefined,
         technical_data: pillarData.technical || undefined,
         ai_suggestions_used: aiSuggestionsUsed
       };
 
-      // Add technical drills if available
       if (pillarData.technical?.drillSuggestions?.length) {
         sessionData.drills = pillarData.technical.drillSuggestions.map(drill => ({
           name: drill,
@@ -193,13 +129,13 @@ export default function SessionSummary({
     let note = `Session logged with ${selectedPillars.join(', ')} tracking.\n\n`;
     
     if (pillarData.physical) {
-      const energy = energyOptions[pillarData.physical.energyLevel as keyof typeof energyOptions];
+      const energy = ENERGY_OPTIONS[pillarData.physical.energyLevel as EnergyType];
       note += `Physical: Felt ${energy?.label || 'N/A'} with ${pillarData.physical.courtCoverage}/10 court coverage.\n`;
       if (pillarData.physical.notes) note += `Physical notes: ${pillarData.physical.notes}\n\n`;
     }
     
     if (pillarData.mental) {
-      const emotion = emotionOptions[pillarData.mental.emotionEmoji as keyof typeof emotionOptions];
+      const emotion = EMOTION_OPTIONS[pillarData.mental.emotionEmoji as EmotionType];
       note += `Mental: ${emotion?.label || 'N/A'} state with ${pillarData.mental.confidence}/10 confidence.\n`;
       if (pillarData.mental.reflection) note += `Mental reflection: ${pillarData.mental.reflection}\n\n`;
     }
@@ -248,7 +184,7 @@ export default function SessionSummary({
       <SessionOverview
         selectedPillars={selectedPillars}
         aiSuggestionsUsed={aiSuggestionsUsed}
-        pillarsConfig={pillarsConfig}
+        pillarsConfig={PILLARS_CONFIG}
       />
 
       {/* Validation Errors */}
@@ -267,7 +203,7 @@ export default function SessionSummary({
 
       {/* Pillar Details */}
       {selectedPillars.map((pillar) => {
-        const config = pillarsConfig[pillar as keyof typeof pillarsConfig];
+        const config = PILLARS_CONFIG[pillar as keyof typeof PILLARS_CONFIG];
         const data = pillarData[pillar as keyof PillarData];
         
         if (!data) {
@@ -286,19 +222,19 @@ export default function SessionSummary({
           >
             {pillar === 'physical' && (
               <PhysicalSummary 
-                data={data as PhysicalData} 
+                data={data} 
                 isExpanded={expandedSections[pillar]} 
               />
             )}
             {pillar === 'mental' && (
               <MentalSummary 
-                data={data as MentalData} 
+                data={data} 
                 isExpanded={expandedSections[pillar]} 
               />
             )}
             {pillar === 'technical' && (
               <TechnicalSummary 
-                data={data as TechnicalData} 
+                data={data} 
                 isExpanded={expandedSections[pillar]} 
               />
             )}

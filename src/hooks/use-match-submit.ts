@@ -2,7 +2,15 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { MatchData } from '@/components/logging/match/MatchLogger';
+import { MatchFormValues } from '@/components/logging/match/matchSchema';
+
+// Match data interface that extends the schema for internal use
+export interface MatchData extends Partial<MatchFormValues> {
+  match_date: Date;
+  serve_rating?: number;
+  return_rating?: number;
+  endurance_rating?: number;
+}
 
 export function useMatchSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,17 +26,15 @@ export function useMatchSubmit() {
     try {
       console.log('🎾 Starting match submission:', matchData);
       
-      // Get assigned coach ID from profile
       const assignedCoachId = profile?.assigned_coach_id || null;
       console.log('📋 Assigned coach ID:', assignedCoachId);
       
-      // Prepare match data for database with new schema
       const matchRecord = {
         user_id: user.id,
         match_date: matchData.match_date.toISOString().split('T')[0],
         opponent_id: matchData.opponent_id || null,
         surface: matchData.surface,
-        surface_type: matchData.surface, // Map to the new surface_type column
+        surface_type: matchData.surface,
         location: matchData.location,
         score: matchData.score,
         serve_rating: matchData.serve_rating,
@@ -36,11 +42,11 @@ export function useMatchSubmit() {
         endurance_rating: matchData.endurance_rating,
         highlights: matchData.highlights || [],
         energy_emoji: matchData.energy_emoji,
-        energy_emoji_type: matchData.energy_emoji, // Map to new typed column
+        energy_emoji_type: matchData.energy_emoji,
         focus_emoji: matchData.focus_emoji,
-        focus_emoji_type: matchData.focus_emoji, // Map to new typed column
+        focus_emoji_type: matchData.focus_emoji,
         emotion_emoji: matchData.emotion_emoji,
-        emotion_emoji_type: matchData.emotion_emoji, // Map to new typed column
+        emotion_emoji_type: matchData.emotion_emoji,
         tags: matchData.tags || [],
         reflection_note: matchData.reflection_note,
         notify_coach: matchData.notify_coach || false,
@@ -49,7 +55,6 @@ export function useMatchSubmit() {
 
       console.log('💾 Prepared match record for database:', matchRecord);
 
-      // Insert match record
       const { data: match, error: matchError } = await supabase
         .from('matches')
         .insert([matchRecord])
@@ -63,7 +68,6 @@ export function useMatchSubmit() {
 
       console.log('✅ Match inserted successfully:', match);
 
-      // Coach notification logic with enhanced logging
       const shouldNotifyCoach = matchData.notify_coach && (matchData.coach_id || assignedCoachId);
       console.log('🔔 Coach notification check:', {
         notify_coach: matchData.notify_coach,
@@ -72,7 +76,6 @@ export function useMatchSubmit() {
         shouldNotifyCoach
       });
 
-      // If coach notification is enabled and we have a coach, create notification
       if (shouldNotifyCoach) {
         const coachId = matchData.coach_id || assignedCoachId;
         console.log('📤 Creating coach notification for coach:', coachId);
@@ -90,7 +93,6 @@ export function useMatchSubmit() {
 
         if (notificationError) {
           console.error('❌ Error creating coach notification:', notificationError);
-          // Don't throw here - match was still created successfully
         } else {
           console.log('✅ Coach notification created successfully');
         }

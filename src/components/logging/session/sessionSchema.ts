@@ -32,7 +32,7 @@ export const sessionSchema = z.object({
     required_error: "Session date is required.",
   }),
   coach_id: z.string().optional(),
-  participants: z.array(z.string()).optional().default([]),
+  participants: z.array(z.string()).default([]),
   focus_areas: z.array(z.string()).min(1, {
     message: "Please select at least one focus area.",
   }),
@@ -40,18 +40,23 @@ export const sessionSchema = z.object({
     name: z.string().min(1, { message: "Drill name is required." }),
     rating: z.number().min(1).max(5).optional(),
     notes: z.string().optional(),
-  })).optional().default([]),
+  })).default([]),
   next_steps: z.array(z.object({
     description: z.string().min(1, { message: "Description is required." }),
-    completed: z.boolean().optional().default(false),
-  })).optional().default([]),
+    completed: z.boolean().default(false),
+  })).default([]),
   session_note: z.string().optional(),
   reminder_date: z.date().optional(),
-  // New pillar data fields
+  // Pillar data fields
   physical_data: physicalDataSchema,
   mental_data: mentalDataSchema,
   technical_data: technicalDataSchema,
-  ai_suggestions_used: z.boolean().optional().default(false),
+  ai_suggestions_used: z.boolean().default(false),
 });
 
 export type SessionFormValues = z.infer<typeof sessionSchema>;
+
+// Export individual pillar data types for type safety
+export type PhysicalData = z.infer<typeof physicalDataSchema>;
+export type MentalData = z.infer<typeof mentalDataSchema>;
+export type TechnicalData = z.infer<typeof technicalDataSchema>;
