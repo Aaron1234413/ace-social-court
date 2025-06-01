@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRealtimeDashboard } from '@/hooks/use-realtime-dashboard';
-import { Session, SessionDrill, SessionNextStep } from '@/types/logging';
+import { Session, SessionDrill, SessionNextStep, PhysicalData, MentalData, TechnicalData } from '@/types/logging';
 import { FilterState } from './DashboardContent';
 import SessionCard from './cards/SessionCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -93,6 +93,19 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
             ? session.focus_areas 
             : [];
 
+          // Type cast pillar data from Json to proper types
+          const physicalData: PhysicalData | undefined = session.physical_data 
+            ? session.physical_data as PhysicalData
+            : undefined;
+          
+          const mentalData: MentalData | undefined = session.mental_data
+            ? session.mental_data as MentalData
+            : undefined;
+            
+          const technicalData: TechnicalData | undefined = session.technical_data
+            ? session.technical_data as TechnicalData
+            : undefined;
+
           if (session.coach_id) {
             const { data: coachData } = await supabase
               .from('profiles')
@@ -105,6 +118,9 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
               drills: typedDrills,
               next_steps: typedNextSteps,
               focus_areas: focusAreas,
+              physical_data: physicalData,
+              mental_data: mentalData,
+              technical_data: technicalData,
               coach: coachData
             } as Session;
           }
@@ -113,7 +129,10 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
             ...session,
             drills: typedDrills,
             next_steps: typedNextSteps,
-            focus_areas: focusAreas
+            focus_areas: focusAreas,
+            physical_data: physicalData,
+            mental_data: mentalData,
+            technical_data: technicalData
           } as Session;
         })
       );
