@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,16 +66,17 @@ export default function TechnicalTracker({
   };
 
   const handleAISuggestion = (suggestion: string) => {
-    const currentNotes = data.notes;
-    const newNotes = currentNotes ? `${currentNotes} ${suggestion}` : suggestion;
-    updateData({ notes: newNotes });
-    onAISuggestionUsed?.();
-  };
-
-  const handleDrillSuggestion = (drill: string) => {
-    const currentDrills = data.drillSuggestions || [];
-    if (!currentDrills.includes(drill)) {
-      updateData({ drillSuggestions: [...currentDrills, drill] });
+    // Check if this is a drill suggestion (you can customize this logic)
+    if (suggestion.toLowerCase().includes('drill') || suggestion.toLowerCase().includes('practice')) {
+      const currentDrills = data.drillSuggestions || [];
+      if (!currentDrills.includes(suggestion)) {
+        updateData({ drillSuggestions: [...currentDrills, suggestion] });
+      }
+    } else {
+      // Add to notes
+      const currentNotes = data.notes;
+      const newNotes = currentNotes ? `${currentNotes} ${suggestion}` : suggestion;
+      updateData({ notes: newNotes });
     }
     onAISuggestionUsed?.();
   };
@@ -176,7 +178,6 @@ export default function TechnicalTracker({
         pillar="technical"
         context={getTechnicalContext()}
         onSuggestionSelect={handleAISuggestion}
-        onDrillSuggestion={handleDrillSuggestion}
       />
 
       {/* Drill Suggestions */}

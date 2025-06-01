@@ -9,13 +9,8 @@ export default function LogMatch() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    // Navigate to login page or show login modal
-    navigate('/');
-  };
-
   if (!user) {
-    return <LoginPromptModal onLogin={handleLogin} />;
+    return <LoginPromptModal />;
   }
 
   return <MatchLogger />;
