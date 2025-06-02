@@ -19,15 +19,15 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
   useRealtimeDashboard();
   
   const { data: matches, isLoading, error } = useQuery({
-    queryKey: ['matches', filters],
+    queryKey: ['matches', filters, user?.id],
     queryFn: async () => {
       if (!user) return [];
       
+      console.log('🔍 Fetching matches for user:', user.id, 'with filters:', filters);
+      
       let query = supabase
         .from('matches')
-        .select(`
-          *
-        `)
+        .select(`*`)
         .eq('user_id', user.id);
       
       // Apply date filters
@@ -56,9 +56,11 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
       const { data, error } = await query;
       
       if (error) {
-        console.error('Error fetching matches:', error);
+        console.error('❌ Error fetching matches:', error);
         throw error;
       }
+
+      console.log('✅ Fetched matches:', data?.length || 0, 'matches');
 
       // Get opponent information in a separate query if needed
       const matchesWithOpponents = await Promise.all(
@@ -66,7 +68,7 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
           // Transform the highlights from Json[] to MatchHighlight[]
           const typedHighlights: MatchHighlight[] = Array.isArray(match.highlights) 
             ? match.highlights.map((highlight: any) => ({
-                type: highlight.type || 'winner', // Ensure the required 'type' property exists
+                type: highlight.type || 'winner',
                 note: highlight.note,
                 timestamp: highlight.timestamp,
               }))
@@ -96,6 +98,7 @@ export const MatchesList: React.FC<MatchesListProps> = ({ filters }) => {
       return matchesWithOpponents;
     },
     enabled: !!user,
+    staleTime: 0, // Always refetch to ensure fresh data
   });
   
   // Filter by search query locally

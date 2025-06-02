@@ -1,8 +1,10 @@
 
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { MatchFormValues } from '@/components/logging/match/matchSchema';
+import { toast } from 'sonner';
 
 // Match data interface that extends the schema for internal use
 export interface MatchData extends Partial<MatchFormValues> {
@@ -13,17 +15,16 @@ export interface MatchData extends Partial<MatchFormValues> {
 }
 
 export function useMatchSubmit() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submitMatch = async (matchData: MatchData) => {
-    if (!user) {
-      throw new Error('User must be logged in to submit a match');
-    }
+  const matchMutation = useMutation({
+    mutationFn: async (matchData: MatchData) => {
+      if (!user) {
+        throw new Error('User must be logged in to submit a match');
+      }
 
-    setIsSubmitting(true);
-    
-    try {
       console.log('🎾 Starting match submission:', matchData);
       
       const assignedCoachId = profile?.assigned_coach_id || null;
@@ -102,9 +103,28 @@ export function useMatchSubmit() {
 
       console.log('🎉 Match submission completed successfully!');
       return match;
-    } catch (error) {
-      console.error('💥 Error in submitMatch:', error);
-      throw error;
+    },
+    onSuccess: () => {
+      console.log('🎉 Match mutation completed successfully');
+      // Invalidate all relevant queries to trigger real-time updates
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-matches-count'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-activity-ranking'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-current-streak'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-weekly-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-upcoming-activities'] });
+      toast.success("Match logged successfully!");
+    },
+    onError: (error) => {
+      console.error('💥 Match submission error:', error);
+      toast.error(`Failed to save match: ${error.message}`);
+    }
+  });
+
+  const submitMatch = async (data: MatchData) => {
+    setIsSubmitting(true);
+    try {
+      return await matchMutation.mutateAsync(data);
     } finally {
       setIsSubmitting(false);
     }

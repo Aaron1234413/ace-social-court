@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +19,6 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRealtimeDashboard } from '@/hooks/use-realtime-dashboard';
-import { useRealtimeMatches } from '@/hooks/use-realtime-matches';
 import DashboardContent from './DashboardContent';
 
 const PlayerDashboard = () => {
@@ -28,7 +26,6 @@ const PlayerDashboard = () => {
   
   // Set up real-time subscriptions
   useRealtimeDashboard();
-  useRealtimeMatches();
 
   // Real matches count from database
   const { data: matchesCount } = useQuery({
