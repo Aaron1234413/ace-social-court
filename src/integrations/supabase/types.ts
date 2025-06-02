@@ -1056,6 +1056,10 @@ export type Database = {
         Args: { lat1: number; long1: number; lat2: number; long2: number }
         Returns: number
       }
+      can_access_session: {
+        Args: { user_uuid: string; coach_uuid: string }
+        Returns: boolean
+      }
       find_nearby_courts: {
         Args: { user_lat: number; user_lng: number; distance_miles?: number }
         Returns: {
