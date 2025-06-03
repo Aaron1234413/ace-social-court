@@ -27,7 +27,7 @@ import SessionNextStepsForm from './SessionNextStepsForm';
 import PhysicalTracker from './PhysicalTracker';
 import MentalTracker from './MentalTracker';
 import TechnicalTracker from './TechnicalTracker';
-import SessionSummary from './SessionSummary';
+import { SessionSummary } from './SessionSummary';
 
 // Import new components
 import { MultiCoachSelect } from './MultiCoachSelect';
@@ -166,7 +166,10 @@ const SessionLogger = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <PhysicalTracker form={form} />
+                  <PhysicalTracker
+                    onDataChange={(data) => form.setValue('physical_data', data)}
+                    initialData={form.getValues('physical_data')}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -181,7 +184,10 @@ const SessionLogger = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <MentalTracker form={form} />
+                  <MentalTracker
+                    onDataChange={(data) => form.setValue('mental_data', data)}
+                    initialData={form.getValues('mental_data')}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -196,7 +202,11 @@ const SessionLogger = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <TechnicalTracker form={form} />
+                  <TechnicalTracker
+                    onDataChange={(data) => form.setValue('technical_data', data)}
+                    initialData={form.getValues('technical_data')}
+                    onAISuggestionUsed={() => form.setValue('ai_suggestions_used', true)}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
