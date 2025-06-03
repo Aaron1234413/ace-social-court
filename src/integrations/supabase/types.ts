@@ -685,6 +685,7 @@ export type Database = {
         Row: {
           ai_suggestions_used: boolean | null
           coach_id: string | null
+          coach_ids: string[] | null
           created_at: string | null
           drills: Json | null
           focus_areas: string[] | null
@@ -692,10 +693,12 @@ export type Database = {
           location: string | null
           mental_data: Json | null
           next_steps: Json | null
+          notify_coaches: boolean | null
           physical_data: Json | null
           reminder_date: string | null
           session_date: string
           session_note: string | null
+          shared_with_coaches: string[] | null
           signed_off: boolean | null
           status: Database["public"]["Enums"]["session_status_enum"] | null
           technical_data: Json | null
@@ -705,6 +708,7 @@ export type Database = {
         Insert: {
           ai_suggestions_used?: boolean | null
           coach_id?: string | null
+          coach_ids?: string[] | null
           created_at?: string | null
           drills?: Json | null
           focus_areas?: string[] | null
@@ -712,10 +716,12 @@ export type Database = {
           location?: string | null
           mental_data?: Json | null
           next_steps?: Json | null
+          notify_coaches?: boolean | null
           physical_data?: Json | null
           reminder_date?: string | null
           session_date?: string
           session_note?: string | null
+          shared_with_coaches?: string[] | null
           signed_off?: boolean | null
           status?: Database["public"]["Enums"]["session_status_enum"] | null
           technical_data?: Json | null
@@ -725,6 +731,7 @@ export type Database = {
         Update: {
           ai_suggestions_used?: boolean | null
           coach_id?: string | null
+          coach_ids?: string[] | null
           created_at?: string | null
           drills?: Json | null
           focus_areas?: string[] | null
@@ -732,10 +739,12 @@ export type Database = {
           location?: string | null
           mental_data?: Json | null
           next_steps?: Json | null
+          notify_coaches?: boolean | null
           physical_data?: Json | null
           reminder_date?: string | null
           session_date?: string
           session_note?: string | null
+          shared_with_coaches?: string[] | null
           signed_off?: boolean | null
           status?: Database["public"]["Enums"]["session_status_enum"] | null
           technical_data?: Json | null

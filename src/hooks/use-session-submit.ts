@@ -26,6 +26,14 @@ export function useSessionSubmit() {
         const sessionRecord = {
           user_id: isCoach ? null : user.id,
           coach_id: isCoach ? user.id : (sessionData.coach_id || null),
+          // Handle multiple coaches - convert single coach_id to array or use coach_ids
+          coach_ids: sessionData.coach_ids && sessionData.coach_ids.length > 0 
+            ? sessionData.coach_ids 
+            : sessionData.coach_id 
+              ? [sessionData.coach_id] 
+              : [],
+          notify_coaches: sessionData.notify_coaches || false,
+          shared_with_coaches: sessionData.shared_with_coaches || [],
           session_date: sessionData.session_date.toISOString(),
           focus_areas: sessionData.focus_areas || [],
           drills: sessionData.drills || [],
@@ -74,6 +82,12 @@ export function useSessionSubmit() {
           } else {
             console.log('✅ Participants added successfully');
           }
+        }
+        
+        // Note: Notifications will be handled automatically by the database trigger
+        // when notify_coaches is true and coach_ids is populated
+        if (sessionData.notify_coaches && sessionRecord.coach_ids.length > 0) {
+          console.log('🔔 Notifications will be sent to coaches via database trigger:', sessionRecord.coach_ids);
         }
         
         // Log the session submission for analytics (don't fail if this errors)

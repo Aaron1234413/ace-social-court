@@ -31,10 +31,12 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
           *
         `);
       
-      // For coaches, only show sessions where they are tagged
+      // For coaches, show sessions where they are tagged (in coach_ids array or shared_with_coaches)
       // For players, show all their own sessions
       if (isCoach) {
-        query = query.eq('coach_id', user.id);
+        // Use the new RLS policies - coaches can see sessions they're tagged in
+        // The RLS policy will automatically filter based on coach_ids and shared_with_coaches arrays
+        query = query.or(`coach_id.eq.${user.id}`);
       } else {
         query = query.eq('user_id', user.id);
       }
@@ -69,13 +71,13 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
         throw error;
       }
       
-      // Get coach information in a separate query if needed
+      // Get coach information for sessions with coach_ids array
       const sessionsWithCoaches = await Promise.all(
         (data || []).map(async (session) => {
           // Transform drills from Json[] to SessionDrill[]
           const typedDrills: SessionDrill[] = Array.isArray(session.drills) 
             ? session.drills.map((drill: any) => ({
-                name: drill.name || 'Unnamed Drill', // Ensure the required 'name' property exists
+                name: drill.name || 'Unnamed Drill',
                 rating: drill.rating,
                 notes: drill.notes,
               }))
@@ -84,7 +86,7 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
           // Transform next_steps from Json[] to SessionNextStep[]
           const typedNextSteps: SessionNextStep[] = Array.isArray(session.next_steps) 
             ? session.next_steps.map((step: any) => ({
-                description: step.description || 'Unnamed Step', // Ensure the required 'description' property exists
+                description: step.description || 'Unnamed Step',
                 completed: step.completed,
               }))
             : [];
@@ -113,25 +115,28 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
             ? session.technical_data as unknown as TechnicalData
             : undefined;
 
-          if (session.coach_id) {
+          // Handle multiple coaches - get coach info for all coaches in coach_ids array
+          let coaches = [];
+          if (session.coach_ids && Array.isArray(session.coach_ids) && session.coach_ids.length > 0) {
+            const { data: coachesData } = await supabase
+              .from('profiles')
+              .select('id, avatar_url, username, full_name')
+              .in('id', session.coach_ids);
+              
+            coaches = coachesData || [];
+          } else if (session.coach_id) {
+            // Fallback to single coach_id for backward compatibility
             const { data: coachData } = await supabase
               .from('profiles')
               .select('id, avatar_url, username, full_name')
               .eq('id', session.coach_id)
               .single();
               
-            return {
-              ...session,
-              drills: typedDrills,
-              next_steps: typedNextSteps,
-              focus_areas: focusAreas,
-              physical_data: physicalData,
-              mental_data: mentalData,
-              technical_data: technicalData,
-              coach: coachData
-            } as Session;
+            if (coachData) {
+              coaches = [coachData];
+            }
           }
-          
+
           return {
             ...session,
             drills: typedDrills,
@@ -139,8 +144,10 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
             focus_areas: focusAreas,
             physical_data: physicalData,
             mental_data: mentalData,
-            technical_data: technicalData
-          } as Session;
+            technical_data: technicalData,
+            coaches: coaches, // New field for multiple coaches
+            coach: coaches[0] || null // Keep backward compatibility
+          } as Session & { coaches: any[] };
         })
       );
       
@@ -154,14 +161,15 @@ export const SessionsList: React.FC<SessionsListProps> = ({ filters, isCoach }) 
     if (!filters.searchQuery) return true;
     const searchLower = filters.searchQuery.toLowerCase();
     
-    // Search in focus areas, coach name, and notes
+    // Search in focus areas, coach names, and notes
+    const coachNames = session.coaches?.map(coach => 
+      [coach.username, coach.full_name].filter(Boolean).join(' ')
+    ).join(' ') || '';
+    
     return (
       (session.focus_areas && 
         session.focus_areas.some(area => area.toLowerCase().includes(searchLower))) ||
-      (session.coach?.username && 
-        session.coach.username.toLowerCase().includes(searchLower)) ||
-      (session.coach?.full_name && 
-        session.coach.full_name.toLowerCase().includes(searchLower)) ||
+      coachNames.toLowerCase().includes(searchLower) ||
       (session.session_note && 
         session.session_note.toLowerCase().includes(searchLower))
     );

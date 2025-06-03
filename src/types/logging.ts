@@ -1,3 +1,4 @@
+
 export interface LogPrompt {
   id: string;
   user_id: string;
@@ -92,11 +93,15 @@ export interface TechnicalData {
   drillSuggestions?: string[];
 }
 
-// Enhanced session interface with pillar data
+// Enhanced session interface with multiple coaches and pillar data
 export interface Session {
   id: string;
   user_id: string;
   coach_id?: string;
+  // New fields for multiple coaches
+  coach_ids?: string[];
+  notify_coaches?: boolean;
+  shared_with_coaches?: string[];
   session_date: string;
   location?: string;
   focus_areas?: string[];
@@ -128,6 +133,12 @@ export interface Session {
     username: string | null;
     full_name: string | null;
   } | null;
+  coaches?: {
+    id: string;
+    avatar_url: string | null;
+    username: string | null;
+    full_name: string | null;
+  }[];
   participants?: {
     id: string;
     avatar_url: string | null;
