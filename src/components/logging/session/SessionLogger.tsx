@@ -120,7 +120,7 @@ const SessionLogger = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SessionBasicsForm form={form} />
+                  <SessionBasicsForm />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -221,7 +221,21 @@ const SessionLogger = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SessionSummary form={form} />
+                  <SessionSummary 
+                    pillarData={{
+                      physical: form.getValues('physical_data'),
+                      mental: form.getValues('mental_data'),
+                      technical: form.getValues('technical_data')
+                    }}
+                    selectedPillars={form.getValues('focus_areas') || []}
+                    aiSuggestionsUsed={form.getValues('ai_suggestions_used') || false}
+                    onBack={() => setActiveTab('technical')}
+                    onEdit={(pillar) => setActiveTab(pillar)}
+                    onSuccess={() => {
+                      form.reset();
+                      setActiveTab('basics');
+                    }}
+                  />
                   
                   {/* Submit Button */}
                   <div className="mt-6 pt-4 border-t">
