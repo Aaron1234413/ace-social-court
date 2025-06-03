@@ -22,7 +22,7 @@ export function useSessionSubmit() {
         const isCoach = profile?.user_type === 'coach';
         console.log('👤 User type:', isCoach ? 'coach' : 'player');
         
-        // Format the data for database
+        // Format the data for database - cast pillar data to Json type
         const sessionRecord = {
           user_id: isCoach ? null : user.id,
           coach_id: isCoach ? user.id : (sessionData.coach_id || null),
@@ -41,10 +41,10 @@ export function useSessionSubmit() {
           session_note: sessionData.session_note || null,
           reminder_date: sessionData.reminder_date ? sessionData.reminder_date.toISOString() : null,
           status: 'Logged' as const,
-          // Store detailed pillar data in JSONB columns
-          physical_data: sessionData.physical_data || null,
-          mental_data: sessionData.mental_data || null,
-          technical_data: sessionData.technical_data || null,
+          // Store detailed pillar data in JSONB columns - cast to Json
+          physical_data: sessionData.physical_data ? sessionData.physical_data as any : null,
+          mental_data: sessionData.mental_data ? sessionData.mental_data as any : null,
+          technical_data: sessionData.technical_data ? sessionData.technical_data as any : null,
           ai_suggestions_used: sessionData.ai_suggestions_used || false,
         };
         
