@@ -1,10 +1,9 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Pencil, MapPin, Calendar, Award, Upload, Image, BarChart2, Flame, Target, Trophy } from 'lucide-react';
+import { Pencil, MapPin, Calendar, Award, Upload, Image, BarChart2, Flame, Target, Trophy, Camera } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import MessageButton from '@/components/messages/MessageButton';
 import { Progress } from '@/components/ui/progress';
@@ -404,7 +403,7 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
           )}
         </div>
         
-        {/* Avatar with enhanced upload option */}
+        {/* Avatar with enhanced upload option and permanent edit icon */}
         <div className="relative group mb-4">
           <Avatar className="w-24 h-24 border-4 border-background shadow-lg">
             {profile.avatar_url ? (
@@ -416,26 +415,34 @@ export const ProfileHeader = ({ userId, isOwnProfile }: ProfileHeaderProps) => {
             )}
           </Avatar>
           
-          {/* Enhanced profile photo upload overlay with better UX */}
+          {/* Enhanced profile photo upload overlay with permanent edit icon */}
           {isOwnProfile && (
-            <label 
-              htmlFor="avatar-upload" 
-              className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-label="Update profile picture"
-              role="button"
-            >
-              <Image className="h-6 w-6 text-white mb-1" />
-              <span className="text-xs text-white font-medium">Update</span>
-              <Input 
-                type="file" 
-                id="avatar-upload" 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleAvatarUpload}
-                disabled={isUploading}
-                aria-label="Upload profile picture"
-              />
-            </label>
+            <>
+              {/* Permanent edit icon - always visible */}
+              <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-2 shadow-lg border-2 border-background">
+                <Camera className="h-4 w-4" />
+              </div>
+              
+              {/* Enhanced hover overlay with better visibility */}
+              <label 
+                htmlFor="avatar-upload" 
+                className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out"
+                aria-label="Update profile picture"
+                role="button"
+              >
+                <Camera className="h-8 w-8 text-white mb-1" />
+                <span className="text-sm text-white font-semibold">Change Photo</span>
+                <Input 
+                  type="file" 
+                  id="avatar-upload" 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleAvatarUpload}
+                  disabled={isUploading}
+                  aria-label="Upload profile picture"
+                />
+              </label>
+            </>
           )}
         </div>
         
