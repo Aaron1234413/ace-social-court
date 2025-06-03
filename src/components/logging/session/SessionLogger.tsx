@@ -125,7 +125,7 @@ const SessionLogger = () => {
               </Card>
             </TabsContent>
 
-            {/* New Coaches Tab */}
+            {/* Coaches Tab */}
             <TabsContent value="coaches">
               <Card>
                 <CardHeader>
@@ -134,14 +134,23 @@ const SessionLogger = () => {
                     Coach Management
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
                       Tag Coaches
                     </label>
+                    <p className="text-xs text-muted-foreground">
+                      Select coaches to tag in this training session
+                    </p>
                     <MultiCoachSelect
                       selectedCoachIds={watchedCoachIds}
-                      onCoachIdsChange={(coachIds) => form.setValue('coach_ids', coachIds)}
+                      onCoachIdsChange={(coachIds) => {
+                        form.setValue('coach_ids', coachIds);
+                        // Auto-disable notifications if no coaches selected
+                        if (coachIds.length === 0) {
+                          form.setValue('notify_coaches', false);
+                        }
+                      }}
                       disabled={isSubmitting}
                     />
                   </div>
@@ -152,6 +161,15 @@ const SessionLogger = () => {
                     hasCoaches={watchedCoachIds.length > 0}
                     disabled={isSubmitting}
                   />
+
+                  {/* Helper text */}
+                  {watchedCoachIds.length > 0 && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        💡 <strong>Tip:</strong> Tagged coaches will be able to see this session in their dashboard and provide feedback.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
