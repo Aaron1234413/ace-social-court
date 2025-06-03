@@ -58,7 +58,13 @@ function App() {
             {/* Make sure LoginPromptModal is not inside any route so it can show regardless of current page */}
             <LoginPromptModal />
             <Routes>
-              <Route path="/" element={<Index />} />
+              {/* Root route - wrapped in MainLayout */}
+              <Route path="/" element={
+                <MainLayout>
+                  <Index />
+                </MainLayout>
+              } />
+              
               <Route path="/auth" element={<Auth />} />
               
               {/* Admin Routes - Protected by AdminRoute */}
