@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, Flame, Lightbulb, Trophy } from 'lucide-react';
@@ -10,6 +9,7 @@ import { Post } from '@/types/post';
 import { TipCommentModal } from './TipCommentModal';
 import { ReactionPermissionService } from '@/services/ReactionPermissionService';
 import { ReactionAnalytics } from '@/services/ReactionAnalytics';
+import { EngagementMetrics } from '@/services/EngagementMetrics';
 
 interface ReactionCounts {
   heart: number;
@@ -101,6 +101,9 @@ export function ReactionBar({ post, className = '' }: ReactionBarProps) {
       is_ambassador_content: post.is_ambassador_content || false
     });
 
+    // Track engagement metrics
+    await EngagementMetrics.trackPostReaction(user.id, post.id, reactionType);
+
     // Check permissions
     if (!permission.canReact) {
       toast.error(permission.reason || "You cannot react to this post");
@@ -168,6 +171,11 @@ export function ReactionBar({ post, className = '' }: ReactionBarProps) {
           action: 'completed',
           is_ambassador_content: post.is_ambassador_content || false
         });
+
+        // Track tip comment quality if applicable
+        if (reactionType === 'tip' && comment) {
+          await EngagementMetrics.trackReactionComment(user.id, post.id, comment.length);
+        }
 
         if (reactionType === 'tip') {
           toast.success("Thanks for your tip! 💡", {
