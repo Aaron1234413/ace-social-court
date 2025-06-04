@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { useFeedPerformance } from '@/hooks/useFeedPerformance';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { MessageSquare, Heart, Clock, Activity, Zap } from 'lucide-react';
+import { MessageSquare, Heart, Clock, Activity, Zap, Crown } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
@@ -17,6 +16,7 @@ import { AmbassadorSeedingService } from '@/services/AmbassadorSeedingService';
 import { PostComposer } from '@/components/social/PostComposer';
 import { Card, CardContent } from '@/components/ui/card';
 import { PreviewService } from '@/services/PreviewService';
+import { Badge } from '@/components/ui/badge';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -106,10 +106,27 @@ const Feed = () => {
   const previewService = PreviewService.getInstance();
   const cacheStats = previewService.getCacheStats();
 
+  // Calculate ambassador content percentage for showcase
+  const ambassadorPosts = posts.filter(post => 
+    post.author?.user_type === 'ambassador' || post.is_ambassador_content
+  );
+  const ambassadorPercentageDisplay = posts.length > 0 ? 
+    Math.round((ambassadorPosts.length / posts.length) * 100) : 0;
+
   return (
-    <div className="max-w-3xl w-full mx-auto py-4 md:py-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl md:text-2xl font-bold">Social Feed</h1>
+    <div className="max-w-3xl w-full mx-auto py-3 md:py-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold">Social Feed</h1>
+          
+          {/* Ambassador Content Indicator */}
+          {ambassadorPosts.length > 0 && (
+            <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+              <Crown className="h-3 w-3 mr-1" />
+              {ambassadorPercentageDisplay}% Expert
+            </Badge>
+          )}
+        </div>
         
         {user && (
           <div className="flex items-center space-x-2">
@@ -132,8 +149,9 @@ const Feed = () => {
         )}
       </div>
 
+      {/* Performance metrics - keep existing code */}
       {showPerformanceMetrics && (
-        <Card className="mb-4">
+        <Card className="mb-3">
           <CardContent className="p-3">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
@@ -169,8 +187,9 @@ const Feed = () => {
         </Card>
       )}
 
+      {/* Cache stats - keep existing code */}
       {showCacheStats && (
-        <Card className="mb-4">
+        <Card className="mb-3">
           <CardContent className="p-3">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
@@ -205,7 +224,7 @@ const Feed = () => {
       )}
       
       {user && (
-        <div className="mb-4 overflow-x-auto pb-1">
+        <div className="mb-3 overflow-x-auto pb-1">
           <ToggleGroup 
             type="single" 
             value={sortOption}
@@ -227,7 +246,7 @@ const Feed = () => {
       
       {user ? (
         <>
-          <div className="mb-4">
+          <div className="mb-3">
             <PostComposer onSuccess={refresh} />
           </div>
           
@@ -256,7 +275,7 @@ const Feed = () => {
                 <VirtualizedList
                   items={posts}
                   renderItem={(post, index) => (
-                    <div className="mb-4">
+                    <div className="mb-2">
                       <FeedBubble
                         post={post}
                         currentUserId={user.id}
@@ -269,7 +288,7 @@ const Feed = () => {
                       />
                     </div>
                   )}
-                  itemHeight={200}
+                  itemHeight={180}
                   containerHeight={600}
                   onLoadMore={loadMore}
                   hasMore={hasMore}

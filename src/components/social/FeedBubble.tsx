@@ -26,12 +26,26 @@ export function FeedBubble({
   className,
   style 
 }: FeedBubbleProps) {
+  const isAmbassadorContent = contentType === 'ambassador';
+  
   return (
     <Card 
       className={cn(
-        "overflow-hidden hover:shadow-sm transition-all duration-200 w-full border-gray-200",
-        contentType === 'ambassador' && "border-l-2 border-l-purple-400 bg-gradient-to-r from-purple-25 to-white",
-        contentType === 'fallback' && "border-l-2 border-l-blue-400 bg-gradient-to-r from-blue-25 to-white",
+        "overflow-hidden hover:shadow-md transition-all duration-200 w-full border-gray-200 mb-3",
+        // Enhanced Ambassador Treatment - Premium styling
+        isAmbassadorContent && [
+          "border-l-4 border-l-purple-500",
+          "bg-gradient-to-r from-purple-50/50 via-white to-white",
+          "shadow-sm hover:shadow-lg",
+          "ring-1 ring-purple-100"
+        ],
+        // Fallback content styling
+        contentType === 'fallback' && [
+          "border-l-4 border-l-blue-400",
+          "bg-gradient-to-r from-blue-50/30 to-white"
+        ],
+        // Compact spacing
+        "space-y-0",
         className
       )}
       style={style}

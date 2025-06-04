@@ -7,6 +7,8 @@ import CommentButton from '../CommentButton';
 import ShareButton from '../ShareButton';
 import { ReactionBar } from '../ReactionBar';
 import { ContextPrompts } from '../ContextPrompts';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Crown } from 'lucide-react';
 
 interface BubbleFooterProps {
   post: Post;
@@ -18,11 +20,21 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
   const isAmbassadorContent = contentType === 'ambassador' || post.is_ambassador_content;
 
   return (
-    <CardFooter className="p-3 space-y-3 bg-white border-t border-gray-100">
-      {/* Unified Engagement Row - Reactions as primary, Comment/Share as secondary */}
-      <div className="flex items-center justify-between w-full">
-        {/* Reaction Bar - Primary engagement method */}
-        <div className="flex items-center">
+    <CardFooter className="p-2 space-y-2 bg-white border-t border-gray-100">
+      {/* Ambassador Badge - Prominent placement */}
+      {isAmbassadorContent && (
+        <div className="w-full flex justify-center">
+          <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700 border-purple-200 text-xs px-2 py-1">
+            <Crown className="h-3 w-3 mr-1" />
+            Expert Content
+          </Badge>
+        </div>
+      )}
+
+      {/* Main Engagement Row - Properly spaced to prevent overlap */}
+      <div className="flex items-center justify-between w-full min-h-[36px]">
+        {/* Reaction Bar - Primary engagement */}
+        <div className="flex items-center flex-1 min-w-0">
           <ReactionBar
             postId={post.id}
             postUserId={post.user_id}
@@ -35,8 +47,8 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
           />
         </div>
         
-        {/* Secondary Actions - Comment and Share */}
-        <div className="flex items-center gap-1">
+        {/* Secondary Actions - Fixed positioning to prevent overlap */}
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
           <CommentButton 
             postId={post.id} 
             postUserId={post.user_id}
@@ -51,7 +63,7 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
         </div>
       </div>
       
-      {/* Context-Aware Prompts */}
+      {/* Context-Aware Prompts - Compact but visible */}
       <div className="w-full">
         <ContextPrompts
           context={{

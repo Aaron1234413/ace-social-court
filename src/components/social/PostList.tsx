@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Post } from '@/types/post';
 import { Loading } from '@/components/ui/loading';
@@ -33,7 +34,7 @@ const PostList = ({
 
   if (posts.length === 0) {
     return (
-      <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-8 text-center border border-muted shadow-inner">
+      <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-6 text-center border border-muted shadow-inner">
         <div className="max-w-md mx-auto">
           <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">
             <MessageSquare className="h-8 w-8 text-muted-foreground" />
@@ -70,7 +71,7 @@ const PostList = ({
         contentType={contentType}
         onPostUpdated={onPostUpdated}
         className="animate-slide-up"
-        style={{ animationDelay: `${index * 100}ms` }}
+        style={{ animationDelay: `${index * 50}ms` }}
       />
     );
   };
@@ -80,23 +81,23 @@ const PostList = ({
       <VirtualizedList
         items={posts}
         renderItem={renderPost}
-        itemHeight={250}
+        itemHeight={200}
         containerHeight={600}
         onLoadMore={onLoadMore}
         hasMore={hasMore}
         isLoading={isLoadingMore}
         threshold={3}
-        className="space-y-6 md:space-y-8"
+        className="space-y-2"
       />
     );
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-2">
       {posts.map((post, index) => renderPost(post, index))}
       
       {isLoadingMore && (
-        <div className="flex justify-center p-4">
+        <div className="flex justify-center p-2">
           <Loading variant="skeleton" count={1} text="Loading more posts..." />
         </div>
       )}
