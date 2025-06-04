@@ -113,14 +113,16 @@ export function useSharingPreferences() {
     const mostUsedPrivacy = Object.entries(privacyCount)
       .sort(([,a], [,b]) => b - a)[0]?.[0] as MatchPrivacyLevel || 'summary';
 
-    // Fix: Properly handle arithmetic operations with explicit number types
-    const totalMatchPosts: number = matchPosts.length;
-    const winPostsCount: number = winPosts.length;
-    const lossPostsCount: number = lossPosts.length;
+    // Fix: Convert to actual numbers and perform arithmetic safely
+    const totalMatchPostsCount = matchPosts.length;
+    const winPostsCount = winPosts.length;
+    const lossPostsCount = lossPosts.length;
     
-    // Ensure we have valid numbers for division
-    const winShareRate: number = totalMatchPosts > 0 ? (winPostsCount / totalMatchPosts) : 0.7;
-    const lossShareRate: number = totalMatchPosts > 0 ? (lossPostsCount / totalMatchPosts) : 0.3;
+    // Perform arithmetic with proper number conversion
+    const winShareRate = totalMatchPostsCount > 0 ? 
+      Number(winPostsCount) / Number(totalMatchPostsCount) : 0.7;
+    const lossShareRate = totalMatchPostsCount > 0 ? 
+      Number(lossPostsCount) / Number(totalMatchPostsCount) : 0.3;
 
     return {
       totalPosts: posts.length,
@@ -155,7 +157,7 @@ export function useSharingPreferences() {
       await supabase.from('user_activity_logs').insert({
         user_id: user.id,
         action_type: 'sharing_preferences_updated',
-        action_details: { preferences: newPrefs } as any
+        action_details: { preferences: newPrefs }
       });
     } catch (error) {
       console.error('Error saving sharing preferences:', error);
@@ -174,7 +176,7 @@ export function useSharingPreferences() {
       await supabase.from('user_activity_logs').insert({
         user_id: user.id,
         action_type: 'match_shared',
-        action_details: action as any
+        action_details: action
       });
 
       // Update preferences based on this action
