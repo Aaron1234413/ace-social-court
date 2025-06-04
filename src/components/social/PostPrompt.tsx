@@ -103,7 +103,7 @@ export function PostPrompt({ post, onCommentSubmit, className = '' }: PostPrompt
   };
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full relative ${className}`}>
       {/* Prompt Speech Bubble */}
       <div className={`
         relative p-3 rounded-lg border transition-all duration-200 cursor-pointer
@@ -135,10 +135,11 @@ export function PostPrompt({ post, onCommentSubmit, className = '' }: PostPrompt
         <div className="absolute -bottom-2 left-6 w-4 h-4 rotate-45 bg-inherit border-r border-b border-inherit"></div>
       </div>
 
-      {/* Expanded Comment Input */}
+      {/* Expanded Comment Input - Now positioned absolutely */}
       {isExpanded && (
         <div className={`
-          border border-t-0 rounded-b-lg p-4 space-y-3
+          absolute top-full left-0 right-0 z-50
+          border border-t-0 rounded-b-lg p-4 space-y-3 shadow-lg
           ${prompt.requiresCoach 
             ? 'bg-yellow-50 border-yellow-200' 
             : 'bg-white border-gray-200'
