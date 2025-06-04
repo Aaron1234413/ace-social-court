@@ -125,7 +125,8 @@ export class AmbassadorContentManager {
       ]
     };
 
-    if (contentType === 'struggle' && templates.struggle[personality.id as keyof typeof templates.struggle]) {
+    // Fix the struggle content type handling
+    if (contentType === 'struggle' && personality.id in templates.struggle) {
       const personalityTemplates = templates.struggle[personality.id as keyof typeof templates.struggle];
       return personalityTemplates[Math.floor(Math.random() * personalityTemplates.length)];
     }
@@ -292,10 +293,34 @@ export class AmbassadorContentManager {
     recentActivity: number;
   }> {
     try {
-      const { data: stats } = await supabase
-        .rpc('get_ambassador_engagement_stats');
+      // Since the RPC function doesn't exist, let's query directly
+      const { data: ambassadorPosts, error } = await supabase
+        .from('posts')
+        .select('engagement_score, created_at')
+        .eq('is_ambassador_content', true);
+
+      if (error) {
+        console.error('Error getting Ambassador stats:', error);
+        return { totalPosts: 0, avgReactions: 0, recentActivity: 0 };
+      }
+
+      const totalPosts = ambassadorPosts?.length || 0;
+      const avgReactions = totalPosts > 0 
+        ? (ambassadorPosts?.reduce((sum, post) => sum + (post.engagement_score || 0), 0) || 0) / totalPosts 
+        : 0;
       
-      return stats || { totalPosts: 0, avgReactions: 0, recentActivity: 0 };
+      // Calculate recent activity (last 7 days)
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      const recentActivity = ambassadorPosts?.filter(post => 
+        new Date(post.created_at) >= lastWeek
+      ).length || 0;
+
+      return {
+        totalPosts,
+        avgReactions: Math.round(avgReactions),
+        recentActivity
+      };
     } catch (error) {
       console.error('Error getting Ambassador stats:', error);
       return { totalPosts: 0, avgReactions: 0, recentActivity: 0 };
