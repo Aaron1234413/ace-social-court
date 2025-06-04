@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
-import { CreatePostForm } from '@/components/social/CreatePostForm';
 import PostList from '@/components/social/PostList';
 import { usePosts } from '@/hooks/use-posts';
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +11,7 @@ import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
 import { AmbassadorSeedingService } from '@/services/AmbassadorSeedingService';
+import { PostComposer } from '@/components/social/PostComposer';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -142,7 +141,7 @@ const Feed = () => {
       {user ? (
         <>
           <div className="mb-6">
-            <CreatePostForm onSuccess={fetchPosts} />
+            <PostComposer onSuccess={fetchPosts} />
           </div>
           
           {isLoading ? (

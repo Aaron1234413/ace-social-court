@@ -9,7 +9,7 @@ export interface PostSuggestion {
   template: PostTemplate;
   confidence: number;
   sessionId: string;
-  privacyLevel: 'private' | 'friends' | 'public' | 'coaches';
+  privacyLevel: 'private' | 'friends' | 'public' | 'coaches' | 'public_highlights';
 }
 
 export class AutoPostService {
@@ -257,19 +257,15 @@ export class AutoPostService {
     return Math.min(confidence, 1.0);
   }
 
-  private suggestPrivacyLevel(sessionData: SessionFormValues): 'private' | 'friends' | 'public' | 'coaches' {
+  private suggestPrivacyLevel(sessionData: SessionFormValues): 'private' | 'friends' | 'public' | 'coaches' | 'public_highlights' {
     // Suggest coaches if coaches are involved
     if (sessionData.coach_ids?.length) {
       return 'coaches';
     }
     
-    // Suggest friends for regular sessions
-    if (sessionData.focus_areas?.length || sessionData.drills?.length) {
-      return 'friends';
-    }
-    
-    // Default to private for less complete sessions
-    return 'private';
+    // For new users or users with limited social graph, suggest public_highlights
+    // This will be determined by the PostComposer based on followingCount
+    return 'public_highlights';
   }
 
   async saveGeneratedPost(

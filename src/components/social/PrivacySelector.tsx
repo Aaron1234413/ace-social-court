@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lock, Users, Globe, GraduationCap, AlertCircle } from 'lucide-react';
+import { Lock, Users, Globe, GraduationCap, Star, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export type PrivacyLevel = 'private' | 'friends' | 'public' | 'coaches';
+export type PrivacyLevel = 'private' | 'friends' | 'public' | 'coaches' | 'public_highlights';
 
 interface PrivacySelectorProps {
   value: PrivacyLevel;
@@ -32,6 +32,12 @@ const privacyOptions = [
     icon: Globe,
   },
   {
+    value: 'public_highlights' as const,
+    label: 'Public Highlights',
+    description: 'Featured in community highlights',
+    icon: Star,
+  },
+  {
     value: 'coaches' as const,
     label: 'Coaches Only',
     description: 'Only coaches can see this',
@@ -46,16 +52,16 @@ export function PrivacySelector({ value, onValueChange, followingCount = 0 }: Pr
   
   // Auto-adjust privacy level if user doesn't meet requirements
   React.useEffect(() => {
-    if ((value === 'public' || value === 'friends') && !canPostPublic) {
+    if ((value === 'public' || value === 'friends') && !canPostPublic && followingCount > 0) {
       onValueChange('private');
     }
-  }, [value, canPostPublic, onValueChange]);
+  }, [value, canPostPublic, onValueChange, followingCount]);
 
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">Privacy Level</label>
       
-      {!canPostPublic && (
+      {!canPostPublic && followingCount > 0 && (
         <Alert className="border-amber-200 bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-700">
@@ -72,8 +78,9 @@ export function PrivacySelector({ value, onValueChange, followingCount = 0 }: Pr
         <SelectContent>
           {privacyOptions.map((option) => {
             const Icon = option.icon;
-            const isDisabled = !canPostPublic && (option.value === 'public' || option.value === 'friends');
-            const isRecommended = !canPostPublic && option.value === 'private';
+            const isDisabled = !canPostPublic && followingCount > 0 && (option.value === 'public' || option.value === 'friends');
+            const isRecommendedForNewUsers = followingCount === 0 && option.value === 'public_highlights';
+            const isRecommendedForLimitedFollows = !canPostPublic && followingCount > 0 && option.value === 'private';
             
             return (
               <SelectItem 
@@ -86,7 +93,12 @@ export function PrivacySelector({ value, onValueChange, followingCount = 0 }: Pr
                   <div className="flex flex-col">
                     <span className={`flex items-center gap-1 ${isDisabled ? 'text-muted-foreground' : ''}`}>
                       {option.label}
-                      {isRecommended && (
+                      {isRecommendedForNewUsers && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">
+                          Recommended
+                        </span>
+                      )}
+                      {isRecommendedForLimitedFollows && (
                         <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">
                           Recommended
                         </span>
@@ -108,6 +120,12 @@ export function PrivacySelector({ value, onValueChange, followingCount = 0 }: Pr
           })}
         </SelectContent>
       </Select>
+      
+      {followingCount === 0 && value === 'public_highlights' && (
+        <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+          🌟 Perfect for new users! Your posts will be featured to help you connect with the community.
+        </div>
+      )}
       
       {canPostPublic && value === 'private' && (
         <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
