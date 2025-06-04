@@ -9,7 +9,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast, showSuccessToast, showErrorToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
-import { ImageIcon, X, Sparkles, Brain, Zap, MessageSquare, Camera, Send } from 'lucide-react';
+import { ImageIcon, X, Sparkles, Brain, Zap, MessageSquare, Camera, Send, Users, Globe, Star } from 'lucide-react';
 import { uploadFileWithProgress } from '@/utils/mediaUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -46,8 +46,8 @@ const postSchema = z.object({
 interface PostComposerProps {
   onSuccess?: (post?: Post) => void;
   className?: string;
-  sessionData?: any; // For session integration
-  matchData?: any; // For match integration
+  sessionData?: any;
+  matchData?: any;
 }
 
 export function PostComposer({ onSuccess, className, sessionData, matchData }: PostComposerProps) {
@@ -57,8 +57,6 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<PostSuggestion[]>([]);
-  const [showAiHelp, setShowAiHelp] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState<string>('');
   const { toast } = useToast();
 
@@ -95,14 +93,20 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       const promptEngine = ContextPromptEngine.getInstance();
       const coachSystem = CoachPromptSystem.getInstance();
       
-      // Create mock post context for prompt generation
+      // Create mock post context for prompt generation with required properties
       const mockPost = {
+        id: 'temp-id',
         content: form.watch('content') || '',
         user_id: user.id,
+        created_at: new Date().toISOString(),
         author: profile
       } as Post;
 
       const context = ContextPromptEngine.buildContext(mockPost, user.id, profile.user_type);
+      
+      // Handle privacy level for prompt generation - exclude 'private' as it's not supported
+      const currentPrivacyLevel = form.watch('privacy_level');
+      const validPrivacyLevel = currentPrivacyLevel === 'private' ? 'public' : currentPrivacyLevel;
       
       if (profile.user_type === 'coach') {
         const prompt = coachSystem.generateCoachPrompt(mockPost, context, profile.full_name);
@@ -112,13 +116,12 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         setCurrentPrompt(prompt.placeholder);
       }
     }
-  }, [user, profile, form.watch('content')]);
+  }, [user, profile, form.watch('content'), form.watch('privacy_level')]);
 
   const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       showErrorToast("File too large", "Please select a file smaller than 10MB.");
       return;
@@ -139,7 +142,6 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     if (suggestion.template?.id) {
       form.setValue('template_id', suggestion.template.id);
     }
-    setShowAiHelp(false);
   };
 
   const handleSubmit = async (values: z.infer<typeof postSchema>) => {
@@ -196,7 +198,6 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
 
       if (error) throw error;
 
-      // Transform the response to match our Post type
       const createdPost: Post = {
         ...data,
         author: data.profiles ? {
@@ -214,9 +215,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       setMediaPreview(null);
       setMediaFile(null);
       setShowComposer(false);
-      setAiSuggestions([]);
       
-      // Call success callback with the created post
       onSuccess?.(createdPost);
 
     } catch (error) {
@@ -242,39 +241,54 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     }
   };
 
+  const getPrivacyIcon = (level: string) => {
+    switch (level) {
+      case 'public_highlights':
+        return <Star className="h-4 w-4" />;
+      case 'public':
+        return <Globe className="h-4 w-4" />;
+      case 'friends':
+        return <Users className="h-4 w-4" />;
+      case 'coaches':
+        return <Users className="h-4 w-4" />;
+      default:
+        return <Globe className="h-4 w-4" />;
+    }
+  };
+
   return (
-    <Card className={`border-2 border-primary/10 shadow-lg ${className}`}>
-      <CardHeader className="pb-3">
+    <Card className={`border border-gray-200 shadow-lg bg-white ${className}`}>
+      <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+            <Avatar className="h-11 w-11 ring-2 ring-blue-200">
               <AvatarImage src={profile?.avatar_url} />
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">
                 {profile?.full_name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800">
+                <MessageSquare className="h-5 w-5 text-blue-600" />
                 Share Your Tennis Journey
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 {profile?.user_type === 'coach' ? 'Share insights with your students' : 'Connect with the tennis community'}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {suggestions.length > 0 && (
-              <Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200">
+              <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
                 <Sparkles className="h-3 w-3 mr-1" />
                 AI Ready
               </Badge>
             )}
             <Button 
-              variant="ghost" 
+              variant={showComposer ? "secondary" : "default"}
               size="sm" 
               onClick={() => setShowComposer(!showComposer)}
-              className="text-primary hover:bg-primary/10"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {showComposer ? 'Minimize' : 'Create Post'}
             </Button>
@@ -283,52 +297,45 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       </CardHeader>
 
       {showComposer && (
-        <CardContent className="pt-0">
+        <CardContent className="pt-6 space-y-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               {/* AI Suggestions Section */}
               {suggestions.length > 0 && (
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-5 border border-purple-200">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-purple-600" />
-                      <span className="font-medium text-purple-900">AI Suggestions</span>
-                      <Badge variant="outline" className="text-xs">
-                        Based on your {sessionData ? 'session' : matchData ? 'match' : 'activity'}
-                      </Badge>
+                      <div className="bg-purple-100 p-2 rounded-full">
+                        <Brain className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-purple-900">AI Suggestions</span>
+                        <Badge variant="outline" className="text-xs ml-2">
+                          Based on your {sessionData ? 'session' : matchData ? 'match' : 'activity'}
+                        </Badge>
+                      </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAiHelp(!showAiHelp)}
-                      className="text-purple-600 hover:text-purple-700"
-                    >
-                      {showAiHelp ? 'Hide' : 'Show'} Suggestions
-                    </Button>
                   </div>
                   
-                  {showAiHelp && (
-                    <div className="space-y-2">
-                      {suggestions.map((suggestion) => (
-                        <div 
-                          key={suggestion.id}
-                          className="bg-white rounded-md p-3 border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
-                          onClick={() => handleAiSuggestionSelect(suggestion)}
-                        >
-                          <p className="text-sm text-gray-800">{suggestion.content}</p>
-                          <div className="flex items-center justify-between mt-2">
-                            <Badge variant="outline" className="text-xs">
-                              {suggestion.template.category}
-                            </Badge>
-                            <span className="text-xs text-purple-600">
-                              {Math.round(suggestion.confidence * 100)}% match
-                            </span>
-                          </div>
+                  <div className="space-y-3">
+                    {suggestions.map((suggestion) => (
+                      <div 
+                        key={suggestion.id}
+                        className="bg-white rounded-lg p-4 border border-purple-100 cursor-pointer hover:border-purple-300 hover:shadow-sm transition-all"
+                        onClick={() => handleAiSuggestionSelect(suggestion)}
+                      >
+                        <p className="text-sm text-gray-800 mb-2">{suggestion.content}</p>
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                            {suggestion.template.category}
+                          </Badge>
+                          <span className="text-xs text-purple-600 font-medium">
+                            {Math.round(suggestion.confidence * 100)}% match
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -340,7 +347,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                     <FormControl>
                       <Textarea 
                         placeholder={currentPrompt || "Share your tennis experience..."}
-                        className="min-h-[120px] resize-none border-2 border-gray-200 focus:border-primary transition-colors text-base leading-relaxed"
+                        className="min-h-[120px] resize-none border-2 border-gray-200 focus:border-blue-500 transition-colors text-base leading-relaxed rounded-lg"
                         {...field} 
                       />
                     </FormControl>
@@ -370,13 +377,15 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                   </Button>
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                  <Label htmlFor="media" className="cursor-pointer flex flex-col items-center gap-2">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <Camera className="h-6 w-6 text-primary" />
+                <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                  <Label htmlFor="media" className="cursor-pointer flex flex-col items-center gap-3">
+                    <div className="bg-blue-100 p-4 rounded-full">
+                      <Camera className="h-7 w-7 text-blue-600" />
                     </div>
-                    <span className="text-sm font-medium">Add photo or video</span>
-                    <span className="text-xs text-muted-foreground">Share your tennis moments</span>
+                    <div>
+                      <span className="text-base font-medium text-gray-700">Add photo or video</span>
+                      <p className="text-sm text-gray-500 mt-1">Share your tennis moments</p>
+                    </div>
                     <input
                       type="file"
                       id="media"
@@ -393,7 +402,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                 name="privacy_level"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2">
+                    <FormLabel className="flex items-center gap-2 text-base font-medium">
                       <span>Who can see this post?</span>
                       {followingCount < 3 && (
                         <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
@@ -403,28 +412,43 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="border-2 border-gray-200 focus:border-primary">
-                          <SelectValue />
+                        <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500 h-12">
+                          <div className="flex items-center gap-2">
+                            {getPrivacyIcon(field.value || 'public')}
+                            <SelectValue />
+                          </div>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="public_highlights">
-                          🌟 Community Highlights
+                          <div className="flex items-center gap-2">
+                            <Star className="h-4 w-4 text-yellow-500" />
+                            <span>🌟 Community Highlights</span>
+                          </div>
                         </SelectItem>
                         <SelectItem value="public">
-                          🌍 Public
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-blue-500" />
+                            <span>🌍 Public</span>
+                          </div>
                         </SelectItem>
                         <SelectItem value="friends">
-                          👥 Friends Only
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-green-500" />
+                            <span>👥 Friends Only</span>
+                          </div>
                         </SelectItem>
                         {profile?.user_type === 'player' && (
                           <SelectItem value="coaches">
-                            🎾 Coaches Only
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-purple-500" />
+                              <span>🎾 Coaches Only</span>
+                            </div>
                           </SelectItem>
                         )}
                       </SelectContent>
                     </Select>
-                    <FormDescription className="text-xs">
+                    <FormDescription className="text-sm text-gray-600">
                       {getPrivacyDescription(field.value || 'public')}
                     </FormDescription>
                     <FormMessage />
@@ -433,13 +457,13 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
               />
 
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Zap className="h-4 w-4" />
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Zap className="h-4 w-4 text-blue-500" />
                     <span>AI Enhanced</span>
                   </div>
                   {isGenerating && (
-                    <div className="flex items-center gap-1 text-sm text-purple-600">
+                    <div className="flex items-center gap-2 text-sm text-purple-600">
                       <div className="animate-spin h-3 w-3 border border-purple-600 border-t-transparent rounded-full"></div>
                       <span>Generating suggestions...</span>
                     </div>
@@ -448,7 +472,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || !form.watch('content')?.trim()}
-                  className="px-6 bg-primary hover:bg-primary/90 transition-colors"
+                  className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                 >
                   {isSubmitting ? (
                     <>
