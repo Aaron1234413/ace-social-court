@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from "@/types/post";
 
@@ -53,7 +54,7 @@ export class FeedQueryCascade {
       debugData.followedUsers = await this.getFollowedUsersDebugInfo(userFollowings);
       console.log('👥 Following debug info (detailed):', debugData.followedUsers);
 
-      // Level 1: Enhanced personalized feed with detailed logging
+      // Level 1: Enhanced personalized feed with MORE INCLUSIVE privacy levels
       const primaryStart = performance.now();
       const primaryResult = await this.queryPersonalizedFeedEnhanced(userId, userFollowings, offset);
       totalQueries++;
@@ -297,7 +298,7 @@ export class FeedQueryCascade {
     if (userFollowings.length === 0) return { followedUsers: [], totalPosts: 0 };
 
     try {
-      // Get post counts per followed user
+      // Get post counts per followed user with ALL privacy levels to see what's available
       const { data: postCounts, error } = await supabase
         .from('posts')
         .select('user_id, privacy_level, created_at')
@@ -307,6 +308,8 @@ export class FeedQueryCascade {
         console.error('Error getting post counts:', error);
         return { followedUsers: [], totalPosts: 0, error: error.message };
       }
+
+      console.log('🔍 All posts from followed users (any privacy level):', postCounts);
 
       // Get user profiles
       const { data: profiles, error: profileError } = await supabase
@@ -371,11 +374,14 @@ export class FeedQueryCascade {
     const debugInfo: any = {
       followingCount: userFollowings.length,
       queryUsers: [userId, ...userFollowings],
-      privacyLevels: ['public', 'friends', 'public_highlights']
+      // EXPANDED privacy levels to include 'private' posts from followed users
+      privacyLevels: ['public', 'friends', 'public_highlights', 'private']
     };
 
     try {
-      // Enhanced query - removed date restrictions, increased range
+      // Enhanced query - INCLUDE PRIVATE POSTS from followed users since they follow them
+      console.log('🔍 Querying with EXPANDED privacy levels to include private posts from followed users');
+      
       const query = supabase
         .from('posts')
         .select(`
@@ -383,7 +389,7 @@ export class FeedQueryCascade {
           privacy_level, template_id, is_auto_generated, engagement_score
         `)
         .in('user_id', [userId, ...userFollowings])
-        .in('privacy_level', ['public', 'friends', 'public_highlights'])
+        // Remove privacy filter restriction - if you follow someone, you should see their content
         .order('created_at', { ascending: false })
         .range(offset, offset + (this.POSTS_PER_PAGE * 3) - 1); // Get more posts
 
@@ -396,6 +402,14 @@ export class FeedQueryCascade {
         debugInfo.error = error.message;
         return { posts: [], debugInfo };
       }
+
+      console.log('📊 Raw query results (all privacy levels):', {
+        totalFound: data?.length || 0,
+        byPrivacyLevel: data?.reduce((acc: any, post: any) => {
+          acc[post.privacy_level] = (acc[post.privacy_level] || 0) + 1;
+          return acc;
+        }, {})
+      });
 
       debugInfo.rawPostCount = data?.length || 0;
       debugInfo.postsByUser = {};
@@ -421,6 +435,12 @@ export class FeedQueryCascade {
 
       const posts = this.formatPosts(data || []);
       debugInfo.formattedPostCount = posts.length;
+
+      console.log('✅ Personalized feed query complete:', {
+        rawPosts: data?.length || 0,
+        formattedPosts: posts.length,
+        userBreakdown: debugInfo.postsByUser
+      });
 
       return { posts, debugInfo };
 
@@ -659,6 +679,180 @@ export class FeedQueryCascade {
     }
 
     return this.formatPosts(data || []);
+  }
+
+  private static async queryAmbassadorContentWithFollowing(
+    userFollowings: string[],
+    offset: number
+  ): Promise<{ posts: Post[], debugInfo: any }> {
+    const debugInfo: any = {
+      followedAmbassadors: [],
+      unfollowedAmbassadors: [],
+      followedAmbassadorPosts: 0,
+      unfollowedAmbassadorPosts: 0,
+      totalAmbassadorPosts: 0,
+      distributionStrategy: 'following_prioritized'
+    };
+
+    try {
+      // First, get all ambassador profiles to understand the landscape
+      const { data: allAmbassadors, error: allAmbassadorsError } = await supabase
+        .from('profiles')
+        .select('id, full_name, user_type')
+        .eq('user_type', 'ambassador');
+
+      if (allAmbassadorsError) {
+        console.error('Error fetching all ambassadors:', allAmbassadorsError);
+        debugInfo.error = allAmbassadorsError.message;
+        return { posts: [], debugInfo };
+      }
+
+      debugInfo.totalAmbassadors = allAmbassadors?.length || 0;
+
+      // Separate followed vs unfollowed ambassadors
+      if (allAmbassadors) {
+        debugInfo.followedAmbassadors = allAmbassadors.filter(amb => 
+          userFollowings.includes(amb.id)
+        );
+        debugInfo.unfollowedAmbassadors = allAmbassadors.filter(amb => 
+          !userFollowings.includes(amb.id)
+        );
+      }
+
+      const followedAmbassadorIds = debugInfo.followedAmbassadors.map((amb: any) => amb.id);
+      const unfollowedAmbassadorIds = debugInfo.unfollowedAmbassadors.map((amb: any) => amb.id);
+
+      console.log('🔍 Ambassador distribution analysis:', {
+        totalAmbassadors: debugInfo.totalAmbassadors,
+        followedCount: debugInfo.followedAmbassadors.length,
+        unfollowedCount: debugInfo.unfollowedAmbassadors.length,
+        followedAmbassadorIds,
+        unfollowedAmbassadorIds
+      });
+
+      // Strategy: Get posts from followed ambassadors first, then fill with unfollowed
+      let allAmbassadorPosts: any[] = [];
+
+      // Get posts from followed ambassadors (prioritized)
+      if (followedAmbassadorIds.length > 0) {
+        const { data: followedAmbPosts, error: followedError } = await supabase
+          .from('posts')
+          .select(`
+            id, content, created_at, user_id, media_url, media_type,
+            privacy_level, template_id, is_auto_generated, engagement_score,
+            is_ambassador_content
+          `)
+          .or(`user_id.in.(${followedAmbassadorIds.join(',')}),is_ambassador_content.eq.true`)
+          .in('user_id', followedAmbassadorIds)
+          .order('created_at', { ascending: false })
+          .range(0, this.POSTS_PER_PAGE * 2 - 1); // Get more from followed ambassadors
+
+        if (!followedError && followedAmbPosts) {
+          allAmbassadorPosts.push(...followedAmbPosts);
+          debugInfo.followedAmbassadorPosts = followedAmbPosts.length;
+        }
+      }
+
+      // If we need more posts, get from unfollowed ambassadors
+      const remainingSlots = this.POSTS_PER_PAGE - allAmbassadorPosts.length;
+      if (remainingSlots > 0 && unfollowedAmbassadorIds.length > 0) {
+        const { data: unfollowedAmbPosts, error: unfollowedError } = await supabase
+          .from('posts')
+          .select(`
+            id, content, created_at, user_id, media_url, media_type,
+            privacy_level, template_id, is_auto_generated, engagement_score,
+            is_ambassador_content
+          `)
+          .or(`user_id.in.(${unfollowedAmbassadorIds.join(',')}),is_ambassador_content.eq.true`)
+          .in('user_id', unfollowedAmbassadorIds)
+          .order('created_at', { ascending: false })
+          .range(0, remainingSlots - 1);
+
+        if (!unfollowedError && unfollowedAmbPosts) {
+          allAmbassadorPosts.push(...unfollowedAmbPosts);
+          debugInfo.unfollowedAmbassadorPosts = unfollowedAmbPosts.length;
+        }
+      }
+
+      // Format all ambassador posts
+      const posts = this.formatPosts(allAmbassadorPosts, true);
+      
+      // Distribute posts evenly across followed ambassadors first
+      const distributedPosts = this.distributeAmbassadorPosts(posts, debugInfo.followedAmbassadors, debugInfo.unfollowedAmbassadors);
+      
+      debugInfo.totalAmbassadorPosts = distributedPosts.length;
+      debugInfo.finalDistribution = this.analyzePostDistribution(distributedPosts);
+
+      console.log('🎯 Ambassador content distribution complete:', {
+        followedAmbassadorPosts: debugInfo.followedAmbassadorPosts,
+        unfollowedAmbassadorPosts: debugInfo.unfollowedAmbassadorPosts,
+        totalPosts: debugInfo.totalAmbassadorPosts,
+        finalDistribution: debugInfo.finalDistribution
+      });
+
+      return { posts: distributedPosts, debugInfo };
+
+    } catch (error) {
+      console.error('Error in queryAmbassadorContentWithFollowing:', error);
+      debugInfo.error = error.message;
+      return { posts: [], debugInfo };
+    }
+  }
+
+  private static distributeAmbassadorPosts(
+    posts: Post[], 
+    followedAmbassadors: any[], 
+    unfollowedAmbassadors: any[]
+  ): Post[] {
+    // Group posts by ambassador
+    const postsByAmbassador = new Map<string, Post[]>();
+    
+    posts.forEach(post => {
+      if (!postsByAmbassador.has(post.user_id)) {
+        postsByAmbassador.set(post.user_id, []);
+      }
+      postsByAmbassador.get(post.user_id)!.push(post);
+    });
+
+    // Distribute posts using round-robin within each category
+    const result: Post[] = [];
+    const followedIds = followedAmbassadors.map(amb => amb.id);
+    
+    // First, distribute posts from followed ambassadors
+    const followedPosts = Array.from(postsByAmbassador.entries())
+      .filter(([userId]) => followedIds.includes(userId))
+      .flatMap(([, userPosts]) => userPosts);
+    
+    const unfollowedPosts = Array.from(postsByAmbassador.entries())
+      .filter(([userId]) => !followedIds.includes(userId))
+      .flatMap(([, userPosts]) => userPosts);
+
+    // Round-robin distribution for followed ambassadors (priority)
+    let followedIndex = 0;
+    for (let i = 0; i < followedPosts.length && result.length < this.POSTS_PER_PAGE; i++) {
+      result.push(followedPosts[followedIndex]);
+      followedIndex = (followedIndex + 1) % followedPosts.length;
+    }
+
+    // Fill remaining slots with unfollowed ambassador posts
+    let unfollowedIndex = 0;
+    for (let i = 0; i < unfollowedPosts.length && result.length < this.POSTS_PER_PAGE; i++) {
+      result.push(unfollowedPosts[unfollowedIndex]);
+      unfollowedIndex = (unfollowedIndex + 1) % unfollowedPosts.length;
+    }
+
+    return result;
+  }
+
+  private static analyzePostDistribution(posts: Post[]): any {
+    const distribution = new Map<string, number>();
+    
+    posts.forEach(post => {
+      const count = distribution.get(post.user_id) || 0;
+      distribution.set(post.user_id, count + 1);
+    });
+
+    return Object.fromEntries(distribution);
   }
 
   private static formatPosts(rawPosts: any[], isAmbassadorContent = false): Post[] {
