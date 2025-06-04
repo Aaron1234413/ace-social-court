@@ -22,6 +22,8 @@ interface FeedCascadeState {
 }
 
 export const useFeedCascade = () => {
+  console.log('🎣 useFeedCascade hook initializing...');
+  
   const { user } = useAuth();
   const { followingCount, following } = useUserFollows();
   const { optimisticPosts, addOptimisticPost, clearAllOptimistic } = useOptimisticPosts();
@@ -37,6 +39,13 @@ export const useFeedCascade = () => {
     debugData: null,
     hasErrors: false,
     errorDetails: []
+  });
+
+  console.log('📊 useFeedCascade state:', {
+    postsCount: state.posts.length,
+    optimisticCount: optimisticPosts.length,
+    isLoading: state.isLoading,
+    hasUser: !!user
   });
 
   // Extract user IDs from following relationships
@@ -254,6 +263,12 @@ export const useFeedCascade = () => {
       setState(prev => ({ ...prev, isLoading: false }));
     }
   }, [user, followingCount]); // Reload when follow count changes
+
+  console.log('📤 useFeedCascade returning:', {
+    postsCount: allPosts.length,
+    isLoading: state.isLoading,
+    hasErrors: state.hasErrors
+  });
 
   return {
     posts: allPosts,

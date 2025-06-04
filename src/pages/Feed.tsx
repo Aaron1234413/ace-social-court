@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -25,8 +26,18 @@ import { Post } from '@/types/post';
 type SortOption = 'recent' | 'popular' | 'commented';
 
 const Feed = () => {
+  console.log('🎬 Feed component rendering...');
+  
   const location = useLocation();
   const { user, profile, isProfileComplete } = useAuth();
+  
+  console.log('👤 Auth state:', { 
+    hasUser: !!user, 
+    hasProfile: !!profile, 
+    isProfileComplete,
+    userId: user?.id 
+  });
+
   const { followingCount, following } = useUserFollows();
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
@@ -47,6 +58,12 @@ const Feed = () => {
     refresh,
     addNewPost
   } = useFeedCascade();
+  
+  console.log('📊 Feed data:', { 
+    postsCount: posts?.length || 0, 
+    isLoading, 
+    hasMore 
+  });
   
   const { 
     metrics: performanceMetrics, 
@@ -133,6 +150,8 @@ const Feed = () => {
     const followingUserIds = following.map((follow: any) => follow.following_id);
     return analyticsService.analyzeFeedQuality(posts, followingUserIds);
   }, [posts, analyticsService, following]);
+
+  console.log('🖼️ About to render Feed UI');
 
   return (
     <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
@@ -342,9 +361,11 @@ const Feed = () => {
           
           <div className="mb-6">
             <PostComposer onSuccess={(post) => {
-              handlePostCreated(post);
-              // Still refresh after a delay to ensure consistency
-              setTimeout(() => refresh(), 2000);
+              if (post) {
+                handlePostCreated(post);
+                // Still refresh after a delay to ensure consistency
+                setTimeout(() => refresh(), 2000);
+              }
             }} />
           </div>
           
