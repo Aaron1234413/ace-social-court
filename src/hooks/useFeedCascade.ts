@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Post } from '@/types/post';
 import { FeedQueryCascade } from '@/services/FeedQueryCascade';
@@ -13,6 +14,7 @@ interface FeedCascadeState {
   page: number;
   metrics: any[];
   ambassadorPercentage: number;
+  debugData?: any;
 }
 
 export const useFeedCascade = () => {
@@ -26,7 +28,8 @@ export const useFeedCascade = () => {
     hasMore: true,
     page: 0,
     metrics: [],
-    ambassadorPercentage: 0
+    ambassadorPercentage: 0,
+    debugData: null
   });
 
   // Extract user IDs from following relationships
@@ -35,7 +38,11 @@ export const useFeedCascade = () => {
   const loadPosts = useCallback(async (page: number = 0, existingPosts: Post[] = []) => {
     if (!user) return;
 
-    console.log('🔄 Loading posts with cascade', { page, existingCount: existingPosts.length });
+    console.log('🔄 Loading posts with enhanced cascade', { 
+      page, 
+      existingCount: existingPosts.length,
+      followingCount: followingUserIds.length 
+    });
 
     try {
       const result = await FeedQueryCascade.executeQueryCascade(
@@ -44,6 +51,12 @@ export const useFeedCascade = () => {
         page,
         existingPosts
       );
+
+      console.log('📊 Enhanced cascade result:', {
+        postCount: result.posts.length,
+        metrics: result.metrics,
+        debugData: result.debugData
+      });
 
       // Fetch author profiles for new posts
       const newPosts = result.posts.slice(existingPosts.length);
@@ -95,7 +108,8 @@ export const useFeedCascade = () => {
         posts: result.posts,
         hasMore: result.posts.length >= 8 && page < 5, // Limit to 5 pages max
         metrics: result.metrics,
-        ambassadorPercentage: result.ambassadorPercentage
+        ambassadorPercentage: result.ambassadorPercentage,
+        debugData: result.debugData
       }));
 
     } catch (error) {
@@ -146,6 +160,7 @@ export const useFeedCascade = () => {
     hasMore: state.hasMore,
     metrics: state.metrics,
     ambassadorPercentage: state.ambassadorPercentage,
+    debugData: state.debugData,
     loadMore,
     refresh
   };

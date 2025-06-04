@@ -8,7 +8,7 @@ import { useFeedPerformance } from '@/hooks/useFeedPerformance';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { MessageSquare, Heart, Clock, Activity, Zap } from 'lucide-react';
+import { MessageSquare, Heart, Clock, Activity, Zap, Bug } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
@@ -26,6 +26,7 @@ const Feed = () => {
   const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
   const [showPerformanceMetrics, setShowPerformanceMetrics] = useState(false);
   const [showCacheStats, setShowCacheStats] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
   
   const { 
     posts, 
@@ -34,6 +35,7 @@ const Feed = () => {
     hasMore, 
     metrics,
     ambassadorPercentage,
+    debugData,
     loadMore, 
     refresh 
   } = useFeedCascade();
@@ -127,9 +129,75 @@ const Feed = () => {
             >
               Cache
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDebugInfo(!showDebugInfo)}
+              className="text-xs"
+            >
+              <Bug className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>
+
+      {showDebugInfo && debugData && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="space-y-4 text-sm">
+              <div>
+                <div className="font-medium text-blue-900 mb-2">🔍 Feed Debug Information</div>
+                
+                {debugData.followedUsers && (
+                  <div className="mb-3">
+                    <div className="font-medium">Following: {debugData.followedUsers.totalFollowing} users</div>
+                    <div className="text-muted-foreground">Total posts from followed users: {debugData.followedUsers.totalPosts}</div>
+                    {debugData.followedUsers.followedUsers.map((user: any, index: number) => (
+                      <div key={index} className="ml-4 text-xs">
+                        • {user.profile?.full_name || user.userId}: {user.totalPosts} posts 
+                        {user.latestPost && <span className="text-muted-foreground"> (latest: {new Date(user.latestPost).toLocaleDateString()})</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {debugData.primaryQuery && (
+                  <div className="mb-3 p-2 bg-white rounded border">
+                    <div className="font-medium">Primary Query Results:</div>
+                    <div className="text-xs">
+                      • Raw posts found: {debugData.primaryQuery.rawPostCount}
+                      • Formatted posts: {debugData.primaryQuery.formattedPostCount}
+                      • Following count: {debugData.primaryQuery.followingCount}
+                    </div>
+                    {debugData.primaryQuery.postsByUser && (
+                      <div className="mt-2">
+                        <div className="font-medium text-xs">Posts by user:</div>
+                        {Object.entries(debugData.primaryQuery.postsByUser).map(([userId, stats]: [string, any]) => (
+                          <div key={userId} className="ml-2 text-xs">
+                            • {userId}: {stats.count} posts (Privacy: {JSON.stringify(stats.privacyLevels)})
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {debugData.ambassadorQuery && (
+                  <div className="mb-3 p-2 bg-purple-50 rounded border">
+                    <div className="font-medium">Ambassador Query Results:</div>
+                    <div className="text-xs">
+                      • Following ambassadors: {debugData.ambassadorQuery.followingAmbassadors.length}
+                      • Posts from followed ambassadors: {debugData.ambassadorQuery.followedAmbassadorPosts}
+                      • Posts from other ambassadors: {debugData.ambassadorQuery.otherAmbassadorPosts}
+                      • Total ambassador posts available: {debugData.ambassadorQuery.allAmbassadorPosts}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {showPerformanceMetrics && (
         <Card className="mb-6">
@@ -203,29 +271,27 @@ const Feed = () => {
         </Card>
       )}
       
-      {user && (
-        <div className="mb-5 overflow-x-auto pb-1">
-          <ToggleGroup 
-            type="single" 
-            value={sortOption}
-            onValueChange={handleSortChange}
-            className="justify-start whitespace-nowrap"
-          >
-            <ToggleGroupItem value="recent" aria-label="Sort by recent">
-              <Clock className="h-4 w-4 mr-1" /> Recent
-            </ToggleGroupItem>
-            <ToggleGroupItem value="popular" aria-label="Sort by likes">
-              <Heart className="h-4 w-4 mr-1" /> Popular
-            </ToggleGroupItem>
-            <ToggleGroupItem value="commented" aria-label="Sort by comments">
-              <MessageSquare className="h-4 w-4 mr-1" /> Discussed
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-      )}
-      
       {user ? (
         <>
+          <div className="mb-5 overflow-x-auto pb-1">
+            <ToggleGroup 
+              type="single" 
+              value={sortOption}
+              onValueChange={handleSortChange}
+              className="justify-start whitespace-nowrap"
+            >
+              <ToggleGroupItem value="recent" aria-label="Sort by recent">
+                <Clock className="h-4 w-4 mr-1" /> Recent
+              </ToggleGroupItem>
+              <ToggleGroupItem value="popular" aria-label="Sort by likes">
+                <Heart className="h-4 w-4 mr-1" /> Popular
+              </ToggleGroupItem>
+              <ToggleGroupItem value="commented" aria-label="Sort by comments">
+                <MessageSquare className="h-4 w-4 mr-1" /> Discussed
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          
           <div className="mb-6">
             <PostComposer onSuccess={refresh} />
           </div>
