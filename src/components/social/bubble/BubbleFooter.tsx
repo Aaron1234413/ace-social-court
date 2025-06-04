@@ -23,7 +23,6 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
           <CommentButton 
             postId={post.id} 
             postUserId={post.user_id}
-            postContent={post.content}
           />
           <ShareButton postId={post.id} />
         </div>
