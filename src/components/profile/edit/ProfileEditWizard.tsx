@@ -57,7 +57,7 @@ export const ProfileEditWizard = ({ isNewUser, profileData }: ProfileEditWizardP
 
   // Initialize custom hooks
   const { locationName, setLocationName, isLocationPickerOpen, setIsLocationPickerOpen, handleSetLocation } = useLocationState(form);
-  const { validationMessage, isSaving, onSubmit } = useProfileSubmit(form, isNewUser);
+  const { handleSubmit, isSubmitting, validationMessage } = useProfileSubmit(form, isNewUser);
   const { currentStep, activeSteps, progressPercentage, isLastStep, handleNext, handlePrevious } = useWizardState(steps, form);
   useProfileData(form, profileData, setLocationName);
 
@@ -77,7 +77,7 @@ export const ProfileEditWizard = ({ isNewUser, profileData }: ProfileEditWizardP
       <ValidationMessage message={validationMessage} />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4">
+        <form onSubmit={handleSubmit} className="mt-4">
           {/* Current step component */}
           <div className="my-6">
             {CurrentStepComponent && (
@@ -120,7 +120,7 @@ export const ProfileEditWizard = ({ isNewUser, profileData }: ProfileEditWizardP
             currentStep={currentStep}
             totalSteps={activeSteps.length}
             isLastStep={isLastStep}
-            isSaving={isSaving}
+            isSaving={isSubmitting}
             isNewUser={isNewUser}
             onPrevious={handlePrevious}
             onNext={handleNext}

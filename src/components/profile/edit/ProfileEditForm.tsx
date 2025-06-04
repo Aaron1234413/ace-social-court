@@ -21,7 +21,7 @@ interface ProfileEditFormProps {
   isNewUser?: boolean;
 }
 
-export { ProfileFormValues };
+export type { ProfileFormValues };
 
 export function ProfileEditForm({ isNewUser = false }: ProfileEditFormProps) {
   const { profile } = useAuth();
@@ -47,11 +47,15 @@ export function ProfileEditForm({ isNewUser = false }: ProfileEditFormProps) {
     locationName,
     isLocationPickerOpen,
     setIsLocationPickerOpen,
-    openLocationPicker,
-    onSelectLocation
+    handleSetLocation
   } = useLocationState(form);
 
   const { handleSubmit, isSubmitting } = useProfileSubmit(form, isNewUser);
+
+  const openLocationPicker = () => setIsLocationPickerOpen(true);
+  const onSelectLocation = (lat: number, lng: number, address: string) => {
+    handleSetLocation(lat, lng, address);
+  };
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-8">

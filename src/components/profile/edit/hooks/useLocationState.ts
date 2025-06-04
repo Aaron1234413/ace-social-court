@@ -26,11 +26,19 @@ export const useLocationState = (form: UseFormReturn<ProfileFormValues>) => {
     toast.success('Location set successfully');
   };
 
+  const openLocationPicker = () => setIsLocationPickerOpen(true);
+  
+  const onSelectLocation = (lat: number, lng: number, address: string) => {
+    handleSetLocation(lat, lng, address);
+  };
+
   return {
     locationName,
     setLocationName,
     isLocationPickerOpen,
     setIsLocationPickerOpen,
-    handleSetLocation
+    handleSetLocation,
+    openLocationPicker,
+    onSelectLocation
   };
 };
