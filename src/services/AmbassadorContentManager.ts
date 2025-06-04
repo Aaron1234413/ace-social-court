@@ -125,10 +125,16 @@ export class AmbassadorContentManager {
       ]
     };
 
-    // Fix the struggle content type handling
-    if (contentType === 'struggle' && personality.id in templates.struggle) {
-      const personalityTemplates = templates.struggle[personality.id as keyof typeof templates.struggle];
-      return personalityTemplates[Math.floor(Math.random() * personalityTemplates.length)];
+    // Fix the struggle content type handling with proper type checking
+    if (contentType === 'struggle') {
+      const struggleTemplates = templates.struggle;
+      if (personality.id in struggleTemplates) {
+        const personalityTemplates = struggleTemplates[personality.id as keyof typeof struggleTemplates];
+        return personalityTemplates[Math.floor(Math.random() * personalityTemplates.length)];
+      }
+      // Fallback to general templates if personality-specific ones don't exist
+      const fallbackTemplates = struggleTemplates.coach_mike;
+      return fallbackTemplates[Math.floor(Math.random() * fallbackTemplates.length)];
     }
     
     const typeTemplates = templates[contentType];
