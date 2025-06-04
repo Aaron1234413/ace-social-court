@@ -1,0 +1,125 @@
+
+/* Discrete Feed Bubble Cards */
+.feed-bubble {
+  border-left: 4px solid #8C6EFF; /* brand-purple */
+  border-radius: 8px;
+  background-color: #FFF;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.bubble-inner {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Header Spacing */
+.bubble-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bubble-header .icon {
+  margin-right: 8px;
+}
+
+.bubble-header .username {
+  margin-right: 8px;
+  font-weight: 600;
+}
+
+.bubble-header .role-badge {
+  margin-top: 2px;
+  margin-right: 8px;
+}
+
+.bubble-header .timestamp {
+  margin-right: 8px;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+.bubble-header .privacy-lock {
+  margin-left: 6px;
+  margin-right: 6px;
+}
+
+.bubble-header .trophy-icon {
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.bubble-header .ambassador-badge {
+  margin-left: 12px;
+  margin-right: 8px;
+}
+
+.bubble-header .menu-dot {
+  margin-left: auto;
+}
+
+/* Content Spacing */
+.bubble-content {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* Footer Spacing */
+.bubble-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #F3F4F6;
+}
+
+.bubble-footer .reaction-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #F9FAFB;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.bubble-footer .reaction-icon:hover {
+  background-color: #F3F4F6;
+}
+
+.bubble-footer .comment-count,
+.bubble-footer .share-link {
+  font-size: 0.875rem;
+  color: #6B7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.bubble-footer .comment-count:hover,
+.bubble-footer .share-link:hover {
+  color: #374151;
+}
+
+/* Ambassador Content Styling */
+.feed-bubble.ambassador-content {
+  border-left-color: #8B5CF6;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
+.feed-bubble.ambassador-content .ambassador-badge {
+  background-color: #EDE9FE;
+  color: #7C3AED;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}

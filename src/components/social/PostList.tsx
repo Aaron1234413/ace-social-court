@@ -47,12 +47,10 @@ const PostList = ({
   }
 
   const determineContentType = (post: Post): ContentType => {
-    // Check if this is an ambassador post based on author information
     if (post.author?.user_type === 'ambassador' || post.is_ambassador_content) {
       return 'ambassador';
     }
     
-    // Check if this is fallback content (could be expanded later)
     if (post.is_fallback_content) {
       return 'fallback';
     }
@@ -70,8 +68,7 @@ const PostList = ({
         currentUserId={currentUserId}
         contentType={contentType}
         onPostUpdated={onPostUpdated}
-        className="animate-slide-up"
-        style={{ animationDelay: `${index * 50}ms` }}
+        className={contentType === 'ambassador' ? 'ambassador-content' : ''}
       />
     );
   };
@@ -87,13 +84,13 @@ const PostList = ({
         hasMore={hasMore}
         isLoading={isLoadingMore}
         threshold={3}
-        className="space-y-2"
+        className="feed-container"
       />
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="feed-container">
       {posts.map((post, index) => renderPost(post, index))}
       
       {isLoadingMore && (
