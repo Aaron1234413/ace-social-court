@@ -17,7 +17,7 @@ interface BubbleFooterProps {
 
 export function BubbleFooter({ post, currentUserId, contentType, onCommentSubmit }: BubbleFooterProps) {
   return (
-    <CardContent className="pt-0 pb-4 space-y-4">
+    <CardContent className="pt-0 pb-4 space-y-4 relative overflow-visible">
       <div className="flex items-center justify-between">
         <ReactionBar post={post} className="flex-1" />
         
@@ -30,12 +30,14 @@ export function BubbleFooter({ post, currentUserId, contentType, onCommentSubmit
         </div>
       </div>
 
-      {/* Context-Aware Prompt */}
-      <PostPrompt 
-        post={post}
-        onCommentSubmit={onCommentSubmit}
-        className="mt-3"
-      />
+      {/* Context-Aware Prompt with proper containment */}
+      <div className="relative">
+        <PostPrompt 
+          post={post}
+          onCommentSubmit={onCommentSubmit}
+          className="mt-3"
+        />
+      </div>
     </CardContent>
   );
 }

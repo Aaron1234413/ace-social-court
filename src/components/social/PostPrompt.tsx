@@ -103,12 +103,12 @@ export function PostPrompt({ post, onCommentSubmit, className = '' }: PostPrompt
   };
 
   return (
-    <div className={`w-full relative ${className}`}>
+    <div className={`w-full relative overflow-visible ${className}`}>
       {/* Prompt Speech Bubble */}
       <div className={`
         relative p-3 rounded-lg border transition-all duration-200 cursor-pointer
         ${getPromptStyle()}
-        ${isExpanded ? 'rounded-b-none' : 'hover:shadow-sm'}
+        ${isExpanded ? 'rounded-b-none z-40' : 'hover:shadow-sm'}
       `} onClick={handleExpand}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1">
@@ -135,11 +135,12 @@ export function PostPrompt({ post, onCommentSubmit, className = '' }: PostPrompt
         <div className="absolute -bottom-2 left-6 w-4 h-4 rotate-45 bg-inherit border-r border-b border-inherit"></div>
       </div>
 
-      {/* Expanded Comment Input - Now positioned absolutely */}
+      {/* Expanded Comment Input - Properly contained with overflow handling */}
       {isExpanded && (
         <div className={`
           absolute top-full left-0 right-0 z-50
           border border-t-0 rounded-b-lg p-4 space-y-3 shadow-lg
+          max-w-full overflow-hidden
           ${prompt.requiresCoach 
             ? 'bg-yellow-50 border-yellow-200' 
             : 'bg-white border-gray-200'
@@ -162,7 +163,7 @@ export function PostPrompt({ post, onCommentSubmit, className = '' }: PostPrompt
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder={prompt.placeholder}
-                className="min-h-[80px] resize-none border-gray-200 focus:border-gray-300"
+                className="min-h-[80px] resize-none border-gray-200 focus:border-gray-300 w-full"
                 autoFocus
               />
               <div className="flex justify-between items-center">
