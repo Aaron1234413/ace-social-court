@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { PostComposer } from '@/components/social/PostComposer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Target, Brain, Zap } from 'lucide-react';
+import { Trophy, Target, Brain, Zap, Star, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { MatchContentTemplateService } from '@/services/MatchContentTemplateService';
 
 interface MatchAutoPostIntegrationProps {
   matchData: any;
@@ -14,40 +15,19 @@ export function MatchAutoPostIntegration({
   matchData, 
   onPostCreated 
 }: MatchAutoPostIntegrationProps) {
-  const [autoSuggestions, setAutoSuggestions] = useState<string[]>([]);
+  const [previewContent, setPreviewContent] = useState<string>('');
   
   // Check if we have match result data
   const hasMatchData = matchData?.match_outcome || matchData?.score || matchData?.opponent_name;
 
   useEffect(() => {
     if (hasMatchData) {
-      // Generate match-specific suggestions
-      const suggestions = generateMatchSuggestions(matchData);
-      setAutoSuggestions(suggestions);
+      // Generate preview content using smart defaults
+      const smartDefaults = MatchContentTemplateService.getSmartDefaults(matchData);
+      const template = MatchContentTemplateService.generateContent(matchData, smartDefaults.privacyLevel);
+      setPreviewContent(template.content);
     }
   }, [hasMatchData, matchData]);
-
-  const generateMatchSuggestions = (data: any) => {
-    const suggestions = [];
-    
-    if (data.match_outcome === 'won') {
-      suggestions.push("Great match today! Feeling proud of my performance 🏆");
-      suggestions.push(`Victory feels sweet! ${data.score || 'Hard-fought win'} 🎾`);
-    } else if (data.match_outcome === 'lost') {
-      suggestions.push("Tough match today, but every loss is a lesson learned 💪");
-      suggestions.push("Not the result I wanted, but my game is getting stronger 🎯");
-    }
-    
-    if (data.opponent_name) {
-      suggestions.push(`Great match against ${data.opponent_name}! Always learning from tough competition`);
-    }
-
-    if (data.surface) {
-      suggestions.push(`Playing on ${data.surface} courts today - love the challenge! 🎾`);
-    }
-    
-    return suggestions;
-  };
 
   if (!hasMatchData) {
     return (
@@ -67,38 +47,96 @@ export function MatchAutoPostIntegration({
   }
 
   const isWin = matchData?.match_outcome === 'won';
+  const isLoss = matchData?.match_outcome === 'lost';
 
   return (
     <div className="space-y-4">
-      <Card className={`border-2 ${isWin ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50' : 'border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50'}`}>
+      {/* Match Sharing Overview */}
+      <Card className={`border-2 ${
+        isWin ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50' : 
+        isLoss ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50' :
+        'border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50'
+      }`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-full ${isWin ? 'bg-green-100' : 'bg-blue-100'}`}>
+              <div className={`p-2 rounded-full ${
+                isWin ? 'bg-green-100' : 
+                isLoss ? 'bg-blue-100' : 
+                'bg-purple-100'
+              }`}>
                 {isWin ? (
                   <Trophy className="h-5 w-5 text-green-600" />
+                ) : isLoss ? (
+                  <TrendingUp className="h-5 w-5 text-blue-600" />
                 ) : (
-                  <Target className="h-5 w-5 text-blue-600" />
+                  <Target className="h-5 w-5 text-purple-600" />
                 )}
               </div>
               <div>
-                <CardTitle className={`text-lg ${isWin ? 'text-green-900' : 'text-blue-900'}`}>
+                <CardTitle className={`text-lg ${
+                  isWin ? 'text-green-900' : 
+                  isLoss ? 'text-blue-900' : 
+                  'text-purple-900'
+                }`}>
                   Share Your Match
                 </CardTitle>
-                <p className={`text-sm ${isWin ? 'text-green-700' : 'text-blue-700'}`}>
-                  {isWin ? 'Celebrate your victory!' : 'Share your journey and learnings'}
+                <p className={`text-sm ${
+                  isWin ? 'text-green-700' : 
+                  isLoss ? 'text-blue-700' : 
+                  'text-purple-700'
+                }`}>
+                  {isWin 
+                    ? 'Celebrate your victory with the community!' 
+                    : isLoss 
+                      ? 'Share your learning journey and inspire others'
+                      : 'Share your competitive experience'
+                  }
                 </p>
               </div>
             </div>
-            {autoSuggestions.length > 0 && (
+            <div className="flex items-center gap-2">
               <Badge variant="secondary" className="bg-white border-purple-200 text-purple-700">
                 <Brain className="h-3 w-3 mr-1" />
-                AI Ready
+                Smart Templates
               </Badge>
-            )}
+              <Badge variant="outline" className={`${
+                isWin ? 'bg-green-100 text-green-700 border-green-200' :
+                isLoss ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                'bg-purple-100 text-purple-700 border-purple-200'
+              }`}>
+                <Star className="h-3 w-3 mr-1" />
+                {isWin ? 'Victory' : isLoss ? 'Growth' : 'Experience'}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
+          {/* Privacy Level Education */}
+          <div className="mb-4 p-3 bg-white/80 rounded-lg border border-gray-100">
+            <h4 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-blue-500" />
+              Smart Sharing Levels Available:
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div className="flex items-center gap-1 text-blue-600">
+                <span>😊</span> Basic Vibe
+              </div>
+              <div className="flex items-center gap-1 text-green-600">
+                <span>🏆</span> Match Summary
+              </div>
+              <div className="flex items-center gap-1 text-purple-600">
+                <span>📊</span> Detailed Share
+              </div>
+              <div className="flex items-center gap-1 text-orange-600">
+                <span>🧠</span> Full Story
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Choose how much you want to share - from just the vibe to your complete match breakdown!
+            </p>
+          </div>
+
           <PostComposer 
             matchData={matchData}
             onSuccess={onPostCreated}

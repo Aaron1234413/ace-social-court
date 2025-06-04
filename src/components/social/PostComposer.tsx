@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,7 +8,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast, showSuccessToast, showErrorToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
-import { ImageIcon, X, Sparkles, Brain, Zap, MessageSquare, Camera, Send, Users, Globe, Star } from 'lucide-react';
+import { ImageIcon, X, Sparkles, Brain, Zap, MessageSquare, Camera, Send, Users, Globe, Star, Trophy } from 'lucide-react';
 import { uploadFileWithProgress } from '@/utils/mediaUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -36,6 +35,8 @@ import { AutoPostService, PostSuggestion } from '@/services/AutoPostService';
 import { CoachPromptSystem } from '@/services/CoachPromptSystem';
 import { ContextPromptEngine } from '@/services/ContextPromptEngine';
 import { useUserFollows } from '@/hooks/useUserFollows';
+import { MatchPrivacySelector, MatchPrivacyLevel } from './MatchPrivacySelector';
+import { MatchContentTemplateService } from '@/services/MatchContentTemplateService';
 
 const postSchema = z.object({
   content: z.string().min(3, { message: "Post content must be at least 3 characters." }),
@@ -60,6 +61,9 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
   const [currentPrompt, setCurrentPrompt] = useState<string>('');
   const { toast } = useToast();
 
+  // Add match privacy level state
+  const [matchPrivacyLevel, setMatchPrivacyLevel] = useState<MatchPrivacyLevel>('basic');
+
   const { suggestions, isGenerating, generateSuggestions } = useAutoPostGeneration();
 
   const form = useForm<z.infer<typeof postSchema>>({
@@ -76,23 +80,30 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     if (matchData) {
       setShowComposer(true);
       
-      // Auto-populate content for match data
-      if (matchData.match_outcome && !form.watch('content')) {
-        let autoContent = '';
-        if (matchData.match_outcome === 'won') {
-          autoContent = `Great match today! ${matchData.score ? `Won ${matchData.score}` : 'Victory feels sweet!'} 🎾`;
-        } else if (matchData.match_outcome === 'lost') {
-          autoContent = `Tough match today, but every loss is a lesson learned. ${matchData.score ? `Lost ${matchData.score}` : 'Getting stronger!'} 💪`;
-        }
-        
-        if (matchData.opponent_name) {
-          autoContent += ` Great playing against ${matchData.opponent_name}!`;
-        }
-        
-        form.setValue('content', autoContent);
+      // Get smart defaults for match sharing
+      const smartDefaults = MatchContentTemplateService.getSmartDefaults(matchData);
+      setMatchPrivacyLevel(smartDefaults.privacyLevel);
+      form.setValue('privacy_level', smartDefaults.postPrivacy);
+      
+      // Generate initial content if none exists
+      if (!form.watch('content')) {
+        const template = MatchContentTemplateService.generateContent(matchData, smartDefaults.privacyLevel);
+        form.setValue('content', template.content);
+        form.setValue('privacy_level', template.privacyLevel);
       }
     }
   }, [matchData, form]);
+
+  // Handle match privacy level changes
+  const handleMatchPrivacyChange = (newLevel: MatchPrivacyLevel) => {
+    setMatchPrivacyLevel(newLevel);
+    
+    if (matchData) {
+      const template = MatchContentTemplateService.generateContent(matchData, newLevel);
+      form.setValue('content', template.content);
+      form.setValue('privacy_level', template.privacyLevel);
+    }
+  };
 
   // Auto-suggest privacy level based on follow count
   useEffect(() => {
@@ -301,7 +312,8 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     contentLength: form.watch('content')?.trim().length,
     isFormValid,
     isSubmitting,
-    matchData: !!matchData
+    matchData: !!matchData,
+    matchPrivacyLevel
   });
 
   return (
@@ -318,10 +330,15 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
             <div>
               <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800">
                 <MessageSquare className="h-5 w-5 text-blue-600" />
-                Share Your Tennis Journey
+                {matchData ? 'Share Your Match' : 'Share Your Tennis Journey'}
               </h3>
               <p className="text-sm text-gray-600">
-                {profile?.user_type === 'coach' ? 'Share insights with your students' : 'Connect with the tennis community'}
+                {matchData 
+                  ? 'Let the community know how it went!'
+                  : profile?.user_type === 'coach' 
+                    ? 'Share insights with your students' 
+                    : 'Connect with the tennis community'
+                }
               </p>
             </div>
           </div>
@@ -330,6 +347,12 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
               <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
                 <Sparkles className="h-3 w-3 mr-1" />
                 AI Ready
+              </Badge>
+            )}
+            {matchData && (
+              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                <Trophy className="h-3 w-3 mr-1" />
+                Match Post
               </Badge>
             )}
             {!matchData && (
@@ -350,6 +373,18 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         <CardContent className="pt-6 space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              {/* Match Privacy Selector - only show for match posts */}
+              {matchData && (
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-5 border border-green-200">
+                  <MatchPrivacySelector
+                    value={matchPrivacyLevel}
+                    onValueChange={handleMatchPrivacyChange}
+                    matchOutcome={matchData.match_outcome}
+                    followingCount={followingCount}
+                  />
+                </div>
+              )}
+
               {/* AI Suggestions Section */}
               {suggestions.length > 0 && (
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-5 border border-purple-200">
@@ -447,76 +482,78 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                 </div>
               )}
 
-              <FormField
-                control={form.control}
-                name="privacy_level"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2 text-base font-medium">
-                      <span>Who can see this post?</span>
-                      {followingCount < 3 && (
-                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                          Growing your network
-                        </Badge>
-                      )}
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500 h-12">
-                          <div className="flex items-center gap-2">
-                            {getPrivacyIcon(field.value || 'public')}
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="public_highlights">
-                          <div className="flex items-center gap-2">
-                            <Star className="h-4 w-4 text-yellow-500" />
-                            <span>🌟 Community Highlights</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="public">
-                          <div className="flex items-center gap-2">
-                            <Globe className="h-4 w-4 text-blue-500" />
-                            <span>🌍 Public</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="friends">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-green-500" />
-                            <span>👥 Friends Only</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="private">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-gray-500" />
-                            <span>🔒 Private</span>
-                          </div>
-                        </SelectItem>
-                        {profile?.user_type === 'player' && (
-                          <SelectItem value="coaches">
+              {/* Only show regular privacy selector for non-match posts */}
+              {!matchData && (
+                <FormField
+                  control={form.control}
+                  name="privacy_level"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2 text-base font-medium">
+                        <span>Who can see this post?</span>
+                        {followingCount < 3 && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                            Growing your network
+                          </Badge>
+                        )}
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500 h-12">
                             <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-purple-500" />
-                              <span>🎾 Coaches Only</span>
+                              {getPrivacyIcon(field.value || 'public')}
+                              <SelectValue />
+                            </div>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="public_highlights">
+                            <div className="flex items-center gap-2">
+                              <Star className="h-4 w-4 text-yellow-500" />
+                              <span>🌟 Community Highlights</span>
                             </div>
                           </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription className="text-sm text-gray-600">
-                      {getPrivacyDescription(field.value || 'public')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                          <SelectItem value="public">
+                            <div className="flex items-center gap-2">
+                              <Globe className="h-4 w-4 text-blue-500" />
+                              <span>🌍 Public</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="friends">
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-green-500" />
+                              <span>👥 Friends Only</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="private">
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-gray-500" />
+                              <span>🔒 Private</span>
+                            </div>
+                          </SelectItem>
+                          {profile?.user_type === 'player' && (
+                            <SelectItem value="coaches">
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-purple-500" />
+                                <span>🎾 Coaches Only</span>
+                              </div>
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                        <FormDescription className="text-sm text-gray-600">
+                          {getPrivacyDescription(field.value || 'public')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                  )}
+                />
+              )}
 
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Zap className="h-4 w-4 text-blue-500" />
-                    <span>AI Enhanced</span>
+                    <span>{matchData ? 'Match Enhanced' : 'AI Enhanced'}</span>
                   </div>
                   {isGenerating && (
                     <div className="flex items-center gap-2 text-sm text-purple-600">
@@ -538,7 +575,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />
-                      Share Post
+                      {matchData ? 'Share Match' : 'Share Post'}
                     </>
                   )}
                 </Button>
