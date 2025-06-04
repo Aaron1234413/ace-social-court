@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Post } from '@/types/post';
 import { BubbleHeader } from './bubble/BubbleHeader';
@@ -26,6 +26,16 @@ export function FeedBubble({
   className,
   style 
 }: FeedBubbleProps) {
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string>('');
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    setSelectedSuggestion(suggestion);
+  };
+
+  const handleSuggestionUsed = () => {
+    setSelectedSuggestion('');
+  };
+
   return (
     <Card 
       className={cn(
@@ -45,6 +55,7 @@ export function FeedBubble({
         currentUserId={currentUserId}
         contentType={contentType}
         onPostUpdated={onPostUpdated}
+        onSuggestionSelect={handleSuggestionSelect}
       />
       
       <BubbleContent post={post} />
@@ -53,6 +64,8 @@ export function FeedBubble({
         post={post} 
         currentUserId={currentUserId}
         contentType={contentType}
+        selectedSuggestion={selectedSuggestion}
+        onSuggestionUsed={handleSuggestionUsed}
       />
     </Card>
   );
