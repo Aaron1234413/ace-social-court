@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { CardFooter } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 import { Post } from '@/types/post';
 import { ContentType } from '../FeedBubble';
-import LikeButton from '../LikeButton';
+import { ReactionBar } from '../ReactionBar';
 import CommentButton from '../CommentButton';
 import ShareButton from '../ShareButton';
 
@@ -14,27 +14,20 @@ interface BubbleFooterProps {
 }
 
 export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterProps) {
-  // For ambassador posts, we might want to show different interactions
-  const showFullInteractions = contentType !== 'ambassador' || post.privacy_level === 'public';
-  const isDisabled = !showFullInteractions && !currentUserId;
-
   return (
-    <CardFooter className="border-t p-2 md:p-4 flex justify-between bg-muted/10">
-      <LikeButton 
-        postId={post.id} 
-        postUserId={post.user_id} 
-        postContent={post.content}
-      />
-      
-      <CommentButton 
-        postId={post.id} 
-        postUserId={post.user_id}
-      />
-      
-      <ShareButton 
-        postId={post.id} 
-        postContent={post.content}
-      />
-    </CardFooter>
+    <CardContent className="pt-0 pb-4">
+      <div className="flex items-center justify-between">
+        <ReactionBar post={post} className="flex-1" />
+        
+        <div className="flex items-center gap-3 ml-4">
+          <CommentButton 
+            postId={post.id} 
+            postUserId={post.user_id}
+            postContent={post.content}
+          />
+          <ShareButton postId={post.id} />
+        </div>
+      </div>
+    </CardContent>
   );
 }
