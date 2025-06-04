@@ -8,7 +8,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast, showSuccessToast, showErrorToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
-import { ImageIcon, X, Sparkles, Brain, Zap, MessageSquare, Camera, Send, Users, Globe, Star, Trophy, Settings, Edit3 } from 'lucide-react';
+import { ImageIcon, X, Sparkles, Brain, Zap, MessageSquare, Camera, Send, Users, Globe, Star, Trophy, Settings, Edit3, Lock, Heart, Target } from 'lucide-react';
 import { uploadFileWithProgress } from '@/utils/mediaUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -43,6 +43,23 @@ import { EnhancedPostSuggestion } from '@/services/EnhancedAutoPostService';
 import { QuickShareButtons } from './QuickShareButtons';
 import { UserSharingPreferences } from './UserSharingPreferences';
 import { ContentCustomizationPanel } from './ContentCustomizationPanel';
+
+// Define privacy level icons and colors for match suggestions
+const privacyLevelIcons = {
+  'private': Lock,
+  'basic': Heart,
+  'summary': Trophy,
+  'detailed': Target,
+  'full': Brain,
+};
+
+const privacyLevelColors = {
+  'private': 'text-gray-600 bg-gray-50',
+  'basic': 'text-blue-600 bg-blue-50',
+  'summary': 'text-green-600 bg-green-50',
+  'detailed': 'text-purple-600 bg-purple-50',
+  'full': 'text-orange-600 bg-orange-50',
+};
 
 const postSchema = z.object({
   content: z.string().min(3, { message: "Post content must be at least 3 characters." }),
@@ -490,6 +507,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
 
               {/* Enhanced AI Suggestions Section with customization */}
               {matchData && enhancedSuggestions.length > 0 && !showCustomization && (
+                
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-5 border border-purple-200">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
