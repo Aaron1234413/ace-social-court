@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useMatchSubmit } from '@/hooks/use-match-submit';
 import { MatchAutoPostIntegration } from './MatchAutoPostIntegration';
+import { MatchSharingIntegration } from './MatchSharingIntegration';
 
 // Import step components
 import MatchOverviewStep from './steps/MatchOverviewStep';
@@ -90,6 +91,11 @@ export default function MatchLogger() {
     notify_coach: false
   });
 
+  // Add sharing preferences state
+  const [enableSharing, setEnableSharing] = useState(true);
+  const [autoShare, setAutoShare] = useState(false);
+  const [previewContent, setPreviewContent] = useState<string>('');
+
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({
     0: false, // overview - requires match_type and match_outcome only
     1: false, // basics - requires opponent_name, location, surface, score
@@ -153,6 +159,15 @@ export default function MatchLogger() {
     setCurrentStep(stepIndex);
   };
 
+  const handleSharingPreferenceChange = (enableSharingOption: boolean, autoShareOption: boolean) => {
+    setEnableSharing(enableSharingOption);
+    setAutoShare(autoShareOption);
+  };
+
+  const handlePreviewContent = (content: string) => {
+    setPreviewContent(content);
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       toast.error("You must be logged in to log a match");
@@ -160,6 +175,7 @@ export default function MatchLogger() {
     }
 
     console.log('Starting match submission with data:', matchData);
+    console.log('Sharing preferences:', { enableSharing, autoShare, previewContent });
 
     try {
       // Show recap card first
@@ -171,11 +187,29 @@ export default function MatchLogger() {
       
       setSubmittedMatch(submittedMatchResult);
       
-      // Hide recap card and show auto-post integration
-      setTimeout(() => {
-        setShowRecapCard(false);
-        setShowAutoPost(true);
-      }, 2000);
+      // Handle sharing based on user preferences
+      if (enableSharing) {
+        if (autoShare) {
+          // Auto-share logic will be handled in the auto-post integration
+          setTimeout(() => {
+            setShowRecapCard(false);
+            setShowAutoPost(true);
+          }, 1500);
+        } else {
+          // Show sharing options
+          setTimeout(() => {
+            setShowRecapCard(false);
+            setShowAutoPost(true);
+          }, 2000);
+        }
+      } else {
+        // Skip sharing entirely
+        setTimeout(() => {
+          setShowRecapCard(false);
+          toast.success("Match logged successfully!");
+          navigate('/dashboard');
+        }, 2000);
+      }
       
     } catch (error) {
       console.error("Error logging match:", error);
@@ -273,15 +307,22 @@ export default function MatchLogger() {
             <ArrowLeft className="h-4 w-4" />
             Skip Sharing
           </Button>
-          <h1 className="text-3xl font-bold">Share Your Match</h1>
+          <h1 className="text-3xl font-bold">
+            {autoShare ? 'Auto-Sharing Your Match' : 'Share Your Match'}
+          </h1>
           <p className="text-muted-foreground mt-2">
-            Your match has been logged! Would you like to share it with the community?
+            {autoShare 
+              ? 'Your match is being automatically shared based on your preferences!'
+              : 'Your match has been logged! Would you like to share it with the community?'
+            }
           </p>
         </div>
 
         <MatchAutoPostIntegration 
           matchData={matchData}
           onPostCreated={handlePostCreated}
+          autoShare={autoShare}
+          previewContent={previewContent}
         />
 
         <div className="mt-6 text-center">
@@ -363,8 +404,17 @@ export default function MatchLogger() {
           </CardContent>
         </Card>
 
+        {/* Sharing Integration - Show on summary step */}
+        {currentStep === STEPS.length - 1 && matchData.match_outcome && (
+          <MatchSharingIntegration
+            matchData={matchData}
+            onSharingPreferenceChange={handleSharingPreferenceChange}
+            onPreviewContent={handlePreviewContent}
+          />
+        )}
+
         {/* Navigation */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mt-6">
           <Button
             variant="outline"
             onClick={goToPrevious}
@@ -401,7 +451,7 @@ export default function MatchLogger() {
               disabled={isSubmitting}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
             >
-              {isSubmitting ? "Saving..." : "Save Match"}
+              {isSubmitting ? "Saving..." : enableSharing ? "Save & Share" : "Save Match"}
               <Check className="h-4 w-4" />
             </Button>
           )}
