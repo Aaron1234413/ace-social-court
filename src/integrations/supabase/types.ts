@@ -92,6 +92,47 @@ export type Database = {
           },
         ]
       }
+      ambassador_profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          posting_schedule: Json | null
+          profile_id: string
+          skill_level: string
+          specialization: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          posting_schedule?: Json | null
+          profile_id: string
+          skill_level: string
+          specialization?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          posting_schedule?: Json | null
+          profile_id?: string
+          skill_level?: string
+          specialization?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassador_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -524,41 +565,93 @@ export type Database = {
           },
         ]
       }
+      post_templates: {
+        Row: {
+          category: Database["public"]["Enums"]["template_category"]
+          content_template: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          placeholders: Json | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["template_category"]
+          content_template: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          placeholders?: Json | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["template_category"]
+          content_template?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          placeholders?: Json | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           content: string
           created_at: string
+          engagement_score: number | null
           flag_reason: string | null
           id: string
+          is_auto_generated: boolean | null
           is_flagged: boolean | null
           media_type: string | null
           media_url: string | null
+          privacy_level: Database["public"]["Enums"]["privacy_level"] | null
+          template_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          engagement_score?: number | null
           flag_reason?: string | null
           id?: string
+          is_auto_generated?: boolean | null
           is_flagged?: boolean | null
           media_type?: string | null
           media_url?: string | null
+          privacy_level?: Database["public"]["Enums"]["privacy_level"] | null
+          template_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          engagement_score?: number | null
           flag_reason?: string | null
           id?: string
+          is_auto_generated?: boolean | null
           is_flagged?: boolean | null
           media_type?: string | null
           media_url?: string | null
+          privacy_level?: Database["public"]["Enums"]["privacy_level"] | null
+          template_id?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "posts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "post_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "posts_user_fkey"
             columns: ["user_id"]
@@ -993,6 +1086,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_follows: {
+        Row: {
+          created_at: string | null
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -1162,6 +1291,7 @@ export type Database = {
         | "intermediate"
         | "advanced"
         | "professional"
+      privacy_level: "private" | "friends" | "public" | "coaches"
       session_status_enum: "Scheduled" | "In Progress" | "Logged" | "Signed Off"
       tag_category:
         | "technique"
@@ -1170,6 +1300,12 @@ export type Database = {
         | "equipment"
         | "coaching"
         | "tournament"
+      template_category:
+        | "workout"
+        | "match"
+        | "progress"
+        | "motivation"
+        | "technique"
       user_type: "player" | "coach"
     }
     CompositeTypes: {
@@ -1293,6 +1429,7 @@ export const Constants = {
         "advanced",
         "professional",
       ],
+      privacy_level: ["private", "friends", "public", "coaches"],
       session_status_enum: ["Scheduled", "In Progress", "Logged", "Signed Off"],
       tag_category: [
         "technique",
@@ -1301,6 +1438,13 @@ export const Constants = {
         "equipment",
         "coaching",
         "tournament",
+      ],
+      template_category: [
+        "workout",
+        "match",
+        "progress",
+        "motivation",
+        "technique",
       ],
       user_type: ["player", "coach"],
     },

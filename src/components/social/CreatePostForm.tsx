@@ -1,181 +1,158 @@
 
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { v4 as uuidv4 } from 'uuid';
-import SocialMediaUploader from '@/components/media/SocialMediaUploader';
-import { Card } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, Send, Image, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { PrivacySelector, PrivacyLevel } from './PrivacySelector';
+import { PostTemplateSelector } from './PostTemplateSelector';
+import { useUserFollows } from '@/hooks/useUserFollows';
+import { PostTemplate } from '@/types/post';
+import { Send, Loader2 } from 'lucide-react';
+
+const createPostSchema = z.object({
+  content: z.string().min(1, 'Post content is required').max(1000, 'Post content must be less than 1000 characters'),
+  privacy_level: z.enum(['private', 'friends', 'public', 'coaches']),
+});
+
+type CreatePostFormData = z.infer<typeof createPostSchema>;
 
 interface CreatePostFormProps {
-  onPostCreated?: () => void;
+  onSuccess?: () => void;
 }
 
-const CreatePostForm: React.FC<CreatePostFormProps> = ({ onPostCreated }) => {
-  const [content, setContent] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, profile } = useAuth();
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
-  const [isUploaderVisible, setIsUploaderVisible] = useState(false);
+export function CreatePostForm({ onSuccess }: CreatePostFormProps) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { followingCount } = useUserFollows();
+  const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<CreatePostFormData>({
+    resolver: zodResolver(createPostSchema),
+    defaultValues: {
+      content: '',
+      privacy_level: followingCount < 3 ? 'private' : 'friends',
+    },
+  });
 
-    if (!user) {
-      toast.error('You must be logged in to create a post.');
-      return;
-    }
+  const createPostMutation = useMutation({
+    mutationFn: async (data: CreatePostFormData) => {
+      if (!user) throw new Error('User not authenticated');
 
-    if (!content.trim() && !mediaUrl) {
-      toast.error('Please enter some text or upload media to create a post.');
-      return;
-    }
+      const postData = {
+        user_id: user.id,
+        content: data.content,
+        privacy_level: data.privacy_level,
+        template_id: selectedTemplate?.id || null,
+        is_auto_generated: false,
+        engagement_score: 0,
+      };
 
-    setIsSubmitting(true);
-
-    try {
-      const postId = uuidv4();
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('posts')
-        .insert([
-          {
-            id: postId,
-            user_id: user.id,
-            content: content,
-            media_url: mediaUrl,
-            media_type: mediaType,
-          },
-        ]);
+        .insert(postData);
 
-      if (error) {
-        console.error('Error creating post:', error);
-        toast.error('Failed to create post. Please try again.');
-      } else {
-        toast.success('Post created successfully!');
-        setContent('');
-        setMediaUrl(null);
-        setMediaType(null);
-        setIsUploaderVisible(false);
-        if (onPostCreated) {
-          onPostCreated();
-        }
-      }
-    } catch (error) {
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      form.reset();
+      setSelectedTemplate(null);
+      toast.success('Post created successfully!');
+      onSuccess?.();
+    },
+    onError: (error) => {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      toast.error('Failed to create post');
+    },
+  });
+
+  const handleTemplateSelect = (template: PostTemplate | null) => {
+    setSelectedTemplate(template);
+    if (template) {
+      form.setValue('content', template.content_template);
     }
   };
 
-  const handleMediaUpload = (url: string, type: 'image' | 'video') => {
-    setMediaUrl(url);
-    setMediaType(type);
-    setIsUploaderVisible(false);
-  };
-
-  const removeMedia = () => {
-    setMediaUrl(null);
-    setMediaType(null);
+  const onSubmit = (data: CreatePostFormData) => {
+    createPostMutation.mutate(data);
   };
 
   return (
-    <Card className="w-full overflow-hidden border-muted/70">
-      <div className="bg-gradient-to-r from-muted/30 to-background p-4 border-b">
-        <h3 className="font-medium text-sm md:text-base">Create Post</h3>
-      </div>
-      <div className="flex items-start space-x-4 p-4">
-        <Avatar className="h-10 w-10 md:h-12 md:w-12 border-2 border-muted">
-          {profile?.avatar_url ? (
-            <AvatarImage
-              src={profile.avatar_url}
-              alt={profile?.full_name || "User"}
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-lg">Create New Post</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <PostTemplateSelector
+              selectedTemplateId={selectedTemplate?.id}
+              onTemplateSelect={handleTemplateSelect}
             />
-          ) : (
-            <AvatarFallback className={profile?.user_type === 'coach' 
-              ? "bg-gradient-to-br from-purple-100 to-purple-300 text-purple-800 font-semibold" 
-              : "bg-gradient-to-br from-blue-100 to-blue-300 text-blue-800 font-semibold"
-            }>
-              {profile?.full_name?.charAt(0) || '?'}
-            </AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 space-y-3">
-          <Textarea
-            placeholder="What's on your mind?"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
-            className="resize-none focus:ring-primary text-base"
-          />
-          
-          {mediaUrl && (
-            <div className="relative rounded-md overflow-hidden border border-muted/50">
-              {mediaType === 'image' ? (
-                <img src={mediaUrl} alt="Upload preview" className="max-h-48 w-full object-contain bg-muted/30" />
-              ) : (
-                <video src={mediaUrl} className="max-h-48 w-full" controls />
+
+            <FormField
+              control={form.control}
+              name="content"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Content</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="What's on your mind about tennis?"
+                      className="min-h-[100px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-              <Button 
-                size="sm" 
-                variant="destructive" 
-                className="absolute top-2 right-2 h-8 w-8 p-0 rounded-full opacity-80 hover:opacity-100"
-                onClick={removeMedia}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-          
-          {isUploaderVisible && (
-            <div className="bg-muted/30 rounded-md p-4 border border-dashed border-muted">
-              <SocialMediaUploader
-                onMediaUpload={handleMediaUpload}
-                allowedTypes={['image', 'video']}
-              />
-            </div>
-          )}
-          
-          <div className="flex justify-between items-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              onClick={() => setIsUploaderVisible(!isUploaderVisible)}
+            />
+
+            <FormField
+              control={form.control}
+              name="privacy_level"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <PrivacySelector
+                      value={field.value as PrivacyLevel}
+                      onValueChange={field.onChange}
+                      followingCount={followingCount}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={createPostMutation.isPending}
             >
-              <Image className="mr-2 h-4 w-4" />
-              {mediaUrl ? 'Change Media' : 'Add Media'}
-            </Button>
-            
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-gradient-to-r from-tennis-blue to-primary hover:from-primary hover:to-tennis-blue transition-all duration-300"
-            >
-              {isSubmitting ? (
+              {createPostMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Posting...
+                  Creating Post...
                 </>
               ) : (
                 <>
-                  Post
-                  <Send className="ml-2 h-4 w-4" />
+                  <Send className="mr-2 h-4 w-4" />
+                  Create Post
                 </>
               )}
             </Button>
-          </div>
-        </div>
-      </div>
+          </form>
+        </Form>
+      </CardContent>
     </Card>
   );
-};
-
-export default CreatePostForm;
+}
