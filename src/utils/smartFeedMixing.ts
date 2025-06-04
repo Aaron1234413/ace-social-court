@@ -1,6 +1,5 @@
 
 import { Post } from "@/types/post";
-import { getContentMixingRatio } from "./privacySanitization";
 import { FeedDistributionService } from "@/services/FeedDistributionService";
 
 interface FeedMixingOptions {
@@ -10,7 +9,7 @@ interface FeedMixingOptions {
 }
 
 /**
- * Creates a smart mix of content based on user's social graph with improved distribution
+ * Creates a smart mix of content with GUARANTEED ambassador representation
  */
 export function createSmartFeedMix(
   allPosts: Post[], 
@@ -18,16 +17,13 @@ export function createSmartFeedMix(
 ): Post[] {
   const { followingCount, userFollowings, currentUserId } = options;
   
-  console.log('🎯 Creating enhanced smart feed mix', {
+  console.log('🎯 Creating ENHANCED smart feed mix with guaranteed ambassador content', {
     totalPosts: allPosts.length,
     followingCount,
     userFollowings: userFollowings.length
   });
 
-  // Get mixing ratios based on follow count
-  const { followedRatio, publicRatio } = getContentMixingRatio(followingCount);
-  
-  // Separate posts into categories for analysis
+  // Separate posts into categories
   const userPosts = allPosts.filter(post => post.user_id === currentUserId);
   const followedPosts = allPosts.filter(post => 
     userFollowings.includes(post.user_id) && post.user_id !== currentUserId
@@ -43,54 +39,59 @@ export function createSmartFeedMix(
     !(post.author?.user_type === 'ambassador' || post.is_ambassador_content)
   );
 
-  console.log('📊 Enhanced post categories', {
+  console.log('📊 ENHANCED post categories:', {
     userPosts: userPosts.length,
     followedPosts: followedPosts.length,
     ambassadorPosts: ambassadorPosts.length,
     publicPosts: publicPosts.length
   });
 
-  // Calculate target counts with improved distribution
-  const minPosts = 8; // Increased minimum for better variety
-  const maxPosts = 25; // Reasonable maximum
-  const totalAvailable = allPosts.length;
-  const targetTotal = Math.max(minPosts, Math.min(maxPosts, totalAvailable));
+  // GUARANTEED ambassador content - minimum 3 posts, target 40%
+  const minPosts = 10;
+  const maxPosts = 25;
+  const targetTotal = Math.max(minPosts, Math.min(maxPosts, allPosts.length));
   
-  // Enhanced ratio calculation based on network size
-  let adjustedFollowedRatio = followedRatio;
-  let adjustedPublicRatio = publicRatio;
-  
-  // If user follows many people, increase their content ratio
-  if (followingCount > 10) {
-    adjustedFollowedRatio = Math.min(0.8, followedRatio + 0.2);
-    adjustedPublicRatio = 1 - adjustedFollowedRatio;
-  }
-  
-  // Build categorized feed pools
+  // Build feed with GUARANTEED ambassador representation
   const feedPools: Post[] = [];
   
-  // Always include user's own recent posts (but limit to avoid domination)
-  const userPostLimit = Math.min(3, userPosts.length);
+  // Always include user's own recent posts (limited)
+  const userPostLimit = Math.min(2, userPosts.length);
   feedPools.push(...userPosts.slice(0, userPostLimit));
   
-  // Add followed users' posts
-  const targetFollowed = Math.floor((targetTotal - userPostLimit) * adjustedFollowedRatio);
-  feedPools.push(...followedPosts.slice(0, targetFollowed));
-  
-  // Add ambassador content (mixed from followed and unfollowed)
-  const targetAmbassador = Math.min(
-    Math.floor(targetTotal * 0.3), // Max 30% ambassador content
-    ambassadorPosts.length
+  // GUARANTEE ambassador content - minimum 3 posts, target 40% of final feed
+  const minAmbassadorPosts = 3;
+  const targetAmbassadorPosts = Math.max(
+    minAmbassadorPosts,
+    Math.floor(targetTotal * 0.4) // 40% target
   );
-  feedPools.push(...ambassadorPosts.slice(0, targetAmbassador));
+  const actualAmbassadorPosts = Math.min(targetAmbassadorPosts, ambassadorPosts.length);
+  feedPools.push(...ambassadorPosts.slice(0, actualAmbassadorPosts));
   
-  // Fill remaining with public content
+  console.log('🌟 GUARANTEED ambassador allocation:', {
+    minAmbassadorPosts,
+    targetAmbassadorPosts,
+    actualAmbassadorPosts,
+    ambassadorPercentage: Math.round((actualAmbassadorPosts / targetTotal) * 100) + '%'
+  });
+  
+  // Fill remaining slots with followed users and public content
   const remainingSlots = targetTotal - feedPools.length;
   if (remainingSlots > 0) {
-    feedPools.push(...publicPosts.slice(0, remainingSlots));
+    // Prioritize followed users
+    const followedAllocation = Math.min(
+      Math.floor(remainingSlots * 0.7), // 70% of remaining for followed users
+      followedPosts.length
+    );
+    feedPools.push(...followedPosts.slice(0, followedAllocation));
+    
+    // Fill any remaining with public content
+    const stillRemaining = targetTotal - feedPools.length;
+    if (stillRemaining > 0) {
+      feedPools.push(...publicPosts.slice(0, stillRemaining));
+    }
   }
 
-  // Apply fair distribution algorithm - Fixed parameter order
+  // Apply fair distribution algorithm
   const distributedFeed = FeedDistributionService.distributePostsFairly(
     feedPools,
     userFollowings,
@@ -98,19 +99,27 @@ export function createSmartFeedMix(
     currentUserId
   );
 
-  // Analyze diversity for logging
-  const diversity = FeedDistributionService.analyzeFeedDiversity(distributedFeed, userFollowings);
-  
-  console.log('✅ Enhanced smart feed mix completed', {
+  // Final validation - ensure we have ambassador content
+  const finalAmbassadorCount = distributedFeed.filter(post => 
+    post.author?.user_type === 'ambassador' || post.is_ambassador_content
+  ).length;
+
+  console.log('✅ ENHANCED smart feed mix with GUARANTEED ambassadors:', {
     finalCount: distributedFeed.length,
     targetTotal,
-    ratios: { followedRatio: adjustedFollowedRatio, publicRatio: adjustedPublicRatio },
-    diversity,
-    actual: {
+    ambassadorCount: finalAmbassadorCount,
+    ambassadorPercentage: Math.round((finalAmbassadorCount / distributedFeed.length) * 100) + '%',
+    guaranteed: finalAmbassadorCount >= minAmbassadorPosts ? '✅' : '⚠️',
+    breakdown: {
       user: userPostLimit,
-      followed: targetFollowed,
-      ambassador: targetAmbassador,
-      public: remainingSlots
+      ambassador: finalAmbassadorCount,
+      followed: distributedFeed.filter(p => userFollowings.includes(p.user_id)).length,
+      public: distributedFeed.filter(p => 
+        p.privacy_level === 'public' && 
+        !userFollowings.includes(p.user_id) && 
+        p.user_id !== currentUserId &&
+        !(p.author?.user_type === 'ambassador' || p.is_ambassador_content)
+      ).length
     }
   });
   
@@ -118,20 +127,20 @@ export function createSmartFeedMix(
 }
 
 /**
- * Enhanced minimum content ensuring with better fallback strategies
+ * Enhanced minimum content ensuring with ambassador priority
  */
 export function ensureMinimumContent(
   posts: Post[],
   allAvailablePosts: Post[],
   currentUserId?: string
 ): Post[] {
-  const minPosts = 5; // Increased minimum
+  const minPosts = 8;
   
   if (posts.length >= minPosts) {
     return posts;
   }
   
-  console.log('🔄 Applying enhanced fallback content strategy', {
+  console.log('🔄 Applying ENHANCED fallback with ambassador priority', {
     currentPosts: posts.length,
     availablePosts: allAvailablePosts.length,
     needed: minPosts - posts.length
@@ -139,14 +148,21 @@ export function ensureMinimumContent(
   
   const existingIds = new Set(posts.map(p => p.id));
   
-  // Enhanced fallback strategy: prioritize engaging content
+  // Prioritize ambassador content in fallback
   const fallbackCandidates = allAvailablePosts
     .filter(post => 
       !existingIds.has(post.id) && 
       post.privacy_level === 'public'
     )
     .sort((a, b) => {
-      // Sort by engagement score, then recency
+      // First sort by ambassador status
+      const aIsAmbassador = a.author?.user_type === 'ambassador' || a.is_ambassador_content;
+      const bIsAmbassador = b.author?.user_type === 'ambassador' || b.is_ambassador_content;
+      
+      if (aIsAmbassador && !bIsAmbassador) return -1;
+      if (!aIsAmbassador && bIsAmbassador) return 1;
+      
+      // Then by engagement and recency
       const scoreA = (a.engagement_score || 0) + (a.likes_count || 0) * 2;
       const scoreB = (b.engagement_score || 0) + (b.likes_count || 0) * 2;
       if (scoreA !== scoreB) return scoreB - scoreA;
@@ -158,11 +174,16 @@ export function ensureMinimumContent(
   
   const result = [...posts, ...fallbackPosts];
   
-  console.log('✅ Enhanced fallback content added', {
+  const ambassadorCount = result.filter(p => 
+    p.author?.user_type === 'ambassador' || p.is_ambassador_content
+  ).length;
+  
+  console.log('✅ ENHANCED fallback with ambassador priority complete:', {
     original: posts.length,
     added: fallbackPosts.length,
     final: result.length,
-    diversity: FeedDistributionService.analyzeFeedDiversity(result, [])
+    ambassadorCount,
+    ambassadorPercentage: Math.round((ambassadorCount / result.length) * 100) + '%'
   });
   
   return result;
