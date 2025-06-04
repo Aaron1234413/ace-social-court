@@ -529,38 +529,6 @@ export type Database = {
         }
         Relationships: []
       }
-      post_reactions: {
-        Row: {
-          created_at: string
-          id: string
-          post_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          post_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          post_id?: string
-          reaction_type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_reactions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       post_tags: {
         Row: {
           created_at: string | null
@@ -775,36 +743,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      reaction_analytics: {
-        Row: {
-          action: string
-          created_at: string
-          id: string
-          is_ambassador_content: boolean | null
-          post_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          id?: string
-          is_ambassador_content?: boolean | null
-          post_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          id?: string
-          is_ambassador_content?: boolean | null
-          post_id?: string
-          reaction_type?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       session_participants: {
         Row: {
@@ -1321,23 +1259,6 @@ export type Database = {
       get_likes_count: {
         Args: { post_id: string }
         Returns: number
-      }
-      get_post_reaction_counts: {
-        Args: { post_id: string }
-        Returns: {
-          love_count: number
-          fire_count: number
-          tip_count: number
-          achievement_count: number
-        }[]
-      }
-      get_top_reacted_posts: {
-        Args: { days_back: number; limit_count: number }
-        Returns: {
-          post_id: string
-          total_reactions: number
-          content_preview: string
-        }[]
       }
       has_liked: {
         Args: { user_id: string; post_id: string }

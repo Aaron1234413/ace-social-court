@@ -1,10 +1,11 @@
 
 import React from 'react';
+import { CardFooter } from '@/components/ui/card';
 import { Post } from '@/types/post';
 import { ContentType } from '../FeedBubble';
+import LikeButton from '../LikeButton';
 import CommentButton from '../CommentButton';
 import ShareButton from '../ShareButton';
-import { ReactionBar } from '../ReactionBar';
 
 interface BubbleFooterProps {
   post: Post;
@@ -13,37 +14,27 @@ interface BubbleFooterProps {
 }
 
 export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterProps) {
-  const isAmbassadorContent = contentType === 'ambassador' || post.is_ambassador_content;
+  // For ambassador posts, we might want to show different interactions
+  const showFullInteractions = contentType !== 'ambassador' || post.privacy_level === 'public';
+  const isDisabled = !showFullInteractions && !currentUserId;
 
   return (
-    <div className="bubble-footer">
-      {/* Reaction buttons group */}
-      <div className="reaction-buttons">
-        <ReactionBar
-          postId={post.id}
-          postUserId={post.user_id}
-          postContent={post.content}
-          privacyLevel={post.privacy_level}
-          isAmbassadorContent={isAmbassadorContent}
-          authorUserType={post.author?.user_type || undefined}
-          compact={true}
-        />
-      </div>
+    <CardFooter className="border-t p-2 md:p-4 flex justify-between bg-muted/10">
+      <LikeButton 
+        postId={post.id} 
+        postUserId={post.user_id} 
+        postContent={post.content}
+      />
       
-      {/* Action buttons group */}
-      <div className="action-buttons">
-        <CommentButton 
-          postId={post.id} 
-          postUserId={post.user_id}
-          size="sm"
-          variant="ghost"
-        />
-        
-        <ShareButton 
-          postId={post.id} 
-          postContent={post.content}
-        />
-      </div>
-    </div>
+      <CommentButton 
+        postId={post.id} 
+        postUserId={post.user_id}
+      />
+      
+      <ShareButton 
+        postId={post.id} 
+        postContent={post.content}
+      />
+    </CardFooter>
   );
 }

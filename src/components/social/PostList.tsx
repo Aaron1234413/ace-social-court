@@ -34,7 +34,7 @@ const PostList = ({
 
   if (posts.length === 0) {
     return (
-      <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-6 text-center border border-muted shadow-inner">
+      <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-8 text-center border border-muted shadow-inner">
         <div className="max-w-md mx-auto">
           <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">
             <MessageSquare className="h-8 w-8 text-muted-foreground" />
@@ -47,10 +47,12 @@ const PostList = ({
   }
 
   const determineContentType = (post: Post): ContentType => {
+    // Check if this is an ambassador post based on author information
     if (post.author?.user_type === 'ambassador' || post.is_ambassador_content) {
       return 'ambassador';
     }
     
+    // Check if this is fallback content (could be expanded later)
     if (post.is_fallback_content) {
       return 'fallback';
     }
@@ -68,31 +70,30 @@ const PostList = ({
         currentUserId={currentUserId}
         contentType={contentType}
         onPostUpdated={onPostUpdated}
-        className={contentType === 'ambassador' ? 'ambassador-content' : ''}
+        className="animate-slide-up"
+        style={{ animationDelay: `${index * 100}ms` }}
       />
     );
   };
 
   if (virtualized && onLoadMore) {
     return (
-      <div className="feed-container">
-        <VirtualizedList
-          items={posts}
-          renderItem={renderPost}
-          itemHeight={200}
-          containerHeight={600}
-          onLoadMore={onLoadMore}
-          hasMore={hasMore}
-          isLoading={isLoadingMore}
-          threshold={3}
-          className="space-y-0"
-        />
-      </div>
+      <VirtualizedList
+        items={posts}
+        renderItem={renderPost}
+        itemHeight={250}
+        containerHeight={600}
+        onLoadMore={onLoadMore}
+        hasMore={hasMore}
+        isLoading={isLoadingMore}
+        threshold={3}
+        className="space-y-6 md:space-y-8"
+      />
     );
   }
 
   return (
-    <div className="feed-container">
+    <div className="space-y-6 md:space-y-8">
       {posts.map((post, index) => renderPost(post, index))}
       
       {isLoadingMore && (

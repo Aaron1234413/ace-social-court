@@ -26,15 +26,8 @@ export const PostActions = ({ post, onEdit, onDelete }: PostActionsProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   
-  // SECURITY FIX: Only show actions if user is logged in AND owns the post
-  // This prevents users from editing ambassador posts or other users' posts
+  // Only show actions if user is logged in and owns the post
   if (!user || user.id !== post.user_id) {
-    return null;
-  }
-
-  // Additional security check for ambassador content
-  const isAmbassadorContent = post.author?.user_type === 'ambassador' || post.is_ambassador_content;
-  if (isAmbassadorContent && user.id !== post.user_id) {
     return null;
   }
 
@@ -67,7 +60,7 @@ export const PostActions = ({ post, onEdit, onDelete }: PostActionsProps) => {
             <span className="sr-only">Open post menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" onClick={handleMenuClick} className="bg-white border shadow-lg z-50">
+        <DropdownMenuContent align="end" onClick={handleMenuClick}>
           <DropdownMenuItem className="cursor-pointer" onClick={() => setShowEditModal(true)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
