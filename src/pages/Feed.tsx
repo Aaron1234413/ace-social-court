@@ -17,12 +17,15 @@ import { AmbassadorSeedingService } from '@/services/AmbassadorSeedingService';
 import { PostComposer } from '@/components/social/PostComposer';
 import { Card, CardContent } from '@/components/ui/card';
 import { PreviewService } from '@/services/PreviewService';
+import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
+import { useUserFollows } from '@/hooks/useUserFollows';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
 const Feed = () => {
   const location = useLocation();
   const { user, profile, isProfileComplete } = useAuth();
+  const { followingCount, following } = useUserFollows();
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
   const [showPerformanceMetrics, setShowPerformanceMetrics] = useState(false);
@@ -109,17 +112,16 @@ const Feed = () => {
   const previewService = PreviewService.getInstance();
   const cacheStats = previewService.getCacheStats();
 
-  // Enhanced analytics
+  // Fixed analytics service - use direct import instead of require
   const analyticsService = React.useMemo(() => {
-    return require('@/services/FeedAnalyticsService').FeedAnalyticsService.getInstance();
+    return FeedAnalyticsService.getInstance();
   }, []);
 
   const feedAnalytics = React.useMemo(() => {
     if (posts.length === 0) return null;
-    const { followingCount, following } = require('@/hooks/useUserFollows').useUserFollows();
     const followingUserIds = following.map((follow: any) => follow.following_id);
     return analyticsService.analyzeFeedQuality(posts, followingUserIds);
-  }, [posts, analyticsService]);
+  }, [posts, analyticsService, following]);
 
   return (
     <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">

@@ -5,6 +5,7 @@ import { FeedQueryCascade } from '@/services/FeedQueryCascade';
 import { useAuth } from '@/components/AuthProvider';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { supabase } from '@/integrations/supabase/client';
+import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
 
 interface FeedCascadeState {
   posts: Post[];
@@ -117,8 +118,8 @@ export const useFeedCascade = () => {
         const engagementTime = performance.now() - engagementStart;
         console.log('✅ Engagement counts loaded in', Math.round(engagementTime) + 'ms');
 
-        // Record analytics
-        const analyticsService = await import('@/services/FeedAnalyticsService').then(m => m.FeedAnalyticsService.getInstance());
+        // Record analytics - fixed to use direct import
+        const analyticsService = FeedAnalyticsService.getInstance();
         analyticsService.recordPerformanceMetric('engagement_loading', {
           postCount: newPosts.length,
           loadTime: engagementTime
