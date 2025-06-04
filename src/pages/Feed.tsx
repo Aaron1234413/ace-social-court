@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { CreatePostForm } from '@/components/social/CreatePostForm';
+import { PostComposer } from '@/components/social/PostComposer';
 import PostList from '@/components/social/PostList';
 import { usePosts } from '@/hooks/use-posts';
 import { Switch } from "@/components/ui/switch";
@@ -20,6 +20,7 @@ const Feed = () => {
   const { user, profile, isProfileComplete } = useAuth();
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
+  const [useSimpleComposer, setUseSimpleComposer] = useState(false);
   
   // Debug logging for Feed component
   useEffect(() => {
@@ -92,13 +93,24 @@ const Feed = () => {
         <h1 className="text-2xl md:text-3xl font-bold">Social Feed</h1>
         
         {user && (
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="personalized" 
-              checked={personalized}
-              onCheckedChange={togglePersonalization}
-            />
-            <Label htmlFor="personalized">Personalized</Label>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="simple-composer" 
+                checked={useSimpleComposer}
+                onCheckedChange={setUseSimpleComposer}
+              />
+              <Label htmlFor="simple-composer" className="text-sm">Simple</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="personalized" 
+                checked={personalized}
+                onCheckedChange={togglePersonalization}
+              />
+              <Label htmlFor="personalized">Personalized</Label>
+            </div>
           </div>
         )}
       </div>
@@ -127,7 +139,11 @@ const Feed = () => {
       {user ? (
         <>
           <div className="mb-6">
-            <CreatePostForm onSuccess={fetchPosts} />
+            {useSimpleComposer ? (
+              <PostComposer onSuccess={fetchPosts} />
+            ) : (
+              <CreatePostForm onSuccess={fetchPosts} />
+            )}
           </div>
           
           {isLoading ? (

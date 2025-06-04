@@ -9,16 +9,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PrivacySelector, PrivacyLevel } from './PrivacySelector';
 import { PostTemplateSelector } from './PostTemplateSelector';
+import { PostComposer } from './PostComposer';
 import { useSocialMediaUpload } from '@/hooks/use-social-media-upload';
 import { useUserFollows } from '@/hooks/useUserFollows';
 
 interface CreatePostFormProps {
   onSuccess?: () => void;
+  useSimpleMode?: boolean;
 }
 
-export function CreatePostForm({ onSuccess }: CreatePostFormProps) {
+export function CreatePostForm({ onSuccess, useSimpleMode = false }: CreatePostFormProps) {
   const { user, profile } = useAuth();
   const { followingCount } = useUserFollows();
+  
+  // If simple mode is enabled, use the new PostComposer
+  if (useSimpleMode) {
+    return <PostComposer onSuccess={onSuccess} />;
+  }
+
   const [content, setContent] = useState('');
   const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>('private');
   const [isSubmitting, setIsSubmitting] = useState(false);
