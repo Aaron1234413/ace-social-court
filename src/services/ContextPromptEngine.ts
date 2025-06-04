@@ -83,7 +83,7 @@ export class ContextPromptEngine {
     const { mental_data, physical_data, session_note } = context.sessionData;
     
     // Loss support prompts based on structured data
-    if (mental_data?.confidence && mental_data.confidence < 4) {
+    if (mental_data?.confidence && Number(mental_data.confidence) < 4) { // Fixed: convert to number
       prompts.push({
         id: `structured_loss_${Date.now()}`,
         type: 'structured',
@@ -94,7 +94,7 @@ export class ContextPromptEngine {
       });
     }
     
-    if (mental_data?.motivation && mental_data.motivation < 4) {
+    if (mental_data?.motivation && Number(mental_data.motivation) < 4) { // Fixed: convert to number
       prompts.push({
         id: `structured_motivation_${Date.now()}`,
         type: 'structured',
@@ -106,7 +106,7 @@ export class ContextPromptEngine {
     }
     
     // Improvement celebration prompts
-    if (mental_data?.confidence && mental_data.confidence >= 8) {
+    if (mental_data?.confidence && Number(mental_data.confidence) >= 8) { // Fixed: convert to number
       prompts.push({
         id: `structured_celebration_${Date.now()}`,
         type: 'structured',
@@ -117,7 +117,7 @@ export class ContextPromptEngine {
       });
     }
     
-    if (physical_data?.energyLevel && physical_data.energyLevel >= 8) {
+    if (physical_data?.energyLevel && Number(physical_data.energyLevel) >= 8) { // Fixed: convert to number
       prompts.push({
         id: `structured_energy_${Date.now()}`,
         type: 'structured',

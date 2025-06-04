@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -20,7 +21,7 @@ import { ContextPrompts } from '@/components/social/ContextPrompts';
 
 const PostDetail = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth(); // Fixed: added profile to destructuring
   const navigate = useNavigate();
   
   const { data: post, isLoading, error, refetch } = useQuery({
