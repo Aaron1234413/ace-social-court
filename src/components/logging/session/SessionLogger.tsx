@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,6 +31,7 @@ import { SessionSummary } from './SessionSummary';
 // Import new components
 import { MultiCoachSelect } from './MultiCoachSelect';
 import { CoachNotificationToggle } from './CoachNotificationToggle';
+import { SessionAutoPostIntegration } from './SessionAutoPostIntegration';
 
 const SessionLogger = () => {
   const { user, profile } = useAuth();
@@ -70,6 +70,9 @@ const SessionLogger = () => {
 
   const watchedCoachIds = form.watch('coach_ids') || [];
   const watchedNotifyCoaches = form.watch('notify_coaches') || false;
+
+  // Get current form values for auto-post generation
+  const currentFormValues = form.getValues();
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -231,53 +234,63 @@ const SessionLogger = () => {
 
             {/* Summary Tab */}
             <TabsContent value="summary">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Session Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <SessionSummary 
-                    pillarData={{
-                      physical: form.getValues('physical_data'),
-                      mental: form.getValues('mental_data'),
-                      technical: form.getValues('technical_data')
-                    }}
-                    selectedPillars={form.getValues('focus_areas') || []}
-                    aiSuggestionsUsed={form.getValues('ai_suggestions_used') || false}
-                    onBack={() => setActiveTab('technical')}
-                    onEdit={(pillar) => setActiveTab(pillar)}
-                    onSuccess={() => {
-                      form.reset();
-                      setActiveTab('basics');
-                    }}
-                  />
-                  
-                  {/* Submit Button */}
-                  <div className="mt-6 pt-4 border-t">
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isSubmitting}
-                      size="lg"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving Session...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Log Training Session
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      Session Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <SessionSummary 
+                      pillarData={{
+                        physical: form.getValues('physical_data'),
+                        mental: form.getValues('mental_data'),
+                        technical: form.getValues('technical_data')
+                      }}
+                      selectedPillars={form.getValues('focus_areas') || []}
+                      aiSuggestionsUsed={form.getValues('ai_suggestions_used') || false}
+                      onBack={() => setActiveTab('technical')}
+                      onEdit={(pillar) => setActiveTab(pillar)}
+                      onSuccess={() => {
+                        form.reset();
+                        setActiveTab('basics');
+                      }}
+                    />
+                    
+                    {/* Submit Button */}
+                    <div className="mt-6 pt-4 border-t">
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isSubmitting}
+                        size="lg"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving Session...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Log Training Session
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Auto-Post Generation Integration */}
+                <SessionAutoPostIntegration
+                  sessionData={currentFormValues}
+                  onPostCreated={() => {
+                    console.log('📝 Auto-generated post created from session');
+                  }}
+                />
+              </div>
             </TabsContent>
           </Tabs>
         </form>
