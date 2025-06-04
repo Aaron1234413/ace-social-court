@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Edit3, Sparkles, Share, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Edit3, Sparkles, Share, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -210,12 +210,15 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
           </div>
         )}
 
-        {/* Privacy selector - always prominent */}
+        {/* Privacy selector - always prominent with preview */}
         <div className="border-t pt-4">
           <PrivacySelector 
             value={privacyLevel} 
             onValueChange={setPrivacyLevel}
             followingCount={followingCount}
+            showPreview={true}
+            content={content || "Sample post content for preview..."}
+            userProfile={profile}
           />
         </div>
 
