@@ -6,10 +6,12 @@ export interface Post {
   user_id: string;
   media_url?: string | null;
   media_type?: string | null;
-  privacy_level?: 'private' | 'friends' | 'public' | 'coaches';
+  privacy_level?: 'private' | 'friends' | 'public' | 'coaches' | 'public_highlights';
   template_id?: string | null;
   is_auto_generated?: boolean;
   engagement_score?: number;
+  is_ambassador_content?: boolean;
+  is_fallback_content?: boolean;
   author?: {
     full_name: string | null;
     user_type: string | null;

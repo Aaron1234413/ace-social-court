@@ -12,6 +12,7 @@ import { MessageSquare, Heart, Clock } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
+import { AmbassadorSeedingService } from '@/services/AmbassadorSeedingService';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -20,6 +21,7 @@ const Feed = () => {
   const { user, profile, isProfileComplete } = useAuth();
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
+  const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
   
   // Debug logging for Feed component
   useEffect(() => {
@@ -41,6 +43,19 @@ const Feed = () => {
     sortBy: sortOption,
     respectPrivacy: true // Enable privacy filtering with smart fallbacks
   });
+
+  // Initialize ambassador seeding on component mount
+  useEffect(() => {
+    const initializeAmbassadors = async () => {
+      if (!ambassadorSeeded) {
+        console.log('🌱 Initializing ambassador safety net...');
+        await AmbassadorSeedingService.checkAndSeedAmbassadors();
+        setAmbassadorSeeded(true);
+      }
+    };
+    
+    initializeAmbassadors();
+  }, [ambassadorSeeded]);
 
   useEffect(() => {
     // Initialize storage in the background without blocking UI
@@ -140,18 +155,13 @@ const Feed = () => {
                     <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">
                       <MessageSquare className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-medium mb-2">Welcome to your feed!</h3>
+                    <h3 className="text-lg font-medium mb-2">Building your feed...</h3>
                     <p className="text-sm md:text-base text-muted-foreground mb-4">
-                      {userFollowings?.length === 0 
-                        ? "Start following other players to see their posts, or create your first post to get started!"
-                        : "Your followed users haven't posted recently. Check back later or explore public content!"
-                      }
+                      We're setting up inspiring content from our Rally Ambassadors while you build your network.
                     </p>
-                    {userFollowings?.length === 0 && (
-                      <Button onClick={() => window.location.href = '/search'} variant="outline">
-                        Find People to Follow
-                      </Button>
-                    )}
+                    <Button onClick={() => window.location.href = '/search'} variant="outline">
+                      Find People to Follow
+                    </Button>
                   </div>
                 </div>
               )}
