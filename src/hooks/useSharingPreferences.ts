@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -106,7 +105,7 @@ export function useSharingPreferences() {
     // Analyze privacy levels
     const privacyLevels = posts.map(post => post.privacy_level);
     const privacyCount = privacyLevels.reduce((acc, level) => {
-      acc[level] = (acc[level] || 0) + 1;
+      acc[level] = (acc[level] ?? 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
