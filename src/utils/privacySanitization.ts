@@ -9,15 +9,50 @@ export interface PrivacyContext {
 }
 
 /**
- * Sanitizes posts based on privacy levels and user relationships
+ * Sanitizes posts based on privacy levels and user relationships with smart fallbacks
  */
 export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Post[] {
+  console.log('Privacy sanitization started', { 
+    postsCount: posts.length, 
+    context: {
+      userId: context.currentUserId,
+      followingCount: context.userFollowings?.length || 0,
+      userType: context.userType
+    }
+  });
+
   if (!context.currentUserId) {
     // For unauthenticated users, only show public posts
-    return posts.filter(post => post.privacy_level === 'public');
+    const publicPosts = posts.filter(post => post.privacy_level === 'public');
+    console.log('Unauthenticated user - showing public posts only:', publicPosts.length);
+    return publicPosts;
   }
 
-  return posts.filter(post => canUserViewPost(post, context));
+  try {
+    const filteredPosts = posts.filter(post => canUserViewPost(post, context));
+    console.log('Privacy filtering completed', { 
+      originalCount: posts.length, 
+      filteredCount: filteredPosts.length 
+    });
+    return filteredPosts;
+  } catch (error) {
+    console.error('Error in privacy sanitization, falling back to public posts:', error);
+    // Fallback to public posts if privacy filtering fails
+    return posts.filter(post => post.privacy_level === 'public' || post.user_id === context.currentUserId);
+  }
+}
+
+/**
+ * Smart content mixing based on user's social graph size
+ */
+export function getContentMixingRatio(followingCount: number): { followedRatio: number; publicRatio: number } {
+  if (followingCount <= 2) {
+    return { followedRatio: 0.2, publicRatio: 0.8 }; // 20% followed, 80% public
+  } else if (followingCount <= 10) {
+    return { followedRatio: 0.6, publicRatio: 0.4 }; // 60% followed, 40% public
+  } else {
+    return { followedRatio: 0.8, publicRatio: 0.2 }; // 80% followed, 20% public
+  }
 }
 
 /**
@@ -47,6 +82,7 @@ export function canUserViewPost(post: Post, context: PrivacyContext): boolean {
       return isCoach;
 
     default:
+      console.warn('Unknown privacy level:', post.privacy_level);
       return false;
   }
 }

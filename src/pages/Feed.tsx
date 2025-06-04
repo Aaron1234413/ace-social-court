@@ -36,10 +36,10 @@ const Feed = () => {
     };
   }, [location.pathname, user, profile]);
   
-  const { posts, isLoading, fetchPosts } = usePosts({ 
+  const { posts, isLoading, fetchPosts, userFollowings } = usePosts({ 
     personalize: personalized,
     sortBy: sortOption,
-    respectPrivacy: true // Enable privacy filtering
+    respectPrivacy: true // Enable privacy filtering with smart fallbacks
   });
 
   useEffect(() => {
@@ -53,7 +53,6 @@ const Feed = () => {
         }
       } catch (err) {
         console.warn('Storage initialization failed, but continuing:', err);
-        // Don't show error toasts - just log and continue
       }
     };
     
@@ -66,10 +65,11 @@ const Feed = () => {
       console.log('Feed: User profile status', { 
         profileExists: !!profile,
         isProfileComplete,
-        userId: user.id
+        userId: user.id,
+        followingCount: userFollowings?.length || 0
       });
     }
-  }, [user, profile, isProfileComplete]);
+  }, [user, profile, isProfileComplete, userFollowings]);
 
   const togglePersonalization = () => {
     setPersonalized(!personalized);
@@ -133,12 +133,36 @@ const Feed = () => {
           {isLoading ? (
             <Loading variant="skeleton" count={3} text="Loading posts..." />
           ) : (
-            <PostList 
-              posts={posts}
-              currentUserId={user.id}
-              isLoading={false}
-              onPostUpdated={handlePostUpdated}
-            />
+            <>
+              {posts.length === 0 && (
+                <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-8 text-center border border-muted shadow-inner mb-6">
+                  <div className="max-w-md mx-auto">
+                    <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">
+                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">Welcome to your feed!</h3>
+                    <p className="text-sm md:text-base text-muted-foreground mb-4">
+                      {userFollowings?.length === 0 
+                        ? "Start following other players to see their posts, or create your first post to get started!"
+                        : "Your followed users haven't posted recently. Check back later or explore public content!"
+                      }
+                    </p>
+                    {userFollowings?.length === 0 && (
+                      <Button onClick={() => window.location.href = '/search'} variant="outline">
+                        Find People to Follow
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <PostList 
+                posts={posts}
+                currentUserId={user.id}
+                isLoading={false}
+                onPostUpdated={handlePostUpdated}
+              />
+            </>
           )}
         </>
       ) : (
