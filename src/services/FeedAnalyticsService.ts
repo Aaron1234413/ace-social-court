@@ -1,3 +1,4 @@
+
 import { Post } from "@/types/post";
 
 interface FeedAnalytics {
@@ -131,7 +132,10 @@ export class FeedAnalyticsService {
     };
 
     // Quality metrics
-    const recentPosts = posts.filter(p => new Date(p.created_at) > oneDayAgo);
+    const recentPosts = posts.filter(p => {
+      const postDate = new Date(p.created_at);
+      return postDate > oneDayAgo;
+    });
     const qualityMetrics = {
       averageEngagement: posts.reduce((sum, p) => sum + (p.engagement_score || 0), 0) / Math.max(posts.length, 1),
       recentContentPercentage: (recentPosts.length / Math.max(posts.length, 1)) * 100,
@@ -149,7 +153,7 @@ export class FeedAnalyticsService {
   private calculateDiversityScore(diversity: any, types: any): number {
     // Diversity score based on user representation and content type mix
     const userRepresentationScore = Math.min(diversity.followedUsersRepresented / Math.max(diversity.totalUsers, 1), 1) * 40;
-    const contentTypeScore = (Object.values(types).filter(count => count > 0).length / 4) * 30;
+    const contentTypeScore = (Object.values(types).filter(count => (count as number) > 0).length / 4) * 30;
     const distributionScore = (1 - (diversity.maxPostsFromUser / Math.max(diversity.totalUsers * 3, 1))) * 30;
     
     return Math.round(userRepresentationScore + contentTypeScore + distributionScore);

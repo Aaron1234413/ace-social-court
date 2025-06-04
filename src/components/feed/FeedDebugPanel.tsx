@@ -137,7 +137,7 @@ export const FeedDebugPanel = ({
                       {Object.entries(feedAnalytics?.contentDiversity?.userDistribution || {}).map(([userId, count]) => (
                         <div key={userId} className="flex justify-between">
                           <span className="truncate">{userId.substring(0, 8)}...</span>
-                          <Badge variant="outline" className="text-xs">{count}</Badge>
+                          <Badge variant="outline" className="text-xs">{String(count)}</Badge>
                         </div>
                       ))}
                     </div>
@@ -187,7 +187,7 @@ export const FeedDebugPanel = ({
                           <div className="mt-2 flex gap-1">
                             {Object.entries(user.privacyLevels).map(([level, count]) => (
                               <Badge key={level} variant="secondary" className="text-xs">
-                                {level}: {count}
+                                {level}: {String(count)}
                               </Badge>
                             ))}
                           </div>

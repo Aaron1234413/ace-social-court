@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { VirtualizedList } from '@/components/ui/virtualized-list';
 import { FeedBubble } from '@/components/social/FeedBubble';
 import { useFeedCascade } from '@/hooks/useFeedCascade';
