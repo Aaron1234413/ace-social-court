@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
 
@@ -192,18 +193,18 @@ export class FeedQueryCascade {
   ): Promise<Post[]> {
     if (userFollowings.length === 0) return [];
 
-    const queryPromise = supabase
-      .from('posts')
-      .select(`
-        id, content, created_at, user_id, media_url, media_type,
-        privacy_level, template_id, is_auto_generated, engagement_score
-      `)
-      .in('user_id', [userId, ...userFollowings])
-      .in('privacy_level', ['public', 'friends', 'public_highlights'])
-      .order('created_at', { ascending: false })
-      .range(offset, offset + this.POSTS_PER_PAGE - 1);
-
-    const { data, error } = await this.executeWithTimeout(queryPromise);
+    const { data, error } = await this.executeWithTimeout(
+      supabase
+        .from('posts')
+        .select(`
+          id, content, created_at, user_id, media_url, media_type,
+          privacy_level, template_id, is_auto_generated, engagement_score
+        `)
+        .in('user_id', [userId, ...userFollowings])
+        .in('privacy_level', ['public', 'friends', 'public_highlights'])
+        .order('created_at', { ascending: false })
+        .range(offset, offset + this.POSTS_PER_PAGE - 1)
+    );
 
     if (error) {
       console.error('Error in personalized feed query:', error);

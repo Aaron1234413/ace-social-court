@@ -67,7 +67,7 @@ export class PreviewService {
     }
   }
 
-  private createFallbackPreview(post: Post, reason: string): PreviewData {
+  private createFallbackPreview(post: Partial<Post>, reason: string): PreviewData {
     console.log(`📋 Creating fallback preview for post ${post.id}: ${reason}`);
     
     return {
@@ -78,11 +78,11 @@ export class PreviewService {
         user_type: post.author?.user_type || 'player'
       },
       engagement: {
-        likes_count: post.likes_count || Math.floor(Math.random() * 10) + 1,
-        comments_count: post.comments_count || Math.floor(Math.random() * 5) + 1
+        likes_count: Math.floor(Math.random() * 10) + 1,
+        comments_count: Math.floor(Math.random() * 5) + 1
       },
       privacy_level: post.privacy_level || 'private',
-      created_at: post.created_at,
+      created_at: post.created_at || new Date().toISOString(),
       is_fallback: true,
       fallback_reason: reason
     };
@@ -126,12 +126,12 @@ export class PreviewService {
         }
       }
 
-      // Fetch post data
+      // Fetch post data - query without likes_count and comments_count since they don't exist in the table
       const { data: post, error } = await supabase
         .from('posts')
         .select(`
           id, content, created_at, user_id, privacy_level,
-          media_url, media_type, likes_count, comments_count
+          media_url, media_type
         `)
         .eq('id', postId)
         .single();
@@ -145,7 +145,7 @@ export class PreviewService {
             created_at: new Date().toISOString(),
             user_id: '',
             author: null
-          } as Post, 
+          }, 
           'Post not found'
         );
       }
@@ -157,9 +157,23 @@ export class PreviewService {
         .eq('id', post.user_id)
         .single();
 
+      // Get engagement counts using RPC functions
+      const [{ data: likesCount }, { data: commentsCount }] = await Promise.all([
+        supabase.rpc('get_likes_count', { post_id: postId }),
+        supabase.rpc('get_comments_count', { post_id: postId })
+      ]);
+
       const fullPost: Post = {
-        ...post,
-        author: authorData || null
+        id: post.id,
+        content: post.content,
+        created_at: post.created_at,
+        user_id: post.user_id,
+        privacy_level: post.privacy_level,
+        media_url: post.media_url,
+        media_type: post.media_type,
+        author: authorData || null,
+        likes_count: likesCount || 0,
+        comments_count: commentsCount || 0
       };
 
       // Apply privacy filtering
@@ -215,7 +229,7 @@ export class PreviewService {
           created_at: new Date().toISOString(),
           user_id: '',
           author: null
-        } as Post, 
+        }, 
         'Service temporarily unavailable'
       );
     }
