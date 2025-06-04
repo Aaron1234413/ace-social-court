@@ -27,10 +27,10 @@ interface ReactionBarProps {
 }
 
 const REACTION_CONFIG = {
-  love: { icon: Heart, label: 'Love', color: 'text-red-500', bgColor: 'bg-red-50' },
-  fire: { icon: Flame, label: 'Fire', color: 'text-orange-500', bgColor: 'bg-orange-50' },
+  love: { icon: Heart, label: 'Love', color: 'text-red-500', bgColor: 'bg-red-50', requiresComment: false },
+  fire: { icon: Flame, label: 'Fire', color: 'text-orange-500', bgColor: 'bg-orange-50', requiresComment: false },
   tip: { icon: Lightbulb, label: 'Tip', color: 'text-yellow-500', bgColor: 'bg-yellow-50', requiresComment: true },
-  achievement: { icon: Trophy, label: 'Achievement', color: 'text-purple-500', bgColor: 'bg-purple-50' }
+  achievement: { icon: Trophy, label: 'Achievement', color: 'text-purple-500', bgColor: 'bg-purple-50', requiresComment: false }
 };
 
 export function ReactionBar({ 
