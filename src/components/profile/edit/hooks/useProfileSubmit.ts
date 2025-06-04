@@ -13,17 +13,17 @@ export const useProfileSubmit = (
 ) => {
   const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
-  const onSubmit = async (values: ProfileFormValues) => {
+  const handleSubmit = form.handleSubmit(async (values: ProfileFormValues) => {
     if (!user) {
       toast.error('You must be logged in to update your profile');
       return;
     }
 
     setValidationMessage(null);
-    setIsSaving(true);
+    setIsSubmitting(true);
     
     try {
       // Prepare the data for submission
@@ -111,7 +111,7 @@ export const useProfileSubmit = (
       
       toast.success('Profile updated successfully');
       
-      // Redirect based on user state - FIX HERE
+      // Redirect based on user state
       if (isNewUser) {
         navigate('/feed');
       } else {
@@ -122,14 +122,14 @@ export const useProfileSubmit = (
       console.error('Error updating profile:', error);
       toast.error(`Failed to update profile: ${error.message || 'Unknown error'}`);
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
-  };
+  });
 
   return {
-    isSaving,
+    handleSubmit,
+    isSubmitting,
     validationMessage,
-    setValidationMessage,
-    onSubmit
+    setValidationMessage
   };
 };

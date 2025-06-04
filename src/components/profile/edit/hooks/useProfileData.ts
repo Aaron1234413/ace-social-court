@@ -5,14 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { ProfileFormValues } from '../profileSchema';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
-import { ProfileData } from '../ProfileEditContainer';
 
-export const useProfileData = (
-  form: UseFormReturn<ProfileFormValues>,
-  profileData: ProfileData | null,
-  setLocationName: (name: string) => void
-) => {
-  const { user } = useAuth();
+export const useProfileData = () => {
+  const { user, profile } = useAuth();
   const [achievements, setAchievements] = useState<any[]>([]);
   const [certifications, setCertifications] = useState<any[]>([]);
 
@@ -49,28 +44,10 @@ export const useProfileData = (
     }
   }, [user]);
 
-  // Update form values when profile data is loaded
-  useEffect(() => {
-    if (profileData) {
-      form.reset({
-        username: profileData.username || '',
-        full_name: profileData.full_name || '',
-        user_type: profileData.user_type || 'player',
-        playing_style: profileData.playing_style || '',
-        experience_level: profileData.experience_level || 'beginner',
-        bio: profileData.bio || '',
-        location_name: profileData.location_name || '',
-        latitude: profileData.latitude || undefined,
-        longitude: profileData.longitude || undefined,
-        achievements: achievements,
-        certifications: certifications
-      });
-
-      if (profileData.location_name) {
-        setLocationName(profileData.location_name);
-      }
-    }
-  }, [profileData, form, achievements, certifications, setLocationName]);
-
-  return { achievements, certifications };
+  return { 
+    form: null, // This will be passed from parent component
+    profile,
+    achievements, 
+    certifications 
+  };
 };

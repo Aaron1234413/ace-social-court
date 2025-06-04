@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
-import UserDropdown from "./navigation/UserDropdown";
+import { UserDropdown } from "./navigation/UserDropdown";
 import MobileMenu from "./navigation/MobileMenu";
 import SearchForm from "./navigation/SearchForm";
 import { QuickActions } from "./navigation/QuickActions";
