@@ -27,19 +27,26 @@ export function UserDropdown() {
     navigate('/auth');
   };
 
-  // Show loading state
+  // Show loading state while auth is loading
   if (isLoading) {
     return (
       <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
     );
   }
 
-  // Show sign in button if no user
-  if (!user || !profile) {
+  // Show sign in button ONLY if there's no user at all
+  if (!user) {
     return (
       <Button onClick={handleSignInClick} variant="default" size="sm">
         Sign In
       </Button>
+    );
+  }
+
+  // If we have a user but no profile, show loading state
+  if (user && !profile) {
+    return (
+      <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
     );
   }
 
