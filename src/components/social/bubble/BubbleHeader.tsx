@@ -3,9 +3,7 @@ import React from 'react';
 import { CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Crown, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Crown, Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Post } from '@/types/post';
 import { ContentType } from '../FeedBubble';
@@ -71,7 +69,7 @@ export function BubbleHeader({
               <time dateTime={post.created_at} className="flex-shrink-0">
                 {timeAgo}
               </time>
-              <PrivacyIndicator privacy={post.privacy_level} />
+              <PrivacyIndicator privacyLevel={post.privacy_level} />
             </div>
           </div>
         </div>
@@ -89,7 +87,8 @@ export function BubbleHeader({
           {isOwnPost && (
             <PostActions 
               post={post} 
-              onPostUpdated={onPostUpdated}
+              onEdit={onPostUpdated}
+              onDelete={onPostUpdated}
             />
           )}
         </div>
