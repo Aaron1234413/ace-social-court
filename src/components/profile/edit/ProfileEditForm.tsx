@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,7 +43,7 @@ const certificationSchema = z.object({
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').nonempty('Username is required'),
   full_name: z.string().min(2, 'Full name must be at least 2 characters').nonempty('Full name is required'),
-  user_type: z.enum(['player', 'coach'] as const),
+  user_type: z.enum(['player', 'coach', 'ambassador'] as const),
   playing_style: z.string().optional(),
   experience_level: z.enum(['beginner', 'intermediate', 'advanced', 'professional'] as const),
   bio: z.string().optional(),
@@ -231,9 +230,9 @@ export const ProfileEditForm = ({ isNewUser, profileData }: ProfileEditFormProps
         id: user.id,
         username: values.username,
         full_name: values.full_name,
-        user_type: values.user_type,
+        user_type: values.user_type as UserType,
         playing_style: values.playing_style || null,
-        experience_level: values.experience_level,
+        experience_level: values.experience_level as ExperienceLevel,
         bio: values.bio || null,
         location_name: values.location_name || null,
         latitude: latitude,

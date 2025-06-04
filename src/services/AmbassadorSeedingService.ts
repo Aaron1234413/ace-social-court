@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AmbassadorProfile {
@@ -160,7 +159,7 @@ export class AmbassadorSeedingService {
         .upsert({
           id: authData.user?.id || ambassador.id,
           full_name: ambassador.full_name,
-          user_type: 'ambassador' as any,
+          user_type: 'ambassador',
           skill_level: ambassador.skill_level,
           bio: ambassador.bio,
           avatar_url: ambassador.avatar_url,
@@ -206,7 +205,7 @@ export class AmbassadorSeedingService {
           .insert({
             user_id: ambassador.id,
             content: post.content,
-            privacy_level: post.privacy_level as any,
+            privacy_level: post.privacy_level,
             is_ambassador_content: post.is_ambassador_content,
             created_at: postDate.toISOString(),
             engagement_score: Math.floor(Math.random() * 50) + 10 // Random engagement 10-60
@@ -235,7 +234,7 @@ export class AmbassadorSeedingService {
           privacy_level,
           is_ambassador_content,
           engagement_score,
-          profiles!posts_user_id_fkey (
+          profiles (
             full_name,
             user_type,
             avatar_url
