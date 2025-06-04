@@ -43,15 +43,10 @@ export function UserDropdown() {
     );
   }
 
-  // If we have a user but no profile, show loading state
-  if (user && !profile) {
-    return (
-      <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
-    );
-  }
-
   const getUserDisplayName = () => {
-    return profile.full_name || profile.username || 'User';
+    if (profile?.full_name) return profile.full_name;
+    if (profile?.username) return profile.username;
+    return user.email?.split('@')[0] || 'User';
   };
 
   const getUserInitials = () => {
@@ -61,14 +56,14 @@ export function UserDropdown() {
 
   return (
     <div className="flex items-center gap-3">
-      {/* Role Switcher - only show if user has multiple roles */}
-      <RoleSwitcher />
+      {/* Role Switcher - only show if user has multiple roles and profile is loaded */}
+      {profile && <RoleSwitcher />}
       
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={profile.avatar_url || undefined} alt={getUserDisplayName()} />
+              <AvatarImage src={profile?.avatar_url || undefined} alt={getUserDisplayName()} />
               <AvatarFallback className="text-xs">{getUserInitials()}</AvatarFallback>
             </Avatar>
           </Button>
@@ -80,7 +75,7 @@ export function UserDropdown() {
               <p className="text-xs leading-none text-muted-foreground">
                 {user.email}
               </p>
-              {profile.current_active_role && (
+              {profile?.current_active_role && (
                 <p className="text-xs leading-none text-muted-foreground capitalize">
                   {profile.current_active_role} Mode
                 </p>
