@@ -22,7 +22,7 @@ export const certificationSchema = z.object({
 export const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').nonempty('Username is required'),
   full_name: z.string().min(2, 'Full name must be at least 2 characters').nonempty('Full name is required'),
-  user_type: z.enum(['player', 'coach'] as const),
+  user_type: z.enum(['player', 'coach', 'ambassador'] as const),
   playing_style: z.string().optional(),
   experience_level: z.enum(['beginner', 'intermediate', 'advanced', 'professional'] as const),
   bio: z.string().optional(),

@@ -66,6 +66,7 @@ export const WizardBasicInfo = ({ control }: WizardBasicInfoProps) => {
                 <SelectContent>
                   <SelectItem value="player">Player</SelectItem>
                   <SelectItem value="coach">Coach</SelectItem>
+                  <SelectItem value="ambassador">Ambassador</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

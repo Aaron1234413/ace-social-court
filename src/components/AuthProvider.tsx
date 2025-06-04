@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,7 @@ interface Profile {
   id: string;
   username: string | null;
   full_name: string | null;
-  user_type: 'player' | 'coach';
+  user_type: 'player' | 'coach' | 'ambassador';
   experience_level: 'beginner' | 'intermediate' | 'advanced' | 'professional' | null;
   bio: string | null;
   location_name?: string | null;
