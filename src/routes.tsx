@@ -1,4 +1,3 @@
-
 import React, { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
@@ -27,6 +26,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminContent from "./pages/admin/AdminContent";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminCourts from "./pages/admin/AdminCourts";
+import SocialOnboarding from "./pages/SocialOnboarding";
 
 const AdminAmbassadors = lazy(() => import("./pages/admin/AdminAmbassadors"));
 
@@ -43,6 +43,10 @@ export const routes = createBrowserRouter([
       {
         path: "/auth",
         element: <Auth />,
+      },
+      {
+        path: "/onboarding",
+        element: <SocialOnboarding />,
       },
       {
         path: "/dashboard",
