@@ -113,13 +113,14 @@ export function useSharingPreferences() {
     const mostUsedPrivacy = Object.entries(privacyCount)
       .sort(([,a], [,b]) => b - a)[0]?.[0] as MatchPrivacyLevel || 'summary';
 
-    // Fix: Ensure we're doing division with numbers and handle edge cases
-    const totalMatchPosts = Number(matchPosts.length);
-    const winPostsCount = Number(winPosts.length);
-    const lossPostsCount = Number(lossPosts.length);
+    // Fix: Properly handle arithmetic operations with explicit number types
+    const totalMatchPosts: number = matchPosts.length;
+    const winPostsCount: number = winPosts.length;
+    const lossPostsCount: number = lossPosts.length;
     
-    const winShareRate = totalMatchPosts > 0 ? winPostsCount / totalMatchPosts : 0.7;
-    const lossShareRate = totalMatchPosts > 0 ? lossPostsCount / totalMatchPosts : 0.3;
+    // Ensure we have valid numbers for division
+    const winShareRate: number = totalMatchPosts > 0 ? (winPostsCount / totalMatchPosts) : 0.7;
+    const lossShareRate: number = totalMatchPosts > 0 ? (lossPostsCount / totalMatchPosts) : 0.3;
 
     return {
       totalPosts: posts.length,
