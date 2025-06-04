@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PreviewService } from '@/services/PreviewService';
 import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
 import { useUserFollows } from '@/hooks/useUserFollows';
+import { FeedDebugPanel } from '@/components/feed/FeedDebugPanel';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -165,17 +167,14 @@ const Feed = () => {
         )}
       </div>
 
-      {/* Enhanced Debug Panel */}
-      {React.createElement(
-        React.lazy(() => import('@/components/feed/FeedDebugPanel').then(m => ({ default: m.FeedDebugPanel }))),
-        {
-          feedAnalytics,
-          followedUsersDebug: debugData?.followedUsers,
-          cascadeMetrics: metrics,
-          isVisible: showDebugPanel,
-          onToggle: () => setShowDebugPanel(!showDebugPanel)
-        }
-      )}
+      {/* Enhanced Debug Panel - Fixed to use proper component */}
+      <FeedDebugPanel
+        feedAnalytics={feedAnalytics}
+        followedUsersDebug={debugData?.followedUsers}
+        cascadeMetrics={metrics}
+        isVisible={showDebugPanel}
+        onToggle={() => setShowDebugPanel(!showDebugPanel)}
+      />
 
       {showDebugInfo && debugData && (
         <Card className="mb-6 border-blue-200 bg-blue-50">
