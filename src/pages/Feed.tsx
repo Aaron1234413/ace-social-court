@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -51,6 +50,9 @@ const Feed = () => {
     metrics: performanceMetrics, 
     recordLoadTime 
   } = useFeedPerformance();
+
+  // Only show debug tools in development mode
+  const isDevelopment = import.meta.env.DEV;
 
   useEffect(() => {
     console.log('Feed component mounted', {
@@ -130,7 +132,8 @@ const Feed = () => {
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <h1 className="text-2xl md:text-3xl font-bold">Social Feed</h1>
         
-        {user && (
+        {/* Only show debug buttons in development mode */}
+        {user && isDevelopment && (
           <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
@@ -167,16 +170,19 @@ const Feed = () => {
         )}
       </div>
 
-      {/* Enhanced Debug Panel - Fixed to use proper component */}
-      <FeedDebugPanel
-        feedAnalytics={feedAnalytics}
-        followedUsersDebug={debugData?.followedUsers}
-        cascadeMetrics={metrics}
-        isVisible={showDebugPanel}
-        onToggle={() => setShowDebugPanel(!showDebugPanel)}
-      />
+      {/* Enhanced Debug Panel - Only show in development */}
+      {isDevelopment && (
+        <FeedDebugPanel
+          feedAnalytics={feedAnalytics}
+          followedUsersDebug={debugData?.followedUsers}
+          cascadeMetrics={metrics}
+          isVisible={showDebugPanel}
+          onToggle={() => setShowDebugPanel(!showDebugPanel)}
+        />
+      )}
 
-      {showDebugInfo && debugData && (
+      {/* Debug info panels - Only show in development */}
+      {isDevelopment && showDebugInfo && debugData && (
         <Card className="mb-6 border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <div className="space-y-4 text-sm">
@@ -234,7 +240,7 @@ const Feed = () => {
         </Card>
       )}
 
-      {showPerformanceMetrics && (
+      {isDevelopment && showPerformanceMetrics && (
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -271,7 +277,7 @@ const Feed = () => {
         </Card>
       )}
 
-      {showCacheStats && (
+      {isDevelopment && showCacheStats && (
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
