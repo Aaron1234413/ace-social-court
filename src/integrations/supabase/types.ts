@@ -297,6 +297,30 @@ export type Database = {
           },
         ]
       }
+      engagement_metrics: {
+        Row: {
+          created_at: string
+          id: string
+          metric_data: Json
+          metric_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metric_data?: Json
+          metric_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metric_data?: Json
+          metric_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       followers: {
         Row: {
           created_at: string

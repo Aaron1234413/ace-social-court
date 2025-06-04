@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Fire, Users, Lightbulb } from 'lucide-react';
+import { TrendingUp, Flame, Users, Lightbulb } from 'lucide-react';
 import { EngagementMetrics, BaselineData } from '@/services/EngagementMetrics';
 
 interface EngagementBarProps {
@@ -64,7 +64,7 @@ export function EngagementBar({ className = '' }: EngagementBarProps) {
           {/* Fire Reactions */}
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
-              <Fire className="h-3 w-3 mr-1" />
+              <Flame className="h-3 w-3 mr-1" />
               Fire Reactions
             </Badge>
             <span className="text-xs text-orange-600">
