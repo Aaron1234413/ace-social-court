@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import LikeButton from '@/components/social/LikeButton';
 import CommentButton from '@/components/social/CommentButton';
 import ShareButton from '@/components/social/ShareButton';
+import { ReactionBar } from '@/components/social/ReactionBar';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/components/AuthProvider';
 import PostContent from '@/components/social/PostContent';
@@ -97,17 +97,19 @@ const PostDetail = () => {
     navigate('/feed');
   };
 
+  const isAmbassadorContent = post?.author?.user_type === 'ambassador' || post?.is_ambassador_content;
+
   return (
     <>
       <Helmet>
-        <title>Post by {post.author?.full_name || 'Anonymous'} - rallypointx</title>
-        <meta name="description" content={post.content?.substring(0, 160) || 'A post on rallypointx'} />
-        <meta property="og:title" content={`Post by ${post.author?.full_name || 'Anonymous'} - rallypointx`} />
-        <meta property="og:description" content={post.content?.substring(0, 160) || 'A post on rallypointx'} />
+        <title>Post by {post?.author?.full_name || 'Anonymous'} - rallypointx</title>
+        <meta name="description" content={post?.content?.substring(0, 160) || 'A post on rallypointx'} />
+        <meta property="og:title" content={`Post by ${post?.author?.full_name || 'Anonymous'} - rallypointx`} />
+        <meta property="og:description" content={post?.content?.substring(0, 160) || 'A post on rallypointx'} />
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={`Post by ${post.author?.full_name || 'Anonymous'} - rallypointx`} />
-        <meta name="twitter:description" content={post.content?.substring(0, 160) || 'A post on rallypointx'} />
+        <meta name="twitter:title" content={`Post by ${post?.author?.full_name || 'Anonymous'} - rallypointx`} />
+        <meta name="twitter:description" content={post?.content?.substring(0, 160) || 'A post on rallypointx'} />
       </Helmet>
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -160,13 +162,24 @@ const PostDetail = () => {
               </div>
             )}
 
-            <div className="mt-6 pt-4 border-t flex justify-between">
+            <div className="mt-6 pt-4 border-t space-y-4">
+              {/* New Reaction Bar */}
+              <ReactionBar
+                postId={post.id}
+                postUserId={post.user_id}
+                postContent={post.content}
+                privacyLevel={post.privacy_level}
+                isAmbassadorContent={isAmbassadorContent}
+                authorUserType={post.author?.user_type || undefined}
+              />
+              
+              {/* Traditional Engagement Actions */}
               {user && (
-                <>
+                <div className="flex justify-between border-t pt-4">
                   <LikeButton postId={post.id} postUserId={post.user_id} postContent={post.content} />
                   <CommentButton postId={post.id} postUserId={post.user_id} />
                   <ShareButton postId={post.id} postContent={post.content} />
-                </>
+                </div>
               )}
             </div>
           </div>
