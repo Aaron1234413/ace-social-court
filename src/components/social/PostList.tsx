@@ -4,6 +4,7 @@ import { Post } from '@/types/post';
 import { Loading } from '@/components/ui/loading';
 import { FeedBubble, ContentType } from './FeedBubble';
 import { MessageSquare } from 'lucide-react';
+import { VirtualizedList } from '@/components/ui/virtualized-list';
 
 interface PostListProps {
   posts: Post[];
@@ -11,10 +12,23 @@ interface PostListProps {
   handleShare?: (postId: string) => void;
   isLoading: boolean;
   onPostUpdated?: () => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  virtualized?: boolean;
 }
 
-const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListProps) => {
-  if (isLoading) {
+const PostList = ({ 
+  posts, 
+  currentUserId, 
+  isLoading, 
+  onPostUpdated,
+  onLoadMore,
+  hasMore = false,
+  isLoadingMore = false,
+  virtualized = false
+}: PostListProps) => {
+  if (isLoading && posts.length === 0) {
     return <Loading variant="skeleton" count={3} text="Loading posts..." />;
   }
 
@@ -46,23 +60,47 @@ const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListPr
     return 'user';
   };
 
+  const renderPost = (post: Post, index: number) => {
+    const contentType = determineContentType(post);
+    
+    return (
+      <FeedBubble
+        key={post.id}
+        post={post}
+        currentUserId={currentUserId}
+        contentType={contentType}
+        onPostUpdated={onPostUpdated}
+        className="animate-slide-up"
+        style={{ animationDelay: `${index * 100}ms` }}
+      />
+    );
+  };
+
+  if (virtualized && onLoadMore) {
+    return (
+      <VirtualizedList
+        items={posts}
+        renderItem={renderPost}
+        itemHeight={250}
+        containerHeight={600}
+        onLoadMore={onLoadMore}
+        hasMore={hasMore}
+        isLoading={isLoadingMore}
+        threshold={3}
+        className="space-y-6 md:space-y-8"
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 md:space-y-8">
-      {posts.map((post, index) => {
-        const contentType = determineContentType(post);
-        
-        return (
-          <FeedBubble
-            key={post.id}
-            post={post}
-            currentUserId={currentUserId}
-            contentType={contentType}
-            onPostUpdated={onPostUpdated}
-            className="animate-slide-up"
-            style={{ animationDelay: `${index * 100}ms` }}
-          />
-        );
-      })}
+      {posts.map((post, index) => renderPost(post, index))}
+      
+      {isLoadingMore && (
+        <div className="flex justify-center p-4">
+          <Loading variant="skeleton" count={1} text="Loading more posts..." />
+        </div>
+      )}
     </div>
   );
 };

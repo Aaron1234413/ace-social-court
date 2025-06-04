@@ -1,26 +1,46 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
-import PostList from '@/components/social/PostList';
-import { usePosts } from '@/hooks/use-posts';
+import { VirtualizedList } from '@/components/ui/virtualized-list';
+import { FeedBubble } from '@/components/social/FeedBubble';
+import { useFeedCascade } from '@/hooks/useFeedCascade';
+import { useFeedPerformance } from '@/hooks/useFeedPerformance';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { MessageSquare, Heart, Clock } from 'lucide-react';
+import { MessageSquare, Heart, Clock, Activity, Zap } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
 import { AmbassadorSeedingService } from '@/services/AmbassadorSeedingService';
 import { PostComposer } from '@/components/social/PostComposer';
+import { Card, CardContent } from '@/components/ui/card';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
 const Feed = () => {
   const location = useLocation();
   const { user, profile, isProfileComplete } = useAuth();
-  const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
+  const [showPerformanceMetrics, setShowPerformanceMetrics] = useState(false);
+  
+  const { 
+    posts, 
+    isLoading, 
+    isLoadingMore, 
+    hasMore, 
+    metrics,
+    ambassadorPercentage,
+    loadMore, 
+    refresh 
+  } = useFeedCascade();
+  
+  const { 
+    metrics: performanceMetrics, 
+    recordLoadTime 
+  } = useFeedPerformance();
   
   // Debug logging for Feed component
   useEffect(() => {
@@ -36,12 +56,6 @@ const Feed = () => {
       });
     };
   }, [location.pathname, user, profile]);
-  
-  const { posts, isLoading, fetchPosts, userFollowings } = usePosts({ 
-    personalize: personalized,
-    sortBy: sortOption,
-    respectPrivacy: true // Enable privacy filtering with smart fallbacks
-  });
 
   // Initialize ambassador seeding on component mount
   useEffect(() => {
@@ -73,31 +87,24 @@ const Feed = () => {
     setupStorage();
   }, [user]);
 
+  // Record load time when posts are loaded
   useEffect(() => {
-    // Log the user's profile status for debugging
-    if (user) {
-      console.log('Feed: User profile status', { 
-        profileExists: !!profile,
-        isProfileComplete,
-        userId: user.id,
-        followingCount: userFollowings?.length || 0
-      });
+    if (!isLoading && posts.length > 0) {
+      recordLoadTime();
     }
-  }, [user, profile, isProfileComplete, userFollowings]);
-
-  const togglePersonalization = () => {
-    setPersonalized(!personalized);
-  };
+  }, [isLoading, posts.length, recordLoadTime]);
 
   const handleSortChange = (value: string) => {
     if (value) {
       setSortOption(value as SortOption);
+      // Note: For now, we're not implementing sort in cascade
+      // The cascade already provides optimized ordering
     }
   };
 
   const handlePostUpdated = () => {
     console.log("Feed: Post updated, refreshing posts");
-    fetchPosts();
+    refresh();
   };
 
   return (
@@ -106,16 +113,55 @@ const Feed = () => {
         <h1 className="text-2xl md:text-3xl font-bold">Social Feed</h1>
         
         {user && (
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="personalized" 
-              checked={personalized}
-              onCheckedChange={togglePersonalization}
-            />
-            <Label htmlFor="personalized">Personalized</Label>
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPerformanceMetrics(!showPerformanceMetrics)}
+            >
+              <Activity className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>
+
+      {/* Performance Metrics Panel */}
+      {showPerformanceMetrics && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div className="font-medium">Load Time</div>
+                <div className="text-muted-foreground">{performanceMetrics.loadTime}ms</div>
+              </div>
+              <div>
+                <div className="font-medium">Frame Rate</div>
+                <div className="text-muted-foreground">{performanceMetrics.frameRate} FPS</div>
+              </div>
+              <div>
+                <div className="font-medium">Memory</div>
+                <div className="text-muted-foreground">{performanceMetrics.memoryUsage}MB</div>
+              </div>
+              <div>
+                <div className="font-medium">Ambassador %</div>
+                <div className="text-muted-foreground">{Math.round(ambassadorPercentage * 100)}%</div>
+              </div>
+            </div>
+            {metrics.length > 0 && (
+              <div className="mt-3 pt-3 border-t">
+                <div className="text-xs font-medium mb-2">Query Cascade</div>
+                <div className="flex gap-2 text-xs">
+                  {metrics.map((metric, index) => (
+                    <span key={index} className="bg-muted px-2 py-1 rounded">
+                      {metric.level}: {metric.postCount} posts
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
       
       {user && (
         <div className="mb-5 overflow-x-auto pb-1">
@@ -141,7 +187,7 @@ const Feed = () => {
       {user ? (
         <>
           <div className="mb-6">
-            <PostComposer onSuccess={fetchPosts} />
+            <PostComposer onSuccess={refresh} />
           </div>
           
           {isLoading ? (
@@ -165,12 +211,32 @@ const Feed = () => {
                 </div>
               )}
               
-              <PostList 
-                posts={posts}
-                currentUserId={user.id}
-                isLoading={false}
-                onPostUpdated={handlePostUpdated}
-              />
+              {posts.length > 0 && (
+                <VirtualizedList
+                  items={posts}
+                  renderItem={(post, index) => (
+                    <div className="mb-6">
+                      <FeedBubble
+                        post={post}
+                        currentUserId={user.id}
+                        contentType={
+                          post.author?.user_type === 'ambassador' || post.is_ambassador_content
+                            ? 'ambassador'
+                            : 'user'
+                        }
+                        onPostUpdated={handlePostUpdated}
+                      />
+                    </div>
+                  )}
+                  itemHeight={250}
+                  containerHeight={600}
+                  onLoadMore={loadMore}
+                  hasMore={hasMore}
+                  isLoading={isLoadingMore}
+                  threshold={3}
+                  className="min-h-[600px]"
+                />
+              )}
             </>
           )}
         </>
