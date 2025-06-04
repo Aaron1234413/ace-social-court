@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Post } from '@/types/post';
 import { FeedQueryCascade } from '@/services/FeedQueryCascade';
@@ -18,7 +17,7 @@ interface FeedCascadeState {
 
 export const useFeedCascade = () => {
   const { user } = useAuth();
-  const { followingCount, followings } = useUserFollows();
+  const { followingCount, following } = useUserFollows();
   
   const [state, setState] = useState<FeedCascadeState>({
     posts: [],
@@ -30,6 +29,9 @@ export const useFeedCascade = () => {
     ambassadorPercentage: 0
   });
 
+  // Extract user IDs from following relationships
+  const followingUserIds = following.map(follow => follow.following_id);
+
   const loadPosts = useCallback(async (page: number = 0, existingPosts: Post[] = []) => {
     if (!user) return;
 
@@ -38,7 +40,7 @@ export const useFeedCascade = () => {
     try {
       const result = await FeedQueryCascade.executeQueryCascade(
         user.id,
-        followings,
+        followingUserIds,
         page,
         existingPosts
       );
@@ -99,7 +101,7 @@ export const useFeedCascade = () => {
     } catch (error) {
       console.error('❌ Failed to load posts:', error);
     }
-  }, [user, followings]);
+  }, [user, followingUserIds]);
 
   const loadMore = useCallback(async () => {
     if (state.isLoadingMore || !state.hasMore) return;
