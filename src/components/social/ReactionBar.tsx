@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -24,6 +23,7 @@ interface ReactionBarProps {
   isAmbassadorContent?: boolean;
   authorUserType?: string;
   className?: string;
+  compact?: boolean;
 }
 
 const REACTION_CONFIG = {
@@ -40,23 +40,20 @@ export function ReactionBar({
   privacyLevel,
   isAmbassadorContent = false,
   authorUserType,
-  className = '' 
+  className = '',
+  compact = false
 }: ReactionBarProps) {
   const { user } = useAuth();
   const [reactions, setReactions] = useState<ReactionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCommentPrompt, setShowCommentPrompt] = useState<string | null>(null);
 
-  // Determine if user can react based on privacy and ambassador status
   const canReactToPost = () => {
     if (!user) return false;
     
-    // Always allow reactions on public_highlights and ambassador content
     if (privacyLevel === 'public_highlights' || isAmbassadorContent || authorUserType === 'ambassador') {
       return true;
     }
     
-    // For other posts, check if user is the author or following
     return user.id === postUserId || privacyLevel === 'public';
   };
 
@@ -90,7 +87,6 @@ export function ReactionBar({
       try {
         if (!mounted) return;
         
-        // Get reaction counts using raw query since TypeScript doesn't know about the new function yet
         const { data: reactionCounts, error: countError } = await supabase
           .rpc('get_post_reaction_counts', { post_id: postId }) as { data: any, error: any };
         
@@ -100,7 +96,6 @@ export function ReactionBar({
           console.error('Error fetching reaction counts:', countError);
         }
         
-        // Get user's reactions if logged in - using raw query
         let userReactions: string[] = [];
         if (user) {
           const { data, error } = await supabase
@@ -116,7 +111,6 @@ export function ReactionBar({
           }
         }
         
-        // Format reaction data
         const formattedReactions: ReactionData[] = Object.entries(REACTION_CONFIG).map(([type, config]) => ({
           id: type,
           type: type as ReactionData['type'],
@@ -141,7 +135,6 @@ export function ReactionBar({
 
     fetchReactions();
     
-    // Set up real-time subscription for reactions
     const channel = supabase
       .channel(`post_reactions_${postId}`)
       .on('postgres_changes', 
@@ -180,7 +173,6 @@ export function ReactionBar({
     const reaction = reactions.find(r => r.id === reactionType);
     if (!reaction) return;
     
-    // Check if tip reaction requires comment
     if (reactionType === 'tip' && !reaction.userReacted) {
       const { data: hasComment } = await supabase
         .from('comments')
@@ -190,7 +182,6 @@ export function ReactionBar({
         .limit(1);
       
       if (!hasComment || hasComment.length === 0) {
-        setShowCommentPrompt(reactionType);
         toast.info("Tip reactions require a helpful comment. Share your insight!");
         return;
       }
@@ -198,7 +189,6 @@ export function ReactionBar({
     
     try {
       if (reaction.userReacted) {
-        // Remove reaction
         const { error } = await supabase
           .from('post_reactions' as any)
           .delete()
@@ -208,7 +198,6 @@ export function ReactionBar({
         
         if (error) throw error;
         
-        // Log analytics
         await supabase.from('reaction_analytics' as any).insert({
           post_id: postId,
           user_id: user.id,
@@ -218,7 +207,6 @@ export function ReactionBar({
         });
         
       } else {
-        // Add reaction
         const { error } = await supabase
           .from('post_reactions' as any)
           .insert({
@@ -229,7 +217,6 @@ export function ReactionBar({
         
         if (error) throw error;
         
-        // Log analytics
         await supabase.from('reaction_analytics' as any).insert({
           post_id: postId,
           user_id: user.id,
@@ -248,16 +235,52 @@ export function ReactionBar({
 
   if (isLoading) {
     return (
-      <div className={`flex items-center justify-center py-2 ${className}`}>
-        <div className="flex items-center gap-3">
-          {Object.keys(REACTION_CONFIG).map((type) => (
-            <div key={type} className="flex items-center gap-1">
-              <div className="w-8 h-8 bg-muted rounded animate-pulse" />
-              <div className="w-4 h-4 bg-muted rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
+      <div className={`flex items-center gap-2 ${className}`}>
+        {Object.keys(REACTION_CONFIG).map((type) => (
+          <div key={type} className="flex items-center gap-1">
+            <div className="w-6 h-6 bg-gray-200 rounded animate-pulse" />
+            <div className="w-3 h-3 bg-gray-200 rounded animate-pulse" />
+          </div>
+        ))}
       </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <TooltipProvider>
+        <div className={`flex items-center gap-2 ${className}`}>
+          {reactions.filter(r => r.count > 0 || r.userReacted).map((reaction) => {
+            const config = REACTION_CONFIG[reaction.type];
+            const Icon = config.icon;
+            const canReact = canReactToPost();
+            
+            return (
+              <Button
+                key={reaction.id}
+                variant="ghost"
+                size="sm"
+                onClick={() => handleReaction(reaction.type)}
+                disabled={!canReact}
+                className={`flex items-center gap-1 h-7 px-2 text-xs ${
+                  reaction.userReacted 
+                    ? `${config.color} bg-opacity-10 ${config.bgColor}` 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Icon className={`h-3 w-3 ${reaction.userReacted ? 'fill-current' : ''}`} />
+                <span className="tabular-nums">{reaction.count}</span>
+              </Button>
+            );
+          })}
+          
+          {isAmbassadorContent && (
+            <Badge variant="outline" className="text-xs h-5 px-1.5 text-purple-600 border-purple-200">
+              Ambassador
+            </Badge>
+          )}
+        </div>
+      </TooltipProvider>
     );
   }
 

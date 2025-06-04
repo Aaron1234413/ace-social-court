@@ -29,9 +29,9 @@ export function FeedBubble({
   return (
     <Card 
       className={cn(
-        "overflow-hidden hover:shadow-md transition-all duration-300 w-full border-muted/70 animate-slide-up",
-        contentType === 'ambassador' && "border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50/50 to-card",
-        contentType === 'fallback' && "border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-card",
+        "overflow-hidden hover:shadow-sm transition-all duration-200 w-full border-gray-200",
+        contentType === 'ambassador' && "border-l-2 border-l-purple-400 bg-gradient-to-r from-purple-25 to-white",
+        contentType === 'fallback' && "border-l-2 border-l-blue-400 bg-gradient-to-r from-blue-25 to-white",
         className
       )}
       style={style}

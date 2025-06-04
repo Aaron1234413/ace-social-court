@@ -12,13 +12,14 @@ interface ContextPromptsProps {
   context: ContextData;
   onPromptClick?: (prompt: PromptSuggestion) => void;
   className?: string;
+  compact?: boolean;
 }
 
-export function ContextPrompts({ context, onPromptClick, className = '' }: ContextPromptsProps) {
+export function ContextPrompts({ context, onPromptClick, className = '', compact = false }: ContextPromptsProps) {
   const { user, profile } = useAuth();
   const [prompts, setPrompts] = useState<PromptSuggestion[]>([]);
   const [dismissedPrompts, setDismissedPrompts] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
@@ -42,7 +43,6 @@ export function ContextPrompts({ context, onPromptClick, className = '' }: Conte
         
         if (!mounted) return;
         
-        // Filter out coach-only prompts for non-coaches
         const filteredSuggestions = suggestions.filter(prompt => {
           if (prompt.coachOnly && profile?.user_type !== 'coach') {
             return false;
@@ -63,7 +63,6 @@ export function ContextPrompts({ context, onPromptClick, className = '' }: Conte
       }
     };
 
-    // Add a small delay to prevent rapid loading states
     const timeoutId = setTimeout(() => {
       generatePrompts();
     }, 100);
@@ -76,7 +75,6 @@ export function ContextPrompts({ context, onPromptClick, className = '' }: Conte
 
   const handlePromptClick = async (prompt: PromptSuggestion) => {
     try {
-      // Track click-through for analytics
       const engine = ContextPromptEngine.getInstance();
       await engine.trackPromptInteraction(prompt.id, 'click');
       
@@ -89,7 +87,6 @@ export function ContextPrompts({ context, onPromptClick, className = '' }: Conte
 
   const handlePromptDismiss = async (promptId: string) => {
     try {
-      // Track dismissal for analytics
       const engine = ContextPromptEngine.getInstance();
       await engine.trackPromptInteraction(promptId, 'dismiss');
       
@@ -102,48 +99,94 @@ export function ContextPrompts({ context, onPromptClick, className = '' }: Conte
   const getPromptIcon = (category: string) => {
     switch (category) {
       case 'loss_support':
-        return <Heart className="h-4 w-4 text-blue-500" />;
+        return <Heart className="h-3 w-3 text-blue-500" />;
       case 'improvement_celebration':
-        return <Heart className="h-4 w-4 text-green-500" />;
+        return <Heart className="h-3 w-3 text-green-500" />;
       case 'coach_specific':
-        return <Lightbulb className="h-4 w-4 text-purple-500" />;
+        return <Lightbulb className="h-3 w-3 text-purple-500" />;
       default:
-        return <MessageCircle className="h-4 w-4 text-gray-500" />;
+        return <MessageCircle className="h-3 w-3 text-gray-500" />;
     }
   };
 
   const getPromptBadge = (prompt: PromptSuggestion) => {
     if (prompt.type === 'structured') {
-      return <Badge variant="secondary" className="text-xs">Smart</Badge>;
+      return <Badge variant="secondary" className="text-xs h-4 px-1">Smart</Badge>;
     }
     if (prompt.type === 'keyword_fallback') {
-      return <Badge variant="outline" className="text-xs">Contextual</Badge>;
+      return <Badge variant="outline" className="text-xs h-4 px-1">Contextual</Badge>;
     }
     if (prompt.coachOnly) {
-      return <Badge variant="default" className="text-xs bg-purple-500">Coach</Badge>;
+      return <Badge variant="default" className="text-xs h-4 px-1 bg-purple-500">Coach</Badge>;
     }
     return null;
   };
 
-  if (isLoading) {
+  if (isLoading && !compact) {
     return (
       <div className={`space-y-2 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div className="h-16 bg-gray-200 rounded"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2 mb-1"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
   }
 
-  if (hasError) {
-    return null; // Gracefully fail without showing error to user
+  if (hasError || isLoading) {
+    return null;
   }
 
   const visiblePrompts = prompts.filter(prompt => !dismissedPrompts.has(prompt.id));
 
   if (visiblePrompts.length === 0) {
     return null;
+  }
+
+  if (compact) {
+    return (
+      <div className={`space-y-2 ${className}`}>
+        <div className="flex items-center gap-1.5">
+          <MessageCircle className="h-3 w-3 text-gray-500" />
+          <span className="text-xs font-medium text-gray-600">
+            Suggested responses
+          </span>
+        </div>
+        
+        <div className="space-y-1">
+          {visiblePrompts.slice(0, 1).map((prompt) => (
+            <div key={prompt.id} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded-md border">
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                {getPromptIcon(prompt.category)}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 mb-1">
+                    {getPromptBadge(prompt)}
+                  </div>
+                  <p className="text-xs text-gray-700 mb-1 line-clamp-2">{prompt.content}</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePromptClick(prompt)}
+                    className="text-xs h-5 px-2"
+                  >
+                    Use
+                  </Button>
+                </div>
+              </div>
+              
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handlePromptDismiss(prompt.id)}
+                className="h-5 w-5 p-0 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-2.5 w-2.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
