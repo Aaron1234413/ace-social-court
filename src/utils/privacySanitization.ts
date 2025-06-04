@@ -12,33 +12,61 @@ export interface PrivacyContext {
  * Sanitizes posts based on privacy levels and user relationships with smart fallbacks
  */
 export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Post[] {
-  console.log('Privacy sanitization started', { 
+  console.log('🛡️ Privacy Sanitization: Starting with', { 
     postsCount: posts.length, 
     context: {
-      userId: context.currentUserId,
+      userId: context.currentUserId?.substring(0, 8) + '...',
       followingCount: context.userFollowings?.length || 0,
-      userType: context.userType
+      userType: context.userType,
+      isCoach: context.isCoach
     }
   });
 
   if (!context.currentUserId) {
     // For unauthenticated users, only show public posts
     const publicPosts = posts.filter(post => post.privacy_level === 'public');
-    console.log('Unauthenticated user - showing public posts only:', publicPosts.length);
+    console.log('🛡️ Unauthenticated user - showing public posts only:', publicPosts.length);
     return publicPosts;
   }
 
   try {
+    // Analyze privacy distribution
+    const privacyBreakdown = posts.reduce((acc, post) => {
+      acc[post.privacy_level || 'unknown'] = (acc[post.privacy_level || 'unknown'] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    console.log('🛡️ Privacy distribution:', privacyBreakdown);
+    
     const filteredPosts = posts.filter(post => canUserViewPost(post, context));
-    console.log('Privacy filtering completed', { 
+    
+    // Log filtering results by privacy level
+    const filteredBreakdown = filteredPosts.reduce((acc, post) => {
+      acc[post.privacy_level || 'unknown'] = (acc[post.privacy_level || 'unknown'] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    console.log('🛡️ After filtering:', filteredBreakdown);
+    console.log('🛡️ Privacy filtering completed:', { 
       originalCount: posts.length, 
-      filteredCount: filteredPosts.length 
+      filteredCount: filteredPosts.length,
+      reductionPercentage: Math.round(((posts.length - filteredPosts.length) / posts.length) * 100)
     });
+    
+    // Warning if too many posts were filtered out
+    if (filteredPosts.length < posts.length * 0.3 && posts.length > 5) {
+      console.warn('⚠️ Privacy filtering removed >70% of posts - this might be too aggressive');
+    }
+    
     return filteredPosts;
   } catch (error) {
-    console.error('Error in privacy sanitization, falling back to public posts:', error);
-    // Fallback to public posts if privacy filtering fails
-    return posts.filter(post => post.privacy_level === 'public' || post.user_id === context.currentUserId);
+    console.error('❌ Error in privacy sanitization, falling back to safe posts:', error);
+    // Fallback to posts user can definitely see
+    const safePosts = posts.filter(post => 
+      post.privacy_level === 'public' || post.user_id === context.currentUserId
+    );
+    console.log('🛡️ Emergency fallback applied:', safePosts.length, 'safe posts');
+    return safePosts;
   }
 }
 
@@ -46,13 +74,19 @@ export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Po
  * Smart content mixing based on user's social graph size
  */
 export function getContentMixingRatio(followingCount: number): { followedRatio: number; publicRatio: number } {
+  console.log('📊 Calculating content mix for following count:', followingCount);
+  
+  let ratio;
   if (followingCount <= 2) {
-    return { followedRatio: 0.2, publicRatio: 0.8 }; // 20% followed, 80% public
+    ratio = { followedRatio: 0.2, publicRatio: 0.8 }; // 20% followed, 80% public
   } else if (followingCount <= 10) {
-    return { followedRatio: 0.6, publicRatio: 0.4 }; // 60% followed, 40% public
+    ratio = { followedRatio: 0.6, publicRatio: 0.4 }; // 60% followed, 40% public
   } else {
-    return { followedRatio: 0.8, publicRatio: 0.2 }; // 80% followed, 20% public
+    ratio = { followedRatio: 0.8, publicRatio: 0.2 }; // 80% followed, 20% public
   }
+  
+  console.log('📊 Content mix ratio:', ratio);
+  return ratio;
 }
 
 /**
@@ -75,14 +109,21 @@ export function canUserViewPost(post: Post, context: PrivacyContext): boolean {
 
     case 'friends':
       // User must be following the post author
-      return userFollowings.includes(post.user_id);
+      const canViewFriends = userFollowings.includes(post.user_id);
+      if (!canViewFriends) {
+        console.log(`🛡️ Blocking friends post from ${post.user_id.substring(0, 8)}... (not following)`);
+      }
+      return canViewFriends;
 
     case 'coaches':
       // Only coaches can see coach-only posts
+      if (!isCoach) {
+        console.log(`🛡️ Blocking coaches-only post from ${post.user_id.substring(0, 8)}... (not a coach)`);
+      }
       return isCoach;
 
     default:
-      console.warn('Unknown privacy level:', post.privacy_level);
+      console.warn('⚠️ Unknown privacy level:', post.privacy_level, 'for post', post.id);
       return false;
   }
 }

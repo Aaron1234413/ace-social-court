@@ -17,7 +17,7 @@ export function createSmartFeedMix(
 ): Post[] {
   const { followingCount, userFollowings, currentUserId } = options;
   
-  console.log('Creating smart feed mix', {
+  console.log('🎯 Smart Feed Mix: Starting with', {
     totalPosts: allPosts.length,
     followingCount,
     userFollowings: userFollowings.length
@@ -37,7 +37,7 @@ export function createSmartFeedMix(
     !userFollowings.includes(post.user_id)
   );
 
-  console.log('Post categories', {
+  console.log('🎯 Post categories:', {
     userPosts: userPosts.length,
     followedPosts: followedPosts.length,
     publicPosts: publicPosts.length
@@ -51,17 +51,26 @@ export function createSmartFeedMix(
   const targetFollowed = Math.floor(targetTotal * followedRatio);
   const targetPublic = Math.floor(targetTotal * publicRatio);
   
+  console.log('🎯 Target distribution:', {
+    targetTotal,
+    targetFollowed,
+    targetPublic,
+    ratios: { followedRatio, publicRatio }
+  });
+  
   // Build the mixed feed
   const mixedFeed: Post[] = [];
   
   // Always include user's own posts first
   mixedFeed.push(...userPosts);
+  console.log('🎯 Added user posts:', userPosts.length);
   
   // Add followed users' posts
   const selectedFollowed = followedPosts
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, targetFollowed);
   mixedFeed.push(...selectedFollowed);
+  console.log('🎯 Added followed posts:', selectedFollowed.length);
   
   // Add public discovery posts (prioritize recent and engaging content)
   const selectedPublic = publicPosts
@@ -74,16 +83,16 @@ export function createSmartFeedMix(
     })
     .slice(0, targetPublic);
   mixedFeed.push(...selectedPublic);
+  console.log('🎯 Added public posts:', selectedPublic.length);
   
   // Final sort by creation time
   const finalFeed = mixedFeed
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 20); // Limit to 20 posts max
   
-  console.log('Smart feed mix completed', {
+  console.log('🎯 Smart feed mix completed:', {
     finalCount: finalFeed.length,
-    ratios: { followedRatio, publicRatio },
-    actual: {
+    breakdown: {
       user: userPosts.length,
       followed: selectedFollowed.length,
       public: selectedPublic.length
@@ -103,14 +112,18 @@ export function ensureMinimumContent(
 ): Post[] {
   const minPosts = 3;
   
+  console.log('🆘 Minimum Content Check:', {
+    currentPosts: posts.length,
+    availablePosts: allAvailablePosts.length,
+    minRequired: minPosts
+  });
+  
   if (posts.length >= minPosts) {
+    console.log('✅ Sufficient content available');
     return posts;
   }
   
-  console.log('Applying fallback content strategy', {
-    currentPosts: posts.length,
-    availablePosts: allAvailablePosts.length
-  });
+  console.log('🆘 APPLYING FALLBACK: Insufficient content, adding public posts');
   
   // Fallback: Add public posts to reach minimum
   const existingIds = new Set(posts.map(p => p.id));
@@ -123,11 +136,18 @@ export function ensureMinimumContent(
     .slice(0, minPosts - posts.length);
   
   const result = [...posts, ...fallbackPosts];
-  console.log('Fallback content added', {
+  
+  console.log('🆘 Fallback applied:', {
     original: posts.length,
     added: fallbackPosts.length,
-    final: result.length
+    final: result.length,
+    success: result.length >= minPosts
   });
+  
+  // If still not enough content, warn but continue
+  if (result.length < minPosts) {
+    console.warn('⚠️ Still insufficient content after fallback - may need to adjust privacy settings or add more public content');
+  }
   
   return result;
 }
