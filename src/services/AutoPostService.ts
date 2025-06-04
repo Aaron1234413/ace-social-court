@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { PostTemplate, Session } from '@/types/post';
+import { PostTemplate } from '@/types/post';
+import { Session } from '@/types/logging';
 import { SessionFormValues } from '@/components/logging/session/sessionSchema';
 
 export interface PostSuggestion {
