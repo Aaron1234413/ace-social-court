@@ -16,6 +16,7 @@ interface BubbleFooterProps {
 export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterProps) {
   // For ambassador posts, we might want to show different interactions
   const showFullInteractions = contentType !== 'ambassador' || post.privacy_level === 'public';
+  const isDisabled = !showFullInteractions && !currentUserId;
 
   return (
     <CardFooter className="border-t p-2 md:p-4 flex justify-between bg-muted/10">
@@ -23,19 +24,16 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
         postId={post.id} 
         postUserId={post.user_id} 
         postContent={post.content}
-        disabled={!showFullInteractions && !currentUserId}
       />
       
       <CommentButton 
         postId={post.id} 
         postUserId={post.user_id}
-        disabled={!showFullInteractions && !currentUserId}
       />
       
       <ShareButton 
         postId={post.id} 
         postContent={post.content}
-        disabled={contentType === 'ambassador'}
       />
     </CardFooter>
   );

@@ -605,7 +605,9 @@ export type Database = {
           engagement_score: number | null
           flag_reason: string | null
           id: string
+          is_ambassador_content: boolean | null
           is_auto_generated: boolean | null
+          is_fallback_content: boolean | null
           is_flagged: boolean | null
           media_type: string | null
           media_url: string | null
@@ -620,7 +622,9 @@ export type Database = {
           engagement_score?: number | null
           flag_reason?: string | null
           id?: string
+          is_ambassador_content?: boolean | null
           is_auto_generated?: boolean | null
+          is_fallback_content?: boolean | null
           is_flagged?: boolean | null
           media_type?: string | null
           media_url?: string | null
@@ -635,7 +639,9 @@ export type Database = {
           engagement_score?: number | null
           flag_reason?: string | null
           id?: string
+          is_ambassador_content?: boolean | null
           is_auto_generated?: boolean | null
+          is_fallback_content?: boolean | null
           is_flagged?: boolean | null
           media_type?: string | null
           media_url?: string | null
@@ -1291,7 +1297,12 @@ export type Database = {
         | "intermediate"
         | "advanced"
         | "professional"
-      privacy_level: "private" | "friends" | "public" | "coaches"
+      privacy_level:
+        | "private"
+        | "friends"
+        | "public"
+        | "coaches"
+        | "public_highlights"
       session_status_enum: "Scheduled" | "In Progress" | "Logged" | "Signed Off"
       tag_category:
         | "technique"
@@ -1306,7 +1317,7 @@ export type Database = {
         | "progress"
         | "motivation"
         | "technique"
-      user_type: "player" | "coach"
+      user_type: "player" | "coach" | "ambassador"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1429,7 +1440,13 @@ export const Constants = {
         "advanced",
         "professional",
       ],
-      privacy_level: ["private", "friends", "public", "coaches"],
+      privacy_level: [
+        "private",
+        "friends",
+        "public",
+        "coaches",
+        "public_highlights",
+      ],
       session_status_enum: ["Scheduled", "In Progress", "Logged", "Signed Off"],
       tag_category: [
         "technique",
@@ -1446,7 +1463,7 @@ export const Constants = {
         "motivation",
         "technique",
       ],
-      user_type: ["player", "coach"],
+      user_type: ["player", "coach", "ambassador"],
     },
   },
 } as const

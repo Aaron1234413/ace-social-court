@@ -15,6 +15,7 @@ interface FeedBubbleProps {
   contentType?: ContentType;
   onPostUpdated?: () => void;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export function FeedBubble({ 
@@ -22,7 +23,8 @@ export function FeedBubble({
   currentUserId, 
   contentType = 'user',
   onPostUpdated,
-  className 
+  className,
+  style 
 }: FeedBubbleProps) {
   return (
     <Card 
@@ -32,6 +34,7 @@ export function FeedBubble({
         contentType === 'fallback' && "border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-card",
         className
       )}
+      style={style}
     >
       <BubbleHeader 
         post={post} 

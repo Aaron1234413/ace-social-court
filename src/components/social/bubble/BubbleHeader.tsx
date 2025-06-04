@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -7,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { Post } from '@/types/post';
 import { ContentType } from '../FeedBubble';
 import { PostActions } from '../PostActions';
-import { FollowButton } from '../FollowButton';
+import FollowButton from '../FollowButton';
 import { PrivacyIndicator } from '../PrivacyIndicator';
 import { useAuth } from '@/components/AuthProvider';
 import { Star, Crown } from 'lucide-react';

@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export interface AmbassadorProfile {
   id: string;
@@ -161,11 +160,10 @@ export class AmbassadorSeedingService {
         .upsert({
           id: authData.user?.id || ambassador.id,
           full_name: ambassador.full_name,
-          user_type: 'ambassador',
+          user_type: 'ambassador' as any,
           skill_level: ambassador.skill_level,
           bio: ambassador.bio,
           avatar_url: ambassador.avatar_url,
-          is_active: true,
           updated_at: new Date().toISOString()
         });
 
@@ -208,7 +206,7 @@ export class AmbassadorSeedingService {
           .insert({
             user_id: ambassador.id,
             content: post.content,
-            privacy_level: post.privacy_level,
+            privacy_level: post.privacy_level as any,
             is_ambassador_content: post.is_ambassador_content,
             created_at: postDate.toISOString(),
             engagement_score: Math.floor(Math.random() * 50) + 10 // Random engagement 10-60
