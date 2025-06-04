@@ -1,4 +1,3 @@
-
 import { Post } from "@/types/post";
 
 interface UserPostGroup {
@@ -19,8 +18,8 @@ export class FeedDistributionService {
   static distributePostsFairly(
     posts: Post[], 
     followingUserIds: string[],
-    currentUserId?: string,
-    targetFeedSize: number = 20
+    targetFeedSize: number = 20,
+    currentUserId?: string
   ): Post[] {
     console.log('🎯 Starting fair post distribution', {
       totalPosts: posts.length,
@@ -49,6 +48,7 @@ export class FeedDistributionService {
     return finalFeed;
   }
 
+  
   private static groupPostsByUser(
     posts: Post[], 
     followingUserIds: string[],

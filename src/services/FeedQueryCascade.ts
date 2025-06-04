@@ -143,7 +143,7 @@ export class FeedQueryCascade {
 
       // Remove duplicates and enforce ambassador limit
       const uniquePosts = this.removeDuplicates(allPosts);
-      const finalPosts = this.enforceAmbassadorLimit(uniquePosts);
+      const finalPosts = await this.enforceAmbassadorLimit(uniquePosts);
 
       const ambassadorCount = finalPosts.filter(post => 
         post.author?.user_type === 'ambassador' || post.is_ambassador_content

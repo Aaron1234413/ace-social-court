@@ -90,12 +90,12 @@ export function createSmartFeedMix(
     feedPools.push(...publicPosts.slice(0, remainingSlots));
   }
 
-  // Apply fair distribution algorithm
+  // Apply fair distribution algorithm - Fixed parameter order
   const distributedFeed = FeedDistributionService.distributePostsFairly(
     feedPools,
     userFollowings,
-    currentUserId,
-    targetTotal
+    targetTotal,
+    currentUserId
   );
 
   // Analyze diversity for logging
