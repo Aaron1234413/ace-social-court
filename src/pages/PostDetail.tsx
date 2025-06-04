@@ -4,7 +4,6 @@ import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
-import LikeButton from '@/components/social/LikeButton';
 import CommentButton from '@/components/social/CommentButton';
 import ShareButton from '@/components/social/ShareButton';
 import { ReactionBar } from '@/components/social/ReactionBar';
@@ -56,11 +55,6 @@ const PostDetail = () => {
       return null;
     },
   });
-
-  if (error) {
-    console.error("Error loading post:", error);
-    return <Navigate to="/404" />;
-  }
 
   if (isLoading) {
     return (
@@ -153,11 +147,11 @@ const PostDetail = () => {
               </div>
             )}
 
-            {/* Unified Engagement Section */}
+            {/* Unified Engagement Section - Reactions First */}
             <div className="mt-4 pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between">
-                {/* Reaction Bar - Compact inline version */}
-                <div className="flex items-center gap-2">
+                {/* Reaction Bar - Primary engagement */}
+                <div className="flex items-center">
                   <ReactionBar
                     postId={post.id}
                     postUserId={post.user_id}
@@ -169,16 +163,9 @@ const PostDetail = () => {
                   />
                 </div>
                 
-                {/* Traditional Actions */}
+                {/* Secondary Actions - Comment and Share */}
                 {user && (
                   <div className="flex items-center gap-1">
-                    <LikeButton 
-                      postId={post.id} 
-                      postUserId={post.user_id} 
-                      postContent={post.content}
-                      size="sm"
-                      variant="ghost"
-                    />
                     <CommentButton 
                       postId={post.id} 
                       postUserId={post.user_id}
@@ -196,7 +183,7 @@ const PostDetail = () => {
           </div>
         </Card>
         
-        {/* Context-Aware Prompts - Separate card, more compact */}
+        {/* Context-Aware Prompts - Separate card */}
         {post && (
           <Card className="mt-3 overflow-hidden border-gray-200">
             <div className="p-3">

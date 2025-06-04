@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Post } from '@/types/post';
 import { Loading } from '@/components/ui/loading';
