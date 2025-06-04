@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -16,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ContextPrompts } from '@/components/social/ContextPrompts';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Sparkles } from 'lucide-react';
+import { Crown } from 'lucide-react';
 
 const PostDetail = () => {
   const { id } = useParams();
@@ -107,18 +106,6 @@ const PostDetail = () => {
             ? 'border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50/50 via-white to-white shadow-sm ring-1 ring-purple-100' 
             : ''
         }`}>
-          {/* Ambassador Badge */}
-          {isAmbassadorContent && (
-            <div className="bg-gradient-to-r from-purple-100 to-purple-50 p-2 border-b border-purple-200">
-              <div className="flex items-center justify-center">
-                <Badge variant="secondary" className="bg-white text-purple-700 border-purple-300">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Expert Content
-                </Badge>
-              </div>
-            </div>
-          )}
-
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center">
@@ -126,10 +113,17 @@ const PostDetail = () => {
                   {post.author?.full_name?.charAt(0) || '?'}
                 </div>
                 <div className="ml-3">
-                  <h3 className="font-semibold text-sm">{post.author?.full_name || 'Anonymous'}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-sm">{post.author?.full_name || 'Anonymous'}</h3>
+                    {isAmbassadorContent && (
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200">
+                        <Crown className="h-3 w-3 mr-1" />
+                        Rally Ambassador
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    {post.author?.user_type === 'coach' ? 'Coach' : 
-                     post.author?.user_type === 'ambassador' ? 'Ambassador' : 'Player'} · {
+                    {post.author?.user_type === 'coach' ? 'Coach' : 'Player'} · {
                       formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
                     }
                   </p>
@@ -167,43 +161,40 @@ const PostDetail = () => {
               </div>
             )}
 
-            {/* Enhanced Engagement Section */}
+            {/* Reactions below post content */}
             <div className="mt-4 pt-3 border-t border-gray-100">
-              <div className="flex items-center justify-between min-h-[36px]">
-                {/* Reaction Bar - Primary engagement */}
-                <div className="flex items-center flex-1 min-w-0">
-                  <ReactionBar
-                    postId={post.id}
+              <div className="mb-3">
+                <ReactionBar
+                  postId={post.id}
+                  postUserId={post.user_id}
+                  postContent={post.content}
+                  privacyLevel={post.privacy_level}
+                  isAmbassadorContent={isAmbassadorContent}
+                  authorUserType={post.author?.user_type || undefined}
+                  compact={false}
+                />
+              </div>
+              
+              {/* Comment and share buttons at the end */}
+              {user && (
+                <div className="flex items-center gap-2">
+                  <CommentButton 
+                    postId={post.id} 
                     postUserId={post.user_id}
+                    size="sm"
+                    variant="ghost"
+                  />
+                  <ShareButton 
+                    postId={post.id} 
                     postContent={post.content}
-                    privacyLevel={post.privacy_level}
-                    isAmbassadorContent={isAmbassadorContent}
-                    authorUserType={post.author?.user_type || undefined}
-                    compact={true}
                   />
                 </div>
-                
-                {/* Secondary Actions - Fixed positioning */}
-                {user && (
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                    <CommentButton 
-                      postId={post.id} 
-                      postUserId={post.user_id}
-                      size="sm"
-                      variant="ghost"
-                    />
-                    <ShareButton 
-                      postId={post.id} 
-                      postContent={post.content}
-                    />
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </Card>
         
-        {/* Context-Aware Prompts - Enhanced for ambassador content */}
+        {/* Context-Aware Prompts */}
         {post && (
           <Card className={`mt-3 overflow-hidden border-gray-200 ${
             isAmbassadorContent ? 'border-purple-200 bg-purple-50/30' : ''

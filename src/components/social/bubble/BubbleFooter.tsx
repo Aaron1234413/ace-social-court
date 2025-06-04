@@ -7,8 +7,6 @@ import CommentButton from '../CommentButton';
 import ShareButton from '../ShareButton';
 import { ReactionBar } from '../ReactionBar';
 import { ContextPrompts } from '../ContextPrompts';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, Crown } from 'lucide-react';
 
 interface BubbleFooterProps {
   post: Post;
@@ -20,35 +18,24 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
   const isAmbassadorContent = contentType === 'ambassador' || post.is_ambassador_content;
 
   return (
-    <CardFooter className="p-2 space-y-2 bg-white border-t border-gray-100">
-      {/* Ambassador Badge - Prominent placement */}
-      {isAmbassadorContent && (
-        <div className="w-full flex justify-center">
-          <Badge variant="secondary" className="bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700 border-purple-200 text-xs px-2 py-1">
-            <Crown className="h-3 w-3 mr-1" />
-            Expert Content
-          </Badge>
-        </div>
-      )}
-
-      {/* Main Engagement Row - Properly spaced to prevent overlap */}
-      <div className="flex items-center justify-between w-full min-h-[36px]">
-        {/* Reaction Bar - Primary engagement */}
-        <div className="flex items-center flex-1 min-w-0">
-          <ReactionBar
-            postId={post.id}
-            postUserId={post.user_id}
-            postContent={post.content}
-            privacyLevel={post.privacy_level}
-            isAmbassadorContent={isAmbassadorContent}
-            authorUserType={post.author?.user_type || undefined}
-            className="border-0 bg-transparent p-0"
-            compact={true}
-          />
-        </div>
-        
-        {/* Secondary Actions - Fixed positioning to prevent overlap */}
-        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+    <CardFooter className="p-3 space-y-3 bg-white border-t border-gray-100">
+      {/* Reactions below post content - Primary engagement */}
+      <div className="w-full">
+        <ReactionBar
+          postId={post.id}
+          postUserId={post.user_id}
+          postContent={post.content}
+          privacyLevel={post.privacy_level}
+          isAmbassadorContent={isAmbassadorContent}
+          authorUserType={post.author?.user_type || undefined}
+          className="border border-gray-100 bg-gray-50 rounded-lg p-2"
+          compact={false}
+        />
+      </div>
+      
+      {/* Comment and Share buttons at the end */}
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2">
           <CommentButton 
             postId={post.id} 
             postUserId={post.user_id}
