@@ -110,29 +110,46 @@ export default function MatchLogger() {
   }, []);
 
   const updateStepValidation = useCallback((step: number, isValid: boolean) => {
-    console.log(`Step ${step} validation:`, isValid);
-    setStepValidation(prev => ({ ...prev, [step]: isValid }));
+    console.log(`🔍 Step ${step} validation updated:`, isValid);
+    setStepValidation(prev => {
+      const newValidation = { ...prev, [step]: isValid };
+      console.log('🔍 All step validation states:', newValidation);
+      return newValidation;
+    });
   }, []);
 
   const canProceed = stepValidation[currentStep] || currentStep === STEPS.length - 1;
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
+  console.log('🔍 Navigation state:', {
+    currentStep,
+    canProceed,
+    stepValidation,
+    currentStepValid: stepValidation[currentStep],
+    matchData: {
+      match_type: matchData.match_type,
+      match_outcome: matchData.match_outcome
+    }
+  });
+
   const goToNext = () => {
     if (currentStep < STEPS.length - 1 && canProceed) {
-      console.log(`Moving from step ${currentStep} to ${currentStep + 1}`);
+      console.log(`✅ Moving from step ${currentStep} to ${currentStep + 1}`);
       setCurrentStep(prev => prev + 1);
+    } else {
+      console.log(`❌ Cannot proceed: currentStep=${currentStep}, canProceed=${canProceed}`);
     }
   };
 
   const goToPrevious = () => {
     if (currentStep > 0) {
-      console.log(`Moving from step ${currentStep} to ${currentStep - 1}`);
+      console.log(`⬅️ Moving from step ${currentStep} to ${currentStep - 1}`);
       setCurrentStep(prev => prev - 1);
     }
   };
 
   const goToStep = (stepIndex: number) => {
-    console.log(`Jumping to step ${stepIndex}`);
+    console.log(`🎯 Jumping to step ${stepIndex}`);
     setCurrentStep(stepIndex);
   };
 
@@ -364,6 +381,9 @@ export default function MatchLogger() {
                 Complete required fields to continue
               </span>
             )}
+            <div className="text-xs text-muted-foreground">
+              Debug: Step {currentStep} valid = {stepValidation[currentStep] ? 'Yes' : 'No'}
+            </div>
           </div>
 
           {currentStep < STEPS.length - 1 ? (
