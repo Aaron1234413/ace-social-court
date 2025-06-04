@@ -71,6 +71,29 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     },
   });
 
+  // Auto-expand composer when match data is provided
+  useEffect(() => {
+    if (matchData) {
+      setShowComposer(true);
+      
+      // Auto-populate content for match data
+      if (matchData.match_outcome && !form.watch('content')) {
+        let autoContent = '';
+        if (matchData.match_outcome === 'won') {
+          autoContent = `Great match today! ${matchData.score ? `Won ${matchData.score}` : 'Victory feels sweet!'} 🎾`;
+        } else if (matchData.match_outcome === 'lost') {
+          autoContent = `Tough match today, but every loss is a lesson learned. ${matchData.score ? `Lost ${matchData.score}` : 'Getting stronger!'} 💪`;
+        }
+        
+        if (matchData.opponent_name) {
+          autoContent += ` Great playing against ${matchData.opponent_name}!`;
+        }
+        
+        form.setValue('content', autoContent);
+      }
+    }
+  }, [matchData, form]);
+
   // Auto-suggest privacy level based on follow count
   useEffect(() => {
     if (followingCount < 3) {
@@ -156,6 +179,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       return;
     }
 
+    console.log('🚀 Submitting post with values:', values);
     setIsSubmitting(true);
 
     try {
@@ -188,6 +212,8 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         is_auto_generated: false
       };
 
+      console.log('💾 Inserting post data:', postData);
+
       const { data, error } = await supabase
         .from('posts')
         .insert(postData)
@@ -215,6 +241,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         comments_count: 0
       };
 
+      console.log('✅ Post created successfully:', createdPost);
       showSuccessToast("Post created!", "Your post has been shared successfully.");
       
       form.reset();
@@ -225,7 +252,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       onSuccess?.(createdPost);
 
     } catch (error) {
-      console.error('Error creating post:', error);
+      console.error('❌ Error creating post:', error);
       showErrorToast("Error creating post", "Please try again later.");
     } finally {
       setIsSubmitting(false);
@@ -266,6 +293,17 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     }
   };
 
+  // Check if form is valid for submission
+  const isFormValid = form.watch('content')?.trim().length >= 3;
+
+  console.log('🔍 PostComposer debug:', {
+    content: form.watch('content'),
+    contentLength: form.watch('content')?.trim().length,
+    isFormValid,
+    isSubmitting,
+    matchData: !!matchData
+  });
+
   return (
     <Card className={`border border-gray-200 shadow-lg bg-white ${className}`}>
       <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -294,19 +332,21 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                 AI Ready
               </Badge>
             )}
-            <Button 
-              variant={showComposer ? "secondary" : "default"}
-              size="sm" 
-              onClick={() => setShowComposer(!showComposer)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {showComposer ? 'Minimize' : 'Create Post'}
-            </Button>
+            {!matchData && (
+              <Button 
+                variant={showComposer ? "secondary" : "default"}
+                size="sm" 
+                onClick={() => setShowComposer(!showComposer)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {showComposer ? 'Minimize' : 'Create Post'}
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
 
-      {showComposer && (
+      {(showComposer || matchData) && (
         <CardContent className="pt-6 space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
@@ -487,8 +527,8 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                 </div>
                 <Button 
                   type="submit" 
-                  disabled={isSubmitting || !form.watch('content')?.trim()}
-                  className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                  disabled={isSubmitting || !isFormValid}
+                  className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
