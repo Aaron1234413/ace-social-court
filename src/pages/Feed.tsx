@@ -27,6 +27,7 @@ const Feed = () => {
   const [showPerformanceMetrics, setShowPerformanceMetrics] = useState(false);
   const [showCacheStats, setShowCacheStats] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   
   const { 
     posts, 
@@ -107,6 +108,18 @@ const Feed = () => {
   const previewService = PreviewService.getInstance();
   const cacheStats = previewService.getCacheStats();
 
+  // Enhanced analytics
+  const analyticsService = React.useMemo(() => {
+    return require('@/services/FeedAnalyticsService').FeedAnalyticsService.getInstance();
+  }, []);
+
+  const feedAnalytics = React.useMemo(() => {
+    if (posts.length === 0) return null;
+    const { followingCount, following } = require('@/hooks/useUserFollows').useUserFollows();
+    const followingUserIds = following.map((follow: any) => follow.following_id);
+    return analyticsService.analyzeFeedQuality(posts, followingUserIds);
+  }, [posts, analyticsService]);
+
   return (
     <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
       <div className="flex items-center justify-between mb-4 md:mb-6">
@@ -137,9 +150,29 @@ const Feed = () => {
             >
               <Bug className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDebugPanel(!showDebugPanel)}
+              className="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100"
+            >
+              Debug Panel
+            </Button>
           </div>
         )}
       </div>
+
+      {/* Enhanced Debug Panel */}
+      {React.createElement(
+        React.lazy(() => import('@/components/feed/FeedDebugPanel').then(m => ({ default: m.FeedDebugPanel }))),
+        {
+          feedAnalytics,
+          followedUsersDebug: debugData?.followedUsers,
+          cascadeMetrics: metrics,
+          isVisible: showDebugPanel,
+          onToggle: () => setShowDebugPanel(!showDebugPanel)
+        }
+      )}
 
       {showDebugInfo && debugData && (
         <Card className="mb-6 border-blue-200 bg-blue-50">
@@ -318,30 +351,52 @@ const Feed = () => {
               )}
               
               {posts.length > 0 && (
-                <VirtualizedList
-                  items={posts}
-                  renderItem={(post, index) => (
-                    <div className="mb-6">
-                      <FeedBubble
-                        post={post}
-                        currentUserId={user.id}
-                        contentType={
-                          post.author?.user_type === 'ambassador' || post.is_ambassador_content
-                            ? 'ambassador'
-                            : 'user'
-                        }
-                        onPostUpdated={handlePostUpdated}
-                      />
-                    </div>
+                <>
+                  {/* Enhanced Feed Quality Indicator */}
+                  {feedAnalytics && (
+                    <Card className="mb-6 border-green-200 bg-green-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-green-600" />
+                            <span className="font-medium text-green-900">Feed Quality Score</span>
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              {feedAnalytics.qualityMetrics.diversityScore}/100
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-green-700">
+                            {feedAnalytics.contentDiversity.followedUsersRepresented}/{debugData?.followedUsers?.totalFollowing || 0} followed users represented
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
-                  itemHeight={250}
-                  containerHeight={600}
-                  onLoadMore={loadMore}
-                  hasMore={hasMore}
-                  isLoading={isLoadingMore}
-                  threshold={3}
-                  className="min-h-[600px]"
-                />
+
+                  <VirtualizedList
+                    items={posts}
+                    renderItem={(post, index) => (
+                      <div className="mb-6">
+                        <FeedBubble
+                          post={post}
+                          currentUserId={user.id}
+                          contentType={
+                            post.author?.user_type === 'ambassador' || post.is_ambassador_content
+                              ? 'ambassador'
+                              : 'user'
+                          }
+                          onPostUpdated={handlePostUpdated}
+                        />
+                      </div>
+                    )}
+                    itemHeight={250}
+                    containerHeight={600}
+                    onLoadMore={loadMore}
+                    hasMore={hasMore}
+                    isLoading={isLoadingMore}
+                    threshold={3}
+                    className="min-h-[600px]"
+                  />
+                </>
               )}
             </>
           )}

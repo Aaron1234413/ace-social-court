@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Post } from '@/types/post';
+import { Post } from "@/types/post";
 
 interface CascadeMetrics {
   level: 'primary' | 'fallback1' | 'fallback2' | 'fallback3';
@@ -33,7 +33,7 @@ export class FeedQueryCascade {
     page: number = 0,
     existingPosts: Post[] = []
   ): Promise<CascadeResult> {
-    console.log('🔄 Starting query cascade', { 
+    console.log('🔄 Starting enhanced query cascade with detailed logging', { 
       userId, 
       followingCount: userFollowings.length,
       page,
@@ -49,102 +49,154 @@ export class FeedQueryCascade {
     const debugData: any = {};
 
     try {
-      // Enhanced debug info collection
+      // Enhanced debug info collection with detailed user analysis
       debugData.followedUsers = await this.getFollowedUsersDebugInfo(userFollowings);
-      console.log('👥 Following debug info:', debugData.followedUsers);
+      console.log('👥 Following debug info (detailed):', debugData.followedUsers);
 
-      // Level 1: Enhanced personalized feed
+      // Level 1: Enhanced personalized feed with detailed logging
       const primaryStart = performance.now();
       const primaryResult = await this.queryPersonalizedFeedEnhanced(userId, userFollowings, offset);
       totalQueries++;
       
-      metrics.push({
-        level: 'primary',
+      const primaryMetric = {
+        level: 'primary' as const,
         postCount: primaryResult.posts.length,
         queryTime: performance.now() - primaryStart,
         source: 'personalized_enhanced',
         cacheHit: false,
         errorCount: 0,
         debugInfo: primaryResult.debugInfo
+      };
+      
+      metrics.push(primaryMetric);
+      
+      // Log detailed primary results
+      console.log('📊 Enhanced primary query analysis', {
+        posts: primaryResult.posts.length,
+        time: Math.round(primaryMetric.queryTime) + 'ms',
+        userBreakdown: primaryResult.debugInfo?.postsByUser,
+        queryDetails: primaryResult.debugInfo
       });
+
+      // Record analytics for filtered content if any
+      const analyticsService = await import('@/services/FeedAnalyticsService').then(m => m.FeedAnalyticsService.getInstance());
       
       allPosts.push(...primaryResult.posts);
       debugData.primaryQuery = primaryResult.debugInfo;
-      console.log('📊 Enhanced primary query complete', { 
-        count: primaryResult.posts.length, 
-        time: Math.round(performance.now() - primaryStart) + 'ms',
-        debugInfo: primaryResult.debugInfo
-      });
 
-      // Level 2: Fallback 1 - Public highlights from network
+      // Level 2: Fallback 1 - Public highlights from network with logging
       if (allPosts.length < 3) {
+        console.log('🔄 Insufficient content, triggering fallback 1: Network highlights');
         const fallback1Start = performance.now();
         const networkHighlights = await this.queryNetworkHighlights(userFollowings, offset);
         totalQueries++;
         
-        metrics.push({
-          level: 'fallback1',
+        const fallback1Metric = {
+          level: 'fallback1' as const,
           postCount: networkHighlights.length,
           queryTime: performance.now() - fallback1Start,
           source: 'network_highlights',
           cacheHit: false,
           errorCount: 0
-        });
+        };
+        
+        metrics.push(fallback1Metric);
         
         allPosts.push(...networkHighlights);
-        console.log('📊 Fallback 1 complete', { count: networkHighlights.length, time: Math.round(performance.now() - fallback1Start) + 'ms' });
+        console.log('📊 Fallback 1 analysis', { 
+          count: networkHighlights.length, 
+          time: Math.round(fallback1Metric.queryTime) + 'ms',
+          totalNow: allPosts.length
+        });
+      } else {
+        console.log('✅ Sufficient content from primary query, skipping fallback 1');
       }
 
-      // Level 3: Fallback 2 - Any public highlights
+      // Level 3: Fallback 2 - Any public highlights with logging
       if (allPosts.length < 5) {
+        console.log('🔄 Still need more content, triggering fallback 2: Public highlights');
         const fallback2Start = performance.now();
         const publicHighlights = await this.queryPublicHighlights(offset);
         totalQueries++;
         
-        metrics.push({
-          level: 'fallback2',
+        const fallback2Metric = {
+          level: 'fallback2' as const,
           postCount: publicHighlights.length,
           queryTime: performance.now() - fallback2Start,
           source: 'public_highlights',
           cacheHit: false,
           errorCount: 0
-        });
+        };
+        
+        metrics.push(fallback2Metric);
         
         allPosts.push(...publicHighlights);
-        console.log('📊 Fallback 2 complete', { count: publicHighlights.length, time: Math.round(performance.now() - fallback2Start) + 'ms' });
+        console.log('📊 Fallback 2 analysis', { 
+          count: publicHighlights.length, 
+          time: Math.round(fallback2Metric.queryTime) + 'ms',
+          totalNow: allPosts.length
+        });
+      } else {
+        console.log('✅ Sufficient content, skipping fallback 2');
       }
 
-      // Level 4: Enhanced Ambassador content with proper following logic
+      // Level 4: Enhanced Ambassador content with detailed following analysis
       if (allPosts.length < this.MIN_POSTS) {
+        console.log('🔄 Final fallback: Enhanced ambassador content with following logic');
         const fallback3Start = performance.now();
         const ambassadorResult = await this.queryAmbassadorContentWithFollowing(userFollowings, offset);
         const maxAmbassadorPosts = Math.floor(allPosts.length * this.MAX_AMBASSADOR_PERCENTAGE);
-        const limitedAmbassadorPosts = ambassadorResult.posts.slice(0, Math.max(3, maxAmbassadorPosts)); // Ensure at least 3 ambassador posts
+        const limitedAmbassadorPosts = ambassadorResult.posts.slice(0, Math.max(3, maxAmbassadorPosts));
         totalQueries++;
         
-        metrics.push({
-          level: 'fallback3',
+        const fallback3Metric = {
+          level: 'fallback3' as const,
           postCount: limitedAmbassadorPosts.length,
           queryTime: performance.now() - fallback3Start,
           source: 'ambassadors_following_aware',
           cacheHit: false,
           errorCount: 0,
           debugInfo: ambassadorResult.debugInfo
-        });
+        };
+        
+        metrics.push(fallback3Metric);
         
         allPosts.push(...limitedAmbassadorPosts);
         debugData.ambassadorQuery = ambassadorResult.debugInfo;
-        console.log('📊 Enhanced fallback 3 complete', { 
-          count: limitedAmbassadorPosts.length, 
-          time: Math.round(performance.now() - fallback3Start) + 'ms',
-          debugInfo: ambassadorResult.debugInfo
+        console.log('📊 Enhanced ambassador fallback analysis', { 
+          originalCount: ambassadorResult.posts.length,
+          limitedCount: limitedAmbassadorPosts.length,
+          time: Math.round(fallback3Metric.queryTime) + 'ms',
+          followingBased: ambassadorResult.debugInfo,
+          finalTotal: allPosts.length
         });
+      } else {
+        console.log('✅ Sufficient content, skipping ambassador fallback');
       }
 
-      // Remove duplicates and enforce ambassador limit
+      // Enhanced duplicate removal with logging
       const uniquePosts = this.removeDuplicates(allPosts);
-      const finalPosts = await this.enforceAmbassadorLimit(uniquePosts);
+      const duplicatesRemoved = allPosts.length - uniquePosts.length;
+      if (duplicatesRemoved > 0) {
+        console.log(`🧹 Removed ${duplicatesRemoved} duplicate posts`);
+        analyticsService.recordFilteredContent(
+          allPosts.slice(uniquePosts.length), 
+          'duplicates_removed'
+        );
+      }
 
+      // Enhanced ambassador limit enforcement with logging
+      const finalPosts = await this.enforceAmbassadorLimit(uniquePosts);
+      const ambassadorFiltered = uniquePosts.length - finalPosts.length;
+      if (ambassadorFiltered > 0) {
+        console.log(`⚖️ Ambassador limit enforced: filtered ${ambassadorFiltered} posts`);
+        analyticsService.recordFilteredContent(
+          uniquePosts.slice(finalPosts.length),
+          'ambassador_limit_exceeded'
+        );
+      }
+
+      // Enhanced final analysis
       const ambassadorCount = finalPosts.filter(post => 
         post.author?.user_type === 'ambassador' || post.is_ambassador_content
       ).length;
@@ -156,18 +208,39 @@ export class FeedQueryCascade {
       const totalQueryTime = performance.now() - startTime;
       const cacheHitRate = totalQueries > 0 ? totalCacheHits / totalQueries : 0;
 
-      console.log('✅ Enhanced query cascade complete', {
+      // Record performance metrics
+      analyticsService.recordPerformanceMetric('cascade_complete', {
+        totalQueryTime,
+        cascadeLevels: metrics.length,
+        cacheHitRate,
+        finalPostCount: finalPosts.length,
+        duplicatesRemoved,
+        ambassadorFiltered
+      });
+
+      console.log('✅ Enhanced query cascade complete with detailed metrics', {
         totalPosts: finalPosts.length,
         ambassadorPercentage: Math.round(ambassadorPercentage * 100) + '%',
         totalTime: Math.round(totalQueryTime) + 'ms',
-        levels: metrics.length,
+        cascadeLevels: metrics.length,
         cacheHitRate: Math.round(cacheHitRate * 100) + '%',
-        debugData
+        duplicatesRemoved,
+        ambassadorFiltered,
+        detailedBreakdown: {
+          primary: metrics.find(m => m.level === 'primary')?.postCount || 0,
+          fallback1: metrics.find(m => m.level === 'fallback1')?.postCount || 0,
+          fallback2: metrics.find(m => m.level === 'fallback2')?.postCount || 0,
+          fallback3: metrics.find(m => m.level === 'fallback3')?.postCount || 0
+        }
       });
 
-      // Performance warning if too slow
+      // Performance warning with detailed breakdown
       if (totalQueryTime > 3000) {
-        console.warn('⚠️ Query cascade took longer than 3 seconds:', totalQueryTime + 'ms');
+        console.warn('⚠️ Query cascade performance warning:', {
+          totalTime: Math.round(totalQueryTime) + 'ms',
+          slowestLevel: metrics.reduce((prev, curr) => prev.queryTime > curr.queryTime ? prev : curr),
+          recommendations: this.getPerformanceRecommendations(metrics, debugData)
+        });
       }
 
       return {
@@ -181,9 +254,14 @@ export class FeedQueryCascade {
       };
 
     } catch (error) {
-      console.error('❌ Query cascade failed:', error);
+      console.error('❌ Query cascade failed with detailed error:', {
+        error: error.message,
+        stack: error.stack,
+        stage: metrics.length > 0 ? metrics[metrics.length - 1].level : 'initialization',
+        debugData
+      });
       
-      // Return existing posts with error metrics
+      // Return existing posts with enhanced error metrics
       return {
         posts: existingPosts,
         metrics: metrics.map(m => ({ ...m, errorCount: 1 })),
@@ -191,9 +269,28 @@ export class FeedQueryCascade {
         ambassadorPercentage: 0,
         totalQueryTime: performance.now() - startTime,
         cacheHitRate: 0,
-        debugData
+        debugData: { ...debugData, error: error.message }
       };
     }
+  }
+
+  private static getPerformanceRecommendations(metrics: CascadeMetrics[], debugData: any): string[] {
+    const recommendations = [];
+    
+    const slowQueries = metrics.filter(m => m.queryTime > 1000);
+    if (slowQueries.length > 0) {
+      recommendations.push(`Consider optimizing ${slowQueries.map(q => q.level).join(', ')} queries`);
+    }
+    
+    if (debugData.followedUsers?.totalFollowing > 50) {
+      recommendations.push('Consider implementing query result caching for large following lists');
+    }
+    
+    if (metrics.length > 2) {
+      recommendations.push('Primary query may need optimization to reduce fallback dependency');
+    }
+    
+    return recommendations;
   }
 
   private static async getFollowedUsersDebugInfo(userFollowings: string[]) {
