@@ -17,8 +17,8 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
 
   return (
     <div className="bubble-footer">
-      {/* Reaction buttons */}
-      <div className="flex items-center gap-2">
+      {/* Reaction buttons group */}
+      <div className="reaction-buttons">
         <ReactionBar
           postId={post.id}
           postUserId={post.user_id}
@@ -30,18 +30,20 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
         />
       </div>
       
-      {/* Comment and Share buttons */}
-      <CommentButton 
-        postId={post.id} 
-        postUserId={post.user_id}
-        size="sm"
-        variant="ghost"
-      />
-      
-      <ShareButton 
-        postId={post.id} 
-        postContent={post.content}
-      />
+      {/* Action buttons group */}
+      <div className="action-buttons">
+        <CommentButton 
+          postId={post.id} 
+          postUserId={post.user_id}
+          size="sm"
+          variant="ghost"
+        />
+        
+        <ShareButton 
+          postId={post.id} 
+          postContent={post.content}
+        />
+      </div>
     </div>
   );
 }

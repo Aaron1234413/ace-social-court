@@ -75,17 +75,19 @@ const PostList = ({
 
   if (virtualized && onLoadMore) {
     return (
-      <VirtualizedList
-        items={posts}
-        renderItem={renderPost}
-        itemHeight={200}
-        containerHeight={600}
-        onLoadMore={onLoadMore}
-        hasMore={hasMore}
-        isLoading={isLoadingMore}
-        threshold={3}
-        className="feed-container"
-      />
+      <div className="feed-container">
+        <VirtualizedList
+          items={posts}
+          renderItem={renderPost}
+          itemHeight={200}
+          containerHeight={600}
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          threshold={3}
+          className="space-y-0"
+        />
+      </div>
     );
   }
 
@@ -94,7 +96,7 @@ const PostList = ({
       {posts.map((post, index) => renderPost(post, index))}
       
       {isLoadingMore && (
-        <div className="flex justify-center p-2">
+        <div className="flex justify-center p-4">
           <Loading variant="skeleton" count={1} text="Loading more posts..." />
         </div>
       )}

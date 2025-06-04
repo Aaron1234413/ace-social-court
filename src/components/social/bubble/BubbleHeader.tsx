@@ -28,7 +28,7 @@ export function BubbleHeader({ post, currentUserId, contentType, onPostUpdated }
 
   return (
     <div className="bubble-header">
-      <Link to={`/profile/${post.user_id}`} className="hover:opacity-80 transition-opacity">
+      <Link to={`/profile/${post.user_id}`} className="avatar hover:opacity-80 transition-opacity">
         <Avatar className="h-10 w-10 border-2 border-background">
           {post.author?.avatar_url ? (
             <AvatarImage 
@@ -69,12 +69,12 @@ export function BubbleHeader({ post, currentUserId, contentType, onPostUpdated }
       </span>
       
       {post.privacy_level && post.privacy_level !== 'public' && (
-        <Lock className="privacy-lock h-4 w-4 text-gray-400" />
+        <Lock className="privacy-lock h-4 w-4" />
       )}
       
       {/* Coach controls */}
       {isCoach && !isOwnPost && !isAmbassadorContent && (
-        <Star className="trophy-icon h-4 w-4 text-yellow-600 cursor-pointer hover:text-yellow-700" />
+        <Star className="trophy-icon h-4 w-4 cursor-pointer hover:text-yellow-700" />
       )}
       
       {/* Follow button for non-own, non-ambassador posts */}

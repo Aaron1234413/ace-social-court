@@ -5,13 +5,14 @@
   border-radius: 8px;
   background-color: #FFF;
   margin-bottom: 16px;
-  padding: 12px 16px;
+  padding: 16px;
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #F3F4F6;
 }
 
 .bubble-inner {
-  border-radius: 8px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
@@ -21,42 +22,41 @@
   align-items: center;
   margin-bottom: 12px;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 8px;
 }
 
-.bubble-header .icon {
-  margin-right: 8px;
+.bubble-header .avatar {
+  margin-right: 12px;
 }
 
 .bubble-header .username {
-  margin-right: 8px;
+  margin-right: 12px;
   font-weight: 600;
+  color: #1F2937;
 }
 
 .bubble-header .role-badge {
-  margin-top: 2px;
-  margin-right: 8px;
+  margin-right: 12px;
 }
 
 .bubble-header .timestamp {
-  margin-right: 8px;
+  margin-right: 12px;
   color: #6B7280;
   font-size: 0.875rem;
 }
 
 .bubble-header .privacy-lock {
-  margin-left: 6px;
-  margin-right: 6px;
+  margin-right: 12px;
+  color: #9CA3AF;
 }
 
 .bubble-header .trophy-icon {
-  margin-left: 8px;
-  margin-right: 8px;
+  margin-right: 12px;
+  color: #F59E0B;
 }
 
 .bubble-header .ambassador-badge {
-  margin-left: 12px;
-  margin-right: 8px;
+  margin-right: 12px;
 }
 
 .bubble-header .menu-dot {
@@ -65,54 +65,38 @@
 
 /* Content Spacing */
 .bubble-content {
-  margin-bottom: 12px;
-  line-height: 1.5;
+  margin-bottom: 16px;
+  line-height: 1.6;
+  color: #374151;
 }
 
 /* Footer Spacing */
 .bubble-footer {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-top: 8px;
+  gap: 16px;
+  padding-top: 12px;
   border-top: 1px solid #F3F4F6;
 }
 
-.bubble-footer .reaction-icon {
+.bubble-footer .reaction-buttons {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: #F9FAFB;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  gap: 8px;
 }
 
-.bubble-footer .reaction-icon:hover {
-  background-color: #F3F4F6;
-}
-
-.bubble-footer .comment-count,
-.bubble-footer .share-link {
-  font-size: 0.875rem;
-  color: #6B7280;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: color 0.2s;
-}
-
-.bubble-footer .comment-count:hover,
-.bubble-footer .share-link:hover {
-  color: #374151;
+.bubble-footer .action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
 }
 
 /* Ambassador Content Styling */
 .feed-bubble.ambassador-content {
   border-left-color: #8B5CF6;
-  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  background: linear-gradient(135deg, #FEFEFE 0%, #F8FAFC 100%);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.1);
 }
 
 .feed-bubble.ambassador-content .ambassador-badge {
@@ -122,4 +106,13 @@
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+/* Ensure no overlapping cards */
+.feed-container {
+  padding: 0;
+}
+
+.feed-container > * {
+  isolation: isolate;
 }
