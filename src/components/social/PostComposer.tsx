@@ -39,7 +39,7 @@ import { useUserFollows } from '@/hooks/useUserFollows';
 
 const postSchema = z.object({
   content: z.string().min(3, { message: "Post content must be at least 3 characters." }),
-  privacy_level: z.enum(['public', 'friends', 'coaches', 'public_highlights']).default('public').optional(),
+  privacy_level: z.enum(['public', 'friends', 'coaches', 'public_highlights', 'private']).default('public').optional(),
   template_id: z.string().optional(),
 });
 
@@ -99,14 +99,20 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         content: form.watch('content') || '',
         user_id: user.id,
         created_at: new Date().toISOString(),
-        author: profile
+        author: {
+          full_name: profile.full_name,
+          user_type: profile.user_type,
+          avatar_url: profile.avatar_url
+        }
       } as Post;
 
       const context = ContextPromptEngine.buildContext(mockPost, user.id, profile.user_type);
       
-      // Handle privacy level for prompt generation - exclude 'private' as it's not supported
+      // Handle privacy level for prompt generation - only use valid types for prompt system
       const currentPrivacyLevel = form.watch('privacy_level');
-      const validPrivacyLevel = currentPrivacyLevel === 'private' ? 'public' : currentPrivacyLevel;
+      const validPrivacyLevel: "public" | "friends" | "coaches" | "public_highlights" = 
+        currentPrivacyLevel === 'private' ? 'public' : 
+        (currentPrivacyLevel as "public" | "friends" | "coaches" | "public_highlights");
       
       if (profile.user_type === 'coach') {
         const prompt = coachSystem.generateCoachPrompt(mockPost, context, profile.full_name);
@@ -236,6 +242,8 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         return 'Only people you follow can see this';
       case 'coaches':
         return 'Only your coaches can see this';
+      case 'private':
+        return 'Only you can see this';
       default:
         return 'Select privacy level';
     }
@@ -250,6 +258,8 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       case 'friends':
         return <Users className="h-4 w-4" />;
       case 'coaches':
+        return <Users className="h-4 w-4" />;
+      case 'private':
         return <Users className="h-4 w-4" />;
       default:
         return <Globe className="h-4 w-4" />;
@@ -436,6 +446,12 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-green-500" />
                             <span>👥 Friends Only</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="private">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-gray-500" />
+                            <span>🔒 Private</span>
                           </div>
                         </SelectItem>
                         {profile?.user_type === 'player' && (
