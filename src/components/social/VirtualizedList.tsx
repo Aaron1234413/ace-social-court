@@ -14,8 +14,8 @@ interface VirtualizedListProps {
   className?: string;
 }
 
-const ITEM_HEIGHT = 300; // Estimated height per post
-const BUFFER_SIZE = 3; // Number of items to render outside viewport
+const ITEM_HEIGHT = 300;
+const BUFFER_SIZE = 3;
 
 export function VirtualizedList({
   posts,
@@ -29,8 +29,14 @@ export function VirtualizedList({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
-  const [isNearBottom, setIsNearBottom] = useState(false);
-  const loadingRef = useRef(false);
+  const loadMoreTriggeredRef = useRef(false);
+
+  console.log('📜 VirtualizedList render:', { 
+    postsCount: posts.length, 
+    hasMore, 
+    isLoading,
+    loadMoreTriggered: loadMoreTriggeredRef.current
+  });
 
   // Calculate visible range
   const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER_SIZE);
@@ -41,29 +47,35 @@ export function VirtualizedList({
 
   const visiblePosts = posts.slice(startIndex, endIndex);
 
-  // Handle scroll events with improved load more logic
+  // Handle scroll with simplified load more trigger
   const handleScroll = useCallback((e: Event) => {
     const target = e.target as HTMLDivElement;
     const newScrollTop = target.scrollTop;
     setScrollTop(newScrollTop);
 
-    // Check if near bottom for infinite scroll
-    const threshold = 200; // pixels from bottom
-    const isNear = target.scrollTop + target.clientHeight >= target.scrollHeight - threshold;
-    setIsNearBottom(isNear);
+    // Check if near bottom
+    const threshold = 200;
+    const isNearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - threshold;
 
-    // Trigger load more when near bottom
-    if (isNear && hasMore && !isLoading && !loadingRef.current && onLoadMore) {
-      console.log('📜 VirtualizedList: Triggering load more');
-      loadingRef.current = true;
+    // Trigger load more only once when conditions are met
+    if (isNearBottom && hasMore && !isLoading && onLoadMore && !loadMoreTriggeredRef.current) {
+      console.log('📜 Triggering load more from scroll');
+      loadMoreTriggeredRef.current = true;
       onLoadMore();
       
-      // Reset loading ref after a delay to prevent rapid fire
+      // Reset flag after a short delay
       setTimeout(() => {
-        loadingRef.current = false;
+        loadMoreTriggeredRef.current = false;
       }, 1000);
     }
   }, [hasMore, isLoading, onLoadMore]);
+
+  // Reset load more trigger when posts change or loading state changes
+  useEffect(() => {
+    if (!isLoading) {
+      loadMoreTriggeredRef.current = false;
+    }
+  }, [isLoading, posts.length]);
 
   // Set up container height and scroll listener
   useEffect(() => {
@@ -84,18 +96,6 @@ export function VirtualizedList({
     };
   }, [handleScroll]);
 
-  // Debug logging for virtualized list state
-  useEffect(() => {
-    console.log('📜 VirtualizedList state:', {
-      totalPosts: posts.length,
-      visibleRange: `${startIndex}-${endIndex}`,
-      visibleCount: visiblePosts.length,
-      hasMore,
-      isLoading,
-      isNearBottom
-    });
-  }, [posts.length, startIndex, endIndex, visiblePosts.length, hasMore, isLoading, isNearBottom]);
-
   const totalHeight = posts.length * ITEM_HEIGHT;
   const offsetY = startIndex * ITEM_HEIGHT;
 
@@ -105,9 +105,7 @@ export function VirtualizedList({
       className={`relative overflow-auto ${className}`}
       style={{ height: '100%' }}
     >
-      {/* Virtual spacer for total content height */}
       <div style={{ height: totalHeight, position: 'relative' }}>
-        {/* Visible items container */}
         <div
           style={{
             transform: `translateY(${offsetY}px)`,
@@ -136,25 +134,27 @@ export function VirtualizedList({
         </div>
       </div>
 
-      {/* Loading indicator for infinite scroll - only show when actually loading and has more */}
-      {isLoading && hasMore && (
+      {/* Simplified loading indicator - only show when actually loading AND we have more content */}
+      {isLoading && hasMore && posts.length > 0 && (
         <div className="flex justify-center py-4 bg-background/80 backdrop-blur-sm">
           <Loading variant="spinner" text="Loading more posts..." />
         </div>
       )}
 
       {/* End of feed indicator */}
-      {!hasMore && posts.length > 0 && (
+      {!hasMore && posts.length > 0 && !isLoading && (
         <div className="flex justify-center py-6 text-muted-foreground text-sm">
           You've reached the end of your feed
         </div>
       )}
 
-      {/* Performance info (only in development) */}
+      {/* Debug info in development */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 right-4 bg-black/80 text-white p-2 rounded text-xs">
-          <div>Rendering: {startIndex}-{endIndex} of {posts.length}</div>
-          <div>Loading: {isLoading ? 'Yes' : 'No'} | Has More: {hasMore ? 'Yes' : 'No'}</div>
+        <div className="fixed bottom-4 right-4 bg-black/80 text-white p-2 rounded text-xs font-mono">
+          <div>Posts: {posts.length}</div>
+          <div>Loading: {isLoading ? 'YES' : 'NO'}</div>
+          <div>Has More: {hasMore ? 'YES' : 'NO'}</div>
+          <div>Trigger: {loadMoreTriggeredRef.current ? 'ACTIVE' : 'READY'}</div>
         </div>
       )}
     </div>

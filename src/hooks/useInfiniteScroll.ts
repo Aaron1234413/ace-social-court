@@ -19,15 +19,15 @@ export function useInfiniteScroll({
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Track loading state to prevent duplicate requests
-  const loadingRef = useRef(false);
-  const initializedRef = useRef(false);
+  // Simple loading prevention - no complex ref logic
+  const isLoadingRef = useRef(false);
 
   const loadMore = useCallback(async () => {
-    if (!onLoadMore || loadingRef.current || !hasMore || currentPage > maxPages) {
+    // Prevent duplicate calls with simple checks
+    if (!onLoadMore || isLoadingRef.current || !hasMore || currentPage > maxPages) {
       console.log('🚫 LoadMore blocked:', {
         hasOnLoadMore: !!onLoadMore,
-        isLoading: loadingRef.current,
+        isLoadingInProgress: isLoadingRef.current,
         hasMore,
         currentPage,
         maxPages
@@ -36,102 +36,107 @@ export function useInfiniteScroll({
     }
 
     try {
-      loadingRef.current = true;
+      isLoadingRef.current = true;
       setIsLoading(true);
       setError(null);
 
-      console.log(`📥 Infinite Scroll: Loading page ${currentPage} with ${pageSize} posts`);
-      const startTime = performance.now();
-      
+      console.log(`📥 Loading page ${currentPage}...`);
       const newPosts = await onLoadMore(currentPage);
-      
-      const loadTime = performance.now() - startTime;
-      console.log(`⏱️ Infinite Scroll: Page ${currentPage} loaded in ${loadTime.toFixed(2)}ms`);
-      console.log(`📊 Infinite Scroll: Received ${newPosts.length} posts from page ${currentPage}`);
+      console.log(`📊 Received ${newPosts.length} posts for page ${currentPage}`);
 
       if (newPosts.length === 0) {
+        console.log('🏁 No more posts - setting hasMore to false');
         setHasMore(false);
-        console.log('🏁 Infinite Scroll: No more posts available');
       } else {
         setPosts(prevPosts => {
-          // Prevent duplicate posts
           const existingIds = new Set(prevPosts.map(p => p.id));
           const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
           
-          console.log(`🔄 Infinite Scroll: Adding ${uniqueNewPosts.length} unique posts (${newPosts.length - uniqueNewPosts.length} duplicates filtered)`);
-          
-          const updatedPosts = [...prevPosts, ...uniqueNewPosts];
-          console.log(`📈 Infinite Scroll: Total posts now: ${updatedPosts.length}`);
-          
-          return updatedPosts;
+          console.log(`🔄 Adding ${uniqueNewPosts.length} unique posts`);
+          return [...prevPosts, ...uniqueNewPosts];
         });
         
         setCurrentPage(prev => prev + 1);
         
-        // Check if we got fewer posts than expected (likely last page)
+        // Check if this might be the last page
         if (newPosts.length < pageSize) {
-          console.log(`🔚 Infinite Scroll: Partial page received (${newPosts.length}/${pageSize}), marking as last page`);
+          console.log(`🔚 Partial page received - might be last page`);
           setHasMore(false);
         }
       }
     } catch (err) {
-      console.error('❌ Infinite Scroll: Error loading more posts:', err);
+      console.error('❌ Error loading posts:', err);
       setError(err instanceof Error ? err.message : 'Failed to load posts');
-      setHasMore(false); // Stop trying to load more on error
+      setHasMore(false);
     } finally {
+      console.log('✅ Setting loading to false');
       setIsLoading(false);
-      loadingRef.current = false;
+      isLoadingRef.current = false;
     }
   }, [currentPage, hasMore, maxPages, onLoadMore, pageSize]);
 
   const reset = useCallback(() => {
-    console.log('🔄 Infinite Scroll: Resetting state');
+    console.log('🔄 Resetting infinite scroll state');
     setPosts([]);
     setCurrentPage(1);
     setHasMore(true);
     setError(null);
     setIsLoading(false);
-    loadingRef.current = false;
-    initializedRef.current = false;
+    isLoadingRef.current = false;
   }, []);
 
   const refresh = useCallback(async () => {
-    console.log('🔄 Infinite Scroll: Refreshing posts');
-    reset();
+    console.log('🔄 Refreshing posts - full reset and reload');
     
-    // Load first page immediately after reset
+    // Reset everything first
+    setPosts([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    setError(null);
+    setIsLoading(false);
+    isLoadingRef.current = false;
+    
+    // Then load first page
     if (onLoadMore) {
       try {
-        loadingRef.current = true;
+        isLoadingRef.current = true;
         setIsLoading(true);
-        setError(null);
         
-        console.log('📥 Infinite Scroll: Loading initial page');
+        console.log('📥 Loading initial page after refresh');
         const initialPosts = await onLoadMore(1);
-        
-        console.log(`📊 Infinite Scroll: Initial load received ${initialPosts.length} posts`);
-        
-        setPosts(initialPosts);
-        setCurrentPage(2); // Next page to load is page 2
-        initializedRef.current = true;
+        console.log(`📊 Initial refresh load: ${initialPosts.length} posts`);
         
         if (initialPosts.length === 0) {
           setHasMore(false);
-          console.log('🏁 Infinite Scroll: No posts available');
-        } else if (initialPosts.length < pageSize) {
-          setHasMore(false);
-          console.log('🔚 Infinite Scroll: First page was partial, no more pages');
+        } else {
+          setPosts(initialPosts);
+          setCurrentPage(2);
+          
+          if (initialPosts.length < pageSize) {
+            setHasMore(false);
+          }
         }
       } catch (err) {
-        console.error('❌ Infinite Scroll: Error loading initial posts:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load posts');
+        console.error('❌ Error during refresh:', err);
+        setError(err instanceof Error ? err.message : 'Failed to refresh posts');
         setHasMore(false);
       } finally {
+        console.log('✅ Refresh complete - setting loading to false');
         setIsLoading(false);
-        loadingRef.current = false;
+        isLoadingRef.current = false;
       }
     }
-  }, [reset, onLoadMore, pageSize]);
+  }, [onLoadMore, pageSize]);
+
+  // Debug current state
+  console.log('🔍 useInfiniteScroll state:', {
+    postsCount: posts.length,
+    currentPage,
+    isLoading,
+    hasMore,
+    isLoadingRef: isLoadingRef.current,
+    error: !!error
+  });
 
   return {
     posts,
@@ -141,7 +146,7 @@ export function useInfiniteScroll({
     loadMore,
     reset,
     refresh,
-    currentPage: currentPage - 1, // Return 0-based page for display
+    currentPage: currentPage - 1,
     totalPosts: posts.length
   };
 }
