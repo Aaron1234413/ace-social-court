@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { PostActions } from '../PostActions';
-import { FollowButton } from '../FollowButton';
+import FollowButton from '../FollowButton';
 import { PrivacyIndicator } from '../PrivacyIndicator';
 
 interface BubbleHeaderProps {
