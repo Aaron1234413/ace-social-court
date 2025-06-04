@@ -111,20 +111,28 @@ export function ReactionBar({
     try {
       setIsLoading(true);
       
-      // Get reaction counts
-      const { data: reactionCounts } = await supabase
-        .rpc('get_post_reaction_counts', { post_id: postId });
+      // Get reaction counts using raw query since TypeScript doesn't know about the new function yet
+      const { data: reactionCounts, error: countError } = await supabase
+        .rpc('get_post_reaction_counts', { post_id: postId }) as { data: any, error: any };
       
-      // Get user's reactions if logged in
-      let userReactions = [];
+      if (countError) {
+        console.error('Error fetching reaction counts:', countError);
+      }
+      
+      // Get user's reactions if logged in - using raw query
+      let userReactions: string[] = [];
       if (user) {
-        const { data } = await supabase
-          .from('post_reactions')
+        const { data, error } = await supabase
+          .from('post_reactions' as any)
           .select('reaction_type')
           .eq('post_id', postId)
           .eq('user_id', user.id);
         
-        userReactions = data?.map(r => r.reaction_type) || [];
+        if (error) {
+          console.error('Error fetching user reactions:', error);
+        } else {
+          userReactions = data?.map((r: any) => r.reaction_type) || [];
+        }
       }
       
       // Format reaction data
@@ -179,7 +187,7 @@ export function ReactionBar({
       if (reaction.userReacted) {
         // Remove reaction
         const { error } = await supabase
-          .from('post_reactions')
+          .from('post_reactions' as any)
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id)
@@ -188,7 +196,7 @@ export function ReactionBar({
         if (error) throw error;
         
         // Log analytics
-        await supabase.from('reaction_analytics').insert({
+        await supabase.from('reaction_analytics' as any).insert({
           post_id: postId,
           user_id: user.id,
           reaction_type: reactionType,
@@ -199,7 +207,7 @@ export function ReactionBar({
       } else {
         // Add reaction
         const { error } = await supabase
-          .from('post_reactions')
+          .from('post_reactions' as any)
           .insert({
             post_id: postId,
             user_id: user.id,
@@ -209,7 +217,7 @@ export function ReactionBar({
         if (error) throw error;
         
         // Log analytics
-        await supabase.from('reaction_analytics').insert({
+        await supabase.from('reaction_analytics' as any).insert({
           post_id: postId,
           user_id: user.id,
           reaction_type: reactionType,

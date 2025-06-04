@@ -34,9 +34,9 @@ export const useReactionAnalytics = (timeframe: 'day' | 'week' | 'month' = 'week
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - timeframeDays);
 
-      // Get reaction analytics
+      // Get reaction analytics using raw query since TypeScript doesn't know about the new table yet
       const { data: reactionData, error: reactionError } = await supabase
-        .from('reaction_analytics')
+        .from('reaction_analytics' as any)
         .select(`
           reaction_type,
           action,
@@ -54,19 +54,23 @@ export const useReactionAnalytics = (timeframe: 'day' | 'week' | 'month' = 'week
       const reactionsByType: Record<string, number> = {};
       let ambassadorReactions = 0;
 
-      reactionData?.forEach(reaction => {
+      reactionData?.forEach((reaction: any) => {
         reactionsByType[reaction.reaction_type] = (reactionsByType[reaction.reaction_type] || 0) + 1;
         if (reaction.is_ambassador_content) {
           ambassadorReactions++;
         }
       });
 
-      // Get top reacted posts
-      const { data: topPosts } = await supabase
+      // Get top reacted posts using the function
+      const { data: topPosts, error: topPostsError } = await supabase
         .rpc('get_top_reacted_posts', { 
           days_back: timeframeDays,
           limit_count: 5 
-        });
+        }) as { data: any, error: any };
+
+      if (topPostsError) {
+        console.error('Error fetching top posts:', topPostsError);
+      }
 
       const analytics: ReactionAnalytics = {
         totalReactions,
