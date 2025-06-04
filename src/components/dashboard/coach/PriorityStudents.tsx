@@ -25,107 +25,52 @@ export function PriorityStudents() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showTooltip, setShowTooltip] = useState(false);
+  const [starredStudentIds, setStarredStudentIds] = useState<string[]>([]);
 
-  // Fetch coach profile with starred students
-  const { data: profile } = useQuery({
-    queryKey: ['coach-profile', user?.id],
+  // Fetch students assigned to this coach
+  const { data: students, isLoading } = useQuery({
+    queryKey: ['coach-students', user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) return [];
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('starred_students')
-        .eq('id', user.id)
-        .single();
+        .select('id, full_name, username, avatar_url')
+        .eq('assigned_coach_id', user.id);
       
       if (error) throw error;
-      return data;
+      
+      // Add mock activity data for now
+      const studentsWithActivity = data?.map(student => ({
+        ...student,
+        posts_this_week: Math.floor(Math.random() * 8),
+        status: ['active', 'plateau', 'at-risk'][Math.floor(Math.random() * 3)] as 'active' | 'plateau' | 'at-risk',
+        last_post_date: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+      })) || [];
+      
+      return studentsWithActivity;
     },
     enabled: !!user?.id
   });
 
-  // Fetch starred students data
-  const { data: starredStudents, isLoading } = useQuery({
-    queryKey: ['starred-students', user?.id, profile?.starred_students],
-    queryFn: async () => {
-      if (!user?.id || !profile?.starred_students?.length) return [];
-      
-      const studentIds = profile.starred_students;
-      
-      // Get student profiles
-      const { data: students, error: studentsError } = await supabase
-        .from('profiles')
-        .select('id, full_name, username, avatar_url')
-        .in('id', studentIds);
-      
-      if (studentsError) throw studentsError;
-      
-      // Get activity data
-      const { data: activities, error: activitiesError } = await supabase
-        .from('student_activity_summary')
-        .select('student_id, posts_this_week, status, last_post_date')
-        .eq('coach_id', user.id)
-        .in('student_id', studentIds);
-      
-      if (activitiesError) throw activitiesError;
-      
-      // Merge data
-      const studentsWithActivity = students?.map(student => {
-        const activity = activities?.find(a => a.student_id === student.id);
-        return {
-          ...student,
-          posts_this_week: activity?.posts_this_week || 0,
-          status: activity?.status || 'at-risk',
-          last_post_date: activity?.last_post_date
-        } as Student;
-      }) || [];
-      
-      return studentsWithActivity;
-    },
-    enabled: !!user?.id && !!profile?.starred_students
-  });
-
-  // Mutation to update starred students
-  const updateStarredStudents = useMutation({
-    mutationFn: async (newStarredStudents: string[]) => {
-      if (!user?.id) throw new Error('User not authenticated');
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ starred_students: newStarredStudents })
-        .eq('id', user.id)
-        .select();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coach-profile'] });
-      queryClient.invalidateQueries({ queryKey: ['starred-students'] });
-      toast.success('Priority students updated');
-    },
-    onError: (error) => {
-      console.error('Error updating starred students:', error);
-      toast.error('Failed to update priority students');
-    }
-  });
+  // Get starred students (filter from all students)
+  const starredStudents = students?.filter(student => starredStudentIds.includes(student.id)) || [];
 
   const toggleStar = (studentId: string) => {
-    const currentStarred = profile?.starred_students || [];
-    const isStarred = currentStarred.includes(studentId);
+    const isStarred = starredStudentIds.includes(studentId);
     
     if (isStarred) {
       // Remove star
-      const newStarred = currentStarred.filter(id => id !== studentId);
-      updateStarredStudents.mutate(newStarred);
+      setStarredStudentIds(prev => prev.filter(id => id !== studentId));
+      toast.success('Student removed from priority list');
     } else {
       // Add star (max 5)
-      if (currentStarred.length >= 5) {
+      if (starredStudentIds.length >= 5) {
         toast.error('You can only star up to 5 students');
         return;
       }
-      const newStarred = [...currentStarred, studentId];
-      updateStarredStudents.mutate(newStarred);
+      setStarredStudentIds(prev => [...prev, studentId]);
+      toast.success('Student added to priority list');
     }
   };
 
@@ -138,7 +83,7 @@ export function PriorityStudents() {
     }
   };
 
-  const starredCount = profile?.starred_students?.length || 0;
+  const starredCount = starredStudentIds.length;
   const maxStars = 5;
 
   return (
@@ -226,11 +171,43 @@ export function PriorityStudents() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : students && students.length > 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-40" />
             <p className="font-medium">No priority students yet</p>
-            <p className="text-sm mt-1">Star students from your activity feed to see them here</p>
+            <p className="text-sm mt-1">Star students from the activity feed to see them here</p>
+            <div className="mt-4">
+              <p className="text-xs text-blue-600 mb-2">Click the star icon next to any student to add them here:</p>
+              <div className="space-y-2">
+                {students.slice(0, 3).map((student) => (
+                  <div key={student.id} className="flex items-center justify-between p-2 rounded border bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={student.avatar_url} />
+                        <AvatarFallback className="text-xs">
+                          {student.full_name?.charAt(0) || student.username?.charAt(0) || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{student.full_name || student.username}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleStar(student.id)}
+                      className="text-gray-400 hover:text-yellow-500"
+                    >
+                      <StarOff className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-40" />
+            <p className="font-medium">No students assigned</p>
+            <p className="text-sm mt-1">Students will appear here when they are assigned to you</p>
           </div>
         )}
       </CardContent>

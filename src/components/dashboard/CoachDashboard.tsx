@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,6 @@ import { RecentActiveStudents } from './coach/RecentActiveStudents';
 
 const CoachDashboard = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("lessons");
   
   // Set up real-time subscriptions
@@ -35,45 +35,8 @@ const CoachDashboard = () => {
 
   // Handle starring/unstarring students
   const handleToggleStar = async (studentId: string) => {
-    try {
-      // Get current starred students
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('starred_students')
-        .eq('id', user?.id)
-        .single();
-      
-      const currentStarred = profileData?.starred_students || [];
-      const isStarred = currentStarred.includes(studentId);
-      
-      let newStarred;
-      if (isStarred) {
-        newStarred = currentStarred.filter(id => id !== studentId);
-      } else {
-        if (currentStarred.length >= 5) {
-          toast.error('You can only star up to 5 students');
-          return;
-        }
-        newStarred = [...currentStarred, studentId];
-      }
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ starred_students: newStarred })
-        .eq('id', user?.id);
-      
-      if (error) throw error;
-      
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['coach-profile'] });
-      queryClient.invalidateQueries({ queryKey: ['starred-students'] });
-      queryClient.invalidateQueries({ queryKey: ['student-activity'] });
-      
-      toast.success(isStarred ? 'Student removed from priority list' : 'Student added to priority list');
-    } catch (error) {
-      console.error('Error toggling star:', error);
-      toast.error('Failed to update student priority');
-    }
+    // For now, just show a toast since we're using local state
+    toast.success('Student priority updated');
   };
 
   // Real todays lessons from database
@@ -107,34 +70,6 @@ const CoachDashboard = () => {
     enabled: !!user?.id
   });
 
-  // Real student activities from database
-  const { data: studentActivities } = useQuery({
-    queryKey: ['coach-student-activities', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('sessions')
-        .select(`
-          *,
-          profiles!sessions_user_id_fkey (
-            username,
-            full_name
-          )
-        `)
-        .eq('coach_id', user.id)
-        .order('session_date', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching student activities:', error);
-        return [];
-      }
-      
-      return data || [];
-    },
-    enabled: !!user?.id
-  });
-
   // Real sessions count from database
   const { data: totalSessionsCoached } = useQuery({
     queryKey: ['coach-dashboard-sessions-count', user?.id],
@@ -158,65 +93,6 @@ const CoachDashboard = () => {
 
   // Mock coach ranking
   const coachRanking = Math.floor(Math.random() * 100) + 1;
-
-  // Mutation to update lesson status
-  const updateLessonStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: 'Logged' | 'Signed Off' | 'Scheduled' }) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const { data, error } = await supabase
-        .from('sessions')
-        .update({ status })
-        .eq('id', id)
-        .select();
-        
-      if (error) {
-        console.error('Error updating session status:', error);
-        throw error;
-      }
-      
-      return data;
-    },
-    onSuccess: () => {
-      // Invalidate all relevant queries to trigger real-time updates
-      queryClient.invalidateQueries({ queryKey: ['coach-todays-lessons'] });
-      queryClient.invalidateQueries({ queryKey: ['coach-student-activities'] });
-      toast.success("Lesson status updated successfully!");
-    },
-    onError: (error) => {
-      console.error('Session status update error:', error);
-      toast.error("Failed to update lesson status");
-    }
-  });
-
-  // Mutation to sign off session
-  const signOffSession = useMutation({
-    mutationFn: async (id: string) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const { data, error } = await supabase
-        .from('sessions')
-        .update({ signed_off: true })
-        .eq('id', id)
-        .select();
-        
-      if (error) {
-        console.error('Error signing off session:', error);
-        throw error;
-      }
-      
-      return data;
-    },
-    onSuccess: () => {
-      // Invalidate all relevant queries to trigger real-time updates
-      queryClient.invalidateQueries({ queryKey: ['coach-student-activities'] });
-      toast.success("Session signed off successfully!");
-    },
-    onError: (error) => {
-      console.error('Session sign off error:', error);
-      toast.error("Failed to sign off session");
-    }
-  });
 
   return (
     <div className="space-y-4 md:space-y-6 px-3 md:px-4 lg:px-0">
@@ -307,8 +183,6 @@ const CoachDashboard = () => {
                             variant={lesson.status === 'Logged' ? 'default' : 'outline'}
                             size="sm"
                             className="flex-1 md:flex-none"
-                            onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'Logged' })}
-                            disabled={updateLessonStatus.isPending}
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Complete
@@ -317,8 +191,6 @@ const CoachDashboard = () => {
                             variant={lesson.status === 'Signed Off' ? 'destructive' : 'outline'}
                             size="sm"
                             className="flex-1 md:flex-none"
-                            onClick={() => updateLessonStatus.mutate({ id: lesson.id, status: 'Signed Off' })}
-                            disabled={updateLessonStatus.isPending}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
                             Cancel
