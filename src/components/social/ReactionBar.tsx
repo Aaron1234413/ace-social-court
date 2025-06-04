@@ -84,6 +84,61 @@ export function ReactionBar({
   };
 
   useEffect(() => {
+    let mounted = true;
+    
+    const fetchReactions = async () => {
+      try {
+        if (!mounted) return;
+        
+        // Get reaction counts using raw query since TypeScript doesn't know about the new function yet
+        const { data: reactionCounts, error: countError } = await supabase
+          .rpc('get_post_reaction_counts', { post_id: postId }) as { data: any, error: any };
+        
+        if (!mounted) return;
+        
+        if (countError) {
+          console.error('Error fetching reaction counts:', countError);
+        }
+        
+        // Get user's reactions if logged in - using raw query
+        let userReactions: string[] = [];
+        if (user) {
+          const { data, error } = await supabase
+            .from('post_reactions' as any)
+            .select('reaction_type')
+            .eq('post_id', postId)
+            .eq('user_id', user.id);
+          
+          if (error) {
+            console.error('Error fetching user reactions:', error);
+          } else {
+            userReactions = data?.map((r: any) => r.reaction_type) || [];
+          }
+        }
+        
+        // Format reaction data
+        const formattedReactions: ReactionData[] = Object.entries(REACTION_CONFIG).map(([type, config]) => ({
+          id: type,
+          type: type as ReactionData['type'],
+          count: reactionCounts?.[`${type}_count`] || 0,
+          userReacted: userReactions.includes(type),
+          requiresComment: config.requiresComment
+        }));
+        
+        if (mounted) {
+          setReactions(formattedReactions);
+        }
+      } catch (error) {
+        if (mounted) {
+          console.error('Error fetching reactions:', error);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
     fetchReactions();
     
     // Set up real-time subscription for reactions
@@ -97,60 +152,18 @@ export function ReactionBar({
           filter: `post_id=eq.${postId}`
         }, 
         () => {
-          fetchReactions();
+          if (mounted) {
+            fetchReactions();
+          }
         }
       )
       .subscribe();
     
     return () => {
+      mounted = false;
       supabase.removeChannel(channel);
     };
   }, [postId, user]);
-
-  const fetchReactions = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Get reaction counts using raw query since TypeScript doesn't know about the new function yet
-      const { data: reactionCounts, error: countError } = await supabase
-        .rpc('get_post_reaction_counts', { post_id: postId }) as { data: any, error: any };
-      
-      if (countError) {
-        console.error('Error fetching reaction counts:', countError);
-      }
-      
-      // Get user's reactions if logged in - using raw query
-      let userReactions: string[] = [];
-      if (user) {
-        const { data, error } = await supabase
-          .from('post_reactions' as any)
-          .select('reaction_type')
-          .eq('post_id', postId)
-          .eq('user_id', user.id);
-        
-        if (error) {
-          console.error('Error fetching user reactions:', error);
-        } else {
-          userReactions = data?.map((r: any) => r.reaction_type) || [];
-        }
-      }
-      
-      // Format reaction data
-      const formattedReactions: ReactionData[] = Object.entries(REACTION_CONFIG).map(([type, config]) => ({
-        id: type,
-        type: type as ReactionData['type'],
-        count: reactionCounts?.[`${type}_count`] || 0,
-        userReacted: userReactions.includes(type),
-        requiresComment: config.requiresComment
-      }));
-      
-      setReactions(formattedReactions);
-    } catch (error) {
-      console.error('Error fetching reactions:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleReaction = async (reactionType: string) => {
     if (!user) {
@@ -235,89 +248,95 @@ export function ReactionBar({
 
   if (isLoading) {
     return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        {Object.keys(REACTION_CONFIG).map((type) => (
-          <div key={type} className="flex items-center gap-1">
-            <div className="w-8 h-8 bg-muted rounded animate-pulse" />
-            <div className="w-4 h-4 bg-muted rounded animate-pulse" />
-          </div>
-        ))}
+      <div className={`flex items-center justify-center py-2 ${className}`}>
+        <div className="flex items-center gap-3">
+          {Object.keys(REACTION_CONFIG).map((type) => (
+            <div key={type} className="flex items-center gap-1">
+              <div className="w-8 h-8 bg-muted rounded animate-pulse" />
+              <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <TooltipProvider>
-      <div className={`flex items-center gap-2 ${className}`}>
-        {reactions.map((reaction) => {
-          const config = REACTION_CONFIG[reaction.type];
-          const Icon = config.icon;
-          const canReact = canReactToPost();
-          const tooltip = getEducationalTooltip(reaction.type);
+      <div className={`bg-gray-50 rounded-lg p-3 ${className}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {reactions.map((reaction) => {
+              const config = REACTION_CONFIG[reaction.type];
+              const Icon = config.icon;
+              const canReact = canReactToPost();
+              const tooltip = getEducationalTooltip(reaction.type);
+              
+              const button = (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleReaction(reaction.type)}
+                  disabled={!canReact}
+                  className={`flex items-center gap-2 h-10 px-3 transition-all duration-200 ${
+                    reaction.userReacted 
+                      ? `${config.color} ${config.bgColor} hover:bg-opacity-80 border border-current` 
+                      : canReact 
+                        ? 'text-muted-foreground hover:text-foreground hover:bg-accent' 
+                        : 'text-muted-foreground opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <Icon 
+                    className={`h-4 w-4 ${reaction.userReacted ? 'fill-current' : ''} ${
+                      !canReact ? 'opacity-50' : ''
+                    }`} 
+                  />
+                  <span className="tabular-nums font-medium">{reaction.count}</span>
+                  {!canReact && <Lock className="h-3 w-3 ml-1" />}
+                  {reaction.requiresComment && (
+                    <MessageCircle className="h-3 w-3 ml-1 opacity-60" />
+                  )}
+                </Button>
+              );
+              
+              if (tooltip && !canReact) {
+                return (
+                  <Tooltip key={reaction.id}>
+                    <TooltipTrigger asChild>
+                      {button}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm">{tooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+              
+              if (reaction.requiresComment) {
+                return (
+                  <Tooltip key={reaction.id}>
+                    <TooltipTrigger asChild>
+                      {button}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm">
+                        Tip reactions require a helpful comment to share your insight
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+              
+              return button;
+            })}
+          </div>
           
-          const button = (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleReaction(reaction.type)}
-              disabled={!canReact}
-              className={`flex items-center gap-1 transition-all duration-200 ${
-                reaction.userReacted 
-                  ? `${config.color} ${config.bgColor} hover:bg-opacity-80` 
-                  : canReact 
-                    ? 'text-muted-foreground hover:text-foreground' 
-                    : 'text-muted-foreground opacity-50 cursor-not-allowed'
-              }`}
-            >
-              <Icon 
-                className={`h-4 w-4 ${reaction.userReacted ? 'fill-current' : ''} ${
-                  !canReact ? 'opacity-50' : ''
-                }`} 
-              />
-              <span className="tabular-nums">{reaction.count}</span>
-              {!canReact && <Lock className="h-3 w-3 ml-1" />}
-              {reaction.requiresComment && (
-                <MessageCircle className="h-3 w-3 ml-1 opacity-60" />
-              )}
-            </Button>
-          );
-          
-          if (tooltip && !canReact) {
-            return (
-              <Tooltip key={reaction.id}>
-                <TooltipTrigger asChild>
-                  {button}
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-sm">{tooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            );
-          }
-          
-          if (reaction.requiresComment) {
-            return (
-              <Tooltip key={reaction.id}>
-                <TooltipTrigger asChild>
-                  {button}
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-sm">
-                    Tip reactions require a helpful comment to share your insight
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            );
-          }
-          
-          return button;
-        })}
-        
-        {isAmbassadorContent && (
-          <Badge variant="secondary" className="text-xs ml-2">
-            Ambassador Content
-          </Badge>
-        )}
+          {isAmbassadorContent && (
+            <Badge variant="secondary" className="text-xs">
+              Ambassador Content
+            </Badge>
+          )}
+        </div>
       </div>
     </TooltipProvider>
   );

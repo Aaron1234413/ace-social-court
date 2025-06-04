@@ -166,44 +166,62 @@ const PostDetail = () => {
             )}
 
             <div className="mt-6 pt-4 border-t space-y-4">
-              {/* New Reaction Bar */}
-              <ReactionBar
-                postId={post.id}
-                postUserId={post.user_id}
-                postContent={post.content}
-                privacyLevel={post.privacy_level}
-                isAmbassadorContent={isAmbassadorContent}
-                authorUserType={post.author?.user_type || undefined}
-              />
+              {/* New Reaction Bar - Improved styling */}
+              <div className="w-full">
+                <ReactionBar
+                  postId={post.id}
+                  postUserId={post.user_id}
+                  postContent={post.content}
+                  privacyLevel={post.privacy_level}
+                  isAmbassadorContent={isAmbassadorContent}
+                  authorUserType={post.author?.user_type || undefined}
+                />
+              </div>
               
-              {/* Traditional Engagement Actions */}
+              {/* Traditional Engagement Actions - Better layout */}
               {user && (
-                <div className="flex justify-between border-t pt-4">
-                  <LikeButton postId={post.id} postUserId={post.user_id} postContent={post.content} />
-                  <CommentButton postId={post.id} postUserId={post.user_id} />
-                  <ShareButton postId={post.id} postContent={post.content} />
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <LikeButton 
+                    postId={post.id} 
+                    postUserId={post.user_id} 
+                    postContent={post.content}
+                    size="sm"
+                    variant="ghost"
+                  />
+                  <CommentButton 
+                    postId={post.id} 
+                    postUserId={post.user_id}
+                    size="sm"
+                    variant="ghost"
+                  />
+                  <ShareButton 
+                    postId={post.id} 
+                    postContent={post.content}
+                  />
                 </div>
               )}
             </div>
           </div>
         </Card>
         
-        {/* Context-Aware Prompts */}
+        {/* Context-Aware Prompts - Now in separate card */}
         {post && (
-          <div className="mt-6">
-            <ContextPrompts
-              context={{
-                post,
-                postContent: post.content,
-                isAmbassadorContent,
-                userType: user ? (profile?.user_type || 'player') : undefined
-              }}
-              onPromptClick={(prompt) => {
-                // Could integrate with comment creation or other actions
-                console.log('Prompt clicked:', prompt);
-              }}
-            />
-          </div>
+          <Card className="mt-4 overflow-hidden">
+            <div className="p-4">
+              <ContextPrompts
+                context={{
+                  post,
+                  postContent: post.content,
+                  isAmbassadorContent,
+                  userType: user ? (profile?.user_type || 'player') : undefined
+                }}
+                onPromptClick={(prompt) => {
+                  // Could integrate with comment creation or other actions
+                  console.log('Prompt clicked:', prompt);
+                }}
+              />
+            </div>
+          </Card>
         )}
       </div>
     </>
