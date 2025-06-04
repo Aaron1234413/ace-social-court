@@ -30,6 +30,7 @@ export function VirtualizedList({
   const [containerHeight, setContainerHeight] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
   const [isNearBottom, setIsNearBottom] = useState(false);
+  const loadingRef = useRef(false);
 
   // Calculate visible range
   const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER_SIZE);
@@ -40,7 +41,7 @@ export function VirtualizedList({
 
   const visiblePosts = posts.slice(startIndex, endIndex);
 
-  // Handle scroll events
+  // Handle scroll events with improved load more logic
   const handleScroll = useCallback((e: Event) => {
     const target = e.target as HTMLDivElement;
     const newScrollTop = target.scrollTop;
@@ -51,8 +52,16 @@ export function VirtualizedList({
     const isNear = target.scrollTop + target.clientHeight >= target.scrollHeight - threshold;
     setIsNearBottom(isNear);
 
-    if (isNear && hasMore && !isLoading && onLoadMore) {
+    // Trigger load more when near bottom
+    if (isNear && hasMore && !isLoading && !loadingRef.current && onLoadMore) {
+      console.log('📜 VirtualizedList: Triggering load more');
+      loadingRef.current = true;
       onLoadMore();
+      
+      // Reset loading ref after a delay to prevent rapid fire
+      setTimeout(() => {
+        loadingRef.current = false;
+      }, 1000);
     }
   }, [hasMore, isLoading, onLoadMore]);
 
@@ -75,15 +84,17 @@ export function VirtualizedList({
     };
   }, [handleScroll]);
 
-  // Performance monitoring
+  // Debug logging for virtualized list state
   useEffect(() => {
-    const startTime = performance.now();
-    
-    return () => {
-      const endTime = performance.now();
-      console.log(`VirtualizedList render time: ${endTime - startTime}ms`);
-    };
-  });
+    console.log('📜 VirtualizedList state:', {
+      totalPosts: posts.length,
+      visibleRange: `${startIndex}-${endIndex}`,
+      visibleCount: visiblePosts.length,
+      hasMore,
+      isLoading,
+      isNearBottom
+    });
+  }, [posts.length, startIndex, endIndex, visiblePosts.length, hasMore, isLoading, isNearBottom]);
 
   const totalHeight = posts.length * ITEM_HEIGHT;
   const offsetY = startIndex * ITEM_HEIGHT;
@@ -125,17 +136,25 @@ export function VirtualizedList({
         </div>
       </div>
 
-      {/* Loading indicator for infinite scroll */}
-      {isLoading && (
-        <div className="flex justify-center py-4">
+      {/* Loading indicator for infinite scroll - only show when actually loading and has more */}
+      {isLoading && hasMore && (
+        <div className="flex justify-center py-4 bg-background/80 backdrop-blur-sm">
           <Loading variant="spinner" text="Loading more posts..." />
+        </div>
+      )}
+
+      {/* End of feed indicator */}
+      {!hasMore && posts.length > 0 && (
+        <div className="flex justify-center py-6 text-muted-foreground text-sm">
+          You've reached the end of your feed
         </div>
       )}
 
       {/* Performance info (only in development) */}
       {process.env.NODE_ENV === 'development' && (
         <div className="fixed bottom-4 right-4 bg-black/80 text-white p-2 rounded text-xs">
-          Rendering: {startIndex}-{endIndex} of {posts.length}
+          <div>Rendering: {startIndex}-{endIndex} of {posts.length}</div>
+          <div>Loading: {isLoading ? 'Yes' : 'No'} | Has More: {hasMore ? 'Yes' : 'No'}</div>
         </div>
       )}
     </div>

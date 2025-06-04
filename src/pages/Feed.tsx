@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -36,14 +37,15 @@ const Feed = () => {
     pageSize: 10
   });
   
-  // Initialize infinite scroll
+  // Initialize infinite scroll with proper error handling
   const {
     posts,
     isLoading,
     hasMore,
     loadMore,
     refresh,
-    totalPosts
+    totalPosts,
+    error
   } = useInfiniteScroll({
     pageSize: 10,
     onLoadMore: fetchPostPage,
@@ -52,14 +54,14 @@ const Feed = () => {
   
   // Debug logging for Feed component
   useEffect(() => {
-    console.log('Feed component mounted', {
+    console.log('📄 Feed component mounted', {
       pathname: location.pathname,
       userId: user?.id,
       hasProfile: !!profile
     });
 
     return () => {
-      console.log('Feed component unmounting', {
+      console.log('📄 Feed component unmounting', {
         pathname: location.pathname
       });
     };
@@ -70,12 +72,12 @@ const Feed = () => {
     const setupStorage = async () => {
       try {
         if (user) {
-          console.log('Feed: Initializing storage in background...');
+          console.log('📄 Feed: Initializing storage in background...');
           const result = await initializeStorage();
-          console.log('Feed: Storage initialization completed:', result);
+          console.log('📄 Feed: Storage initialization completed:', result);
         }
       } catch (err) {
-        console.warn('Storage initialization failed, but continuing:', err);
+        console.warn('📄 Storage initialization failed, but continuing:', err);
       }
     };
     
@@ -85,7 +87,7 @@ const Feed = () => {
   useEffect(() => {
     // Log the user's profile status for debugging
     if (user) {
-      console.log('Feed: User profile status', { 
+      console.log('📄 Feed: User profile status', { 
         profileExists: !!profile,
         isProfileComplete,
         userId: user.id,
@@ -96,22 +98,24 @@ const Feed = () => {
 
   // Load initial posts when options change
   useEffect(() => {
-    console.log('Feed options changed, refreshing...', { personalized, sortOption });
+    console.log('📄 Feed options changed, refreshing...', { personalized, sortOption });
     refresh();
   }, [personalized, sortOption, refresh]);
 
   const togglePersonalization = () => {
+    console.log('📄 Toggling personalization:', !personalized);
     setPersonalized(!personalized);
   };
 
   const handleSortChange = (value: string) => {
     if (value) {
+      console.log('📄 Sort option changed:', value);
       setSortOption(value as SortOption);
     }
   };
 
   const handlePostUpdated = () => {
-    console.log("Feed: Post updated, refreshing posts");
+    console.log("📄 Feed: Post updated, refreshing posts");
     refresh();
   };
 
@@ -122,6 +126,16 @@ const Feed = () => {
       reportPerformance();
     }
   };
+
+  // Debug infinite scroll state
+  useEffect(() => {
+    console.log('📄 Feed: Infinite scroll state:', {
+      postsCount: posts.length,
+      isLoading,
+      hasMore,
+      error: !!error
+    });
+  }, [posts.length, isLoading, hasMore, error]);
 
   return (
     <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
@@ -219,7 +233,18 @@ const Feed = () => {
             )}
           </div>
           
-          {posts.length === 0 && !isLoading ? (
+          {/* Show error state if there's an error */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-center">
+              <p className="text-red-700 mb-2">Failed to load posts: {error}</p>
+              <Button onClick={refresh} variant="outline" size="sm">
+                Try Again
+              </Button>
+            </div>
+          )}
+          
+          {/* Show empty state only if no posts and not loading and no error */}
+          {posts.length === 0 && !isLoading && !error ? (
             <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-8 text-center border border-muted shadow-inner mb-6">
               <div className="max-w-md mx-auto">
                 <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">

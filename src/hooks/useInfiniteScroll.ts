@@ -21,6 +21,7 @@ export function useInfiniteScroll({
   
   // Track loading state to prevent duplicate requests
   const loadingRef = useRef(false);
+  const initializedRef = useRef(false);
 
   const loadMore = useCallback(async () => {
     if (!onLoadMore || loadingRef.current || !hasMore || currentPage > maxPages) {
@@ -76,6 +77,7 @@ export function useInfiniteScroll({
     } catch (err) {
       console.error('❌ Infinite Scroll: Error loading more posts:', err);
       setError(err instanceof Error ? err.message : 'Failed to load posts');
+      setHasMore(false); // Stop trying to load more on error
     } finally {
       setIsLoading(false);
       loadingRef.current = false;
@@ -90,13 +92,46 @@ export function useInfiniteScroll({
     setError(null);
     setIsLoading(false);
     loadingRef.current = false;
+    initializedRef.current = false;
   }, []);
 
   const refresh = useCallback(async () => {
     console.log('🔄 Infinite Scroll: Refreshing posts');
     reset();
-    await loadMore();
-  }, [reset, loadMore]);
+    
+    // Load first page immediately after reset
+    if (onLoadMore) {
+      try {
+        loadingRef.current = true;
+        setIsLoading(true);
+        setError(null);
+        
+        console.log('📥 Infinite Scroll: Loading initial page');
+        const initialPosts = await onLoadMore(1);
+        
+        console.log(`📊 Infinite Scroll: Initial load received ${initialPosts.length} posts`);
+        
+        setPosts(initialPosts);
+        setCurrentPage(2); // Next page to load is page 2
+        initializedRef.current = true;
+        
+        if (initialPosts.length === 0) {
+          setHasMore(false);
+          console.log('🏁 Infinite Scroll: No posts available');
+        } else if (initialPosts.length < pageSize) {
+          setHasMore(false);
+          console.log('🔚 Infinite Scroll: First page was partial, no more pages');
+        }
+      } catch (err) {
+        console.error('❌ Infinite Scroll: Error loading initial posts:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load posts');
+        setHasMore(false);
+      } finally {
+        setIsLoading(false);
+        loadingRef.current = false;
+      }
+    }
+  }, [reset, onLoadMore, pageSize]);
 
   return {
     posts,
