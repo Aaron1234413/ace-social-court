@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { supabase } from '@/integrations/supabase/client';
 import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
+import { useOptimisticPosts } from './useOptimisticPosts';
 
 interface FeedCascadeState {
   posts: Post[];
@@ -23,6 +24,7 @@ interface FeedCascadeState {
 export const useFeedCascade = () => {
   const { user } = useAuth();
   const { followingCount, following } = useUserFollows();
+  const { optimisticPosts, addOptimisticPost, clearAllOptimistic } = useOptimisticPosts();
   
   const [state, setState] = useState<FeedCascadeState>({
     posts: [],
@@ -39,6 +41,9 @@ export const useFeedCascade = () => {
 
   // Extract user IDs from following relationships
   const followingUserIds = following.map(follow => follow.following_id);
+
+  // Combine optimistic posts with regular posts
+  const allPosts = [...optimisticPosts, ...state.posts];
 
   const loadPosts = useCallback(async (page: number = 0, existingPosts: Post[] = []) => {
     if (!user) {
@@ -215,6 +220,8 @@ export const useFeedCascade = () => {
 
   const refresh = useCallback(async () => {
     console.log('🔄 REFRESHING FEED - RESET TO LOADING STATE');
+    // Clear optimistic posts on refresh
+    clearAllOptimistic();
     setState(prev => ({ 
       ...prev, 
       isLoading: true, 
@@ -226,7 +233,13 @@ export const useFeedCascade = () => {
     }));
     
     await loadPosts(0, []);
-  }, [loadPosts]);
+  }, [loadPosts, clearAllOptimistic]);
+
+  // Function to add a new post optimistically
+  const addNewPost = useCallback((post: Post) => {
+    console.log('✨ Adding optimistic post to feed:', post.id);
+    addOptimisticPost(post);
+  }, [addOptimisticPost]);
 
   // Initial load with enhanced logging
   useEffect(() => {
@@ -243,7 +256,7 @@ export const useFeedCascade = () => {
   }, [user, followingCount]); // Reload when follow count changes
 
   return {
-    posts: state.posts,
+    posts: allPosts,
     isLoading: state.isLoading,
     isLoadingMore: state.isLoadingMore,
     hasMore: state.hasMore,
@@ -253,6 +266,7 @@ export const useFeedCascade = () => {
     hasErrors: state.hasErrors,
     errorDetails: state.errorDetails,
     loadMore,
-    refresh
+    refresh,
+    addNewPost
   };
 };

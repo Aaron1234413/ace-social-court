@@ -20,6 +20,7 @@ import { PreviewService } from '@/services/PreviewService';
 import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { FeedDebugPanel } from '@/components/feed/FeedDebugPanel';
+import { Post } from '@/types/post';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -43,7 +44,8 @@ const Feed = () => {
     ambassadorPercentage,
     debugData,
     loadMore, 
-    refresh 
+    refresh,
+    addNewPost
   } = useFeedCascade();
   
   const { 
@@ -111,6 +113,11 @@ const Feed = () => {
   const handlePostUpdated = () => {
     console.log("Feed: Post updated, refreshing posts");
     refresh();
+  };
+
+  const handlePostCreated = (newPost: Post) => {
+    console.log("Feed: New post created, adding optimistically:", newPost.id);
+    addNewPost(newPost);
   };
 
   const previewService = PreviewService.getInstance();
@@ -334,7 +341,11 @@ const Feed = () => {
           </div>
           
           <div className="mb-6">
-            <PostComposer onSuccess={refresh} />
+            <PostComposer onSuccess={(post) => {
+              handlePostCreated(post);
+              // Still refresh after a delay to ensure consistency
+              setTimeout(() => refresh(), 2000);
+            }} />
           </div>
           
           {isLoading ? (
