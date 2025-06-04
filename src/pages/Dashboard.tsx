@@ -32,7 +32,8 @@ const Dashboard = () => {
     );
   }
 
-  const isCoach = profile?.user_type === 'coach';
+  // Use current_active_role to determine which dashboard to show
+  const isCoach = profile?.current_active_role === 'coach';
 
   return (
     <>
@@ -41,9 +42,7 @@ const Dashboard = () => {
         <meta name="description" content="Your tennis training dashboard" />
       </Helmet>
       
-      {/* Mobile-optimized container with proper spacing */}
       <div className="min-h-screen bg-background">
-        {/* Role-based Dashboard Rendering */}
         <div className="container pb-20 md:pb-8">
           {isCoach ? <CoachDashboard /> : <PlayerDashboard />}
         </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/components/AuthProvider';
@@ -23,7 +22,8 @@ const DashboardContent = () => {
     searchQuery: '',
   });
   
-  const isCoach = profile?.user_type === 'coach';
+  // Use current_active_role instead of user_type
+  const isCoach = profile?.current_active_role === 'coach';
 
   return (
     <div className="container mx-auto py-4 md:py-6 space-y-4 md:space-y-6">
@@ -43,7 +43,6 @@ const DashboardContent = () => {
         onValueChange={setActiveTab}
         className="w-full"
       >
-        {/* Modern Pill-Style Tabs */}
         <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto md:mx-0 h-12 p-1 bg-gray-100 rounded-2xl shadow-inner">
           <TabsTrigger 
             value="matches" 

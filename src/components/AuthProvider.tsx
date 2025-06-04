@@ -9,6 +9,8 @@ interface Profile {
   username: string | null;
   full_name: string | null;
   user_type: 'player' | 'coach' | 'ambassador';
+  roles: string[];
+  current_active_role: string;
   experience_level: 'beginner' | 'intermediate' | 'advanced' | 'professional' | null;
   bio: string | null;
   location_name?: string | null;
@@ -38,7 +40,6 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {}
 });
 
-// Make sure this is a functional component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -47,7 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false);
   const [isProfileChecked, setIsProfileChecked] = useState<boolean>(false);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
-  // Add local storage key for tracking profile completion
   const PROFILE_COMPLETE_KEY = 'user_profile_complete';
 
   const signOut = async () => {
@@ -58,7 +58,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(null);
       setIsProfileComplete(false);
       setIsProfileChecked(false);
-      // Clear profile completion status from localStorage
       localStorage.removeItem(PROFILE_COMPLETE_KEY);
       toast.success("Signed out successfully");
     }
@@ -86,14 +85,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       console.log('AuthProvider: Fetched profile data:', data);
-      setProfile(data);
+      
+      // Handle legacy profiles that don't have the new role fields
+      const profileData = {
+        ...data,
+        roles: data.roles || [data.user_type || 'player'],
+        current_active_role: data.current_active_role || data.user_type || 'player'
+      };
+      
+      setProfile(profileData);
       
       // Check if profile is complete enough to use the app
-      // Explicitly check each required field and log the result
-      const hasUsername = !!data.username && data.username.trim() !== '';
-      const hasFullName = !!data.full_name && data.full_name.trim() !== '';
-      const hasUserType = !!data.user_type;
-      const hasExperienceLevel = !!data.experience_level;
+      const hasUsername = !!profileData.username && profileData.username.trim() !== '';
+      const hasFullName = !!profileData.full_name && profileData.full_name.trim() !== '';
+      const hasUserType = !!profileData.user_type;
+      const hasExperienceLevel = !!profileData.experience_level;
       
       const profileIsComplete = hasUsername && hasFullName && hasUserType && hasExperienceLevel;
       
@@ -105,18 +111,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isComplete: profileIsComplete
       });
       
-      // If profile is complete, store this information in localStorage for future sessions
       if (profileIsComplete) {
         localStorage.setItem(PROFILE_COMPLETE_KEY, 'true');
         console.log('AuthProvider: Profile is complete, saved to localStorage');
       }
       
-      // Set profile complete status - check both current completion and stored completion
       const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
       setIsProfileComplete(profileIsComplete || storedProfileComplete);
       setIsProfileChecked(true);
       
-      console.log('AuthProvider: Profile loaded:', data);
+      console.log('AuthProvider: Profile loaded:', profileData);
       console.log('AuthProvider: Profile complete status:', profileIsComplete || storedProfileComplete, 
                   '(current:', profileIsComplete, ', stored:', storedProfileComplete, ')');
       
@@ -124,7 +128,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('AuthProvider: Failed to fetch profile:', err);
       setIsProfileChecked(true);
     } finally {
-      // Always mark profile as checked, even on error
       setIsProfileChecked(true);
     }
   };
