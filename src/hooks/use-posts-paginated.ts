@@ -15,12 +15,6 @@ interface UsePostsPaginatedOptions {
   pageSize?: number;
 }
 
-interface ProcessingStage {
-  name: string;
-  count: number;
-  error?: string;
-}
-
 export const usePostsPaginated = (options: UsePostsPaginatedOptions = {
   personalize: true,
   sortBy: 'recent',
@@ -74,159 +68,94 @@ export const usePostsPaginated = (options: UsePostsPaginatedOptions = {
     }
   }, [isInitialized, userFollowings, userProfile]);
 
-  // Optimized post processing pipeline with error boundaries
+  // SIMPLIFIED post processing pipeline - no more multiple stages that can fail
   const processPostsPipeline = useCallback(async (
     rawPosts: Post[], 
     userId?: string
-  ): Promise<{ posts: Post[], stages: ProcessingStage[] }> => {
-    const stages: ProcessingStage[] = [];
-    let currentPosts = [...rawPosts];
+  ): Promise<Post[]> => {
+    console.log('\n🔄 === SIMPLIFIED PROCESSING PIPELINE ===');
+    console.log('📥 Input posts:', rawPosts.length);
     
-    console.log('\n🔄 === STARTING OPTIMIZED PROCESSING PIPELINE ===');
-    
-    // Stage 1: Input validation
-    stages.push({ name: 'Raw Input', count: currentPosts.length });
-    
-    if (currentPosts.length === 0) {
-      console.log('⚠️ No posts to process, returning empty result');
-      return { posts: [], stages };
+    if (rawPosts.length === 0) {
+      console.log('⚠️ No raw posts to process');
+      return [];
     }
 
-    // Stage 2: User context (only if user is logged in)
+    // For unauthenticated users, just return public posts
+    if (!userId) {
+      const publicPosts = rawPosts.filter(post => post.privacy_level === 'public');
+      console.log('👤 Unauthenticated user - returning public posts:', publicPosts.length);
+      return publicPosts;
+    }
+
+    // Get user context
     let userContext = null;
-    if (userId) {
-      try {
-        userContext = await initializeUserContext(userId);
-        stages.push({ name: 'User Context', count: currentPosts.length });
-      } catch (error) {
-        console.warn('⚠️ User context failed, continuing with public-only filtering');
-        stages.push({ name: 'User Context', count: currentPosts.length, error: 'Failed to load user context' });
-      }
+    try {
+      userContext = await initializeUserContext(userId);
+    } catch (error) {
+      console.warn('⚠️ User context failed, using defaults');
+      userContext = { followings: [], profile: null };
     }
 
-    // Stage 3: Privacy filtering with fallback
-    if (options.respectPrivacy && userId) {
-      try {
-        const privacyContext: PrivacyContext = {
-          currentUserId: userId,
-          userFollowings: userContext?.followings || [],
-          userType: userContext?.profile?.user_type,
-          isCoach: userContext?.profile?.user_type === 'coach'
-        };
-        
-        const beforePrivacy = currentPosts.length;
-        currentPosts = sanitizePostsForUser(currentPosts, privacyContext);
-        
-        // Minimum content guarantee for privacy filtering
-        if (currentPosts.length < 2 && beforePrivacy > 0) {
-          console.log('🆘 Privacy filtering too aggressive, applying fallback');
-          const publicPosts = rawPosts.filter(post => post.privacy_level === 'public');
-          const userOwnPosts = rawPosts.filter(post => post.user_id === userId);
-          currentPosts = [...userOwnPosts, ...publicPosts.slice(0, 5)];
-          // Remove duplicates
-          currentPosts = currentPosts.filter((post, index, self) => 
-            index === self.findIndex(p => p.id === post.id)
-          );
-        }
-        
-        stages.push({ name: 'Privacy Filter', count: currentPosts.length });
-        console.log(`🛡️ Privacy filtering: ${beforePrivacy} → ${currentPosts.length} posts`);
-      } catch (error) {
-        console.error('❌ Privacy filtering failed:', error);
-        stages.push({ name: 'Privacy Filter', count: currentPosts.length, error: 'Privacy filtering failed' });
-        // Continue with current posts on error
-      }
-    } else if (!userId) {
-      // For unauthenticated users, show only public posts
-      currentPosts = currentPosts.filter(post => post.privacy_level === 'public');
-      stages.push({ name: 'Public Filter', count: currentPosts.length });
-    }
-
-    // Stage 4: Smart feed mixing (only for authenticated users with personalization)
-    if (options.personalize && userId && userContext) {
-      try {
-        const beforeMixing = currentPosts.length;
-        currentPosts = createSmartFeedMix(currentPosts, {
-          followingCount: userContext.followings.length,
-          userFollowings: userContext.followings,
-          currentUserId: userId
-        });
-        
-        stages.push({ name: 'Smart Mixing', count: currentPosts.length });
-        console.log(`🎯 Smart mixing: ${beforeMixing} → ${currentPosts.length} posts`);
-      } catch (error) {
-        console.error('❌ Smart mixing failed:', error);
-        stages.push({ name: 'Smart Mixing', count: currentPosts.length, error: 'Smart mixing failed' });
-        // Continue with current posts on error
-      }
-    }
-
-    // Stage 5: Personalization (if enabled and sufficient posts)
-    if (options.personalize && userId && userContext && currentPosts.length > 0) {
-      try {
-        const personalizationContext: PersonalizationContext = {
-          currentUserId: userId,
-          userFollowings: userContext.followings,
-          userType: userContext.profile?.user_type
-        };
-        
-        const beforePersonalization = currentPosts.length;
-        currentPosts = personalizePostFeed(currentPosts, personalizationContext);
-        
-        stages.push({ name: 'Personalization', count: currentPosts.length });
-        console.log(`🎯 Personalization: ${beforePersonalization} → ${currentPosts.length} posts`);
-      } catch (error) {
-        console.error('❌ Personalization failed:', error);
-        stages.push({ name: 'Personalization', count: currentPosts.length, error: 'Personalization failed' });
-        // Continue with current posts on error
-      }
-    }
-
-    // Stage 6: Final minimum content guarantee
-    const minRequiredPosts = 2;
-    if (currentPosts.length < minRequiredPosts) {
-      console.log(`🆘 FINAL FALLBACK: Only ${currentPosts.length} posts, ensuring minimum content`);
+    // SIMPLE filtering: Just apply basic privacy rules
+    let processedPosts = rawPosts.filter(post => {
+      // Always show user's own posts
+      if (post.user_id === userId) return true;
       
-      try {
-        // Add public posts as fallback
-        const existingIds = new Set(currentPosts.map(p => p.id));
-        const fallbackPosts = rawPosts
-          .filter(post => !existingIds.has(post.id) && post.privacy_level === 'public')
-          .sort((a, b) => {
-            const scoreA = (a.engagement_score || 0) + (a.likes_count || 0);
-            const scoreB = (b.engagement_score || 0) + (b.likes_count || 0);
-            return scoreB - scoreA;
-          })
-          .slice(0, Math.max(minRequiredPosts - currentPosts.length, 3));
-        
-        currentPosts = [...currentPosts, ...fallbackPosts];
-        stages.push({ name: 'Final Fallback', count: currentPosts.length });
-        console.log(`🆘 Added ${fallbackPosts.length} fallback posts`);
-      } catch (error) {
-        console.error('❌ Final fallback failed:', error);
-        stages.push({ name: 'Final Fallback', count: currentPosts.length, error: 'Final fallback failed' });
+      // Always show public posts
+      if (post.privacy_level === 'public') return true;
+      
+      // Show friends posts if user follows the author
+      if (post.privacy_level === 'friends' && userContext?.followings.includes(post.user_id)) {
+        return true;
       }
-    }
-
-    console.log('✅ Processing pipeline completed:', {
-      input: rawPosts.length,
-      output: currentPosts.length,
-      stages: stages.length
+      
+      // Show coaches posts if user is a coach
+      if (post.privacy_level === 'coaches' && userContext?.profile?.user_type === 'coach') {
+        return true;
+      }
+      
+      return false;
     });
 
-    return { posts: currentPosts, stages };
-  }, [options.personalize, options.respectPrivacy, initializeUserContext]);
+    console.log('🛡️ After privacy filtering:', processedPosts.length);
+
+    // GUARANTEE: Ensure we always have some posts for authenticated users
+    if (processedPosts.length === 0) {
+      console.log('🆘 NO POSTS after filtering - applying emergency fallback');
+      // Emergency fallback: show all public posts
+      processedPosts = rawPosts.filter(post => post.privacy_level === 'public');
+      console.log('🆘 Emergency fallback applied:', processedPosts.length);
+    }
+
+    // Apply sorting if we have posts
+    if (processedPosts.length > 0 && options.sortBy) {
+      if (options.sortBy === 'popular') {
+        processedPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+      } else if (options.sortBy === 'commented') {
+        processedPosts.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
+      } else {
+        processedPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
+      console.log('📊 Applied sorting:', options.sortBy);
+    }
+
+    console.log('✅ Final pipeline result:', processedPosts.length, 'posts');
+    return processedPosts;
+  }, [options.sortBy, initializeUserContext]);
 
   // Optimized fetch with streamlined pipeline
   const fetchPostPage = useCallback(async (page: number): Promise<Post[]> => {
     return performanceMonitor.measureRender('fetchPostPage', async () => {
       try {
-        console.log(`\n📄 === FETCHING PAGE ${page} (OPTIMIZED) ===`);
+        console.log(`\n📄 === FETCHING PAGE ${page} ===`);
         
         const { data: { user } } = await supabase.auth.getUser();
         const offset = (page - 1) * (options.pageSize || 10);
         
-        // Optimized database query with better error handling
+        // Fetch more posts to account for filtering
+        const fetchSize = Math.max((options.pageSize || 10) * 2, 20);
+        
         let query = supabase.from('posts').select(`
           id, content, created_at, user_id, media_url, media_type,
           privacy_level, template_id, is_auto_generated, engagement_score, updated_at
@@ -236,7 +165,7 @@ export const usePostsPaginated = (options: UsePostsPaginatedOptions = {
           query = query.order('created_at', { ascending: false });
         }
         
-        query = query.range(offset, offset + (options.pageSize || 10) - 1);
+        query = query.range(offset, offset + fetchSize - 1);
         
         const { data: postsData, error: postsError } = await query;
         
@@ -272,13 +201,6 @@ export const usePostsPaginated = (options: UsePostsPaginatedOptions = {
           }
         }));
         
-        // Sort optimization
-        if (options.sortBy === 'popular') {
-          formattedPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
-        } else if (options.sortBy === 'commented') {
-          formattedPosts.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
-        }
-        
         // Batch fetch author profiles with error tolerance
         try {
           const userIds = [...new Set(formattedPosts.map(post => post.user_id))];
@@ -305,13 +227,15 @@ export const usePostsPaginated = (options: UsePostsPaginatedOptions = {
           console.warn('⚠️ Author profiles fetch failed, continuing without:', error);
         }
         
-        // Process through optimized pipeline
-        const { posts: finalPosts, stages } = await processPostsPipeline(formattedPosts, user?.id);
+        // Process through SIMPLIFIED pipeline
+        const finalPosts = await processPostsPipeline(formattedPosts, user?.id);
         
-        console.log(`✨ Page ${page} complete: ${finalPosts.length} posts delivered`);
-        console.log('📊 Pipeline stages:', stages);
+        // Take only what we need for this page
+        const pagePosts = finalPosts.slice(0, options.pageSize || 10);
         
-        return finalPosts;
+        console.log(`✨ Page ${page} complete: ${pagePosts.length} posts delivered`);
+        
+        return pagePosts;
         
       } catch (error) {
         console.error(`❌ Critical error fetching page ${page}:`, error);

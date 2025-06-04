@@ -19,11 +19,11 @@ export function useInfiniteScroll({
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Simple loading prevention - no complex ref logic
+  // Use ref to prevent duplicate loading
   const isLoadingRef = useRef(false);
 
   const loadMore = useCallback(async () => {
-    // Prevent duplicate calls with simple checks
+    // Prevent duplicate calls
     if (!onLoadMore || isLoadingRef.current || !hasMore || currentPage > maxPages) {
       console.log('🚫 LoadMore blocked:', {
         hasOnLoadMore: !!onLoadMore,
@@ -58,7 +58,7 @@ export function useInfiniteScroll({
         
         setCurrentPage(prev => prev + 1);
         
-        // Check if this might be the last page
+        // If we got fewer posts than requested, we might be at the end
         if (newPosts.length < pageSize) {
           console.log(`🔚 Partial page received - might be last page`);
           setHasMore(false);
@@ -67,7 +67,6 @@ export function useInfiniteScroll({
     } catch (err) {
       console.error('❌ Error loading posts:', err);
       setError(err instanceof Error ? err.message : 'Failed to load posts');
-      setHasMore(false);
     } finally {
       console.log('✅ Setting loading to false');
       setIsLoading(false);
@@ -107,6 +106,7 @@ export function useInfiniteScroll({
         console.log(`📊 Initial refresh load: ${initialPosts.length} posts`);
         
         if (initialPosts.length === 0) {
+          console.log('📭 No initial posts found');
           setHasMore(false);
         } else {
           setPosts(initialPosts);
@@ -128,7 +128,6 @@ export function useInfiniteScroll({
     }
   }, [onLoadMore, pageSize]);
 
-  // Debug current state
   console.log('🔍 useInfiniteScroll state:', {
     postsCount: posts.length,
     currentPage,
