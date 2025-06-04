@@ -15,11 +15,16 @@ interface MatchOverviewStepProps {
 
 export default function MatchOverviewStep({ data, onDataChange, onValidationChange }: MatchOverviewStepProps) {
   
-  // Validation effect
+  // Validation effect - only require match_type and match_outcome for overview step
   useEffect(() => {
-    const isValid = Boolean(data.match_type && data.match_outcome && data.surface);
+    const isValid = Boolean(data.match_type && data.match_outcome);
+    console.log('MatchOverviewStep validation:', {
+      match_type: data.match_type,
+      match_outcome: data.match_outcome,
+      isValid
+    });
     onValidationChange(isValid);
-  }, [data.match_type, data.match_outcome, data.surface, onValidationChange]);
+  }, [data.match_type, data.match_outcome, onValidationChange]);
 
   return (
     <div className="space-y-6">
@@ -42,7 +47,10 @@ export default function MatchOverviewStep({ data, onDataChange, onValidationChan
           <ToggleGroup
             type="single"
             value={data.match_type || ''}
-            onValueChange={(value) => value && onDataChange({ match_type: value as 'singles' | 'doubles' })}
+            onValueChange={(value) => {
+              console.log('Match type changed to:', value);
+              value && onDataChange({ match_type: value as 'singles' | 'doubles' });
+            }}
             className="justify-start"
           >
             <ToggleGroupItem value="singles" className="flex items-center gap-2">
@@ -97,7 +105,10 @@ export default function MatchOverviewStep({ data, onDataChange, onValidationChan
             <ToggleGroup
               type="single"
               value={data.match_outcome || ''}
-              onValueChange={(value) => value && onDataChange({ match_outcome: value as 'won' | 'lost' | 'tie' })}
+              onValueChange={(value) => {
+                console.log('Match outcome changed to:', value);
+                value && onDataChange({ match_outcome: value as 'won' | 'lost' | 'tie' });
+              }}
               className="justify-start mt-2"
             >
               <ToggleGroupItem value="won" className="flex items-center gap-2 text-green-700">
@@ -128,16 +139,19 @@ export default function MatchOverviewStep({ data, onDataChange, onValidationChan
         </CardContent>
       </Card>
 
-      {/* Surface Type */}
+      {/* Surface Type - Made optional for overview step */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Court Surface *</CardTitle>
+          <CardTitle className="text-base">Court Surface (optional)</CardTitle>
         </CardHeader>
         <CardContent>
           <ToggleGroup
             type="single"
             value={data.surface || ''}
-            onValueChange={(value) => value && onDataChange({ surface: value as 'hard' | 'clay' | 'grass' | 'other' })}
+            onValueChange={(value) => {
+              console.log('Surface changed to:', value);
+              value && onDataChange({ surface: value as 'hard' | 'clay' | 'grass' | 'other' });
+            }}
             className="justify-start flex-wrap"
           >
             <ToggleGroupItem value="hard" className="flex items-center gap-2">
@@ -159,9 +173,9 @@ export default function MatchOverviewStep({ data, onDataChange, onValidationChan
       <div className="bg-blue-50 p-4 rounded-lg">
         <h4 className="font-medium text-blue-900 mb-2">💡 Quick Start Tips</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Don't worry about getting everything perfect - you can always edit later</li>
+          <li>• Just select your match type and outcome to get started</li>
+          <li>• You can always add more details in the next steps</li>
           <li>• The more details you add, the better insights you'll get</li>
-          <li>• This information helps track your progress over time</li>
         </ul>
       </div>
     </div>

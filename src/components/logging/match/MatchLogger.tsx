@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -92,7 +91,7 @@ export default function MatchLogger() {
   });
 
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({
-    0: false, // overview - requires match_type and match_outcome
+    0: false, // overview - requires match_type and match_outcome only
     1: false, // basics - requires opponent_name, location, surface, score
     2: true,  // performance - always valid (has defaults)
     3: true,  // highlights (optional)
