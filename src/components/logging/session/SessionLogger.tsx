@@ -1,12 +1,11 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { sessionFormSchema, SessionFormValues } from './sessionSchema';
-import { useSessionSubmit } from '@/hooks/use-session-submit';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Calendar, 
@@ -14,9 +13,7 @@ import {
   Dumbbell, 
   Brain, 
   Zap, 
-  Users,
-  Save,
-  Loader2
+  Users
 } from 'lucide-react';
 
 // Import existing components
@@ -27,6 +24,7 @@ import PhysicalTracker from './PhysicalTracker';
 import MentalTracker from './MentalTracker';
 import TechnicalTracker from './TechnicalTracker';
 import { SessionSummary } from './SessionSummary';
+import SessionNavigationControls from './SessionNavigationControls';
 
 // Import new components
 import { MultiCoachSelect } from './MultiCoachSelect';
@@ -35,7 +33,6 @@ import { SessionAutoPostIntegration } from './SessionAutoPostIntegration';
 
 const SessionLogger = () => {
   const { user, profile } = useAuth();
-  const { submitSession, isSubmitting } = useSessionSubmit();
   const [activeTab, setActiveTab] = useState('basics');
   
   const isCoach = profile?.user_type === 'coach';
@@ -55,24 +52,31 @@ const SessionLogger = () => {
     },
   });
 
-  const handleSubmit = async (data: SessionFormValues) => {
-    try {
-      console.log('🎯 Submitting session with data:', data);
-      await submitSession(data);
-      
-      // Reset form after successful submission
-      form.reset();
-      setActiveTab('basics');
-    } catch (error) {
-      console.error('❌ Session submission failed:', error);
-    }
-  };
-
   const watchedCoachIds = form.watch('coach_ids') || [];
   const watchedNotifyCoaches = form.watch('notify_coaches') || false;
 
   // Get current form values for auto-post generation
   const currentFormValues = form.getValues();
+
+  // Validation logic for each step
+  const validateCurrentStep = (tab: string): boolean => {
+    switch (tab) {
+      case 'basics':
+        return !!form.getValues('session_date');
+      case 'coaches':
+        return true; // Optional step
+      case 'physical':
+      case 'mental':
+      case 'technical':
+        return true; // These are optional but user might want to complete them
+      default:
+        return true;
+    }
+  };
+
+  const canProceedFromCurrentTab = validateCurrentStep(activeTab);
+  const isFirstTab = activeTab === 'basics';
+  const isLastTab = activeTab === 'summary';
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -84,7 +88,7 @@ const SessionLogger = () => {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <form className="space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-6 lg:grid-cols-6">
               <TabsTrigger value="basics" className="flex items-center gap-1">
@@ -124,6 +128,13 @@ const SessionLogger = () => {
                 </CardHeader>
                 <CardContent>
                   <SessionBasicsForm />
+                  <SessionNavigationControls
+                    currentTab={activeTab}
+                    onTabChange={setActiveTab}
+                    canProceed={canProceedFromCurrentTab}
+                    isFirstTab={isFirstTab}
+                    isLastTab={isLastTab}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -149,12 +160,11 @@ const SessionLogger = () => {
                       selectedCoachIds={watchedCoachIds}
                       onCoachIdsChange={(coachIds) => {
                         form.setValue('coach_ids', coachIds);
-                        // Auto-disable notifications if no coaches selected
                         if (coachIds.length === 0) {
                           form.setValue('notify_coaches', false);
                         }
                       }}
-                      disabled={isSubmitting}
+                      disabled={false}
                     />
                   </div>
 
@@ -162,10 +172,9 @@ const SessionLogger = () => {
                     notifyCoaches={watchedNotifyCoaches}
                     onToggle={(notify) => form.setValue('notify_coaches', notify)}
                     hasCoaches={watchedCoachIds.length > 0}
-                    disabled={isSubmitting}
+                    disabled={false}
                   />
 
-                  {/* Helper text */}
                   {watchedCoachIds.length > 0 && (
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-sm text-blue-700">
@@ -173,6 +182,14 @@ const SessionLogger = () => {
                       </p>
                     </div>
                   )}
+
+                  <SessionNavigationControls
+                    currentTab={activeTab}
+                    onTabChange={setActiveTab}
+                    canProceed={canProceedFromCurrentTab}
+                    isFirstTab={isFirstTab}
+                    isLastTab={isLastTab}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -190,6 +207,13 @@ const SessionLogger = () => {
                   <PhysicalTracker
                     onDataChange={(data) => form.setValue('physical_data', data)}
                     initialData={form.getValues('physical_data')}
+                  />
+                  <SessionNavigationControls
+                    currentTab={activeTab}
+                    onTabChange={setActiveTab}
+                    canProceed={canProceedFromCurrentTab}
+                    isFirstTab={isFirstTab}
+                    isLastTab={isLastTab}
                   />
                 </CardContent>
               </Card>
@@ -209,6 +233,13 @@ const SessionLogger = () => {
                     onDataChange={(data) => form.setValue('mental_data', data)}
                     initialData={form.getValues('mental_data')}
                   />
+                  <SessionNavigationControls
+                    currentTab={activeTab}
+                    onTabChange={setActiveTab}
+                    canProceed={canProceedFromCurrentTab}
+                    isFirstTab={isFirstTab}
+                    isLastTab={isLastTab}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -227,6 +258,13 @@ const SessionLogger = () => {
                     onDataChange={(data) => form.setValue('technical_data', data)}
                     initialData={form.getValues('technical_data')}
                     onAISuggestionUsed={() => form.setValue('ai_suggestions_used', true)}
+                  />
+                  <SessionNavigationControls
+                    currentTab={activeTab}
+                    onTabChange={setActiveTab}
+                    canProceed={canProceedFromCurrentTab}
+                    isFirstTab={isFirstTab}
+                    isLastTab={isLastTab}
                   />
                 </CardContent>
               </Card>
@@ -257,33 +295,11 @@ const SessionLogger = () => {
                         form.reset();
                         setActiveTab('basics');
                       }}
+                      formData={currentFormValues}
                     />
-                    
-                    {/* Submit Button */}
-                    <div className="mt-6 pt-4 border-t">
-                      <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={isSubmitting}
-                        size="lg"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving Session...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Log Training Session
-                          </>
-                        )}
-                      </Button>
-                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Auto-Post Generation Integration */}
                 <SessionAutoPostIntegration
                   sessionData={currentFormValues}
                   onPostCreated={() => {

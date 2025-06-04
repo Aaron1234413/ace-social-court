@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useSessionSubmit } from '@/hooks/use-session-submit';
 import { SessionFormValues } from './sessionSchema';
@@ -29,6 +28,7 @@ interface SessionSummaryProps {
   onBack: () => void;
   onEdit: (pillar: string) => void;
   onSuccess: () => void;
+  formData: SessionFormValues;
 }
 
 export function SessionSummary({ 
@@ -37,7 +37,8 @@ export function SessionSummary({
   aiSuggestionsUsed,
   onBack, 
   onEdit,
-  onSuccess 
+  onSuccess,
+  formData
 }: SessionSummaryProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const { submitSession, isSubmitting } = useSessionSubmit();
@@ -105,15 +106,11 @@ export function SessionSummary({
         return;
       }
 
+      // Use the formData passed from parent instead of reconstructing
       const sessionData: SessionFormValues = {
-        session_date: new Date(),
+        ...formData,
         focus_areas: selectedPillars,
-        drills: [],
-        next_steps: [],
         session_note: generateSessionNote(),
-        participants: [],
-        reminder_date: undefined,
-        coach_id: undefined,
         physical_data: pillarData.physical || undefined,
         mental_data: pillarData.mental || undefined,
         technical_data: pillarData.technical || undefined,
