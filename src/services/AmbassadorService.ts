@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { PostTemplate } from '@/types/post';
 import { AutoPostService } from './AutoPostService';
@@ -11,7 +10,7 @@ export interface AmbassadorPersona {
     bio: string;
     skill_level: string;
     user_type: 'player' | 'coach';
-    experience_level: string;
+    experience_level: 'beginner' | 'intermediate' | 'advanced' | 'professional';
     playing_style: string;
     location_name: string;
     avatar_url?: string;
@@ -86,7 +85,7 @@ export class AmbassadorService {
           bio: '🏆 Tennis Coach | 15+ years experience | Helping players reach their potential',
           skill_level: 'advanced',
           user_type: 'coach',
-          experience_level: 'expert',
+          experience_level: 'professional',
           playing_style: 'all-court',
           location_name: 'San Francisco, CA'
         },
@@ -223,10 +222,14 @@ export class AmbassadorService {
           continue;
         }
 
-        // Create profile
+        // Generate a unique ID for the profile
+        const profileId = crypto.randomUUID();
+
+        // Create profile with proper type casting
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .insert([{
+            id: profileId,
             full_name: persona.profile.full_name,
             username: persona.profile.username,
             bio: persona.profile.bio,
