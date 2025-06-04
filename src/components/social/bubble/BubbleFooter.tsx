@@ -9,7 +9,7 @@ import ShareButton from '../ShareButton';
 import CommentForm from '../CommentForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { toast } from '@/hooks/use-toast';
+import { showSuccessToast, showErrorToast } from '@/hooks/use-toast';
 
 interface BubbleFooterProps {
   post: Post;
@@ -39,11 +39,7 @@ export function BubbleFooter({
 
   const handleCommentSubmit = async (content: string) => {
     if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to post comments.",
-        variant: "destructive",
-      });
+      showErrorToast("Authentication required", "Please sign in to post comments.");
       return;
     }
 
@@ -60,10 +56,7 @@ export function BubbleFooter({
 
       if (error) throw error;
 
-      toast({
-        title: "Comment posted!",
-        description: "Your comment has been added successfully.",
-      });
+      showSuccessToast("Comment posted!", "Your comment has been added successfully.");
 
       // Clear the suggestion and hide form
       if (onSuggestionUsed) {
@@ -73,11 +66,7 @@ export function BubbleFooter({
 
     } catch (error) {
       console.error('Error posting comment:', error);
-      toast({
-        title: "Error posting comment",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
+      showErrorToast("Error posting comment", "Please try again later.");
     } finally {
       setIsSubmittingComment(false);
     }
