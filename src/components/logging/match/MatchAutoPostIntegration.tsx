@@ -17,7 +17,7 @@ export function MatchAutoPostIntegration({
   const [autoSuggestions, setAutoSuggestions] = useState<string[]>([]);
   
   // Check if we have match result data
-  const hasMatchData = matchData?.result || matchData?.score || matchData?.opponent;
+  const hasMatchData = matchData?.match_outcome || matchData?.score || matchData?.opponent_name;
 
   useEffect(() => {
     if (hasMatchData) {
@@ -30,26 +30,43 @@ export function MatchAutoPostIntegration({
   const generateMatchSuggestions = (data: any) => {
     const suggestions = [];
     
-    if (data.result === 'win') {
+    if (data.match_outcome === 'won') {
       suggestions.push("Great match today! Feeling proud of my performance 🏆");
       suggestions.push(`Victory feels sweet! ${data.score || 'Hard-fought win'} 🎾`);
-    } else if (data.result === 'loss') {
+    } else if (data.match_outcome === 'lost') {
       suggestions.push("Tough match today, but every loss is a lesson learned 💪");
       suggestions.push("Not the result I wanted, but my game is getting stronger 🎯");
     }
     
-    if (data.opponent) {
-      suggestions.push(`Great match against ${data.opponent}! Always learning from tough competition`);
+    if (data.opponent_name) {
+      suggestions.push(`Great match against ${data.opponent_name}! Always learning from tough competition`);
+    }
+
+    if (data.surface) {
+      suggestions.push(`Playing on ${data.surface} courts today - love the challenge! 🎾`);
     }
     
     return suggestions;
   };
 
   if (!hasMatchData) {
-    return null;
+    return (
+      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg text-blue-900">Share Your Match</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PostComposer 
+            matchData={matchData}
+            onSuccess={onPostCreated}
+            className="border-0 shadow-none bg-transparent"
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
-  const isWin = matchData?.result === 'win';
+  const isWin = matchData?.match_outcome === 'won';
 
   return (
     <div className="space-y-4">

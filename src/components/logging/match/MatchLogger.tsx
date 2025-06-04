@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useMatchSubmit } from '@/hooks/use-match-submit';
+import { MatchAutoPostIntegration } from './MatchAutoPostIntegration';
 
 // Import step components
 import MatchOverviewStep from './steps/MatchOverviewStep';
@@ -78,6 +79,8 @@ export default function MatchLogger() {
   
   const [currentStep, setCurrentStep] = useState(0);
   const [showRecapCard, setShowRecapCard] = useState(false);
+  const [showAutoPost, setShowAutoPost] = useState(false);
+  const [submittedMatch, setSubmittedMatch] = useState<any>(null);
   const [matchData, setMatchData] = useState<MatchData>({
     match_date: new Date(),
     serve_rating: 3,
@@ -89,9 +92,9 @@ export default function MatchLogger() {
   });
 
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({
-    0: false, // overview
-    1: false, // basics
-    2: false, // performance  
+    0: false, // overview - requires match_type and match_outcome
+    1: false, // basics - requires opponent_name, location, surface, score
+    2: true,  // performance - always valid (has defaults)
     3: true,  // highlights (optional)
     4: true,  // mental (optional)
     5: true,  // reflection (optional)
@@ -99,10 +102,16 @@ export default function MatchLogger() {
   });
 
   const updateMatchData = useCallback((updates: Partial<MatchData>) => {
-    setMatchData(prev => ({ ...prev, ...updates }));
+    console.log('Updating match data:', updates);
+    setMatchData(prev => {
+      const newData = { ...prev, ...updates };
+      console.log('New match data:', newData);
+      return newData;
+    });
   }, []);
 
   const updateStepValidation = useCallback((step: number, isValid: boolean) => {
+    console.log(`Step ${step} validation:`, isValid);
     setStepValidation(prev => ({ ...prev, [step]: isValid }));
   }, []);
 
@@ -111,17 +120,20 @@ export default function MatchLogger() {
 
   const goToNext = () => {
     if (currentStep < STEPS.length - 1 && canProceed) {
+      console.log(`Moving from step ${currentStep} to ${currentStep + 1}`);
       setCurrentStep(prev => prev + 1);
     }
   };
 
   const goToPrevious = () => {
     if (currentStep > 0) {
+      console.log(`Moving from step ${currentStep} to ${currentStep - 1}`);
       setCurrentStep(prev => prev - 1);
     }
   };
 
   const goToStep = (stepIndex: number) => {
+    console.log(`Jumping to step ${stepIndex}`);
     setCurrentStep(stepIndex);
   };
 
@@ -131,26 +143,43 @@ export default function MatchLogger() {
       return;
     }
 
+    console.log('Starting match submission with data:', matchData);
+
     try {
-      console.log('Submitting match data:', matchData);
-      
       // Show recap card first
       setShowRecapCard(true);
       
       // Submit the match
-      await submitMatch(matchData);
+      const submittedMatchResult = await submitMatch(matchData);
+      console.log('Match submitted successfully:', submittedMatchResult);
       
-      // Keep recap card visible for a moment
+      setSubmittedMatch(submittedMatchResult);
+      
+      // Hide recap card and show auto-post integration
       setTimeout(() => {
         setShowRecapCard(false);
-        toast.success("Match logged successfully!");
-        navigate('/dashboard');
-      }, 2500);
+        setShowAutoPost(true);
+      }, 2000);
+      
     } catch (error) {
       console.error("Error logging match:", error);
       setShowRecapCard(false);
       toast.error("Failed to log match. Please try again.");
     }
+  };
+
+  const handlePostCreated = () => {
+    console.log('Post created successfully');
+    setShowAutoPost(false);
+    toast.success("Match logged and shared successfully!");
+    navigate('/dashboard');
+  };
+
+  const handleSkipPost = () => {
+    console.log('Skipping post creation');
+    setShowAutoPost(false);
+    toast.success("Match logged successfully!");
+    navigate('/dashboard');
   };
 
   const renderCurrentStep = () => {
@@ -214,6 +243,39 @@ export default function MatchLogger() {
         return null;
     }
   };
+
+  // Show auto-post integration after successful submission
+  if (showAutoPost && submittedMatch) {
+    return (
+      <div className="container mx-auto py-6 px-4 sm:px-6 max-w-4xl">
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            className="gap-1 mb-4"
+            onClick={handleSkipPost}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Skip Sharing
+          </Button>
+          <h1 className="text-3xl font-bold">Share Your Match</h1>
+          <p className="text-muted-foreground mt-2">
+            Your match has been logged! Would you like to share it with the community?
+          </p>
+        </div>
+
+        <MatchAutoPostIntegration 
+          matchData={matchData}
+          onPostCreated={handlePostCreated}
+        />
+
+        <div className="mt-6 text-center">
+          <Button variant="outline" onClick={handleSkipPost}>
+            Skip and Continue to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
