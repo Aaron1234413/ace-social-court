@@ -16,6 +16,8 @@ import { PostActions } from '@/components/social/PostActions';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
+import { ContextPrompts } from '@/components/social/ContextPrompts';
+
 const PostDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -184,6 +186,24 @@ const PostDetail = () => {
             </div>
           </div>
         </Card>
+        
+        {/* Context-Aware Prompts */}
+        {post && (
+          <div className="mt-6">
+            <ContextPrompts
+              context={{
+                post,
+                postContent: post.content,
+                isAmbassadorContent,
+                userType: user ? (profile?.user_type || 'player') : undefined
+              }}
+              onPromptClick={(prompt) => {
+                // Could integrate with comment creation or other actions
+                console.log('Prompt clicked:', prompt);
+              }}
+            />
+          </div>
+        )}
       </div>
     </>
   );

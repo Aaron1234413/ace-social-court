@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CardFooter } from '@/components/ui/card';
 import { Post } from '@/types/post';
@@ -7,6 +6,7 @@ import LikeButton from '../LikeButton';
 import CommentButton from '../CommentButton';
 import ShareButton from '../ShareButton';
 import { ReactionBar } from '../ReactionBar';
+import { ContextPrompts } from '../ContextPrompts';
 
 interface BubbleFooterProps {
   post: Post;
@@ -46,6 +46,22 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
         <ShareButton 
           postId={post.id} 
           postContent={post.content}
+        />
+      </div>
+      
+      {/* Context-Aware Prompts */}
+      <div className="w-full">
+        <ContextPrompts
+          context={{
+            post,
+            postContent: post.content,
+            isAmbassadorContent,
+          }}
+          onPromptClick={(prompt) => {
+            // Could trigger comment modal or other engagement actions
+            console.log('Engagement prompt clicked:', prompt);
+          }}
+          className="mt-3"
         />
       </div>
     </CardFooter>
