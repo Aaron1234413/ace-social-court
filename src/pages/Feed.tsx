@@ -38,7 +38,8 @@ const Feed = () => {
   
   const { posts, isLoading, fetchPosts } = usePosts({ 
     personalize: personalized,
-    sortBy: sortOption 
+    sortBy: sortOption,
+    respectPrivacy: true // Enable privacy filtering
   });
 
   useEffect(() => {

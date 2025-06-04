@@ -1,16 +1,21 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
 import { toast } from 'sonner';
 import { personalizePostFeed, PersonalizationContext } from '@/utils/feedPersonalization';
+import { sanitizePostsForUser, PrivacyContext } from '@/utils/privacySanitization';
 
 interface UsePostsOptions {
   personalize?: boolean;
   sortBy?: 'recent' | 'popular' | 'commented';
+  respectPrivacy?: boolean; // New option to enable privacy filtering
 }
 
-export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy: 'recent' }) => {
+export const usePosts = (options: UsePostsOptions = { 
+  personalize: true, 
+  sortBy: 'recent', 
+  respectPrivacy: true 
+}) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userFollowings, setUserFollowings] = useState<string[]>([]);
@@ -55,7 +60,11 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
     try {
       setIsLoading(true);
       
-      // Initial query
+      // Get current user from supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Initial query - we'll fetch all posts and filter client-side for privacy
+      // In production, you might want to do this server-side for better performance
       let query = supabase.from('posts');
       
       // Select specific fields and include calculated fields for likes and comments
@@ -66,6 +75,10 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
         user_id,
         media_url,
         media_type,
+        privacy_level,
+        template_id,
+        is_auto_generated,
+        engagement_score,
         updated_at`);
         
       // Sort based on option
@@ -99,6 +112,10 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
           user_id: post.user_id,
           media_url: post.media_url,
           media_type: post.media_type,
+          privacy_level: post.privacy_level,
+          template_id: post.template_id,
+          is_auto_generated: post.is_auto_generated,
+          engagement_score: post.engagement_score,
           author: null,
           likes_count: likesData || 0,
           comments_count: commentsData || 0
@@ -114,9 +131,9 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
         sortedPosts.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
       }
 
+      // Fetch author profiles
       if (formattedPosts.length > 0) {
         const userIds = formattedPosts.map(post => post.user_id);
-        // Update this query to also select avatar_url
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, full_name, user_type, avatar_url')
@@ -128,7 +145,7 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
             profileMap.set(profile.id, {
               full_name: profile.full_name,
               user_type: profile.user_type,
-              avatar_url: profile.avatar_url // Include avatar URL in the profile information
+              avatar_url: profile.avatar_url
             });
           });
           
@@ -140,30 +157,57 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
         }
       }
       
-      // Get current user from supabase
-      const { data: { user } } = await supabase.auth.getUser();
+      // Apply privacy filtering if enabled
+      let finalPosts = sortedPosts;
+      if (options.respectPrivacy) {
+        // Fetch user context for privacy filtering
+        let followings: string[] = [];
+        let userProfile: { user_type: string | null } | null = null;
+        
+        if (user) {
+          followings = await fetchUserFollowings(user.id);
+          userProfile = await fetchUserProfile(user.id);
+          setUserFollowings(followings);
+          setUserProfile(userProfile);
+        }
+        
+        const privacyContext: PrivacyContext = {
+          currentUserId: user?.id,
+          userFollowings: followings,
+          userType: userProfile?.user_type,
+          isCoach: userProfile?.user_type === 'coach'
+        };
+        
+        finalPosts = sanitizePostsForUser(sortedPosts, privacyContext);
+      }
       
       // If personalization is enabled and user is logged in
-      if (options.personalize && user) {
-        // Fetch user followings and profile for personalization context
-        const followings = await fetchUserFollowings(user.id);
-        const profile = await fetchUserProfile(user.id);
+      if (options.personalize && user && finalPosts.length > 0) {
+        // Fetch user followings and profile for personalization context if not already done
+        let followings = userFollowings;
+        let profile = userProfile;
         
-        setUserFollowings(followings);
-        setUserProfile(profile);
+        if (followings.length === 0) {
+          followings = await fetchUserFollowings(user.id);
+          setUserFollowings(followings);
+        }
         
-        const personalizationContext: PersonalizationContext = {
+        if (!profile) {
+          profile = await fetchUserProfile(user.id);
+          setUserProfile(profile);
+        }
+        
+        const personalizationContext = {
           currentUserId: user.id,
           userFollowings: followings,
           userType: profile?.user_type
         };
         
         // Personalize the feed
-        const personalizedPosts = personalizePostFeed(sortedPosts, personalizationContext);
+        const personalizedPosts = personalizePostFeed(finalPosts, personalizationContext);
         setPosts(personalizedPosts);
       } else {
-        // If no personalization or not logged in, just show the posts in sorted order
-        setPosts(sortedPosts);
+        setPosts(finalPosts);
       }
       
     } catch (error) {
@@ -172,7 +216,7 @@ export const usePosts = (options: UsePostsOptions = { personalize: true, sortBy:
     } finally {
       setIsLoading(false);
     }
-  }, [options.personalize, options.sortBy]);
+  }, [options.personalize, options.sortBy, options.respectPrivacy, userFollowings, userProfile]);
 
   useEffect(() => {
     fetchPosts();

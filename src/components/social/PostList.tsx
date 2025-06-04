@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import LikeButton from '@/components/social/LikeButton';
@@ -11,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loading } from '@/components/ui/loading';
 import { PostActions } from './PostActions';
+import { PrivacyIndicator } from './PrivacyIndicator';
 
 interface PostListProps {
   posts: Post[];
@@ -76,7 +76,7 @@ const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListPr
                   >
                     <span className="group-hover:text-primary transition-colors">{post.author?.full_name || 'Anonymous'}</span>
                   </Link>
-                  <p className="text-xs md:text-sm text-muted-foreground truncate flex items-center gap-1">
+                  <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground truncate">
                     <span className={post.author?.user_type === 'coach' ? "text-tennis-accent font-medium" : ""}>
                       {post.author?.user_type === 'coach' ? 'Coach' : 'Player'}
                     </span> 
@@ -84,7 +84,13 @@ const PostList = ({ posts, currentUserId, isLoading, onPostUpdated }: PostListPr
                     <span>
                       {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
                     </span>
-                  </p>
+                    {post.privacy_level && (
+                      <>
+                        <span>·</span>
+                        <PrivacyIndicator privacyLevel={post.privacy_level} />
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
