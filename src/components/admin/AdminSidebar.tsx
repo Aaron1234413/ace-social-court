@@ -7,7 +7,7 @@ import {
   MessageSquare, 
   FileText,
   MapPin,
-  Flag
+  UserCheck
 } from 'lucide-react';
 
 export function AdminSidebar() {
@@ -23,6 +23,9 @@ export function AdminSidebar() {
         </NavItem>
         <NavItem to="/admin/users" icon={<Users size={20} />}>
           Users
+        </NavItem>
+        <NavItem to="/admin/ambassadors" icon={<UserCheck size={20} />}>
+          Ambassadors
         </NavItem>
         <NavItem to="/admin/content" icon={<FileText size={20} />}>
           Content
