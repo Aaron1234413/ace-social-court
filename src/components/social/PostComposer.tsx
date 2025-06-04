@@ -37,6 +37,9 @@ import { ContextPromptEngine } from '@/services/ContextPromptEngine';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { MatchPrivacySelector, MatchPrivacyLevel } from './MatchPrivacySelector';
 import { MatchContentTemplateService } from '@/services/MatchContentTemplateService';
+import { useEnhancedAutoPostGeneration } from '@/hooks/useEnhancedAutoPostGeneration';
+import { EnhancedMatchSuggestions } from './EnhancedMatchSuggestions';
+import { EnhancedPostSuggestion } from '@/services/EnhancedAutoPostService';
 
 const postSchema = z.object({
   content: z.string().min(3, { message: "Post content must be at least 3 characters." }),
@@ -316,6 +319,32 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     matchPrivacyLevel
   });
 
+  const { 
+    suggestions: enhancedSuggestions, 
+    isGenerating: isEnhancedGenerating, 
+    generateMatchSuggestions,
+    generateSessionSuggestions 
+  } = useEnhancedAutoPostGeneration();
+
+  // Generate enhanced suggestions when match data is available
+  useEffect(() => {
+    if (matchData && user) {
+      generateMatchSuggestions(matchData);
+    } else if (sessionData && user) {
+      generateSessionSuggestions(sessionData);
+    }
+  }, [matchData, sessionData, user, generateMatchSuggestions, generateSessionSuggestions]);
+
+  const handleEnhancedSuggestionSelect = (suggestion: EnhancedPostSuggestion) => {
+    form.setValue('content', suggestion.content);
+    form.setValue('privacy_level', suggestion.privacyLevel);
+    
+    // If it's a match suggestion, also update the match privacy level
+    if (matchData && suggestion.context === 'match') {
+      setMatchPrivacyLevel(suggestion.matchPrivacyLevel);
+    }
+  };
+
   return (
     <Card className={`border border-gray-200 shadow-lg bg-white ${className}`}>
       <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -385,8 +414,17 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                 </div>
               )}
 
-              {/* AI Suggestions Section */}
-              {suggestions.length > 0 && (
+              {/* Enhanced AI Suggestions Section - Replace the old one */}
+              {matchData && enhancedSuggestions.length > 0 && (
+                <EnhancedMatchSuggestions
+                  suggestions={enhancedSuggestions}
+                  onSuggestionSelect={handleEnhancedSuggestionSelect}
+                  isGenerating={isEnhancedGenerating}
+                />
+              )}
+
+              {/* Keep old suggestions for session data */}
+              {!matchData && suggestions.length > 0 && (
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-5 border border-purple-200">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -396,7 +434,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                       <div>
                         <span className="font-semibold text-purple-900">AI Suggestions</span>
                         <Badge variant="outline" className="text-xs ml-2">
-                          Based on your {sessionData ? 'session' : matchData ? 'match' : 'activity'}
+                          Based on your {sessionData ? 'session' : 'activity'}
                         </Badge>
                       </div>
                     </div>

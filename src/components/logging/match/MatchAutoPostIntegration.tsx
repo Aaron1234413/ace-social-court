@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { PostComposer } from '@/components/social/PostComposer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Target, Brain, Zap, Star, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { MatchContentTemplateService } from '@/services/MatchContentTemplateService';
+import { useEnhancedAutoPostGeneration } from '@/hooks/useEnhancedAutoPostGeneration';
 
 interface MatchAutoPostIntegrationProps {
   matchData: any;
@@ -16,6 +16,7 @@ export function MatchAutoPostIntegration({
   onPostCreated 
 }: MatchAutoPostIntegrationProps) {
   const [previewContent, setPreviewContent] = useState<string>('');
+  const { suggestions, isGenerating } = useEnhancedAutoPostGeneration();
   
   // Check if we have match result data
   const hasMatchData = matchData?.match_outcome || matchData?.score || matchData?.opponent_name;
@@ -112,7 +113,7 @@ export function MatchAutoPostIntegration({
           </div>
         </CardHeader>
         <CardContent>
-          {/* Privacy Level Education */}
+          {/* Enhanced Educational Tip */}
           <div className="mb-4 p-3 bg-white/80 rounded-lg border border-gray-100">
             <h4 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
               <Zap className="h-4 w-4 text-blue-500" />
@@ -133,7 +134,7 @@ export function MatchAutoPostIntegration({
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Choose how much you want to share - from just the vibe to your complete match breakdown!
+              AI will generate contextually appropriate content based on your match outcome and data completeness.
             </p>
           </div>
 
