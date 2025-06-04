@@ -24,23 +24,23 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   console.log("MainLayout rendering, user:", user ? "authenticated" : "unauthenticated", "path:", location.pathname);
   
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider defaultOpen={false}>
       <div className="flex min-h-screen w-full">
         {/* Tennis-themed background pattern */}
-        <div className="absolute inset-0 court-pattern opacity-[0.03] pointer-events-none -z-10"></div>
+        <div className="absolute inset-0 court-pattern opacity-[0.02] pointer-events-none -z-10"></div>
         
-        {/* Tennis ball glow effects */}
-        <div className="absolute top-20 right-20 w-40 h-40 bg-tennis-highlight/10 rounded-full blur-3xl -z-10 animate-pulse-subtle"></div>
-        <div className="absolute bottom-20 left-20 w-40 h-40 bg-tennis-green/10 rounded-full blur-3xl -z-10 animate-pulse-subtle"></div>
-        <div className="absolute top-1/2 left-1/4 w-32 h-32 bg-tennis-clay/5 rounded-full blur-3xl -z-10 animate-pulse-subtle"></div>
+        {/* Tennis ball glow effects - reduced opacity */}
+        <div className="absolute top-20 right-20 w-32 h-32 bg-tennis-highlight/5 rounded-full blur-3xl -z-10 animate-pulse-subtle"></div>
+        <div className="absolute bottom-20 left-20 w-32 h-32 bg-tennis-green/5 rounded-full blur-3xl -z-10 animate-pulse-subtle"></div>
+        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-tennis-clay/3 rounded-full blur-3xl -z-10 animate-pulse-subtle"></div>
         
-        {/* Sidebar (desktop only) */}
+        {/* Sidebar (desktop only) - collapsed by default */}
         {user && <AppSidebar />}
         
-        <div className="flex flex-col flex-grow">
+        <div className="flex flex-col flex-grow min-w-0">
           <Navigation />
           
-          <main className="flex-grow pb-16 md:pb-0 relative">
+          <main className="flex-grow pb-16 md:pb-0 relative px-2 sm:px-4">
             {children || <Outlet />}
           </main>
           

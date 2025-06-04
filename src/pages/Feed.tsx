@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -106,9 +107,9 @@ const Feed = () => {
   const cacheStats = previewService.getCacheStats();
 
   return (
-    <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
-      <div className="flex items-center justify-between mb-4 md:mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold">Social Feed</h1>
+    <div className="max-w-3xl w-full mx-auto py-4 md:py-6">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl md:text-2xl font-bold">Social Feed</h1>
         
         {user && (
           <div className="flex items-center space-x-2">
@@ -132,33 +133,33 @@ const Feed = () => {
       </div>
 
       {showPerformanceMetrics && (
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <Card className="mb-4">
+          <CardContent className="p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
-                <div className="font-medium">Load Time</div>
-                <div className="text-muted-foreground">{performanceMetrics.loadTime}ms</div>
+                <div className="font-medium text-xs">Load Time</div>
+                <div className="text-muted-foreground text-xs">{performanceMetrics.loadTime}ms</div>
               </div>
               <div>
-                <div className="font-medium">Frame Rate</div>
-                <div className="text-muted-foreground">{performanceMetrics.frameRate} FPS</div>
+                <div className="font-medium text-xs">Frame Rate</div>
+                <div className="text-muted-foreground text-xs">{performanceMetrics.frameRate} FPS</div>
               </div>
               <div>
-                <div className="font-medium">Memory</div>
-                <div className="text-muted-foreground">{performanceMetrics.memoryUsage}MB</div>
+                <div className="font-medium text-xs">Memory</div>
+                <div className="text-muted-foreground text-xs">{performanceMetrics.memoryUsage}MB</div>
               </div>
               <div>
-                <div className="font-medium">Ambassador %</div>
-                <div className="text-muted-foreground">{Math.round(ambassadorPercentage * 100)}%</div>
+                <div className="font-medium text-xs">Ambassador %</div>
+                <div className="text-muted-foreground text-xs">{Math.round(ambassadorPercentage * 100)}%</div>
               </div>
             </div>
             {metrics.length > 0 && (
-              <div className="mt-3 pt-3 border-t">
-                <div className="text-xs font-medium mb-2">Query Cascade</div>
-                <div className="flex gap-2 text-xs">
+              <div className="mt-2 pt-2 border-t">
+                <div className="text-xs font-medium mb-1">Query Cascade</div>
+                <div className="flex gap-1 text-xs flex-wrap">
                   {metrics.map((metric, index) => (
-                    <span key={index} className="bg-muted px-2 py-1 rounded">
-                      {metric.level}: {metric.postCount} posts
+                    <span key={index} className="bg-muted px-1.5 py-0.5 rounded text-xs">
+                      {metric.level}: {metric.postCount}
                     </span>
                   ))}
                 </div>
@@ -169,32 +170,32 @@ const Feed = () => {
       )}
 
       {showCacheStats && (
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <Card className="mb-4">
+          <CardContent className="p-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
-                <div className="font-medium">Cache Entries</div>
-                <div className="text-muted-foreground">{cacheStats.totalEntries}</div>
+                <div className="font-medium text-xs">Cache Entries</div>
+                <div className="text-muted-foreground text-xs">{cacheStats.totalEntries}</div>
               </div>
               <div>
-                <div className="font-medium">Memory Usage</div>
-                <div className="text-muted-foreground">{cacheStats.memoryUsage}KB</div>
+                <div className="font-medium text-xs">Memory Usage</div>
+                <div className="text-muted-foreground text-xs">{cacheStats.memoryUsage}KB</div>
               </div>
               <div>
-                <div className="font-medium">Cache Fill</div>
-                <div className="text-muted-foreground">{cacheStats.fillPercentage}%</div>
+                <div className="font-medium text-xs">Cache Fill</div>
+                <div className="text-muted-foreground text-xs">{cacheStats.fillPercentage}%</div>
               </div>
               <div>
-                <div className="font-medium">Max Size</div>
-                <div className="text-muted-foreground">{cacheStats.maxSize}</div>
+                <div className="font-medium text-xs">Max Size</div>
+                <div className="text-muted-foreground text-xs">{cacheStats.maxSize}</div>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t flex gap-2">
+            <div className="mt-2 pt-2 border-t flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => previewService.clearCache()}
-                className="text-xs"
+                className="text-xs h-7"
               >
                 Clear Cache
               </Button>
@@ -204,21 +205,21 @@ const Feed = () => {
       )}
       
       {user && (
-        <div className="mb-5 overflow-x-auto pb-1">
+        <div className="mb-4 overflow-x-auto pb-1">
           <ToggleGroup 
             type="single" 
             value={sortOption}
             onValueChange={handleSortChange}
             className="justify-start whitespace-nowrap"
           >
-            <ToggleGroupItem value="recent" aria-label="Sort by recent">
-              <Clock className="h-4 w-4 mr-1" /> Recent
+            <ToggleGroupItem value="recent" aria-label="Sort by recent" className="text-xs">
+              <Clock className="h-3 w-3 mr-1" /> Recent
             </ToggleGroupItem>
-            <ToggleGroupItem value="popular" aria-label="Sort by likes">
-              <Heart className="h-4 w-4 mr-1" /> Popular
+            <ToggleGroupItem value="popular" aria-label="Sort by likes" className="text-xs">
+              <Heart className="h-3 w-3 mr-1" /> Popular
             </ToggleGroupItem>
-            <ToggleGroupItem value="commented" aria-label="Sort by comments">
-              <MessageSquare className="h-4 w-4 mr-1" /> Discussed
+            <ToggleGroupItem value="commented" aria-label="Sort by comments" className="text-xs">
+              <MessageSquare className="h-3 w-3 mr-1" /> Discussed
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
@@ -226,7 +227,7 @@ const Feed = () => {
       
       {user ? (
         <>
-          <div className="mb-6">
+          <div className="mb-4">
             <PostComposer onSuccess={refresh} />
           </div>
           
@@ -235,16 +236,16 @@ const Feed = () => {
           ) : (
             <>
               {posts.length === 0 && (
-                <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-8 text-center border border-muted shadow-inner mb-6">
+                <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-6 text-center border border-muted shadow-inner mb-4">
                   <div className="max-w-md mx-auto">
-                    <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">
-                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                    <div className="bg-muted/50 p-3 rounded-full inline-block mb-3">
+                      <MessageSquare className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <h3 className="text-lg font-medium mb-2">Building your feed...</h3>
-                    <p className="text-sm md:text-base text-muted-foreground mb-4">
+                    <p className="text-sm text-muted-foreground mb-4">
                       We're setting up inspiring content from our Rally Ambassadors while you build your network.
                     </p>
-                    <Button onClick={() => window.location.href = '/search'} variant="outline">
+                    <Button onClick={() => window.location.href = '/search'} variant="outline" size="sm">
                       Find People to Follow
                     </Button>
                   </div>
@@ -255,7 +256,7 @@ const Feed = () => {
                 <VirtualizedList
                   items={posts}
                   renderItem={(post, index) => (
-                    <div className="mb-6">
+                    <div className="mb-4">
                       <FeedBubble
                         post={post}
                         currentUserId={user.id}
@@ -268,7 +269,7 @@ const Feed = () => {
                       />
                     </div>
                   )}
-                  itemHeight={250}
+                  itemHeight={200}
                   containerHeight={600}
                   onLoadMore={loadMore}
                   hasMore={hasMore}
@@ -281,8 +282,8 @@ const Feed = () => {
           )}
         </>
       ) : (
-        <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
-          <p className="text-base md:text-lg mb-4">Please log in to view the social feed</p>
+        <div className="bg-gray-100 rounded-lg p-6 text-center">
+          <p className="text-base mb-4">Please log in to view the social feed</p>
           <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
         </div>
       )}
