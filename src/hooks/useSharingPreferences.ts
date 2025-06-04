@@ -114,9 +114,12 @@ export function useSharingPreferences() {
       .sort(([,a], [,b]) => b - a)[0]?.[0] as MatchPrivacyLevel || 'summary';
 
     // Fix: Ensure we're doing division with numbers and handle edge cases
-    const totalMatchPosts = matchPosts.length;
-    const winShareRate = totalMatchPosts > 0 ? winPosts.length / totalMatchPosts : 0.7;
-    const lossShareRate = totalMatchPosts > 0 ? lossPosts.length / totalMatchPosts : 0.3;
+    const totalMatchPosts = Number(matchPosts.length);
+    const winPostsCount = Number(winPosts.length);
+    const lossPostsCount = Number(lossPosts.length);
+    
+    const winShareRate = totalMatchPosts > 0 ? winPostsCount / totalMatchPosts : 0.7;
+    const lossShareRate = totalMatchPosts > 0 ? lossPostsCount / totalMatchPosts : 0.3;
 
     return {
       totalPosts: posts.length,
