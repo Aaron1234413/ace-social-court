@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +16,8 @@ import {
   XCircle,
   UserCheck,
   BookOpen,
-  Star
+  Star,
+  Bell
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -25,6 +25,7 @@ import { useRealtimeDashboard } from '@/hooks/use-realtime-dashboard';
 import { toast } from 'sonner';
 import { PriorityStudents } from './coach/PriorityStudents';
 import { RecentActiveStudents } from './coach/RecentActiveStudents';
+import { SmartAlerts } from './coach/SmartAlerts';
 
 const CoachDashboard = () => {
   const { user } = useAuth();
@@ -115,7 +116,7 @@ const CoachDashboard = () => {
         onValueChange={setActiveTab}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto h-12 md:h-14 p-1 bg-gray-100 rounded-2xl shadow-inner">
+        <TabsList className="grid w-full grid-cols-4 max-w-3xl mx-auto h-12 md:h-14 p-1 bg-gray-100 rounded-2xl shadow-inner">
           <TabsTrigger 
             value="lessons" 
             className="rounded-xl h-10 md:h-12 font-semibold text-xs md:text-sm transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-primary data-[state=active]:scale-[1.02] px-2 md:px-4"
@@ -129,6 +130,13 @@ const CoachDashboard = () => {
           >
             <Users className="h-4 w-4 mr-1 md:mr-2" />
             <span className="hidden sm:inline">Student</span> Activity
+          </TabsTrigger>
+          <TabsTrigger 
+            value="alerts"
+            className="rounded-xl h-10 md:h-12 font-semibold text-xs md:text-sm transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-primary data-[state=active]:scale-[1.02] px-2 md:px-4"
+          >
+            <Bell className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Smart</span> Alerts
           </TabsTrigger>
           <TabsTrigger 
             value="growth"
@@ -224,6 +232,11 @@ const CoachDashboard = () => {
               <RecentActiveStudents onToggleStar={handleToggleStar} />
             </div>
           </div>
+        </TabsContent>
+
+        {/* Smart Alerts Tab */}
+        <TabsContent value="alerts" className="mt-6">
+          <SmartAlerts />
         </TabsContent>
 
         {/* Growth Hub Tab */}
