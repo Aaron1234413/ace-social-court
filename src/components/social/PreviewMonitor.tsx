@@ -140,10 +140,10 @@ export function PreviewMonitor() {
         {/* Status Indicators */}
         <div className="flex flex-wrap gap-2 pt-4 border-t">
           <Badge variant={stats.avgResponseTime < 300 ? "default" : "destructive"}>
-            {stats.avgResponseTime < 300 ? "✅" : "⚠️"} Response Time Goal: <300ms
+            {stats.avgResponseTime < 300 ? "✅" : "⚠️"} Response Time Goal: &lt;300ms
           </Badge>
           <Badge variant={stats.hitRate > 80 ? "default" : "destructive"}>
-            {stats.hitRate > 80 ? "✅" : "⚠️"} Cache Hit Rate Goal: >80%
+            {stats.hitRate > 80 ? "✅" : "⚠️"} Cache Hit Rate Goal: &gt;80%
           </Badge>
           <Badge variant="default">
             ✅ No Stale Data (TTL: 5min)
