@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -35,9 +35,16 @@ export default function PhysicalTracker({
     notes: initialData.notes || ''
   });
 
+  // Only call onDataChange when data actually changes, not on every render
+  useEffect(() => {
+    if (data.energyLevel || data.notes || 
+        data.courtCoverage !== 5 || data.endurance !== 5 || data.strengthFeeling !== 5) {
+      onDataChange(data);
+    }
+  }, [data, onDataChange]);
+
   const updateData = (updates: Partial<PhysicalData>) => {
-    const newData = { ...data, ...updates };
-    setData(newData);
+    setData(prev => ({ ...prev, ...updates }));
   };
 
   const handleEnergySelect = (value: string) => {
@@ -46,10 +53,6 @@ export default function PhysicalTracker({
 
   const handleSliderChange = (field: keyof PhysicalData, value: number[]) => {
     updateData({ [field]: value[0] });
-  };
-
-  const handleComplete = () => {
-    onDataChange(data);
   };
 
   const handleAISuggestion = (suggestion: string) => {
@@ -103,6 +106,7 @@ export default function PhysicalTracker({
                     : 'hover:scale-105 bg-white shadow-md hover:shadow-lg border-2'
                 }`}
                 onClick={() => handleEnergySelect(option.value)}
+                type="button"
               >
                 <span className="text-2xl">{option.emoji}</span>
                 <span className="text-sm font-medium">{option.label}</span>
@@ -204,18 +208,6 @@ export default function PhysicalTracker({
           />
         </CardContent>
       </Card>
-
-      {/* Complete Button */}
-      <div className="flex justify-center pt-4">
-        <Button
-          onClick={handleComplete}
-          disabled={!isValid}
-          size="lg"
-          className="w-full max-w-md bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white shadow-lg"
-        >
-          Complete Physical Tracking
-        </Button>
-      </div>
     </div>
   );
 }
