@@ -1,14 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { CreatePostForm } from '@/components/social/CreatePostForm';
 import { PostComposer } from '@/components/social/PostComposer';
-import PostList from '@/components/social/PostList';
-import { usePosts } from '@/hooks/use-posts';
+import { VirtualizedList } from '@/components/social/VirtualizedList';
+import { usePostsPaginated } from '@/hooks/use-posts-paginated';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { usePerformanceMonitoring } from '@/utils/performanceMonitor';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { MessageSquare, Heart, Clock } from 'lucide-react';
+import { MessageSquare, Heart, Clock, Activity } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
@@ -21,6 +24,31 @@ const Feed = () => {
   const [personalized, setPersonalized] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [useSimpleComposer, setUseSimpleComposer] = useState(false);
+  const [showPerformance, setShowPerformance] = useState(false);
+  
+  const { report: reportPerformance, getSummary } = usePerformanceMonitoring();
+  
+  // Initialize paginated posts hook
+  const { fetchPostPage, userFollowings } = usePostsPaginated({
+    personalize: personalized,
+    sortBy: sortOption,
+    respectPrivacy: true,
+    pageSize: 10
+  });
+  
+  // Initialize infinite scroll
+  const {
+    posts,
+    isLoading,
+    hasMore,
+    loadMore,
+    refresh,
+    totalPosts
+  } = useInfiniteScroll({
+    pageSize: 10,
+    onLoadMore: fetchPostPage,
+    maxPages: 50
+  });
   
   // Debug logging for Feed component
   useEffect(() => {
@@ -36,12 +64,6 @@ const Feed = () => {
       });
     };
   }, [location.pathname, user, profile]);
-  
-  const { posts, isLoading, fetchPosts, userFollowings } = usePosts({ 
-    personalize: personalized,
-    sortBy: sortOption,
-    respectPrivacy: true // Enable privacy filtering with smart fallbacks
-  });
 
   useEffect(() => {
     // Initialize storage in the background without blocking UI
@@ -72,6 +94,12 @@ const Feed = () => {
     }
   }, [user, profile, isProfileComplete, userFollowings]);
 
+  // Load initial posts when options change
+  useEffect(() => {
+    console.log('Feed options changed, refreshing...', { personalized, sortOption });
+    refresh();
+  }, [personalized, sortOption, refresh]);
+
   const togglePersonalization = () => {
     setPersonalized(!personalized);
   };
@@ -84,7 +112,15 @@ const Feed = () => {
 
   const handlePostUpdated = () => {
     console.log("Feed: Post updated, refreshing posts");
-    fetchPosts();
+    refresh();
+  };
+
+  // Performance monitoring toggle
+  const togglePerformanceMonitoring = () => {
+    setShowPerformance(!showPerformance);
+    if (!showPerformance) {
+      reportPerformance();
+    }
   };
 
   return (
@@ -111,6 +147,20 @@ const Feed = () => {
               />
               <Label htmlFor="personalized">Personalized</Label>
             </div>
+
+            {process.env.NODE_ENV === 'development' && (
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="performance" 
+                  checked={showPerformance}
+                  onCheckedChange={togglePerformanceMonitoring}
+                />
+                <Label htmlFor="performance" className="text-sm flex items-center gap-1">
+                  <Activity className="h-3 w-3" />
+                  Perf
+                </Label>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -135,50 +185,65 @@ const Feed = () => {
           </ToggleGroup>
         </div>
       )}
+
+      {/* Performance metrics display */}
+      {showPerformance && process.env.NODE_ENV === 'development' && (
+        <div className="mb-4 p-3 bg-gray-100 rounded-lg text-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <Activity className="h-4 w-4" />
+            <span className="font-medium">Performance Metrics</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div>Posts: {totalPosts}</div>
+            <div>Memory: {getSummary()?.currentMemory?.toFixed(1) || 'N/A'}MB</div>
+            <div>Render: {getSummary()?.avgRenderTime?.toFixed(1) || 'N/A'}ms</div>
+            <div>Status: {getSummary() ? '✅' : '⏳'}</div>
+          </div>
+        </div>
+      )}
       
       {user ? (
         <>
           <div className="mb-6">
             {useSimpleComposer ? (
-              <PostComposer onSuccess={fetchPosts} />
+              <PostComposer onSuccess={refresh} />
             ) : (
-              <CreatePostForm onSuccess={fetchPosts} />
+              <CreatePostForm onSuccess={refresh} />
             )}
           </div>
           
-          {isLoading ? (
-            <Loading variant="skeleton" count={3} text="Loading posts..." />
-          ) : (
-            <>
-              {posts.length === 0 && (
-                <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-8 text-center border border-muted shadow-inner mb-6">
-                  <div className="max-w-md mx-auto">
-                    <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">
-                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-medium mb-2">Welcome to your feed!</h3>
-                    <p className="text-sm md:text-base text-muted-foreground mb-4">
-                      {userFollowings?.length === 0 
-                        ? "Start following other players to see their posts, or create your first post to get started!"
-                        : "Your followed users haven't posted recently. Check back later or explore public content!"
-                      }
-                    </p>
-                    {userFollowings?.length === 0 && (
-                      <Button onClick={() => window.location.href = '/search'} variant="outline">
-                        Find People to Follow
-                      </Button>
-                    )}
-                  </div>
+          {posts.length === 0 && !isLoading ? (
+            <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-8 text-center border border-muted shadow-inner mb-6">
+              <div className="max-w-md mx-auto">
+                <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">
+                  <MessageSquare className="h-8 w-8 text-muted-foreground" />
                 </div>
-              )}
-              
-              <PostList 
+                <h3 className="text-lg font-medium mb-2">Welcome to your feed!</h3>
+                <p className="text-sm md:text-base text-muted-foreground mb-4">
+                  {userFollowings?.length === 0 
+                    ? "Start following other players to see their posts, or create your first post to get started!"
+                    : "Your followed users haven't posted recently. Check back later or explore public content!"
+                  }
+                </p>
+                {userFollowings?.length === 0 && (
+                  <Button onClick={() => window.location.href = '/search'} variant="outline">
+                    Find People to Follow
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="h-[600px] md:h-[800px]">
+              <VirtualizedList
                 posts={posts}
                 currentUserId={user.id}
-                isLoading={false}
                 onPostUpdated={handlePostUpdated}
+                onLoadMore={loadMore}
+                hasMore={hasMore}
+                isLoading={isLoading}
+                className="h-full"
               />
-            </>
+            </div>
           )}
         </>
       ) : (
