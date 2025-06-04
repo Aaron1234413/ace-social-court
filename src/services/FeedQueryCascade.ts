@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
 
@@ -204,6 +203,7 @@ export class FeedQueryCascade {
         .in('privacy_level', ['public', 'friends', 'public_highlights'])
         .order('created_at', { ascending: false })
         .range(offset, offset + this.POSTS_PER_PAGE - 1)
+        .then(res => res)
     );
 
     if (error) {
