@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { Outlet } from 'react-router-dom';
 import Navigation from './Navigation';
 import { Toaster } from '@/components/ui/sonner';
 import BottomNav from './navigation/BottomNav';
@@ -9,7 +10,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { useLocation } from 'react-router-dom';
 
 interface MainLayoutProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
@@ -40,7 +41,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <Navigation />
           
           <main className="flex-grow pb-16 md:pb-0 relative">
-            {children}
+            {children || <Outlet />}
           </main>
           
           {/* Bottom navigation for mobile */}

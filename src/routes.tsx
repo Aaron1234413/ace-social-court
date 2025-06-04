@@ -33,7 +33,7 @@ const AdminAmbassadors = lazy(() => import("./pages/admin/AdminAmbassadors"));
 export const routes = createBrowserRouter([
   {
     path: "/",
-    element: <MainLayout />,
+    element: <MainLayout><div /></MainLayout>,
     errorElement: <NotFound />,
     children: [
       {
