@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -38,9 +38,15 @@ export default function TechnicalTracker({
     drillSuggestions: initialData.drillSuggestions || []
   });
 
+  // Only call onDataChange when data actually changes, not on every render
+  useEffect(() => {
+    if (Object.keys(data.selectedStrokes).length > 0 || data.notes || (data.drillSuggestions && data.drillSuggestions.length > 0)) {
+      onDataChange(data);
+    }
+  }, [data, onDataChange]);
+
   const updateData = (updates: Partial<TechnicalData>) => {
-    const newData = { ...data, ...updates };
-    setData(newData);
+    setData(prev => ({ ...prev, ...updates }));
   };
 
   const handleStrokeToggle = (strokeName: string) => {
@@ -59,10 +65,6 @@ export default function TechnicalTracker({
       newStrokes[strokeName] = { ...newStrokes[strokeName], notes };
     }
     updateData({ selectedStrokes: newStrokes });
-  };
-
-  const handleComplete = () => {
-    onDataChange(data);
   };
 
   const handleAISuggestion = (suggestion: string) => {
@@ -138,6 +140,7 @@ export default function TechnicalTracker({
                         : 'hover:scale-105 bg-white shadow-md hover:shadow-lg border-2'
                     }`}
                     onClick={() => handleStrokeToggle(stroke.name)}
+                    type="button"
                   >
                     {stroke.name}
                   </Button>
@@ -218,18 +221,6 @@ export default function TechnicalTracker({
           />
         </CardContent>
       </Card>
-
-      {/* Complete Button */}
-      <div className="flex justify-center pt-4">
-        <Button
-          onClick={handleComplete}
-          disabled={!isValid}
-          size="lg"
-          className="w-full max-w-md bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-lg"
-        >
-          Complete Technical Tracking
-        </Button>
-      </div>
     </div>
   );
 }
