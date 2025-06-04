@@ -25,6 +25,7 @@ export function CreatePostForm({ onSuccess }: CreatePostFormProps) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const {
@@ -108,6 +109,7 @@ export function CreatePostForm({ onSuccess }: CreatePostFormProps) {
           privacy_level: privacyLevel,
           media_url: mediaUrl,
           media_type: mediaType,
+          template_id: selectedTemplateId || null,
         });
 
       if (error) throw error;
@@ -115,6 +117,7 @@ export function CreatePostForm({ onSuccess }: CreatePostFormProps) {
       // Reset form
       setContent('');
       setPrivacyLevel(followingCount >= 3 ? 'public' : 'private');
+      setSelectedTemplateId(undefined);
       removeMedia();
       setShowTemplates(false);
       
@@ -129,8 +132,14 @@ export function CreatePostForm({ onSuccess }: CreatePostFormProps) {
     }
   };
 
-  const handleTemplateSelect = (template: { content_template: string; placeholders?: string[] }) => {
-    setContent(template.content_template);
+  const handleTemplateSelect = (template: any) => {
+    if (template) {
+      setContent(template.content_template);
+      setSelectedTemplateId(template.id);
+    } else {
+      setContent('');
+      setSelectedTemplateId(undefined);
+    }
     setShowTemplates(false);
   };
 
@@ -211,7 +220,10 @@ export function CreatePostForm({ onSuccess }: CreatePostFormProps) {
 
           {/* Post Templates */}
           {showTemplates && (
-            <PostTemplateSelector onSelectTemplate={handleTemplateSelect} />
+            <PostTemplateSelector 
+              selectedTemplateId={selectedTemplateId}
+              onTemplateSelect={handleTemplateSelect}
+            />
           )}
 
           {/* Actions */}

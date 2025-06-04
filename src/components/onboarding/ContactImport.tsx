@@ -52,38 +52,27 @@ export function ContactImport({ isOpen, onClose, onFollowSuccess }: ContactImpor
         return;
       }
 
-      // Search for users by email using a database function
-      const { data, error } = await supabase.rpc('search_users_by_email', {
-        email_query: emailList.join('|')
-      });
+      // Search for users by matching usernames that look like emails
+      // Note: This is a simplified approach since we can't access auth.users directly
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, user_type')
+        .in('username', emailList)
+        .limit(50);
 
       if (error) throw error;
 
-      // Get profile information for found users
-      if (data && data.length > 0) {
-        const userIds = data.map((user: any) => user.user_id);
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type')
-          .in('id', userIds);
+      const contactsWithEmails = profiles?.map(profile => ({
+        ...profile,
+        email: profile.username || 'unknown@email.com'
+      })) || [];
 
-        if (profileError) throw profileError;
-
-        const contactsWithProfiles = profiles?.map(profile => ({
-          ...profile,
-          email: data.find((user: any) => user.user_id === profile.id)?.email || ''
-        })) || [];
-
-        setFoundContacts(contactsWithProfiles);
-        
-        if (contactsWithProfiles.length === 0) {
-          toast.info('No users found with those email addresses');
-        } else {
-          toast.success(`Found ${contactsWithProfiles.length} contacts on the platform!`);
-        }
+      setFoundContacts(contactsWithEmails);
+      
+      if (contactsWithEmails.length === 0) {
+        toast.info('No users found with those email addresses. Try searching by username instead.');
       } else {
-        setFoundContacts([]);
-        toast.info('No users found with those email addresses');
+        toast.success(`Found ${contactsWithEmails.length} contacts on the platform!`);
       }
     } catch (error) {
       console.error('Error searching contacts:', error);
@@ -123,7 +112,7 @@ export function ContactImport({ isOpen, onClose, onFollowSuccess }: ContactImpor
             Import Contacts
           </DialogTitle>
           <DialogDescription>
-            Find friends who are already using the tennis app by importing your contacts
+            Find friends who are already using the tennis app
           </DialogDescription>
         </DialogHeader>
 
@@ -136,9 +125,9 @@ export function ContactImport({ isOpen, onClose, onFollowSuccess }: ContactImpor
               >
                 <CardContent className="p-6 text-center">
                   <Mail className="h-8 w-8 mx-auto mb-2 text-primary" />
-                  <h3 className="font-medium">Email List</h3>
+                  <h3 className="font-medium">Email/Username List</h3>
                   <p className="text-sm text-muted-foreground">
-                    Paste or type email addresses
+                    Search by email or username
                   </p>
                 </CardContent>
               </Card>
@@ -161,17 +150,17 @@ export function ContactImport({ isOpen, onClose, onFollowSuccess }: ContactImpor
           {importMethod === 'email' && (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="emails">Email Addresses</Label>
+                <Label htmlFor="emails">Email Addresses or Usernames</Label>
                 <Textarea
                   id="emails"
-                  placeholder="Enter email addresses (one per line or comma-separated)"
+                  placeholder="Enter email addresses or usernames (one per line or comma-separated)"
                   value={emails}
                   onChange={(e) => setEmails(e.target.value)}
                   rows={8}
                   className="mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Example: friend@email.com, another@example.com
+                  Example: friend@email.com, tennisplayer123
                 </p>
               </div>
 
@@ -279,7 +268,7 @@ export function ContactImport({ isOpen, onClose, onFollowSuccess }: ContactImpor
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              We respect your privacy. Email addresses are only used to find existing users and are not stored or shared.
+              We respect your privacy. Contact information is only used to find existing users and is not stored.
             </AlertDescription>
           </Alert>
         </div>
