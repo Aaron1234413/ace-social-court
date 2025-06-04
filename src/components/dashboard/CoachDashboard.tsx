@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +22,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRealtimeDashboard } from '@/hooks/use-realtime-dashboard';
 import { toast } from 'sonner';
+import { PriorityStudents } from './coach/PriorityStudents';
+import { RecentActiveStudents } from './coach/RecentActiveStudents';
 
 const CoachDashboard = () => {
   const { user } = useAuth();
@@ -31,6 +32,49 @@ const CoachDashboard = () => {
   
   // Set up real-time subscriptions
   useRealtimeDashboard();
+
+  // Handle starring/unstarring students
+  const handleToggleStar = async (studentId: string) => {
+    try {
+      // Get current starred students
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('starred_students')
+        .eq('id', user?.id)
+        .single();
+      
+      const currentStarred = profileData?.starred_students || [];
+      const isStarred = currentStarred.includes(studentId);
+      
+      let newStarred;
+      if (isStarred) {
+        newStarred = currentStarred.filter(id => id !== studentId);
+      } else {
+        if (currentStarred.length >= 5) {
+          toast.error('You can only star up to 5 students');
+          return;
+        }
+        newStarred = [...currentStarred, studentId];
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ starred_students: newStarred })
+        .eq('id', user?.id);
+      
+      if (error) throw error;
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['coach-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['starred-students'] });
+      queryClient.invalidateQueries({ queryKey: ['student-activity'] });
+      
+      toast.success(isStarred ? 'Student removed from priority list' : 'Student added to priority list');
+    } catch (error) {
+      console.error('Error toggling star:', error);
+      toast.error('Failed to update student priority');
+    }
+  };
 
   // Real todays lessons from database
   const { data: todaysLessons } = useQuery({
@@ -297,77 +341,17 @@ const CoachDashboard = () => {
 
         {/* Student Activity Tab */}
         <TabsContent value="activity" className="mt-6">
-          <Card className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-                <Users className="h-5 w-5 text-green-600" />
-                Student Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 md:p-6">
-              {studentActivities && studentActivities.length > 0 ? (
-                <div className="space-y-4">
-                  {studentActivities.map((activity) => {
-                    const profile = activity.profiles?.[0];
-                    return (
-                      <div key={activity.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm space-y-3 md:space-y-0">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="p-2 bg-green-100 rounded-lg">
-                            <BookOpen className="h-5 w-5 text-green-600" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-base text-gray-900">
-                              {profile?.username || profile?.full_name || 'Unknown Player'}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              Session on {new Date(activity.session_date).toLocaleDateString()}
-                            </div>
-                            {activity.focus_areas && activity.focus_areas.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {activity.focus_areas.slice(0, 3).map((area, index) => (
-                                  <Badge key={index} variant="secondary" className="text-xs">
-                                    {area}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-2 w-full md:w-auto">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 md:flex-none"
-                            onClick={() => {/* TODO: Navigate to log session for player */}}
-                          >
-                            <Target className="h-4 w-4 mr-1" />
-                            Log Session
-                          </Button>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="flex-1 md:flex-none"
-                            onClick={() => signOffSession.mutate(activity.id)}
-                            disabled={signOffSession.isPending}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Sign Off
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                  <p className="text-base font-medium">No pending student activities</p>
-                  <p className="text-sm mt-1">Student sessions needing review will appear here</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Priority Students - 1/3 width on large screens */}
+            <div className="lg:col-span-1">
+              <PriorityStudents />
+            </div>
+            
+            {/* Recent Active Students - 2/3 width on large screens */}
+            <div className="lg:col-span-2">
+              <RecentActiveStudents onToggleStar={handleToggleStar} />
+            </div>
+          </div>
         </TabsContent>
 
         {/* Growth Hub Tab */}
