@@ -98,7 +98,7 @@ export class ContextPromptEngine {
       return {
         ...structuredPrompt,
         category: 'structured',
-        requiresCoach: userRole !== 'coach' && structuredPrompt.text.includes('tactical') || structuredPrompt.text.includes('technical')
+        requiresCoach: userRole !== 'coach' && (structuredPrompt.text.includes('tactical') || structuredPrompt.text.includes('technical'))
       };
     }
 
@@ -108,7 +108,7 @@ export class ContextPromptEngine {
       return {
         ...keywordPrompt,
         category: 'keyword',
-        requiresCoach: userRole !== 'coach' && keywordPrompt.text.includes('tactical') || keywordPrompt.text.includes('technical')
+        requiresCoach: userRole !== 'coach' && (keywordPrompt.text.includes('tactical') || keywordPrompt.text.includes('technical'))
       };
     }
 
@@ -122,7 +122,7 @@ export class ContextPromptEngine {
     };
   }
 
-  private getStructuredPrompt(post: Post, context: PromptContext, name: string): GeneratedPrompt | null {
+  private getStructuredPrompt(post: Post, context: PromptContext, name: string): Omit<GeneratedPrompt, 'requiresCoach' | 'category'> | null {
     // Check for match data
     if (context.postType === 'match') {
       const key = context.isWin ? 'match_win' : 'match_loss';
@@ -154,7 +154,7 @@ export class ContextPromptEngine {
     return null;
   }
 
-  private getKeywordPrompt(post: Post, context: PromptContext, name: string): GeneratedPrompt | null {
+  private getKeywordPrompt(post: Post, context: PromptContext, name: string): Omit<GeneratedPrompt, 'requiresCoach' | 'category'> | null {
     const content = post.content.toLowerCase();
     
     // Check each keyword
