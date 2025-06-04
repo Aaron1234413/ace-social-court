@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Edit3, Sparkles, Share, AlertCircle } from 'lucide-react';
+import { Edit3, Sparkles, Share, AlertCircle, PenTool } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,7 +22,8 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
   const { user, profile } = useAuth();
   const { followingCount } = useUserFollows();
   
-  const [mode, setMode] = useState<'auto' | 'edit'>('auto');
+  const [mode, setMode] = useState<'write' | 'generate'>('write');
+  const [isWriting, setIsWriting] = useState(false);
   const [content, setContent] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
   const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>('private');
@@ -42,10 +43,10 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
 
   // Auto-generate content when sessionData is provided
   useEffect(() => {
-    if (sessionData && user) {
+    if (sessionData && user && mode === 'generate') {
       generateContent();
     }
-  }, [sessionData, user]);
+  }, [sessionData, user, mode]);
 
   const generateContent = async () => {
     if (!user || !sessionData) return;
@@ -83,7 +84,7 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
           user_id: user.id,
           content: content.trim(),
           privacy_level: privacyLevel,
-          is_auto_generated: mode === 'auto' && content === generatedContent,
+          is_auto_generated: mode === 'generate' && content === generatedContent,
         });
 
       if (error) throw error;
@@ -91,7 +92,8 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
       toast.success('Post shared successfully!');
       setContent('');
       setGeneratedContent('');
-      setMode('auto');
+      setMode('write');
+      setIsWriting(false);
       onSuccess?.();
       
     } catch (error) {
@@ -102,14 +104,15 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
     }
   };
 
-  const toggleMode = () => {
-    if (mode === 'auto') {
-      setMode('edit');
-    } else {
-      setMode('auto');
-      if (generatedContent) {
-        setContent(generatedContent);
-      }
+  const handleStartWriting = () => {
+    setMode('write');
+    setIsWriting(true);
+  };
+
+  const handleStartGenerating = () => {
+    setMode('generate');
+    if (sessionData) {
+      generateContent();
     }
   };
 
@@ -128,142 +131,188 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
           </Avatar>
           
           <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">
-                {profile?.full_name || profile?.username || 'You'}
-              </span>
-              {mode === 'auto' && generatedContent && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground bg-primary/10 px-2 py-1 rounded-full">
-                  <Sparkles className="h-3 w-3" />
-                  AI Generated
-                </div>
-              )}
-            </div>
+            <span className="font-medium">
+              {profile?.full_name || profile?.username || 'You'}
+            </span>
           </div>
-
-          {/* Mode toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleMode}
-            className="text-muted-foreground"
-          >
-            {mode === 'auto' ? (
-              <>
-                <Edit3 className="h-4 w-4 mr-1" />
-                Edit
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-1" />
-                Auto
-              </>
-            )}
-          </Button>
         </div>
 
-        {/* Auto-publish warning for new users */}
-        {shouldShowAutoPublishWarning && (
-          <Alert className="border-blue-200 bg-blue-50">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-700">
-              Since you have no friends/coach yet, posting as public highlights to help you connect with the community.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Content area */}
-        {mode === 'auto' ? (
-          // Auto mode - show generated content with quick share
-          <div className="space-y-3">
-            {isGenerating ? (
-              <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <Sparkles className="h-4 w-4 animate-pulse mr-2" />
-                Generating content...
+        {/* Main Content Area */}
+        {!isWriting && mode === 'write' ? (
+          // Empty state with action options
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Share what's on your mind</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Write about your tennis journey, share tips, or connect with the community
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    onClick={handleStartWriting}
+                    className="flex items-center gap-2"
+                    size="lg"
+                  >
+                    <PenTool className="h-4 w-4" />
+                    Write a Post
+                  </Button>
+                  
+                  {sessionData ? (
+                    <Button
+                      onClick={handleStartGenerating}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      size="lg"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Generate from Session
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => window.location.href = '/log-session'}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      size="lg"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Log Session First
+                    </Button>
+                  )}
+                </div>
               </div>
-            ) : content ? (
-              <div className="bg-muted/30 rounded-lg p-4 border border-dashed">
-                <p className="text-sm leading-relaxed">{content}</p>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No content generated yet</p>
-                <p className="text-xs">Complete a session to generate a post</p>
-              </div>
-            )}
+            </div>
           </div>
         ) : (
-          // Edit mode - full composer
-          <div className="space-y-3">
-            <Textarea
-              placeholder="What's happening in your tennis world?"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[120px] resize-none border-0 p-0 focus-visible:ring-0 text-base"
-              maxLength={500}
-            />
-            
-            <div className="text-xs text-muted-foreground text-right">
-              {content.length}/500 characters
-            </div>
-          </div>
-        )}
-
-        {/* Privacy selector - always prominent with preview */}
-        <div className="border-t pt-4">
-          <PrivacySelector 
-            value={privacyLevel} 
-            onValueChange={setPrivacyLevel}
-            followingCount={followingCount}
-            showPreview={true}
-            content={content || "Sample post content for preview..."}
-            userProfile={profile}
-          />
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="text-xs text-muted-foreground">
-            {mode === 'auto' && generatedContent && (
-              <span>AI-generated content • Tap edit to customize</span>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            {mode === 'edit' && (
+          // Active posting interface
+          <div className="space-y-4">
+            {/* Mode indicator */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {mode === 'generate' && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground bg-primary/10 px-2 py-1 rounded-full">
+                    <Sparkles className="h-3 w-3" />
+                    AI Generated
+                  </div>
+                )}
+              </div>
+              
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => {
+                  setIsWriting(false);
                   setContent('');
-                  setMode('auto');
+                  setMode('write');
                 }}
+                className="text-muted-foreground"
               >
                 Cancel
               </Button>
+            </div>
+
+            {/* Content area */}
+            {mode === 'generate' ? (
+              <div className="space-y-3">
+                {isGenerating ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground">
+                    <Sparkles className="h-4 w-4 animate-pulse mr-2" />
+                    Generating content...
+                  </div>
+                ) : content ? (
+                  <div className="space-y-3">
+                    <div className="bg-muted/30 rounded-lg p-4 border border-dashed">
+                      <p className="text-sm leading-relaxed">{content}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setMode('write');
+                        setIsWriting(true);
+                      }}
+                      className="w-full"
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit Content
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No session data available to generate content</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Manual writing mode
+              <div className="space-y-3">
+                <Textarea
+                  placeholder="What's happening in your tennis world?"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-[120px] resize-none border-0 p-0 focus-visible:ring-0 text-base"
+                  maxLength={500}
+                  autoFocus
+                />
+                
+                <div className="text-xs text-muted-foreground text-right">
+                  {content.length}/500 characters
+                </div>
+              </div>
             )}
-            
-            <Button
-              onClick={handleQuickShare}
-              disabled={!content.trim() || isSubmitting}
-              className="px-6"
-              size="sm"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2" />
-                  Sharing...
-                </>
-              ) : (
-                <>
-                  <Share className="h-3 w-3 mr-2" />
-                  Share Now
-                </>
-              )}
-            </Button>
+
+            {/* Privacy selector - only show when there's content */}
+            {content.trim() && (
+              <>
+                {/* Auto-publish warning for new users */}
+                {shouldShowAutoPublishWarning && (
+                  <Alert className="border-blue-200 bg-blue-50">
+                    <AlertCircle className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-700">
+                      Since you have no friends/coach yet, posting as public highlights to help you connect with the community.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="border-t pt-4">
+                  <PrivacySelector 
+                    value={privacyLevel} 
+                    onValueChange={setPrivacyLevel}
+                    followingCount={followingCount}
+                    showPreview={true}
+                    content={content}
+                    userProfile={profile}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Action buttons */}
+            {content.trim() && (
+              <div className="flex items-center justify-end pt-2">
+                <Button
+                  onClick={handleQuickShare}
+                  disabled={!content.trim() || isSubmitting}
+                  className="px-6"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2" />
+                      Sharing...
+                    </>
+                  ) : (
+                    <>
+                      <Share className="h-3 w-3 mr-2" />
+                      Share Now
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
