@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ import { useLocation } from 'react-router-dom';
 import { AmbassadorSeedingService } from '@/services/AmbassadorSeedingService';
 import { PostComposer } from '@/components/social/PostComposer';
 import { Card, CardContent } from '@/components/ui/card';
+import { PreviewService } from '@/services/PreviewService';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -25,6 +25,7 @@ const Feed = () => {
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
   const [showPerformanceMetrics, setShowPerformanceMetrics] = useState(false);
+  const [showCacheStats, setShowCacheStats] = useState(false);
   
   const { 
     posts, 
@@ -41,8 +42,7 @@ const Feed = () => {
     metrics: performanceMetrics, 
     recordLoadTime 
   } = useFeedPerformance();
-  
-  // Debug logging for Feed component
+
   useEffect(() => {
     console.log('Feed component mounted', {
       pathname: location.pathname,
@@ -57,7 +57,6 @@ const Feed = () => {
     };
   }, [location.pathname, user, profile]);
 
-  // Initialize ambassador seeding on component mount
   useEffect(() => {
     const initializeAmbassadors = async () => {
       if (!ambassadorSeeded) {
@@ -71,7 +70,6 @@ const Feed = () => {
   }, [ambassadorSeeded]);
 
   useEffect(() => {
-    // Initialize storage in the background without blocking UI
     const setupStorage = async () => {
       try {
         if (user) {
@@ -87,7 +85,6 @@ const Feed = () => {
     setupStorage();
   }, [user]);
 
-  // Record load time when posts are loaded
   useEffect(() => {
     if (!isLoading && posts.length > 0) {
       recordLoadTime();
@@ -97,8 +94,6 @@ const Feed = () => {
   const handleSortChange = (value: string) => {
     if (value) {
       setSortOption(value as SortOption);
-      // Note: For now, we're not implementing sort in cascade
-      // The cascade already provides optimized ordering
     }
   };
 
@@ -107,13 +102,16 @@ const Feed = () => {
     refresh();
   };
 
+  const previewService = PreviewService.getInstance();
+  const cacheStats = previewService.getCacheStats();
+
   return (
     <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <h1 className="text-2xl md:text-3xl font-bold">Social Feed</h1>
         
         {user && (
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
               size="sm"
@@ -121,11 +119,18 @@ const Feed = () => {
             >
               <Activity className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCacheStats(!showCacheStats)}
+              className="text-xs"
+            >
+              Cache
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Performance Metrics Panel */}
       {showPerformanceMetrics && (
         <Card className="mb-6">
           <CardContent className="p-4">
@@ -159,6 +164,41 @@ const Feed = () => {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {showCacheStats && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div className="font-medium">Cache Entries</div>
+                <div className="text-muted-foreground">{cacheStats.totalEntries}</div>
+              </div>
+              <div>
+                <div className="font-medium">Memory Usage</div>
+                <div className="text-muted-foreground">{cacheStats.memoryUsage}KB</div>
+              </div>
+              <div>
+                <div className="font-medium">Cache Fill</div>
+                <div className="text-muted-foreground">{cacheStats.fillPercentage}%</div>
+              </div>
+              <div>
+                <div className="font-medium">Max Size</div>
+                <div className="text-muted-foreground">{cacheStats.maxSize}</div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => previewService.clearCache()}
+                className="text-xs"
+              >
+                Clear Cache
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
