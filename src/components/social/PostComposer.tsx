@@ -540,11 +540,12 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                             </SelectItem>
                           )}
                         </SelectContent>
-                        <FormDescription className="text-sm text-gray-600">
-                          {getPrivacyDescription(field.value || 'public')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                      </Select>
+                      <FormDescription className="text-sm text-gray-600">
+                        {getPrivacyDescription(field.value || 'public')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
               )}
