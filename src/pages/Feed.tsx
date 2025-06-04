@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ import { MessageSquare, Heart, Clock, Activity } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
+import { PreviewMonitor } from '@/components/social/PreviewMonitor';
 
 type SortOption = 'recent' | 'popular' | 'commented';
 
@@ -199,6 +199,13 @@ const Feed = () => {
             <div>Render: {getSummary()?.avgRenderTime?.toFixed(1) || 'N/A'}ms</div>
             <div>Status: {getSummary() ? '✅' : '⏳'}</div>
           </div>
+        </div>
+      )}
+
+      {/* Preview Service Monitor - only in development */}
+      {showPerformance && process.env.NODE_ENV === 'development' && (
+        <div className="mb-6">
+          <PreviewMonitor />
         </div>
       )}
       
