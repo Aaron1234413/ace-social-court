@@ -18,13 +18,19 @@ export function usePostTemplates() {
         throw error;
       }
 
-      return data || [];
+      // Transform the data to match our PostTemplate interface
+      return (data || []).map(template => ({
+        ...template,
+        placeholders: Array.isArray(template.placeholders) 
+          ? template.placeholders as string[]
+          : JSON.parse(template.placeholders as string) as string[]
+      }));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
-export function usePostTemplatesByCategory(category: string) {
+export function usePostTemplatesByCategory(category: PostTemplate['category']) {
   return useQuery({
     queryKey: ['post-templates', category],
     queryFn: async (): Promise<PostTemplate[]> => {
@@ -40,7 +46,13 @@ export function usePostTemplatesByCategory(category: string) {
         throw error;
       }
 
-      return data || [];
+      // Transform the data to match our PostTemplate interface
+      return (data || []).map(template => ({
+        ...template,
+        placeholders: Array.isArray(template.placeholders) 
+          ? template.placeholders as string[]
+          : JSON.parse(template.placeholders as string) as string[]
+      }));
     },
     enabled: !!category,
     staleTime: 5 * 60 * 1000,

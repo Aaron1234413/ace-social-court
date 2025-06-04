@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
-import CreatePostForm from '@/components/social/CreatePostForm';
+import { CreatePostForm } from '@/components/social/CreatePostForm';
 import PostList from '@/components/social/PostList';
 import { usePosts } from '@/hooks/use-posts';
 import { Switch } from "@/components/ui/switch";
@@ -126,7 +126,7 @@ const Feed = () => {
       {user ? (
         <>
           <div className="mb-6">
-            <CreatePostForm onPostCreated={fetchPosts} />
+            <CreatePostForm onSuccess={fetchPosts} />
           </div>
           
           {isLoading ? (
