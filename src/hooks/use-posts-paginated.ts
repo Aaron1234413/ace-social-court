@@ -5,7 +5,7 @@ import { Post } from '@/types/post';
 import { toast } from 'sonner';
 import { personalizePostFeed, PersonalizationContext } from '@/utils/feedPersonalization';
 import { sanitizePostsForUser, PrivacyContext } from '@/utils/privacySanitization';
-import { ensureMinimumContent } from '@/utils/smartFeedMixing';
+import { createSmartFeedMix } from '@/utils/smartFeedMixing';
 import { performanceMonitor } from '@/utils/performanceMonitor';
 
 interface UsePostsPaginatedOptions {
@@ -13,6 +13,12 @@ interface UsePostsPaginatedOptions {
   sortBy?: 'recent' | 'popular' | 'commented';
   respectPrivacy?: boolean;
   pageSize?: number;
+}
+
+interface ProcessingStage {
+  name: string;
+  count: number;
+  error?: string;
 }
 
 export const usePostsPaginated = (options: UsePostsPaginatedOptions = {
@@ -25,88 +31,218 @@ export const usePostsPaginated = (options: UsePostsPaginatedOptions = {
   const [userProfile, setUserProfile] = useState<{ user_type: string | null } | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize user context once
+  // Initialize user context once with error handling
   const initializeUserContext = useCallback(async (userId: string) => {
     if (isInitialized) return { followings: userFollowings, profile: userProfile };
 
     try {
-      console.log('🔧 Post Pagination: Initializing user context...');
+      console.log('🔧 Initializing user context...');
       
-      // Fetch user followings
-      const { data: followingsData, error: followingsError } = await supabase
-        .from('followers')
-        .select('following_id')
-        .eq('follower_id', userId);
+      // Fetch user data in parallel with timeout protection
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('User context initialization timeout')), 5000)
+      );
+
+      const dataPromise = Promise.all([
+        supabase.from('followers').select('following_id').eq('follower_id', userId),
+        supabase.from('profiles').select('user_type').eq('id', userId).single()
+      ]);
+
+      const [followingsResult, profileResult] = await Promise.race([dataPromise, timeout]) as any;
       
-      const followings = followingsError ? [] : followingsData.map(item => item.following_id);
-      
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', userId)
-        .single();
-      
-      const profile = profileError ? null : profileData;
+      const followings = followingsResult.error ? [] : (followingsResult.data || []).map((item: any) => item.following_id);
+      const profile = profileResult.error ? null : profileResult.data;
       
       setUserFollowings(followings);
       setUserProfile(profile);
       setIsInitialized(true);
       
-      console.log('✅ Post Pagination: User context initialized:', { 
+      console.log('✅ User context initialized:', { 
         followings: followings.length, 
-        userType: profile?.user_type,
-        userId: userId.substring(0, 8) + '...'
+        userType: profile?.user_type 
       });
       
       return { followings, profile };
     } catch (error) {
-      console.error('❌ Post Pagination: Error initializing user context:', error);
-      return { followings: [], profile: null };
+      console.error('❌ User context initialization failed:', error);
+      // Return safe defaults to prevent pipeline failure
+      const safeDefaults = { followings: [], profile: null };
+      setUserFollowings([]);
+      setUserProfile(null);
+      setIsInitialized(true);
+      return safeDefaults;
     }
   }, [isInitialized, userFollowings, userProfile]);
 
-  // Fetch a single page of posts with comprehensive logging
+  // Optimized post processing pipeline with error boundaries
+  const processPostsPipeline = useCallback(async (
+    rawPosts: Post[], 
+    userId?: string
+  ): Promise<{ posts: Post[], stages: ProcessingStage[] }> => {
+    const stages: ProcessingStage[] = [];
+    let currentPosts = [...rawPosts];
+    
+    console.log('\n🔄 === STARTING OPTIMIZED PROCESSING PIPELINE ===');
+    
+    // Stage 1: Input validation
+    stages.push({ name: 'Raw Input', count: currentPosts.length });
+    
+    if (currentPosts.length === 0) {
+      console.log('⚠️ No posts to process, returning empty result');
+      return { posts: [], stages };
+    }
+
+    // Stage 2: User context (only if user is logged in)
+    let userContext = null;
+    if (userId) {
+      try {
+        userContext = await initializeUserContext(userId);
+        stages.push({ name: 'User Context', count: currentPosts.length });
+      } catch (error) {
+        console.warn('⚠️ User context failed, continuing with public-only filtering');
+        stages.push({ name: 'User Context', count: currentPosts.length, error: 'Failed to load user context' });
+      }
+    }
+
+    // Stage 3: Privacy filtering with fallback
+    if (options.respectPrivacy && userId) {
+      try {
+        const privacyContext: PrivacyContext = {
+          currentUserId: userId,
+          userFollowings: userContext?.followings || [],
+          userType: userContext?.profile?.user_type,
+          isCoach: userContext?.profile?.user_type === 'coach'
+        };
+        
+        const beforePrivacy = currentPosts.length;
+        currentPosts = sanitizePostsForUser(currentPosts, privacyContext);
+        
+        // Minimum content guarantee for privacy filtering
+        if (currentPosts.length < 2 && beforePrivacy > 0) {
+          console.log('🆘 Privacy filtering too aggressive, applying fallback');
+          const publicPosts = rawPosts.filter(post => post.privacy_level === 'public');
+          const userOwnPosts = rawPosts.filter(post => post.user_id === userId);
+          currentPosts = [...userOwnPosts, ...publicPosts.slice(0, 5)];
+          // Remove duplicates
+          currentPosts = currentPosts.filter((post, index, self) => 
+            index === self.findIndex(p => p.id === post.id)
+          );
+        }
+        
+        stages.push({ name: 'Privacy Filter', count: currentPosts.length });
+        console.log(`🛡️ Privacy filtering: ${beforePrivacy} → ${currentPosts.length} posts`);
+      } catch (error) {
+        console.error('❌ Privacy filtering failed:', error);
+        stages.push({ name: 'Privacy Filter', count: currentPosts.length, error: 'Privacy filtering failed' });
+        // Continue with current posts on error
+      }
+    } else if (!userId) {
+      // For unauthenticated users, show only public posts
+      currentPosts = currentPosts.filter(post => post.privacy_level === 'public');
+      stages.push({ name: 'Public Filter', count: currentPosts.length });
+    }
+
+    // Stage 4: Smart feed mixing (only for authenticated users with personalization)
+    if (options.personalize && userId && userContext) {
+      try {
+        const beforeMixing = currentPosts.length;
+        currentPosts = createSmartFeedMix(currentPosts, {
+          followingCount: userContext.followings.length,
+          userFollowings: userContext.followings,
+          currentUserId: userId
+        });
+        
+        stages.push({ name: 'Smart Mixing', count: currentPosts.length });
+        console.log(`🎯 Smart mixing: ${beforeMixing} → ${currentPosts.length} posts`);
+      } catch (error) {
+        console.error('❌ Smart mixing failed:', error);
+        stages.push({ name: 'Smart Mixing', count: currentPosts.length, error: 'Smart mixing failed' });
+        // Continue with current posts on error
+      }
+    }
+
+    // Stage 5: Personalization (if enabled and sufficient posts)
+    if (options.personalize && userId && userContext && currentPosts.length > 0) {
+      try {
+        const personalizationContext: PersonalizationContext = {
+          currentUserId: userId,
+          userFollowings: userContext.followings,
+          userType: userContext.profile?.user_type
+        };
+        
+        const beforePersonalization = currentPosts.length;
+        currentPosts = personalizePostFeed(currentPosts, personalizationContext);
+        
+        stages.push({ name: 'Personalization', count: currentPosts.length });
+        console.log(`🎯 Personalization: ${beforePersonalization} → ${currentPosts.length} posts`);
+      } catch (error) {
+        console.error('❌ Personalization failed:', error);
+        stages.push({ name: 'Personalization', count: currentPosts.length, error: 'Personalization failed' });
+        // Continue with current posts on error
+      }
+    }
+
+    // Stage 6: Final minimum content guarantee
+    const minRequiredPosts = 2;
+    if (currentPosts.length < minRequiredPosts) {
+      console.log(`🆘 FINAL FALLBACK: Only ${currentPosts.length} posts, ensuring minimum content`);
+      
+      try {
+        // Add public posts as fallback
+        const existingIds = new Set(currentPosts.map(p => p.id));
+        const fallbackPosts = rawPosts
+          .filter(post => !existingIds.has(post.id) && post.privacy_level === 'public')
+          .sort((a, b) => {
+            const scoreA = (a.engagement_score || 0) + (a.likes_count || 0);
+            const scoreB = (b.engagement_score || 0) + (b.likes_count || 0);
+            return scoreB - scoreA;
+          })
+          .slice(0, Math.max(minRequiredPosts - currentPosts.length, 3));
+        
+        currentPosts = [...currentPosts, ...fallbackPosts];
+        stages.push({ name: 'Final Fallback', count: currentPosts.length });
+        console.log(`🆘 Added ${fallbackPosts.length} fallback posts`);
+      } catch (error) {
+        console.error('❌ Final fallback failed:', error);
+        stages.push({ name: 'Final Fallback', count: currentPosts.length, error: 'Final fallback failed' });
+      }
+    }
+
+    console.log('✅ Processing pipeline completed:', {
+      input: rawPosts.length,
+      output: currentPosts.length,
+      stages: stages.length
+    });
+
+    return { posts: currentPosts, stages };
+  }, [options.personalize, options.respectPrivacy, initializeUserContext]);
+
+  // Optimized fetch with streamlined pipeline
   const fetchPostPage = useCallback(async (page: number): Promise<Post[]> => {
     return performanceMonitor.measureRender('fetchPostPage', async () => {
       try {
-        console.log(`\n📄 === FETCHING PAGE ${page} ===`);
-        console.log(`⚙️ Options:`, options);
+        console.log(`\n📄 === FETCHING PAGE ${page} (OPTIMIZED) ===`);
         
         const { data: { user } } = await supabase.auth.getUser();
-        
-        // Calculate offset for pagination
         const offset = (page - 1) * (options.pageSize || 10);
-        console.log(`📊 Pagination: offset=${offset}, pageSize=${options.pageSize}`);
         
-        // Build query with pagination
-        let query = supabase.from('posts');
-        let selectQuery = query.select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          media_url,
-          media_type,
-          privacy_level,
-          template_id,
-          is_auto_generated,
-          engagement_score,
-          updated_at`);
+        // Optimized database query with better error handling
+        let query = supabase.from('posts').select(`
+          id, content, created_at, user_id, media_url, media_type,
+          privacy_level, template_id, is_auto_generated, engagement_score, updated_at
+        `);
         
-        // Sort based on option
         if (options.sortBy === 'recent') {
-          selectQuery = selectQuery.order('created_at', { ascending: false });
+          query = query.order('created_at', { ascending: false });
         }
         
-        // Apply pagination
-        selectQuery = selectQuery.range(offset, offset + (options.pageSize || 10) - 1);
+        query = query.range(offset, offset + (options.pageSize || 10) - 1);
         
-        const { data: postsData, error: postsError } = await selectQuery;
+        const { data: postsData, error: postsError } = await query;
         
         if (postsError) {
-          console.error('❌ Database Error:', postsError);
-          throw postsError;
+          console.error('❌ Database query failed:', postsError);
+          throw new Error(`Database query failed: ${postsError.message}`);
         }
         
         if (!postsData || postsData.length === 0) {
@@ -114,165 +250,76 @@ export const usePostsPaginated = (options: UsePostsPaginatedOptions = {
           return [];
         }
         
-        console.log(`📥 Raw posts fetched: ${postsData.length} posts`);
+        console.log(`📥 Raw posts fetched: ${postsData.length}`);
         
-        // Format posts and get engagement data with error handling
+        // Batch process engagement data with error tolerance
         const formattedPosts: Post[] = await Promise.all(postsData.map(async post => {
           try {
-            // Get likes and comments counts with fallback
             const [likesResult, commentsResult] = await Promise.allSettled([
               supabase.rpc('get_likes_count', { post_id: post.id }),
               supabase.rpc('get_comments_count', { post_id: post.id })
             ]);
             
-            const likesCount = likesResult.status === 'fulfilled' ? (likesResult.value?.data || 0) : 0;
-            const commentsCount = commentsResult.status === 'fulfilled' ? (commentsResult.value?.data || 0) : 0;
-            
             return {
-              id: post.id,
-              content: post.content,
-              created_at: post.created_at,
-              user_id: post.user_id,
-              media_url: post.media_url,
-              media_type: post.media_type,
-              privacy_level: post.privacy_level,
-              template_id: post.template_id,
-              is_auto_generated: post.is_auto_generated,
-              engagement_score: post.engagement_score,
+              ...post,
               author: null,
-              likes_count: likesCount,
-              comments_count: commentsCount
+              likes_count: likesResult.status === 'fulfilled' ? (likesResult.value?.data || 0) : 0,
+              comments_count: commentsResult.status === 'fulfilled' ? (commentsResult.value?.data || 0) : 0
             };
           } catch (error) {
-            console.warn(`⚠️ Error processing post ${post.id}:`, error);
-            return {
-              id: post.id,
-              content: post.content,
-              created_at: post.created_at,
-              user_id: post.user_id,
-              media_url: post.media_url,
-              media_type: post.media_type,
-              privacy_level: post.privacy_level,
-              template_id: post.template_id,
-              is_auto_generated: post.is_auto_generated,
-              engagement_score: post.engagement_score,
-              author: null,
-              likes_count: 0,
-              comments_count: 0
-            };
+            console.warn(`⚠️ Error processing post ${post.id}, using defaults:`, error);
+            return { ...post, author: null, likes_count: 0, comments_count: 0 };
           }
         }));
         
-        console.log(`✅ Posts formatted: ${formattedPosts.length} posts`);
-        
-        // Sort by popularity or comments if needed
-        let sortedPosts = [...formattedPosts];
-        
+        // Sort optimization
         if (options.sortBy === 'popular') {
-          sortedPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
-          console.log(`🔥 Sorted by popularity`);
+          formattedPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
         } else if (options.sortBy === 'commented') {
-          sortedPosts.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
-          console.log(`💬 Sorted by comments`);
+          formattedPosts.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
         }
         
-        // Fetch author profiles in batch with error handling
-        if (sortedPosts.length > 0) {
-          try {
-            const userIds = [...new Set(sortedPosts.map(post => post.user_id))];
-            console.log(`👥 Fetching profiles for ${userIds.length} users`);
-            
-            const { data: profilesData, error: profilesError } = await supabase
-              .from('profiles')
-              .select('id, full_name, user_type, avatar_url')
-              .in('id', userIds);
-            
-            if (!profilesError && profilesData) {
-              const profileMap = new Map();
-              profilesData.forEach(profile => {
-                profileMap.set(profile.id, {
-                  full_name: profile.full_name,
-                  user_type: profile.user_type,
-                  avatar_url: profile.avatar_url
-                });
+        // Batch fetch author profiles with error tolerance
+        try {
+          const userIds = [...new Set(formattedPosts.map(post => post.user_id))];
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, full_name, user_type, avatar_url')
+            .in('id', userIds);
+          
+          if (profilesData) {
+            const profileMap = new Map();
+            profilesData.forEach(profile => {
+              profileMap.set(profile.id, {
+                full_name: profile.full_name,
+                user_type: profile.user_type,
+                avatar_url: profile.avatar_url
               });
-              
-              sortedPosts.forEach(post => {
-                post.author = profileMap.get(post.user_id) || null;
-              });
-              
-              console.log(`✅ Author profiles attached: ${profilesData.length} profiles`);
-            } else {
-              console.warn('⚠️ Failed to fetch author profiles:', profilesError);
-            }
-          } catch (error) {
-            console.warn('⚠️ Error fetching author profiles:', error);
+            });
+            
+            formattedPosts.forEach(post => {
+              post.author = profileMap.get(post.user_id) || null;
+            });
           }
+        } catch (error) {
+          console.warn('⚠️ Author profiles fetch failed, continuing without:', error);
         }
         
-        // Apply smart processing if user is logged in
-        let finalPosts = sortedPosts;
+        // Process through optimized pipeline
+        const { posts: finalPosts, stages } = await processPostsPipeline(formattedPosts, user?.id);
         
-        if (user) {
-          console.log(`\n🔐 === APPLYING USER-SPECIFIC FILTERING ===`);
-          const { followings, profile } = await initializeUserContext(user.id);
-          
-          // Apply privacy filtering if enabled
-          if (options.respectPrivacy) {
-            console.log(`🛡️ Starting privacy filtering...`);
-            const privacyContext: PrivacyContext = {
-              currentUserId: user.id,
-              userFollowings: followings,
-              userType: profile?.user_type,
-              isCoach: profile?.user_type === 'coach'
-            };
-            
-            const beforePrivacy = finalPosts.length;
-            finalPosts = sanitizePostsForUser(sortedPosts, privacyContext);
-            console.log(`🛡️ Privacy filtering: ${beforePrivacy} → ${finalPosts.length} posts`);
-          }
-          
-          // Apply personalization if enabled
-          if (options.personalize && finalPosts.length > 0) {
-            console.log(`🎯 Starting personalization...`);
-            const personalizationContext: PersonalizationContext = {
-              currentUserId: user.id,
-              userFollowings: followings,
-              userType: profile?.user_type
-            };
-            
-            const beforePersonalization = finalPosts.length;
-            finalPosts = personalizePostFeed(finalPosts, personalizationContext);
-            console.log(`🎯 Personalization: ${beforePersonalization} → ${finalPosts.length} posts`);
-          }
-          
-          // Ensure minimum content with fallback
-          if (finalPosts.length < 3) {
-            console.log(`🆘 FALLBACK: Only ${finalPosts.length} posts, applying minimum content strategy`);
-            finalPosts = ensureMinimumContent(finalPosts, sortedPosts, user.id);
-            console.log(`🆘 After fallback: ${finalPosts.length} posts`);
-          }
-        } else {
-          // For unauthenticated users, show only public posts
-          console.log(`👤 Unauthenticated user: filtering to public posts only`);
-          const beforePublic = finalPosts.length;
-          finalPosts = sortedPosts.filter(post => post.privacy_level === 'public');
-          console.log(`👤 Public filter: ${beforePublic} → ${finalPosts.length} posts`);
-        }
-        
-        console.log(`\n✨ === PAGE ${page} COMPLETE ===`);
-        console.log(`📊 Final result: ${finalPosts.length} posts delivered`);
-        console.log(`📋 Posts pipeline: Raw(${postsData.length}) → Formatted(${formattedPosts.length}) → Final(${finalPosts.length})`);
+        console.log(`✨ Page ${page} complete: ${finalPosts.length} posts delivered`);
+        console.log('📊 Pipeline stages:', stages);
         
         return finalPosts;
         
       } catch (error) {
         console.error(`❌ Critical error fetching page ${page}:`, error);
-        toast.error(`Failed to load page ${page}`);
+        toast.error(`Failed to load page ${page}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         return [];
       }
     });
-  }, [options.personalize, options.sortBy, options.respectPrivacy, options.pageSize, initializeUserContext]);
+  }, [options, processPostsPipeline]);
 
   return {
     fetchPostPage,

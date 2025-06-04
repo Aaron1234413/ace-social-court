@@ -1,4 +1,3 @@
-
 import { Post } from '@/types/post';
 
 export interface PrivacyContext {
@@ -9,7 +8,7 @@ export interface PrivacyContext {
 }
 
 /**
- * Sanitizes posts based on privacy levels with graduated filtering for new users
+ * Optimized privacy sanitization with improved error handling and minimum content guarantees
  */
 export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Post[] {
   console.log('🛡️ Privacy Sanitization: Starting with', { 
@@ -22,8 +21,13 @@ export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Po
     }
   });
 
+  // Input validation
+  if (!posts || posts.length === 0) {
+    console.log('🛡️ No posts to sanitize');
+    return [];
+  }
+
   if (!context.currentUserId) {
-    // For unauthenticated users, only show public posts
     const publicPosts = posts.filter(post => post.privacy_level === 'public');
     console.log('🛡️ Unauthenticated user - showing public posts only:', publicPosts.length);
     return publicPosts;
@@ -33,118 +37,150 @@ export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Po
   const isNewUser = followingCount <= 2;
 
   try {
-    // Analyze privacy distribution
-    const privacyBreakdown = posts.reduce((acc, post) => {
-      acc[post.privacy_level || 'unknown'] = (acc[post.privacy_level || 'unknown'] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    // Categorize posts for better processing
+    const postCategories = {
+      own: posts.filter(post => post.user_id === context.currentUserId),
+      public: posts.filter(post => post.privacy_level === 'public' && post.user_id !== context.currentUserId),
+      friends: posts.filter(post => 
+        post.privacy_level === 'friends' && 
+        context.userFollowings?.includes(post.user_id) && 
+        post.user_id !== context.currentUserId
+      ),
+      coaches: posts.filter(post => 
+        post.privacy_level === 'coaches' && 
+        context.isCoach && 
+        post.user_id !== context.currentUserId
+      )
+    };
     
-    console.log('🛡️ Privacy distribution:', privacyBreakdown);
-    console.log('🛡️ User status:', { isNewUser, followingCount });
+    console.log('🛡️ Post categories:', {
+      own: postCategories.own.length,
+      public: postCategories.public.length,
+      friends: postCategories.friends.length,
+      coaches: postCategories.coaches.length
+    });
     
-    // Apply graduated filtering based on user status
+    // Apply graduated filtering based on user experience
     let filteredPosts: Post[];
     
     if (isNewUser) {
-      console.log('🛡️ Applying NEW USER graduated filtering...');
-      filteredPosts = applyGraduatedFiltering(posts, context);
+      console.log('🛡️ Applying NEW USER optimized filtering...');
+      filteredPosts = applyNewUserFiltering(postCategories, context);
     } else {
       console.log('🛡️ Applying STANDARD privacy filtering...');
-      filteredPosts = posts.filter(post => canUserViewPost(post, context));
+      filteredPosts = applyStandardFiltering(posts, context);
     }
     
-    // Log filtering results by privacy level
-    const filteredBreakdown = filteredPosts.reduce((acc, post) => {
-      acc[post.privacy_level || 'unknown'] = (acc[post.privacy_level || 'unknown'] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    // Minimum content guarantee
+    const minPosts = isNewUser ? 3 : 2;
+    if (filteredPosts.length < minPosts) {
+      console.log(`🆘 Insufficient content (${filteredPosts.length}/${minPosts}), applying content boost`);
+      filteredPosts = ensureMinimumContent(filteredPosts, postCategories, minPosts);
+    }
     
-    console.log('🛡️ After filtering:', filteredBreakdown);
     console.log('🛡️ Privacy filtering completed:', { 
       originalCount: posts.length, 
       filteredCount: filteredPosts.length,
       reductionPercentage: Math.round(((posts.length - filteredPosts.length) / posts.length) * 100)
     });
     
-    // Warning if too many posts were filtered out (only for experienced users)
-    if (!isNewUser && filteredPosts.length < posts.length * 0.3 && posts.length > 5) {
-      console.warn('⚠️ Privacy filtering removed >70% of posts - this might be too aggressive');
-    }
-    
     return filteredPosts;
   } catch (error) {
-    console.error('❌ Error in privacy sanitization, falling back to safe posts:', error);
-    // Fallback to posts user can definitely see
+    console.error('❌ Privacy sanitization error, applying safe fallback:', error);
+    // Safe fallback: own posts + public posts
     const safePosts = posts.filter(post => 
       post.privacy_level === 'public' || post.user_id === context.currentUserId
     );
-    console.log('🛡️ Emergency fallback applied:', safePosts.length, 'safe posts');
+    console.log('🛡️ Safe fallback applied:', safePosts.length, 'posts');
     return safePosts;
   }
 }
 
 /**
- * Graduated filtering for new users - more permissive to ensure content availability
+ * Optimized filtering for new users with content guarantees
  */
-function applyGraduatedFiltering(posts: Post[], context: PrivacyContext): Post[] {
-  const { currentUserId, userFollowings = [], isCoach = false } = context;
-  const followingCount = userFollowings.length;
+function applyNewUserFiltering(
+  categories: { own: Post[], public: Post[], friends: Post[], coaches: Post[] },
+  context: PrivacyContext
+): Post[] {
+  const { own, public: publicPosts, friends, coaches } = categories;
+  const followingCount = context.userFollowings?.length || 0;
   
-  console.log('🎓 Graduated filtering for new user with', followingCount, 'followings');
+  console.log('🎓 New user filtering for', followingCount, 'followings');
   
-  // Stage 1: Posts user can definitely see
-  const ownPosts = posts.filter(post => post.user_id === currentUserId);
-  const publicPosts = posts.filter(post => 
-    post.privacy_level === 'public' && post.user_id !== currentUserId
-  );
+  // Prioritize content for new users
+  let result = [...own]; // Always include own posts
   
-  // Stage 2: Posts from followed users (if any)
-  const friendsPosts = posts.filter(post => 
-    post.privacy_level === 'friends' && 
-    userFollowings.includes(post.user_id) && 
-    post.user_id !== currentUserId
-  );
+  // Add friends posts (limited to prevent overwhelming)
+  const maxFriendsPosts = Math.max(2, followingCount * 2);
+  result.push(...friends.slice(0, maxFriendsPosts));
   
-  // Stage 3: Coach posts (if user is a coach)
-  const coachPosts = posts.filter(post => 
-    post.privacy_level === 'coaches' && 
-    isCoach && 
-    post.user_id !== currentUserId
-  );
-  
-  // Combine all accessible posts
-  const accessiblePosts = [...ownPosts, ...friendsPosts, ...coachPosts, ...publicPosts];
-  
-  // Remove duplicates
-  const uniquePosts = accessiblePosts.filter((post, index, self) => 
-    index === self.findIndex(p => p.id === post.id)
-  );
-  
-  console.log('🎓 Graduated filtering results:', {
-    own: ownPosts.length,
-    friends: friendsPosts.length,
-    coaches: coachPosts.length,
-    public: publicPosts.length,
-    total: uniquePosts.length
-  });
-  
-  // For very new users (0-1 followings), ensure they see enough content
-  if (followingCount <= 1 && uniquePosts.length < 5) {
-    console.log('🎓 VERY NEW USER: Adding more public content to reach minimum');
-    // Add more public posts if needed, sorted by engagement
-    const additionalPublic = posts
-      .filter(post => 
-        post.privacy_level === 'public' && 
-        !uniquePosts.some(up => up.id === post.id)
-      )
-      .sort((a, b) => (b.engagement_score || 0) - (a.engagement_score || 0))
-      .slice(0, 5 - uniquePosts.length);
-    
-    uniquePosts.push(...additionalPublic);
-    console.log('🎓 Added', additionalPublic.length, 'additional public posts');
+  // Add coach posts if applicable
+  if (context.isCoach) {
+    result.push(...coaches.slice(0, 3));
   }
   
-  return uniquePosts;
+  // Fill remaining with engaging public content
+  const existingIds = new Set(result.map(p => p.id));
+  const availablePublic = publicPosts
+    .filter(post => !existingIds.has(post.id))
+    .sort((a, b) => (b.engagement_score || 0) - (a.engagement_score || 0));
+  
+  const targetTotal = Math.max(8, result.length + 3); // Ensure good content volume for new users
+  const remainingSlots = Math.max(0, targetTotal - result.length);
+  
+  result.push(...availablePublic.slice(0, remainingSlots));
+  
+  console.log('🎓 New user filtering results:', {
+    own: own.length,
+    friends: Math.min(friends.length, maxFriendsPosts),
+    coaches: context.isCoach ? Math.min(coaches.length, 3) : 0,
+    public: Math.min(availablePublic.length, remainingSlots),
+    total: result.length
+  });
+  
+  return result;
+}
+
+/**
+ * Standard filtering for experienced users
+ */
+function applyStandardFiltering(posts: Post[], context: PrivacyContext): Post[] {
+  return posts.filter(post => canUserViewPost(post, context));
+}
+
+/**
+ * Ensures minimum content availability
+ */
+function ensureMinimumContent(
+  currentPosts: Post[],
+  categories: { own: Post[], public: Post[], friends: Post[], coaches: Post[] },
+  minRequired: number
+): Post[] {
+  if (currentPosts.length >= minRequired) return currentPosts;
+  
+  const existingIds = new Set(currentPosts.map(p => p.id));
+  const additionalPosts: Post[] = [];
+  
+  // Add more public posts sorted by engagement
+  const availablePublic = categories.public
+    .filter(post => !existingIds.has(post.id))
+    .sort((a, b) => {
+      const scoreA = (a.engagement_score || 0) + (a.likes_count || 0);
+      const scoreB = (b.engagement_score || 0) + (b.likes_count || 0);
+      return scoreB - scoreA;
+    });
+  
+  const needed = minRequired - currentPosts.length;
+  additionalPosts.push(...availablePublic.slice(0, Math.max(needed, 2)));
+  
+  console.log('🆘 Content boost applied:', {
+    original: currentPosts.length,
+    added: additionalPosts.length,
+    final: currentPosts.length + additionalPosts.length
+  });
+  
+  return [...currentPosts, ...additionalPosts];
 }
 
 /**
