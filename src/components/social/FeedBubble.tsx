@@ -29,12 +29,16 @@ export function FeedBubble({
   return (
     <Card 
       className={cn(
-        "overflow-hidden hover:shadow-md transition-all duration-300 w-full border-muted/70 animate-slide-up",
+        "overflow-visible hover:shadow-md transition-all duration-300 w-full border-muted/70 animate-slide-up relative",
         contentType === 'ambassador' && "border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50/50 to-card",
         contentType === 'fallback' && "border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-card",
         className
       )}
-      style={style}
+      style={{ 
+        ...style,
+        zIndex: 'auto',
+        isolation: 'isolate'
+      }}
     >
       <BubbleHeader 
         post={post} 

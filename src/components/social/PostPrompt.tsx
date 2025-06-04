@@ -103,12 +103,12 @@ export function PostPrompt({ post, onCommentSubmit, className = '' }: PostPrompt
   };
 
   return (
-    <div className={`w-full relative overflow-visible ${className}`}>
-      {/* Prompt Speech Bubble */}
+    <div className={`w-full relative overflow-visible ${className}`} style={{ isolation: 'isolate' }}>
+      {/* Prompt Speech Bubble - Base z-index */}
       <div className={`
-        relative p-3 rounded-lg border transition-all duration-200 cursor-pointer
+        relative p-3 rounded-lg border transition-all duration-200 cursor-pointer z-10
         ${getPromptStyle()}
-        ${isExpanded ? 'rounded-b-none z-40' : 'hover:shadow-sm'}
+        ${isExpanded ? 'rounded-b-none' : 'hover:shadow-sm'}
       `} onClick={handleExpand}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1">
@@ -131,21 +131,31 @@ export function PostPrompt({ post, onCommentSubmit, className = '' }: PostPrompt
           </Button>
         </div>
         
-        {/* Speech bubble tail */}
-        <div className="absolute -bottom-2 left-6 w-4 h-4 rotate-45 bg-inherit border-r border-b border-inherit"></div>
+        {/* Speech bubble tail - Higher z-index when expanded */}
+        <div className={`
+          absolute -bottom-2 left-6 w-4 h-4 rotate-45 bg-inherit border-r border-b border-inherit
+          ${isExpanded ? 'z-20' : 'z-10'}
+        `}></div>
       </div>
 
-      {/* Expanded Comment Input - Properly contained with overflow handling */}
+      {/* Expanded Comment Input - Highest z-index for proper stacking */}
       {isExpanded && (
-        <div className={`
-          absolute top-full left-0 right-0 z-50
-          border border-t-0 rounded-b-lg p-4 space-y-3 shadow-lg
-          max-w-full overflow-hidden
-          ${prompt.requiresCoach 
-            ? 'bg-yellow-50 border-yellow-200' 
-            : 'bg-white border-gray-200'
-          }
-        `}>
+        <div 
+          className={`
+            absolute top-full left-0 right-0 z-30
+            border border-t-0 rounded-b-lg p-4 space-y-3 shadow-lg
+            max-w-full overflow-hidden
+            ${prompt.requiresCoach 
+              ? 'bg-yellow-50 border-yellow-200' 
+              : 'bg-white border-gray-200'
+            }
+          `}
+          style={{ 
+            minWidth: '100%',
+            maxHeight: '400px',
+            overflowY: 'auto'
+          }}
+        >
           {prompt.requiresCoach ? (
             <div className="text-center py-8">
               <Crown className="h-8 w-8 text-yellow-600 mx-auto mb-3" />

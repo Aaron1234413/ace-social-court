@@ -30,8 +30,8 @@ export function BubbleFooter({ post, currentUserId, contentType, onCommentSubmit
         </div>
       </div>
 
-      {/* Context-Aware Prompt with proper containment */}
-      <div className="relative">
+      {/* Context-Aware Prompt with proper stacking context */}
+      <div className="relative" style={{ zIndex: 1 }}>
         <PostPrompt 
           post={post}
           onCommentSubmit={onCommentSubmit}
