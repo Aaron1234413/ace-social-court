@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -16,16 +16,29 @@ import { userNavItems } from '@/config/navigation';
 import { RoleSwitcher } from '@/components/navigation/RoleSwitcher';
 
 export function UserDropdown() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, isLoading } = useAuth();
+  const navigate = useNavigate();
   
   const handleSignOut = async () => {
     await signOut();
   };
 
+  const handleSignInClick = () => {
+    navigate('/auth');
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+    );
+  }
+
+  // Show sign in button if no user
   if (!user || !profile) {
     return (
-      <Button asChild variant="default" size="sm">
-        <Link to="/auth">Sign In</Link>
+      <Button onClick={handleSignInClick} variant="default" size="sm">
+        Sign In
       </Button>
     );
   }

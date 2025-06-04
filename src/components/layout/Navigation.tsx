@@ -11,7 +11,7 @@ import { mainNavItems, userNavItems, NavItem } from "@/config/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -34,6 +34,29 @@ const Navigation = () => {
   const displayedNavLinks = isMobile ? navLinks : [];
 
   console.log("Navigation component rendering, path:", location.pathname);
+  console.log("Navigation auth state:", { user: !!user, profile: !!profile, isLoading });
+
+  // Don't render anything while loading to prevent flash
+  if (isLoading) {
+    return (
+      <div className="border-b sticky top-0 bg-background z-50 backdrop-blur-sm bg-background/90">
+        <div className="flex h-16 items-center px-4">
+          {/* Logo/brand with tennis styling */}
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-tennis-green to-tennis-darkGreen flex items-center justify-center text-white font-bold text-sm animate-bounce-subtle">
+              rpx
+            </div>
+            <span className="text-xl font-bold tennis-gradient-text">rallypointx</span>
+          </Link>
+          
+          {/* Loading placeholder */}
+          <div className="ml-auto flex items-center space-x-4">
+            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border-b sticky top-0 bg-background z-50 backdrop-blur-sm bg-background/90">
