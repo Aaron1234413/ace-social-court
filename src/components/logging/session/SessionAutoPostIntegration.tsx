@@ -31,7 +31,6 @@ export function SessionAutoPostIntegration({
       </div>
       
       <PostComposer 
-        sessionData={sessionData}
         onSuccess={onPostCreated}
       />
     </div>

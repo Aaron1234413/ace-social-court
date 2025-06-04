@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,10 +10,10 @@ import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { useToast } from '@/hooks/use-toast';
+import { useToast, showSuccessToast, showErrorToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
 import { ImageIcon, X } from 'lucide-react';
-import { storage } from '@/integrations/supabase/storage';
+import { uploadFileWithProgress } from '@/utils/mediaUtils';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
@@ -51,7 +52,7 @@ export function PostComposer({ onSuccess, className }: PostComposerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const { toast, showSuccessToast, showErrorToast } = useToast();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof postSchema>>({
     resolver: zodResolver(postSchema),
@@ -88,24 +89,19 @@ export function PostComposer({ onSuccess, className }: PostComposerProps) {
       let mediaType: string | null = null;
 
       if (mediaFile) {
-        const fileExt = mediaFile.name.split('.').pop();
-        const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
-        
-        const { publicUrl, error: uploadError } = await storage
-          .upload(filePath, mediaFile, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) {
+        try {
+          mediaUrl = await uploadFileWithProgress(
+            mediaFile,
+            'posts',
+            user.id
+          );
+          mediaType = mediaFile.type;
+        } catch (uploadError) {
           console.error('Error uploading media:', uploadError);
           showErrorToast("Media upload failed", "Please try again later.");
           setIsSubmitting(false);
           return;
         }
-
-        mediaUrl = publicUrl;
-        mediaType = mediaFile.type;
       }
 
       const postData = {
@@ -123,7 +119,7 @@ export function PostComposer({ onSuccess, className }: PostComposerProps) {
         .insert(postData)
         .select(`
           *,
-          profiles!posts_user_id_fkey (
+          profiles!inner (
             full_name,
             username,
             avatar_url,
