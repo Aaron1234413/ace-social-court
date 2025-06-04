@@ -113,10 +113,15 @@ export function useSharingPreferences() {
     const mostUsedPrivacy = Object.entries(privacyCount)
       .sort(([,a], [,b]) => b - a)[0]?.[0] as MatchPrivacyLevel || 'summary';
 
+    // Fix: Ensure we're doing division with numbers and handle edge cases
+    const totalMatchPosts = matchPosts.length;
+    const winShareRate = totalMatchPosts > 0 ? winPosts.length / totalMatchPosts : 0.7;
+    const lossShareRate = totalMatchPosts > 0 ? lossPosts.length / totalMatchPosts : 0.3;
+
     return {
       totalPosts: posts.length,
-      winShareRate: matchPosts.length > 0 ? winPosts.length / matchPosts.length : 0.7,
-      lossShareRate: matchPosts.length > 0 ? lossPosts.length / matchPosts.length : 0.3,
+      winShareRate,
+      lossShareRate,
       preferredPrivacyLevel: mostUsedPrivacy,
       avgTimeToShare: 15 // Default assumption
     };
@@ -142,11 +147,11 @@ export function useSharingPreferences() {
       localStorage.setItem(`tennis-sharing-preferences-${user.id}`, JSON.stringify(newPrefs));
       setPreferences(newPrefs);
 
-      // Log the preference change for future learning
+      // Fix: Convert preferences to a JSON-compatible format and use correct field name
       await supabase.from('user_activity_logs').insert({
         user_id: user.id,
         action_type: 'sharing_preferences_updated',
-        action_details: { preferences: newPrefs }
+        action_details: { preferences: newPrefs } as any
       });
     } catch (error) {
       console.error('Error saving sharing preferences:', error);
@@ -165,7 +170,7 @@ export function useSharingPreferences() {
       await supabase.from('user_activity_logs').insert({
         user_id: user.id,
         action_type: 'match_shared',
-        action_details: action
+        action_details: action as any
       });
 
       // Update preferences based on this action
