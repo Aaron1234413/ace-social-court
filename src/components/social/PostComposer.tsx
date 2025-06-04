@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Edit3, Sparkles, Share, AlertCircle, PenTool, Info, Lightbulb } from 'lucide-react';
+import { Edit3, Sparkles, Share, PenTool, Info, Lightbulb } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PrivacySelector, PrivacyLevel } from './PrivacySelector';
 import { AutoPostService } from '@/services/AutoPostService';
 import { useUserFollows } from '@/hooks/useUserFollows';
@@ -16,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface PostComposerProps {
   onSuccess?: () => void;
-  sessionData?: any; // From session logging
+  sessionData?: any;
 }
 
 export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
@@ -37,14 +36,21 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
     const checkUserSessions = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .from('training_sessions')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1);
-      
-      if (!error && data && data.length > 0) {
-        setHasUserSessions(true);
+      try {
+        // Check for sessions in a way that won't cause type errors
+        const { data, error } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_auto_generated', true)
+          .limit(1);
+        
+        if (!error && data && data.length > 0) {
+          setHasUserSessions(true);
+        }
+      } catch (error) {
+        console.log('Could not check user sessions:', error);
+        setHasUserSessions(false);
       }
     };
     
@@ -173,28 +179,29 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
 
   return (
     <TooltipProvider>
-      <Card className="w-full">
-        <CardContent className="p-4 space-y-4">
-          {/* Header with user info */}
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
+      <Card className="w-full shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/50">
+        <CardContent className="p-6 space-y-6">
+          {/* Enhanced Header with user info */}
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-12 w-12 ring-2 ring-primary/20">
               <AvatarImage src={profile?.avatar_url || undefined} />
-              <AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
                 {profile?.full_name?.charAt(0) || profile?.username?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1">
-              <span className="font-medium">
+              <h3 className="font-semibold text-lg">
                 {profile?.full_name || profile?.username || 'You'}
-              </span>
+              </h3>
+              <p className="text-sm text-muted-foreground">Share your tennis journey</p>
             </div>
 
             {/* Contextual guidance tooltip */}
             {guidance && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 hover:bg-primary/10">
                     <Lightbulb className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
@@ -203,7 +210,7 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
                     <p className="font-medium text-xs">{guidance.title}</p>
                     <p className="text-xs">{guidance.message}</p>
                     {guidance.action && (
-                      <p className="text-xs text-blue-600">{guidance.action}</p>
+                      <p className="text-xs text-primary">{guidance.action}</p>
                     )}
                   </div>
                 </TooltipContent>
@@ -213,24 +220,27 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
 
           {/* Main Content Area */}
           {!isWriting && mode === 'write' ? (
-            // Empty state with action options
-            <div className="space-y-4">
-              <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Share what's on your mind</h3>
-                    <p className="text-sm text-muted-foreground">
+            // Enhanced empty state with clear visual hierarchy
+            <div className="space-y-6">
+              <div className="border-2 border-dashed border-primary/20 rounded-xl p-8 text-center bg-gradient-to-br from-primary/5 to-transparent hover:border-primary/30 transition-colors">
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center mb-4">
+                      <PenTool className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground">Share what's on your mind</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
                       Write about your tennis journey, share tips, or connect with the community
                     </p>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-sm mx-auto">
                     <Button
                       onClick={handleStartWriting}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-3 h-12 px-6 text-base font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                       size="lg"
                     >
-                      <PenTool className="h-4 w-4" />
+                      <PenTool className="h-5 w-5" />
                       Write a Post
                     </Button>
                     
@@ -240,10 +250,10 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
                           <Button
                             onClick={handleStartGenerating}
                             variant="outline"
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-3 h-12 px-6 text-base font-medium border-2 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
                             size="lg"
                           >
-                            <Sparkles className="h-4 w-4" />
+                            <Sparkles className="h-5 w-5 text-primary" />
                             Generate from Session
                           </Button>
                         </TooltipTrigger>
@@ -257,10 +267,10 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
                           <Button
                             onClick={() => window.location.href = '/log-session'}
                             variant="outline"
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-3 h-12 px-6 text-base font-medium border-2 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
                             size="lg"
                           >
-                            <Sparkles className="h-4 w-4" />
+                            <Sparkles className="h-5 w-5 text-primary" />
                             Log Session First
                           </Button>
                         </TooltipTrigger>
@@ -274,15 +284,15 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
               </div>
             </div>
           ) : (
-            // Active posting interface
-            <div className="space-y-4">
-              {/* Mode indicator */}
+            // Enhanced active posting interface
+            <div className="space-y-6">
+              {/* Mode indicator with improved styling */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {mode === 'generate' && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground bg-primary/10 px-2 py-1 rounded-full">
-                      <Sparkles className="h-3 w-3" />
-                      AI Generated
+                    <div className="flex items-center gap-2 text-sm text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
+                      <Sparkles className="h-4 w-4" />
+                      AI Generated Content
                     </div>
                   )}
                 </div>
@@ -295,76 +305,86 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
                     setContent('');
                     setMode('write');
                   }}
-                  className="text-muted-foreground"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </Button>
               </div>
 
-              {/* Content area */}
+              {/* Enhanced content area */}
               {mode === 'generate' ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {isGenerating ? (
-                    <div className="flex items-center justify-center py-8 text-muted-foreground">
-                      <Sparkles className="h-4 w-4 animate-pulse mr-2" />
-                      Generating content...
+                    <div className="flex items-center justify-center py-12 text-muted-foreground">
+                      <div className="text-center space-y-3">
+                        <Sparkles className="h-8 w-8 animate-pulse mx-auto text-primary" />
+                        <p className="font-medium">Generating personalized content...</p>
+                        <p className="text-sm">This may take a moment</p>
+                      </div>
                     </div>
                   ) : content ? (
-                    <div className="space-y-3">
-                      <div className="bg-muted/30 rounded-lg p-4 border border-dashed">
-                        <p className="text-sm leading-relaxed">{content}</p>
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-6 border border-primary/20">
+                        <p className="text-base leading-relaxed">{content}</p>
                       </div>
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="lg"
                         onClick={() => {
                           setMode('write');
                           setIsWriting(true);
                         }}
-                        className="w-full"
+                        className="w-full h-12 border-2 hover:bg-primary/5 hover:border-primary/30"
                       >
                         <Edit3 className="h-4 w-4 mr-2" />
                         Edit Content
                       </Button>
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No session data available to generate content</p>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <div className="space-y-3">
+                        <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                          <Sparkles className="h-8 w-8" />
+                        </div>
+                        <p className="font-medium">No session data available</p>
+                        <p className="text-sm">Log a training session to generate content</p>
+                      </div>
                     </div>
                   )}
                 </div>
               ) : (
-                // Manual writing mode
-                <div className="space-y-3">
-                  <Textarea
-                    placeholder="What's happening in your tennis world?"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="min-h-[120px] resize-none border-0 p-0 focus-visible:ring-0 text-base"
-                    maxLength={500}
-                    autoFocus
-                  />
-                  
-                  <div className="text-xs text-muted-foreground text-right">
-                    {content.length}/500 characters
+                // Enhanced manual writing mode
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Textarea
+                      placeholder="What's happening in your tennis world? Share your thoughts, progress, or ask for advice..."
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      className="min-h-[140px] resize-none border-2 border-muted focus:border-primary text-base leading-relaxed p-4 rounded-xl"
+                      maxLength={500}
+                      autoFocus
+                    />
+                    <div className="absolute bottom-3 right-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                      {content.length}/500
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Progressive Privacy selector - only show when there's content */}
               {content.trim() && (
-                <>
-                  {/* Auto-publish warning with tooltip instead of prominent alert */}
+                <div className="space-y-4">
+                  {/* Auto-publish warning with enhanced styling */}
                   {shouldShowAutoPublishWarning && (
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="flex items-center gap-1 text-blue-600 cursor-help">
+                          <div className="flex items-center gap-2 text-blue-700 cursor-help">
                             <Info className="h-4 w-4" />
-                            <span className="text-xs">Public highlights selected</span>
+                            <span className="text-sm font-medium">Public highlights selected</span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="max-w-xs">
                           <p className="text-xs">Since you have no connections yet, we're posting as public highlights to help you connect with the community.</p>
                         </TooltipContent>
                       </Tooltip>
@@ -381,25 +401,26 @@ export function PostComposer({ onSuccess, sessionData }: PostComposerProps) {
                       userProfile={profile}
                     />
                   </div>
-                </>
+                </div>
               )}
 
-              {/* Action buttons */}
+              {/* Enhanced action buttons */}
               {content.trim() && (
-                <div className="flex items-center justify-end pt-2">
+                <div className="flex items-center justify-end pt-4 border-t">
                   <Button
                     onClick={handleQuickShare}
                     disabled={!content.trim() || isSubmitting}
-                    className="px-6"
+                    className="px-8 h-12 text-base font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                    size="lg"
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2" />
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                         Sharing...
                       </>
                     ) : (
                       <>
-                        <Share className="h-3 w-3 mr-2" />
+                        <Share className="h-4 w-4 mr-2" />
                         Share Now
                       </>
                     )}
