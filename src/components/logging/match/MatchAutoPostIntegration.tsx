@@ -113,28 +113,28 @@ export function MatchAutoPostIntegration({
           </div>
         </CardHeader>
         <CardContent>
-          {/* Enhanced Educational Tip */}
+          {/* Enhanced Educational Tip with Phase 3 features */}
           <div className="mb-4 p-3 bg-white/80 rounded-lg border border-gray-100">
             <h4 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
               <Zap className="h-4 w-4 text-blue-500" />
-              Smart Sharing Levels Available:
+              New: Quick Share & Customization Available!
             </h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-              <div className="flex items-center gap-1 text-blue-600">
-                <span>😊</span> Basic Vibe
+              <div className="flex items-center gap-1 text-amber-600">
+                <span>⚡</span> Quick Share
               </div>
-              <div className="flex items-center gap-1 text-green-600">
-                <span>🏆</span> Match Summary
+              <div className="flex items-center gap-1 text-blue-600">
+                <span>✏️</span> Edit Content
               </div>
               <div className="flex items-center gap-1 text-purple-600">
-                <span>📊</span> Detailed Share
+                <span>⚙️</span> Save Preferences
               </div>
-              <div className="flex items-center gap-1 text-orange-600">
-                <span>🧠</span> Full Story
+              <div className="flex items-center gap-1 text-green-600">
+                <span>🎯</span> Smart Templates
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              AI will generate contextually appropriate content based on your match outcome and data completeness.
+              One-click sharing, content customization, and personalized preferences now available!
             </p>
           </div>
 

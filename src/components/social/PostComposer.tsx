@@ -8,7 +8,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast, showSuccessToast, showErrorToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthProvider';
-import { ImageIcon, X, Sparkles, Brain, Zap, MessageSquare, Camera, Send, Users, Globe, Star, Trophy } from 'lucide-react';
+import { ImageIcon, X, Sparkles, Brain, Zap, MessageSquare, Camera, Send, Users, Globe, Star, Trophy, Settings, Edit3 } from 'lucide-react';
 import { uploadFileWithProgress } from '@/utils/mediaUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -40,6 +40,9 @@ import { MatchContentTemplateService } from '@/services/MatchContentTemplateServ
 import { useEnhancedAutoPostGeneration } from '@/hooks/useEnhancedAutoPostGeneration';
 import { EnhancedMatchSuggestions } from './EnhancedMatchSuggestions';
 import { EnhancedPostSuggestion } from '@/services/EnhancedAutoPostService';
+import { QuickShareButtons } from './QuickShareButtons';
+import { UserSharingPreferences } from './UserSharingPreferences';
+import { ContentCustomizationPanel } from './ContentCustomizationPanel';
 
 const postSchema = z.object({
   content: z.string().min(3, { message: "Post content must be at least 3 characters." }),
@@ -68,6 +71,12 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
   const [matchPrivacyLevel, setMatchPrivacyLevel] = useState<MatchPrivacyLevel>('basic');
 
   const { suggestions, isGenerating, generateSuggestions } = useAutoPostGeneration();
+
+  // Add new state for Phase 3 features
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<EnhancedPostSuggestion | null>(null);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [sharingPreferences, setSharingPreferences] = useState<any>(null);
 
   const form = useForm<z.infer<typeof postSchema>>({
     resolver: zodResolver(postSchema),
@@ -185,6 +194,30 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     if (suggestion.template?.id) {
       form.setValue('template_id', suggestion.template.id);
     }
+  };
+
+  const handleQuickShare = async (content: string, privacyLevel: string, templateType: string) => {
+    form.setValue('content', content);
+    form.setValue('privacy_level', privacyLevel as any);
+    
+    // Auto-submit if user preferences allow it
+    if (sharingPreferences?.autoShare) {
+      await handleSubmit(form.getValues());
+    }
+  };
+
+  const handleCustomizationSave = () => {
+    if (selectedSuggestion) {
+      form.setValue('content', selectedSuggestion.content);
+      form.setValue('privacy_level', selectedSuggestion.privacyLevel);
+      setShowCustomization(false);
+      setSelectedSuggestion(null);
+    }
+  };
+
+  const handleSuggestionCustomize = (suggestion: EnhancedPostSuggestion) => {
+    setSelectedSuggestion(suggestion);
+    setShowCustomization(true);
   };
 
   const handleSubmit = async (values: z.infer<typeof postSchema>) => {
@@ -384,6 +417,15 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                 Match Post
               </Badge>
             )}
+            {/* Add preferences button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPreferences(!showPreferences)}
+              className="text-purple-600 border-purple-200 hover:bg-purple-50"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
             {!matchData && (
               <Button 
                 variant={showComposer ? "secondary" : "default"}
@@ -402,6 +444,38 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         <CardContent className="pt-6 space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              {/* Quick Share Buttons - only show for match posts */}
+              {matchData && sharingPreferences?.showQuickShareButtons !== false && (
+                <QuickShareButtons
+                  matchData={matchData}
+                  onQuickShare={handleQuickShare}
+                  disabled={isSubmitting}
+                />
+              )}
+
+              {/* User Sharing Preferences */}
+              <UserSharingPreferences
+                isVisible={showPreferences}
+                onClose={() => setShowPreferences(false)}
+                onPreferencesChange={setSharingPreferences}
+              />
+
+              {/* Content Customization Panel */}
+              {selectedSuggestion && (
+                <ContentCustomizationPanel
+                  suggestion={selectedSuggestion}
+                  onContentUpdate={(content) => {
+                    setSelectedSuggestion({ ...selectedSuggestion, content });
+                  }}
+                  onCancel={() => {
+                    setShowCustomization(false);
+                    setSelectedSuggestion(null);
+                  }}
+                  onSave={handleCustomizationSave}
+                  isVisible={showCustomization}
+                />
+              )}
+
               {/* Match Privacy Selector - only show for match posts */}
               {matchData && (
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-5 border border-green-200">
@@ -414,13 +488,102 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                 </div>
               )}
 
-              {/* Enhanced AI Suggestions Section - Replace the old one */}
-              {matchData && enhancedSuggestions.length > 0 && (
-                <EnhancedMatchSuggestions
-                  suggestions={enhancedSuggestions}
-                  onSuggestionSelect={handleEnhancedSuggestionSelect}
-                  isGenerating={isEnhancedGenerating}
-                />
+              {/* Enhanced AI Suggestions Section with customization */}
+              {matchData && enhancedSuggestions.length > 0 && !showCustomization && (
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-5 border border-purple-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-purple-100 p-2 rounded-full">
+                        <Sparkles className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-purple-900">Smart Match Suggestions</span>
+                        <Badge variant="outline" className="text-xs ml-2">
+                          AI-Powered
+                        </Badge>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                      {enhancedSuggestions.length} option{enhancedSuggestions.length > 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {enhancedSuggestions.map((suggestion, index) => {
+                      const IconComponent = privacyLevelIcons[suggestion.matchPrivacyLevel];
+                      const colorClasses = privacyLevelColors[suggestion.matchPrivacyLevel];
+                      const isRecommended = index === 0;
+                      
+                      return (
+                        <Card 
+                          key={suggestion.id}
+                          className="cursor-pointer hover:shadow-md transition-all border-l-4 border-l-transparent hover:border-l-purple-400"
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded-full ${colorClasses.split(' ')[1]}`}>
+                                <IconComponent className={`h-4 w-4 ${colorClasses.split(' ')[0]}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-medium text-gray-900">
+                                    {suggestion.template.title}
+                                  </span>
+                                  {isRecommended && (
+                                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                                      Recommended
+                                    </Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-xs">
+                                    {Math.round(suggestion.confidence * 100)}% match
+                                  </Badge>
+                                </div>
+                                
+                                <p className="text-sm text-gray-700 mb-3 line-clamp-3">
+                                  {suggestion.content}
+                                </p>
+                                
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className={`text-xs ${colorClasses}`}>
+                                      {suggestion.matchPrivacyLevel.charAt(0).toUpperCase() + suggestion.matchPrivacyLevel.slice(1)} Level
+                                    </Badge>
+                                    <span className="text-xs text-gray-500">
+                                      → {suggestion.privacyLevel}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleSuggestionCustomize(suggestion)}
+                                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                                    >
+                                      <Edit3 className="h-3 w-3 mr-1" />
+                                      Customize
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleEnhancedSuggestionSelect(suggestion)}
+                                      className="text-purple-600 hover:text-purple-700 hover:bg-purple-100"
+                                    >
+                                      Use This
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                <p className="text-xs text-gray-500 mt-2 italic">
+                                  {suggestion.reasoning}
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
               {/* Keep old suggestions for session data */}
