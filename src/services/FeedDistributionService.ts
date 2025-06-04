@@ -1,3 +1,4 @@
+
 import { Post } from "@/types/post";
 
 interface UserPostGroup {
@@ -85,7 +86,7 @@ export class FeedDistributionService {
   private static calculateUserPriority(
     userId: string, 
     followingUserIds: string[], 
-    currentUserId?: string,
+    currentUserId: string | undefined,
     samplePost: Post
   ): number {
     let priority = 0;
