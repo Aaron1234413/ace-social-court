@@ -36,13 +36,11 @@ export function BubbleFooter({ post, currentUserId, contentType }: BubbleFooterP
         postUserId={post.user_id}
         size="sm"
         variant="ghost"
-        className="comment-count"
       />
       
       <ShareButton 
         postId={post.id} 
         postContent={post.content}
-        className="share-link"
       />
     </div>
   );
