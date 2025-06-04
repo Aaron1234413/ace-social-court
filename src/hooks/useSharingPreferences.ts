@@ -113,16 +113,16 @@ export function useSharingPreferences() {
     const mostUsedPrivacy = Object.entries(privacyCount)
       .sort(([,a], [,b]) => b - a)[0]?.[0] as MatchPrivacyLevel || 'summary';
 
-    // Fix: Convert to actual numbers and perform arithmetic safely
-    const totalMatchPostsCount = matchPosts.length;
-    const winPostsCount = winPosts.length;
-    const lossPostsCount = lossPosts.length;
+    // Fix: Ensure proper number types for arithmetic operations
+    const totalMatchPostsCount = Number(matchPosts.length);
+    const winPostsCount = Number(winPosts.length);
+    const lossPostsCount = Number(lossPosts.length);
     
-    // Perform arithmetic with proper number conversion
+    // Safe arithmetic operations with explicit number conversion
     const winShareRate = totalMatchPostsCount > 0 ? 
-      Number(winPostsCount) / Number(totalMatchPostsCount) : 0.7;
+      winPostsCount / totalMatchPostsCount : 0.7;
     const lossShareRate = totalMatchPostsCount > 0 ? 
-      Number(lossPostsCount) / Number(totalMatchPostsCount) : 0.3;
+      lossPostsCount / totalMatchPostsCount : 0.3;
 
     return {
       totalPosts: posts.length,
@@ -153,11 +153,11 @@ export function useSharingPreferences() {
       localStorage.setItem(`tennis-sharing-preferences-${user.id}`, JSON.stringify(newPrefs));
       setPreferences(newPrefs);
 
-      // Fix: Convert preferences to a JSON-compatible format and use correct field name
+      // Fix: Convert preferences to JSON-compatible format
       await supabase.from('user_activity_logs').insert({
         user_id: user.id,
         action_type: 'sharing_preferences_updated',
-        action_details: { preferences: newPrefs }
+        action_details: JSON.parse(JSON.stringify(newPrefs))
       });
     } catch (error) {
       console.error('Error saving sharing preferences:', error);
@@ -176,7 +176,7 @@ export function useSharingPreferences() {
       await supabase.from('user_activity_logs').insert({
         user_id: user.id,
         action_type: 'match_shared',
-        action_details: action
+        action_details: JSON.parse(JSON.stringify(action))
       });
 
       // Update preferences based on this action
