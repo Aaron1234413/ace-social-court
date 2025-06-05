@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -53,16 +54,18 @@ const Feed = () => {
     metrics,
     ambassadorPercentage,
     debugData,
+    currentFilter,
     loadMore, 
     refresh,
     addNewPost
-  } = useFeedCascade();
+  } = useFeedCascade({ filter: feedFilter });
   
   console.log('📊 Feed data:', { 
     postsCount: posts?.length || 0, 
     isLoading, 
     hasMore,
-    currentFilter: feedFilter
+    currentFilter: feedFilter,
+    hookFilter: currentFilter
   });
   
   const { 
@@ -122,10 +125,10 @@ const Feed = () => {
   }, [isLoading, posts.length, recordLoadTime]);
 
   const handleFilterChange = (value: string) => {
-    if (value) {
+    if (value && value !== feedFilter) {
+      console.log('🔄 Feed filter changed from', feedFilter, 'to', value);
       setFeedFilter(value as FeedFilter);
-      console.log('🔄 Feed filter changed to:', value);
-      // TODO: This will trigger a refresh in Step 3 when we connect to the cascade system
+      // The hook will automatically refresh when the filter changes
     }
   };
 
@@ -215,7 +218,7 @@ const Feed = () => {
           <CardContent className="p-4">
             <div className="space-y-4 text-sm">
               <div>
-                <div className="font-medium text-blue-900 mb-2">🔍 Feed Debug Information</div>
+                <div className="font-medium text-blue-900 mb-2">🔍 Feed Debug Information (Filter: {feedFilter})</div>
                 
                 {debugData.followedUsers && (
                   <div className="mb-3">

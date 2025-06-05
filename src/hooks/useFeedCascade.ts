@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Post } from '@/types/post';
-import { FeedQueryCascade } from '@/services/FeedQueryCascade';
+import { FeedQueryCascade, FeedFilter } from '@/services/FeedQueryCascade';
 import { useAuth } from '@/components/AuthProvider';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,10 +19,15 @@ interface FeedCascadeState {
   debugData?: any;
   hasErrors?: boolean;
   errorDetails?: string[];
+  currentFilter: FeedFilter;
 }
 
-export const useFeedCascade = () => {
-  console.log('🎣 useFeedCascade hook initializing...');
+interface UseFeedCascadeOptions {
+  filter?: FeedFilter;
+}
+
+export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
+  console.log('🎣 useFeedCascade hook initializing with filter:', options.filter);
   
   const { user } = useAuth();
   const { followingCount, following } = useUserFollows();
@@ -38,14 +43,16 @@ export const useFeedCascade = () => {
     ambassadorPercentage: 0,
     debugData: null,
     hasErrors: false,
-    errorDetails: []
+    errorDetails: [],
+    currentFilter: options.filter || 'all'
   });
 
   console.log('📊 useFeedCascade state:', {
     postsCount: state.posts.length,
     optimisticCount: optimisticPosts.length,
     isLoading: state.isLoading,
-    hasUser: !!user
+    hasUser: !!user,
+    currentFilter: state.currentFilter
   });
 
   // Extract user IDs from following relationships
@@ -54,41 +61,44 @@ export const useFeedCascade = () => {
   // Combine optimistic posts with regular posts
   const allPosts = [...optimisticPosts, ...state.posts];
 
-  const loadPosts = useCallback(async (page: number = 0, existingPosts: Post[] = []) => {
+  const loadPosts = useCallback(async (page: number = 0, existingPosts: Post[] = [], filter: FeedFilter = 'all') => {
     if (!user) {
       console.log('❌ No user found - cannot load posts');
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
-    console.log('🔄 STARTING ENHANCED FEED LOAD WITH DEBUGGING', { 
+    console.log('🔄 STARTING ENHANCED FEED LOAD WITH FILTERING', { 
       page, 
       existingCount: existingPosts.length,
       followingCount: followingUserIds.length,
       userId: user.id,
+      filter,
       timestamp: new Date().toISOString()
     });
 
     try {
       // Always show loading for page 0
       if (page === 0) {
-        setState(prev => ({ ...prev, isLoading: true }));
+        setState(prev => ({ ...prev, isLoading: true, currentFilter: filter }));
       }
 
       const result = await FeedQueryCascade.executeQueryCascade(
         user.id,
         followingUserIds,
         page,
-        existingPosts
+        existingPosts,
+        filter
       );
 
-      console.log('📊 ENHANCED CASCADE RESULT WITH FULL DEBUGGING:', {
+      console.log('📊 ENHANCED CASCADE RESULT WITH FILTERING:', {
         postCount: result.posts.length,
         metrics: result.metrics,
         debugData: result.debugData,
         ambassadorPercentage: Math.round(result.ambassadorPercentage * 100) + '%',
         hasErrors: result.hasErrors,
-        errorCount: result.errorDetails?.length || 0
+        errorCount: result.errorDetails?.length || 0,
+        filter
       });
 
       // Log any errors found
@@ -186,20 +196,22 @@ export const useFeedCascade = () => {
         debugData: result.debugData,
         hasErrors: result.hasErrors,
         errorDetails: result.errorDetails,
+        currentFilter: filter,
         isLoading: false // Always turn off loading when done
       }));
 
-      console.log('✅ FEED LOAD COMPLETE:', {
+      console.log('✅ FEED LOAD COMPLETE WITH FILTER:', {
         finalPostCount: result.posts.length,
         loadingTurnedOff: true,
-        hasErrors: result.hasErrors
+        hasErrors: result.hasErrors,
+        filter
       });
 
     } catch (error) {
       console.error('💥 CRITICAL FEED LOAD FAILURE:', {
         error: error.message,
         stack: error.stack,
-        context: { page, existingCount: existingPosts.length, followingCount: followingUserIds.length }
+        context: { page, existingCount: existingPosts.length, followingCount: followingUserIds.length, filter }
       });
       
       // Always turn off loading even on error
@@ -207,7 +219,8 @@ export const useFeedCascade = () => {
         ...prev, 
         isLoading: false,
         hasErrors: true,
-        errorDetails: [error.message]
+        errorDetails: [error.message],
+        currentFilter: filter
       }));
     }
   }, [user, followingUserIds]);
@@ -218,17 +231,19 @@ export const useFeedCascade = () => {
     setState(prev => ({ ...prev, isLoadingMore: true }));
     
     const nextPage = state.page + 1;
-    await loadPosts(nextPage, state.posts);
+    await loadPosts(nextPage, state.posts, state.currentFilter);
     
     setState(prev => ({ 
       ...prev, 
       page: nextPage,
       isLoadingMore: false 
     }));
-  }, [state.isLoadingMore, state.hasMore, state.page, state.posts, loadPosts]);
+  }, [state.isLoadingMore, state.hasMore, state.page, state.posts, state.currentFilter, loadPosts]);
 
-  const refresh = useCallback(async () => {
-    console.log('🔄 REFRESHING FEED - RESET TO LOADING STATE');
+  const refresh = useCallback(async (filter?: FeedFilter) => {
+    const targetFilter = filter || state.currentFilter;
+    console.log('🔄 REFRESHING FEED WITH FILTER:', targetFilter);
+    
     // Clear optimistic posts on refresh
     clearAllOptimistic();
     setState(prev => ({ 
@@ -238,11 +253,12 @@ export const useFeedCascade = () => {
       page: 0, 
       hasMore: true,
       hasErrors: false,
-      errorDetails: []
+      errorDetails: [],
+      currentFilter: targetFilter
     }));
     
-    await loadPosts(0, []);
-  }, [loadPosts, clearAllOptimistic]);
+    await loadPosts(0, [], targetFilter);
+  }, [loadPosts, clearAllOptimistic, state.currentFilter]);
 
   // Function to add a new post optimistically
   const addNewPost = useCallback((post: Post) => {
@@ -255,19 +271,32 @@ export const useFeedCascade = () => {
     if (user) {
       console.log('🎬 INITIAL FEED LOAD TRIGGERED', {
         userId: user.id,
-        followingCount: followingUserIds.length
+        followingCount: followingUserIds.length,
+        filter: options.filter || 'all'
       });
-      refresh();
+      refresh(options.filter || 'all');
     } else {
       console.log('⏳ Waiting for user authentication...');
       setState(prev => ({ ...prev, isLoading: false }));
     }
   }, [user, followingCount]); // Reload when follow count changes
 
+  // Handle filter changes
+  useEffect(() => {
+    if (user && options.filter && options.filter !== state.currentFilter) {
+      console.log('🔄 FILTER CHANGED - REFRESHING FEED:', {
+        from: state.currentFilter,
+        to: options.filter
+      });
+      refresh(options.filter);
+    }
+  }, [options.filter, state.currentFilter, user, refresh]);
+
   console.log('📤 useFeedCascade returning:', {
     postsCount: allPosts.length,
     isLoading: state.isLoading,
-    hasErrors: state.hasErrors
+    hasErrors: state.hasErrors,
+    currentFilter: state.currentFilter
   });
 
   return {
@@ -280,6 +309,7 @@ export const useFeedCascade = () => {
     debugData: state.debugData,
     hasErrors: state.hasErrors,
     errorDetails: state.errorDetails,
+    currentFilter: state.currentFilter,
     loadMore,
     refresh,
     addNewPost
