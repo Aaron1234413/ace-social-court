@@ -21,6 +21,7 @@ import { PreviewService } from '@/services/PreviewService';
 import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { FeedDebugPanel } from '@/components/feed/FeedDebugPanel';
+import { FeedFilterTester } from '@/components/feed/FeedFilterTester';
 import { Post } from '@/types/post';
 
 type FeedFilter = 'all' | 'following' | 'discover';
@@ -45,6 +46,7 @@ const Feed = () => {
   const [showCacheStats, setShowCacheStats] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [showFilterTester, setShowFilterTester] = useState(false);
   
   const { 
     posts, 
@@ -197,9 +199,20 @@ const Feed = () => {
             >
               Debug Panel
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFilterTester(!showFilterTester)}
+              className="text-xs bg-green-50 text-green-700 hover:bg-green-100"
+            >
+              Filter Test
+            </Button>
           </div>
         )}
       </div>
+
+      {/* Filter Testing Dashboard - Only show in development */}
+      {isDevelopment && showFilterTester && <FeedFilterTester />}
 
       {/* Enhanced Debug Panel - Only show in development */}
       {isDevelopment && (
@@ -258,10 +271,10 @@ const Feed = () => {
                   <div className="mb-3 p-2 bg-purple-50 rounded border">
                     <div className="font-medium">Ambassador Query Results:</div>
                     <div className="text-xs">
-                      • Following ambassadors: {debugData.ambassadorQuery.followingAmbassadors.length}
-                      • Posts from followed ambassadors: {debugData.ambassadorQuery.followedAmbassadorPosts}
-                      • Posts from other ambassadors: {debugData.ambassadorQuery.otherAmbassadorPosts}
-                      • Total ambassador posts available: {debugData.ambassadorQuery.allAmbassadorPosts}
+                      • Following ambassadors: {debugData.ambassadorQuery.followingAmbassadors?.length || 0}
+                      • Posts from followed ambassadors: {debugData.ambassadorQuery.followedAmbassadorPosts || 0}
+                      • Posts from other ambassadors: {debugData.ambassadorQuery.otherAmbassadorPosts || 0}
+                      • Total ambassador posts available: {debugData.ambassadorQuery.allAmbassadorPosts || 0}
                     </div>
                   </div>
                 )}
