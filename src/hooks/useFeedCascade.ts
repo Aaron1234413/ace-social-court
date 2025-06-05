@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Post } from '@/types/post';
 import { FeedQueryCascade, FeedFilter } from '@/services/FeedQueryCascade';
@@ -190,7 +189,7 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
       setState(prev => ({
         ...prev,
         posts: result.posts,
-        hasMore: result.posts.length >= 8 && page < 5, // Limit to 5 pages max
+        hasMore: result.posts.length >= 15 && page < 8, // Increased page limit from 5 to 8
         metrics: result.metrics,
         ambassadorPercentage: result.ambassadorPercentage,
         debugData: result.debugData,

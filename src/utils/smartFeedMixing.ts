@@ -46,9 +46,9 @@ export function createSmartFeedMix(
     publicPosts: publicPosts.length
   });
 
-  // GUARANTEED content strategy
-  const minPosts = 10;
-  const maxPosts = 25;
+  // INCREASED content strategy - from 25 to 50 posts
+  const minPosts = 15;
+  const maxPosts = 50; // Increased from 25 to 50
   const targetTotal = Math.max(minPosts, Math.min(maxPosts, allPosts.length));
   
   // Always ensure we have ambassador content (minimum 30% of feed)
@@ -111,7 +111,7 @@ export function ensureMinimumContent(
   allAvailablePosts: Post[],
   currentUserId?: string
 ): Post[] {
-  const minPosts = 8;
+  const minPosts = 15; // Increased from 8 to 15
   
   if (posts.length >= minPosts) {
     return posts;
