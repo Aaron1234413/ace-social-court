@@ -9,7 +9,7 @@ interface FeedMixingOptions {
 }
 
 /**
- * Creates a smart mix of content with GUARANTEED ambassador representation
+ * Creates a smart mix of content with better error handling
  */
 export function createSmartFeedMix(
   allPosts: Post[], 
@@ -17,22 +17,39 @@ export function createSmartFeedMix(
 ): Post[] {
   const { followingCount, userFollowings, currentUserId } = options;
   
-  console.log('🎯 Creating GUARANTEED smart feed mix', {
+  console.log('🎯 Creating smart feed mix', {
     totalPosts: allPosts.length,
     followingCount,
     userFollowings: userFollowings.length
   });
 
+  // Early return if no posts
+  if (!allPosts || allPosts.length === 0) {
+    console.log('⚠️ No posts provided to mix');
+    return [];
+  }
+
+  // Remove duplicates based on post ID
+  const uniquePosts = allPosts.filter((post, index, arr) => 
+    arr.findIndex(p => p.id === post.id) === index
+  );
+
+  console.log('📊 Post deduplication:', {
+    original: allPosts.length,
+    unique: uniquePosts.length,
+    duplicatesRemoved: allPosts.length - uniquePosts.length
+  });
+
   // Separate posts into categories
-  const userPosts = allPosts.filter(post => post.user_id === currentUserId);
-  const followedPosts = allPosts.filter(post => 
+  const userPosts = uniquePosts.filter(post => post.user_id === currentUserId);
+  const followedPosts = uniquePosts.filter(post => 
     userFollowings.includes(post.user_id) && post.user_id !== currentUserId
   );
-  const ambassadorPosts = allPosts.filter(post => 
+  const ambassadorPosts = uniquePosts.filter(post => 
     (post.author?.user_type === 'ambassador' || post.is_ambassador_content) &&
     post.user_id !== currentUserId
   );
-  const publicPosts = allPosts.filter(post => 
+  const publicPosts = uniquePosts.filter(post => 
     post.privacy_level === 'public' && 
     post.user_id !== currentUserId && 
     !userFollowings.includes(post.user_id) &&
@@ -46,25 +63,25 @@ export function createSmartFeedMix(
     publicPosts: publicPosts.length
   });
 
-  // INCREASED content strategy - from 25 to 50 posts
+  // Increased content strategy - target 50 posts maximum
   const minPosts = 15;
-  const maxPosts = 50; // Increased from 25 to 50
-  const targetTotal = Math.max(minPosts, Math.min(maxPosts, allPosts.length));
+  const maxPosts = 50;
+  const targetTotal = Math.max(minPosts, Math.min(maxPosts, uniquePosts.length));
   
-  // Always ensure we have ambassador content (minimum 30% of feed)
-  const minAmbassadorPosts = Math.max(3, Math.floor(targetTotal * 0.3));
+  // Ensure we have ambassador content (minimum 20% of feed)
+  const minAmbassadorPosts = Math.max(2, Math.floor(targetTotal * 0.2));
   const actualAmbassadorPosts = Math.min(minAmbassadorPosts, ambassadorPosts.length);
   
   // Build guaranteed feed
   const feedPosts: Post[] = [];
   
-  // 1. Always include ambassador content first (guaranteed)
+  // 1. Add ambassador content first (guaranteed)
   if (actualAmbassadorPosts > 0) {
     feedPosts.push(...ambassadorPosts.slice(0, actualAmbassadorPosts));
   }
   
   // 2. Add user's own posts (limited)
-  const userPostLimit = Math.min(2, userPosts.length);
+  const userPostLimit = Math.min(3, userPosts.length);
   feedPosts.push(...userPosts.slice(0, userPostLimit));
   
   // 3. Fill remaining with followed users
@@ -80,24 +97,32 @@ export function createSmartFeedMix(
     feedPosts.push(...publicPosts.slice(0, stillRemaining));
   }
 
-  // Apply fair distribution algorithm
-  const distributedFeed = FeedDistributionService.distributePostsFairly(
-    feedPosts,
-    userFollowings,
-    targetTotal,
-    currentUserId
-  );
+  // Apply fair distribution algorithm if we have enough posts
+  let distributedFeed = feedPosts;
+  if (feedPosts.length > 10) {
+    try {
+      distributedFeed = FeedDistributionService.distributePostsFairly(
+        feedPosts,
+        userFollowings,
+        targetTotal,
+        currentUserId
+      );
+    } catch (error) {
+      console.warn('Distribution service failed, using original order:', error);
+      distributedFeed = feedPosts;
+    }
+  }
 
   // Final validation
   const finalAmbassadorCount = distributedFeed.filter(post => 
     post.author?.user_type === 'ambassador' || post.is_ambassador_content
   ).length;
 
-  console.log('✅ GUARANTEED smart feed mix complete:', {
+  console.log('✅ Smart feed mix complete:', {
     finalCount: distributedFeed.length,
     ambassadorCount: finalAmbassadorCount,
-    ambassadorPercentage: Math.round((finalAmbassadorCount / distributedFeed.length) * 100) + '%',
-    guaranteed: finalAmbassadorCount >= 3 ? '✅' : '⚠️'
+    ambassadorPercentage: distributedFeed.length > 0 ? Math.round((finalAmbassadorCount / distributedFeed.length) * 100) + '%' : '0%',
+    guaranteed: finalAmbassadorCount >= 2 ? '✅' : '⚠️'
   });
   
   return distributedFeed;
@@ -111,7 +136,7 @@ export function ensureMinimumContent(
   allAvailablePosts: Post[],
   currentUserId?: string
 ): Post[] {
-  const minPosts = 15; // Increased from 8 to 15
+  const minPosts = 15;
   
   if (posts.length >= minPosts) {
     return posts;
@@ -160,7 +185,7 @@ export function ensureMinimumContent(
     added: fallbackPosts.length,
     final: result.length,
     ambassadorCount,
-    ambassadorPercentage: Math.round((ambassadorCount / result.length) * 100) + '%'
+    ambassadorPercentage: result.length > 0 ? Math.round((ambassadorCount / result.length) * 100) + '%' : '0%'
   });
   
   return result;

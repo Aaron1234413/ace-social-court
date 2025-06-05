@@ -67,48 +67,12 @@ export class FeedQueryCascade {
     });
 
     const startTime = performance.now();
-    const pageSize = 15;
+    const pageSize = 20;
     const offset = page * pageSize;
 
     try {
-      // 1. Get posts from followed users
-      const { data: followedPosts, error: followedError } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          profiles!posts_user_id_fkey (
-            id, full_name, user_type, avatar_url
-          )
-        `)
-        .in('user_id', followingUserIds)
-        .eq('privacy_level', 'public')
-        .order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
-
-      if (followedError) {
-        console.error('❌ Followed query error:', followedError);
-      }
-
-      // 2. Get ambassador content (ensure diversity)
-      const { data: ambassadorPosts, error: ambassadorError } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          profiles!posts_user_id_fkey (
-            id, full_name, user_type, avatar_url
-          )
-        `)
-        .eq('is_ambassador_content', true)
-        .eq('privacy_level', 'public')
-        .order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
-
-      if (ambassadorError) {
-        console.error('❌ Ambassador query error:', ambassadorError);
-      }
-
-      // 3. Get public posts (excluding followed users and ambassadors)
-      const { data: publicPosts, error: publicError } = await supabase
+      // Get all posts with a simpler query approach
+      const { data: allPostsData, error: postsError } = await supabase
         .from('posts')
         .select(`
           *,
@@ -117,30 +81,21 @@ export class FeedQueryCascade {
           )
         `)
         .eq('privacy_level', 'public')
-        .not('user_id', 'in', followingUserIds.length > 0 ? `(${followingUserIds.join(',')})` : '()')
-        .eq('is_ambassador_content', false)
         .order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
+        .range(offset, offset + (pageSize * 3) - 1); // Get more posts to ensure good mix
 
-      if (publicError) {
-        console.error('❌ Public query error:', publicError);
+      if (postsError) {
+        console.error('❌ Posts query error:', postsError);
+        return this.createErrorResult('all', postsError.message, startTime);
       }
 
-      // Format and combine posts
-      const formattedFollowedPosts = this.formatPosts(followedPosts || []);
-      const formattedAmbassadorPosts = this.formatPosts(ambassadorPosts || []);
-      const formattedPublicPosts = this.formatPosts(publicPosts || []);
-
-      const allPosts = [
-        ...formattedFollowedPosts,
-        ...formattedAmbassadorPosts,
-        ...formattedPublicPosts
-      ];
+      const formattedPosts = this.formatPosts(allPostsData || []);
+      console.log('📊 Raw posts retrieved:', formattedPosts.length);
 
       const queryTime = performance.now() - startTime;
 
       // Apply smart mixing
-      const smartMix = createSmartFeedMix([...existingPosts, ...allPosts], {
+      const smartMix = createSmartFeedMix(formattedPosts, {
         followingCount: followingUserIds.length,
         userFollowings: followingUserIds,
         currentUserId: userId
@@ -151,34 +106,27 @@ export class FeedQueryCascade {
       ).length;
 
       console.log('✅ ALL query complete:', {
-        rawFollowed: followedPosts?.length || 0,
-        rawAmbassador: ambassadorPosts?.length || 0,
-        rawPublic: publicPosts?.length || 0,
+        rawPosts: formattedPosts.length,
         finalPosts: smartMix.length,
         ambassadorCount,
-        ambassadorPercentage: Math.round((ambassadorCount / smartMix.length) * 100) + '%',
+        ambassadorPercentage: smartMix.length > 0 ? Math.round((ambassadorCount / smartMix.length) * 100) + '%' : '0%',
         queryTime: Math.round(queryTime) + 'ms'
       });
 
       return {
         posts: smartMix,
         level: 'all',
-        source: 'followed_ambassador_public',
+        source: 'mixed_content',
         postCount: smartMix.length,
         queryTime,
         errorCount: 0,
-        ambassadorPercentage: ambassadorCount / smartMix.length,
+        ambassadorPercentage: smartMix.length > 0 ? ambassadorCount / smartMix.length : 0,
         debugData: {
-          followedUsers: {
-            totalFollowing: followingUserIds.length,
-            totalPosts: formattedFollowedPosts.length,
-            followedUsers: this.analyzeFollowedUsers(formattedFollowedPosts, followingUserIds)
-          },
           primaryQuery: {
-            rawPostCount: (followedPosts?.length || 0) + (ambassadorPosts?.length || 0) + (publicPosts?.length || 0),
-            formattedPostCount: allPosts.length,
+            rawPostCount: formattedPosts.length,
+            formattedPostCount: formattedPosts.length,
             followingCount: followingUserIds.length,
-            postsByUser: this.analyzePostsByUser(allPosts)
+            postsByUser: this.analyzePostsByUser(formattedPosts)
           }
         },
         metrics: [],
@@ -216,7 +164,7 @@ export class FeedQueryCascade {
         return await this.executeAmbassadorQuery(userId, [], page, existingPosts);
       }
 
-      // More lenient approach: Get posts from followed users AND some quality ambassadors
+      // Get posts from followed users with some ambassador content mixed in
       const { data: followedPosts, error } = await supabase
         .from('posts')
         .select(`
@@ -225,7 +173,6 @@ export class FeedQueryCascade {
             id, full_name, user_type, avatar_url
           )
         `)
-        .or(`user_id.in.(${followingUserIds.join(',')}),and(is_ambassador_content.eq.true,privacy_level.eq.public)`)
         .eq('privacy_level', 'public')
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
@@ -235,11 +182,19 @@ export class FeedQueryCascade {
         return this.createErrorResult('following', error.message, startTime);
       }
 
-      const formattedPosts = this.formatPosts(followedPosts || []);
+      const allPosts = this.formatPosts(followedPosts || []);
+      
+      // Filter for followed users but keep some ambassador content
+      const filteredPosts = allPosts.filter(post => 
+        followingUserIds.includes(post.user_id) || 
+        post.author?.user_type === 'ambassador' || 
+        post.is_ambassador_content
+      );
+
       const queryTime = performance.now() - startTime;
 
       // Enhanced smart mixing with more followed user content
-      const smartMix = createSmartFeedMix([...existingPosts, ...formattedPosts], {
+      const smartMix = createSmartFeedMix(filteredPosts, {
         followingCount: followingUserIds.length,
         userFollowings: followingUserIds,
         currentUserId: userId
@@ -250,10 +205,11 @@ export class FeedQueryCascade {
       ).length;
 
       console.log('✅ LENIENT Following query complete:', {
-        rawPosts: followedPosts?.length || 0,
+        rawPosts: allPosts.length,
+        filteredPosts: filteredPosts.length,
         finalPosts: smartMix.length,
         ambassadorCount,
-        ambassadorPercentage: Math.round((ambassadorCount / smartMix.length) * 100) + '%',
+        ambassadorPercentage: smartMix.length > 0 ? Math.round((ambassadorCount / smartMix.length) * 100) + '%' : '0%',
         queryTime: Math.round(queryTime) + 'ms'
       });
 
@@ -264,12 +220,12 @@ export class FeedQueryCascade {
         postCount: smartMix.length,
         queryTime,
         errorCount: 0,
-        ambassadorPercentage: ambassadorCount / smartMix.length,
+        ambassadorPercentage: smartMix.length > 0 ? ambassadorCount / smartMix.length : 0,
         debugData: {
           followedUsers: {
             totalFollowing: followingUserIds.length,
-            totalPosts: formattedPosts.length,
-            followedUsers: this.analyzeFollowedUsers(formattedPosts, followingUserIds)
+            totalPosts: filteredPosts.length,
+            followedUsers: this.analyzeFollowedUsers(filteredPosts, followingUserIds)
           }
         },
         metrics: [],
@@ -298,12 +254,12 @@ export class FeedQueryCascade {
     });
 
     const startTime = performance.now();
-    const pageSize = 15;
+    const pageSize = 20;
     const offset = page * pageSize;
 
     try {
-      // 1. Get public posts (excluding followed users)
-      const { data: publicPosts, error: publicError } = await supabase
+      // Get public posts excluding followed users
+      let query = supabase
         .from('posts')
         .select(`
           *,
@@ -312,42 +268,26 @@ export class FeedQueryCascade {
           )
         `)
         .eq('privacy_level', 'public')
-        .not('user_id', 'in', followingUserIds.length > 0 ? `(${followingUserIds.join(',')})` : '()')
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
+
+      // Exclude followed users if there are any
+      if (followingUserIds.length > 0) {
+        query = query.not('user_id', 'in', `(${followingUserIds.join(',')})`);
+      }
+
+      const { data: publicPosts, error: publicError } = await query;
 
       if (publicError) {
-        console.error('❌ Public query error:', publicError);
+        console.error('❌ Discover query error:', publicError);
+        return this.createErrorResult('discover', publicError.message, startTime);
       }
 
-      // 2. Get ambassador content (ensure quality)
-      const { data: ambassadorPosts, error: ambassadorError } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          profiles!posts_user_id_fkey (
-            id, full_name, user_type, avatar_url
-          )
-        `)
-        .eq('is_ambassador_content', true)
-        .eq('privacy_level', 'public')
-        .order('created_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
-
-      if (ambassadorError) {
-        console.error('❌ Ambassador query error:', ambassadorError);
-      }
-
-      // Format and combine posts
-      const formattedPublicPosts = this.formatPosts(publicPosts || []);
-      const formattedAmbassadorPosts = this.formatPosts(ambassadorPosts || []);
-
-      const allPosts = [...formattedPublicPosts, ...formattedAmbassadorPosts];
-
+      const formattedPosts = this.formatPosts(publicPosts || []);
       const queryTime = performance.now() - startTime;
 
       // Apply smart mixing
-      const smartMix = createSmartFeedMix([...existingPosts, ...allPosts], {
+      const smartMix = createSmartFeedMix(formattedPosts, {
         followingCount: followingUserIds.length,
         userFollowings: followingUserIds,
         currentUserId: userId
@@ -358,28 +298,27 @@ export class FeedQueryCascade {
       ).length;
 
       console.log('✅ DISCOVER query complete:', {
-        rawPublic: publicPosts?.length || 0,
-        rawAmbassador: ambassadorPosts?.length || 0,
+        rawPosts: formattedPosts.length,
         finalPosts: smartMix.length,
         ambassadorCount,
-        ambassadorPercentage: Math.round((ambassadorCount / smartMix.length) * 100) + '%',
+        ambassadorPercentage: smartMix.length > 0 ? Math.round((ambassadorCount / smartMix.length) * 100) + '%' : '0%',
         queryTime: Math.round(queryTime) + 'ms'
       });
 
       return {
         posts: smartMix,
         level: 'discover',
-        source: 'public_plus_ambassadors',
+        source: 'public_content',
         postCount: smartMix.length,
         queryTime,
         errorCount: 0,
-        ambassadorPercentage: ambassadorCount / smartMix.length,
+        ambassadorPercentage: smartMix.length > 0 ? ambassadorCount / smartMix.length : 0,
         debugData: {
           primaryQuery: {
-            rawPostCount: (publicPosts?.length || 0) + (ambassadorPosts?.length || 0),
-            formattedPostCount: allPosts.length,
+            rawPostCount: formattedPosts.length,
+            formattedPostCount: formattedPosts.length,
             followingCount: followingUserIds.length,
-            postsByUser: this.analyzePostsByUser(allPosts)
+            postsByUser: this.analyzePostsByUser(formattedPosts)
           }
         },
         metrics: [],
@@ -420,7 +359,7 @@ export class FeedQueryCascade {
             id, full_name, user_type, avatar_url
           )
         `)
-        .eq('is_ambassador_content', true)
+        .or('is_ambassador_content.eq.true,profiles.user_type.eq.ambassador')
         .eq('privacy_level', 'public')
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
@@ -434,7 +373,7 @@ export class FeedQueryCascade {
       const queryTime = performance.now() - startTime;
 
       // Apply smart mixing
-      const smartMix = createSmartFeedMix([...existingPosts, ...formattedPosts], {
+      const smartMix = createSmartFeedMix(formattedPosts, {
         followingCount: followingUserIds.length,
         userFollowings: followingUserIds,
         currentUserId: userId
@@ -445,10 +384,10 @@ export class FeedQueryCascade {
       ).length;
 
       console.log('✅ AMBASSADOR query complete:', {
-        rawPosts: ambassadorPosts?.length || 0,
+        rawPosts: formattedPosts.length,
         finalPosts: smartMix.length,
         ambassadorCount,
-        ambassadorPercentage: Math.round((ambassadorCount / smartMix.length) * 100) + '%',
+        ambassadorPercentage: smartMix.length > 0 ? Math.round((ambassadorCount / smartMix.length) * 100) + '%' : '0%',
         queryTime: Math.round(queryTime) + 'ms'
       });
 
@@ -459,10 +398,10 @@ export class FeedQueryCascade {
         postCount: smartMix.length,
         queryTime,
         errorCount: 0,
-        ambassadorPercentage: ambassadorCount / smartMix.length,
+        ambassadorPercentage: smartMix.length > 0 ? ambassadorCount / smartMix.length : 0,
         debugData: {
           primaryQuery: {
-            rawPostCount: ambassadorPosts?.length || 0,
+            rawPostCount: formattedPosts.length,
             formattedPostCount: formattedPosts.length,
             followingCount: followingUserIds.length,
             postsByUser: this.analyzePostsByUser(formattedPosts)
