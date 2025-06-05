@@ -1,6 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from "@/types/post";
+
+export type FeedFilter = 'all' | 'following' | 'discover';
 
 interface CascadeMetrics {
   level: 'primary' | 'ambassador' | 'fallback1' | 'fallback2';
@@ -35,13 +36,15 @@ export class FeedQueryCascade {
     userId: string,
     userFollowings: string[],
     page: number = 0,
-    existingPosts: Post[] = []
+    existingPosts: Post[] = [],
+    filter: FeedFilter = 'all'
   ): Promise<CascadeResult> {
-    console.log('🚀 STARTING FEED QUERY CASCADE WITH ENHANCED DEBUGGING', { 
+    console.log('🚀 STARTING FEED QUERY CASCADE WITH FILTERING', { 
       userId, 
       followingCount: userFollowings.length,
       page,
       existingPostCount: existingPosts.length,
+      filter,
       timestamp: new Date().toISOString()
     });
 
@@ -54,24 +57,25 @@ export class FeedQueryCascade {
     const debugData: any = { 
       steps: [],
       errors: [],
-      queries: []
+      queries: [],
+      filter
     };
     const errorDetails: string[] = [];
 
     try {
-      // STEP 1: GUARANTEED Ambassador Content (CORE STRATEGY)
-      console.log('🌟 STEP 1: Fetching GUARANTEED ambassador content as CORE content');
-      debugData.steps.push('Starting ambassador query as core content');
+      // STEP 1: Get Ambassador Content (always included for quality)
+      console.log('🌟 STEP 1: Fetching ambassador content for filter:', filter);
+      debugData.steps.push(`Starting ambassador query for filter: ${filter}`);
       
       const ambassadorStart = performance.now();
-      const ambassadorResult = await this.queryAmbassadorContentRobust();
+      const ambassadorResult = await this.queryAmbassadorContentRobust(filter, userFollowings);
       totalQueries++;
       
       const ambassadorMetric = {
         level: 'ambassador' as const,
         postCount: ambassadorResult.posts.length,
         queryTime: performance.now() - ambassadorStart,
-        source: 'core_ambassadors',
+        source: `${filter}_ambassadors`,
         cacheHit: false,
         errorCount: ambassadorResult.errors.length,
         debugInfo: ambassadorResult.debugInfo
@@ -87,47 +91,111 @@ export class FeedQueryCascade {
       }
 
       console.log('🌟 Ambassador content result:', {
+        filter,
         posts: ambassadorResult.posts.length,
         errors: ambassadorResult.errors.length,
         time: Math.round(ambassadorMetric.queryTime) + 'ms'
       });
 
-      // STEP 2: Personal Content from Followed Users
-      if (userFollowings.length > 0) {
-        console.log('👥 STEP 2: Fetching content from followed users');
-        debugData.steps.push('Starting followed users query');
+      // STEP 2: Get Filtered Content Based on Selection
+      if (filter === 'following' && userFollowings.length > 0) {
+        console.log('👥 STEP 2: Fetching content from followed users only');
+        debugData.steps.push('Starting followed users only query');
         
-        const primaryStart = performance.now();
-        const primaryResult = await this.queryPersonalizedContentRobust(userId, userFollowings, offset);
+        const followingStart = performance.now();
+        const followingResult = await this.queryFollowingContentRobust(userId, userFollowings, offset);
         totalQueries++;
         
-        const primaryMetric = {
+        const followingMetric = {
           level: 'primary' as const,
-          postCount: primaryResult.posts.length,
-          queryTime: performance.now() - primaryStart,
-          source: 'followed_users',
+          postCount: followingResult.posts.length,
+          queryTime: performance.now() - followingStart,
+          source: 'following_only',
           cacheHit: false,
-          errorCount: primaryResult.errors.length,
-          debugInfo: primaryResult.debugInfo
+          errorCount: followingResult.errors.length,
+          debugInfo: followingResult.debugInfo
         };
         
-        metrics.push(primaryMetric);
-        allPosts.push(...primaryResult.posts);
-        debugData.queries.push(primaryResult.debugInfo);
+        metrics.push(followingMetric);
+        allPosts.push(...followingResult.posts);
+        debugData.queries.push(followingResult.debugInfo);
         
-        if (primaryResult.errors.length > 0) {
-          errorDetails.push(...primaryResult.errors);
-          debugData.errors.push(...primaryResult.errors);
+        if (followingResult.errors.length > 0) {
+          errorDetails.push(...followingResult.errors);
+          debugData.errors.push(...followingResult.errors);
         }
 
-        console.log('👥 Followed users content result:', {
-          posts: primaryResult.posts.length,
-          errors: primaryResult.errors.length,
-          time: Math.round(primaryMetric.queryTime) + 'ms'
+        console.log('👥 Following content result:', {
+          posts: followingResult.posts.length,
+          errors: followingResult.errors.length,
+          time: Math.round(followingMetric.queryTime) + 'ms'
         });
-      } else {
-        console.log('⚠️ No followed users - skipping personalized content');
-        debugData.steps.push('Skipped followed users (none found)');
+
+      } else if (filter === 'discover') {
+        console.log('🔍 STEP 2: Fetching discover content (excluding followed users)');
+        debugData.steps.push('Starting discover content query');
+        
+        const discoverStart = performance.now();
+        const discoverResult = await this.queryDiscoverContentRobust(userFollowings, offset);
+        totalQueries++;
+        
+        const discoverMetric = {
+          level: 'primary' as const,
+          postCount: discoverResult.posts.length,
+          queryTime: performance.now() - discoverStart,
+          source: 'discover_content',
+          cacheHit: false,
+          errorCount: discoverResult.errors.length,
+          debugInfo: discoverResult.debugInfo
+        };
+        
+        metrics.push(discoverMetric);
+        allPosts.push(...discoverResult.posts);
+        debugData.queries.push(discoverResult.debugInfo);
+        
+        if (discoverResult.errors.length > 0) {
+          errorDetails.push(...discoverResult.errors);
+          debugData.errors.push(...discoverResult.errors);
+        }
+
+        console.log('🔍 Discover content result:', {
+          posts: discoverResult.posts.length,
+          errors: discoverResult.errors.length,
+          time: Math.round(discoverMetric.queryTime) + 'ms'
+        });
+
+      } else if (filter === 'all') {
+        console.log('🌐 STEP 2: Fetching all content (current mixed behavior)');
+        debugData.steps.push('Starting mixed content query');
+        
+        const mixedStart = performance.now();
+        const mixedResult = await this.queryPersonalizedContentRobust(userId, userFollowings, offset);
+        totalQueries++;
+        
+        const mixedMetric = {
+          level: 'primary' as const,
+          postCount: mixedResult.posts.length,
+          queryTime: performance.now() - mixedStart,
+          source: 'mixed_content',
+          cacheHit: false,
+          errorCount: mixedResult.errors.length,
+          debugInfo: mixedResult.debugInfo
+        };
+        
+        metrics.push(mixedMetric);
+        allPosts.push(...mixedResult.posts);
+        debugData.queries.push(mixedResult.debugInfo);
+        
+        if (mixedResult.errors.length > 0) {
+          errorDetails.push(...mixedResult.errors);
+          debugData.errors.push(...mixedResult.errors);
+        }
+
+        console.log('🌐 Mixed content result:', {
+          posts: mixedResult.posts.length,
+          errors: mixedResult.errors.length,
+          time: Math.round(mixedMetric.queryTime) + 'ms'
+        });
       }
 
       // STEP 3: Emergency Public Content if Still Low
@@ -207,7 +275,7 @@ export class FeedQueryCascade {
           source: 'hardcoded_fallback',
           cacheHit: false,
           errorCount: 0,
-          debugInfo: { source: 'hardcoded', reason: 'all_queries_failed' }
+          debugInfo: { source: 'hardcoded', reason: 'all_queries_failed', filter }
         };
         metrics.push(hardcodedMetric);
       }
@@ -224,7 +292,8 @@ export class FeedQueryCascade {
       const totalQueryTime = performance.now() - startTime;
       const cacheHitRate = totalQueries > 0 ? totalCacheHits / totalQueries : 0;
 
-      console.log('✅ FEED QUERY CASCADE COMPLETE WITH DEBUGGING:', {
+      console.log('✅ FEED QUERY CASCADE COMPLETE WITH FILTERING:', {
+        filter,
         totalPosts: finalPosts.length,
         ambassadorCount,
         ambassadorPercentage: Math.round(ambassadorPercentage * 100) + '%',
@@ -263,7 +332,8 @@ export class FeedQueryCascade {
         debugData: { 
           ...debugData, 
           criticalError: error.message,
-          emergencyFallback: true 
+          emergencyFallback: true,
+          filter
         },
         hasErrors: true,
         errorDetails
@@ -271,20 +341,23 @@ export class FeedQueryCascade {
     }
   }
 
-  private static async queryAmbassadorContentRobust(): Promise<{ posts: Post[], errors: string[], debugInfo: any }> {
-    const debugInfo: any = { source: 'robust_ambassadors', steps: [] };
+  private static async queryAmbassadorContentRobust(
+    filter: FeedFilter, 
+    userFollowings: string[]
+  ): Promise<{ posts: Post[], errors: string[], debugInfo: any }> {
+    const debugInfo: any = { source: 'filtered_ambassadors', filter, steps: [] };
     const errors: string[] = [];
 
     try {
-      console.log('🔍 Robust ambassador query starting...');
-      debugInfo.steps.push('Starting ambassador profile query');
+      console.log('🔍 Robust ambassador query starting with filter:', filter);
+      debugInfo.steps.push(`Starting ambassador profile query for ${filter}`);
       
-      // First, get ambassador profiles with better error handling
+      // Get ambassador profiles
       const { data: ambassadors, error: ambassadorsError } = await supabase
         .from('profiles')
         .select('id, full_name, user_type, avatar_url')
         .eq('user_type', 'ambassador')
-        .limit(20); // Reasonable limit
+        .limit(20);
 
       if (ambassadorsError) {
         const errorMsg = `Ambassador profiles query failed: ${ambassadorsError.message}`;
@@ -296,7 +369,6 @@ export class FeedQueryCascade {
 
       debugInfo.totalAmbassadors = ambassadors?.length || 0;
       debugInfo.steps.push(`Found ${debugInfo.totalAmbassadors} ambassadors`);
-      console.log('✅ Found ambassadors:', debugInfo.totalAmbassadors);
 
       if (!ambassadors || ambassadors.length === 0) {
         const errorMsg = 'No ambassadors found in system';
@@ -306,10 +378,9 @@ export class FeedQueryCascade {
       }
 
       const ambassadorIds = ambassadors.map(amb => amb.id);
-      debugInfo.steps.push('Querying posts from ambassadors');
-
-      // Get posts from ambassadors with better query
-      const { data: ambassadorPosts, error: postsError } = await supabase
+      
+      // Filter ambassador posts based on the feed filter
+      let ambassadorPostsQuery = supabase
         .from('posts')
         .select(`
           id, content, created_at, user_id, media_url, media_type,
@@ -318,8 +389,24 @@ export class FeedQueryCascade {
         `)
         .in('user_id', ambassadorIds)
         .eq('privacy_level', 'public')
-        .order('created_at', { ascending: false })
-        .limit(15); // Get more ambassador posts
+        .order('created_at', { ascending: false });
+
+      // For following filter, only show ambassadors that the user follows
+      if (filter === 'following' && userFollowings.length > 0) {
+        const followedAmbassadors = ambassadorIds.filter(id => userFollowings.includes(id));
+        if (followedAmbassadors.length > 0) {
+          ambassadorPostsQuery = ambassadorPostsQuery.in('user_id', followedAmbassadors);
+          debugInfo.followedAmbassadors = followedAmbassadors.length;
+        } else {
+          // No followed ambassadors, but include some for quality
+          ambassadorPostsQuery = ambassadorPostsQuery.limit(3);
+          debugInfo.noFollowedAmbassadors = true;
+        }
+      }
+
+      ambassadorPostsQuery = ambassadorPostsQuery.limit(filter === 'following' ? 8 : 15);
+
+      const { data: ambassadorPosts, error: postsError } = await ambassadorPostsQuery;
 
       if (postsError) {
         const errorMsg = `Ambassador posts query failed: ${postsError.message}`;
@@ -330,7 +417,7 @@ export class FeedQueryCascade {
       }
 
       debugInfo.rawPostCount = ambassadorPosts?.length || 0;
-      debugInfo.steps.push(`Found ${debugInfo.rawPostCount} ambassador posts`);
+      debugInfo.steps.push(`Found ${debugInfo.rawPostCount} ambassador posts for ${filter}`);
       
       // Format posts with ambassador flag
       const posts = this.formatPosts(ambassadorPosts || [], ambassadors);
@@ -338,6 +425,7 @@ export class FeedQueryCascade {
       debugInfo.steps.push(`Formatted ${debugInfo.formattedPostCount} posts`);
 
       console.log('✅ Ambassador content query complete:', {
+        filter,
         ambassadors: debugInfo.totalAmbassadors,
         rawPosts: debugInfo.rawPostCount,
         formattedPosts: debugInfo.formattedPostCount,
@@ -348,6 +436,128 @@ export class FeedQueryCascade {
 
     } catch (error) {
       const errorMsg = `Unexpected ambassador query error: ${error.message}`;
+      console.error('💥', errorMsg);
+      errors.push(errorMsg);
+      debugInfo.unexpectedError = error.message;
+      return { posts: [], errors, debugInfo };
+    }
+  }
+
+  private static async queryFollowingContentRobust(
+    userId: string, 
+    userFollowings: string[], 
+    offset: number
+  ): Promise<{ posts: Post[], errors: string[], debugInfo: any }> {
+    const debugInfo: any = {
+      followingCount: userFollowings.length,
+      queryUsers: [userId, ...userFollowings],
+      steps: []
+    };
+    const errors: string[] = [];
+
+    try {
+      console.log('🔍 Robust following-only content query starting...');
+      debugInfo.steps.push('Starting following-only content query');
+      
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          id, content, created_at, user_id, media_url, media_type,
+          privacy_level, template_id, is_auto_generated, engagement_score
+        `)
+        .in('user_id', [userId, ...userFollowings])
+        .in('privacy_level', ['public', 'friends'])
+        .order('created_at', { ascending: false })
+        .range(offset, offset + this.POSTS_PER_PAGE - 1);
+
+      if (error) {
+        const errorMsg = `Following content query failed: ${error.message}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+        debugInfo.queryError = error.message;
+        return { posts: [], errors, debugInfo };
+      }
+
+      debugInfo.rawPostCount = data?.length || 0;
+      debugInfo.steps.push(`Found ${debugInfo.rawPostCount} following posts`);
+      
+      const posts = this.formatPosts(data || []);
+      debugInfo.formattedPostCount = posts.length;
+      debugInfo.steps.push(`Formatted ${debugInfo.formattedPostCount} posts`);
+
+      console.log('✅ Following content query complete:', {
+        followingCount: debugInfo.followingCount,
+        rawPosts: debugInfo.rawPostCount,
+        formattedPosts: debugInfo.formattedPostCount,
+        errors: errors.length
+      });
+
+      return { posts, errors, debugInfo };
+
+    } catch (error) {
+      const errorMsg = `Unexpected following query error: ${error.message}`;
+      console.error('💥', errorMsg);
+      errors.push(errorMsg);
+      debugInfo.unexpectedError = error.message;
+      return { posts: [], errors, debugInfo };
+    }
+  }
+
+  private static async queryDiscoverContentRobust(
+    userFollowings: string[], 
+    offset: number
+  ): Promise<{ posts: Post[], errors: string[], debugInfo: any }> {
+    const debugInfo: any = { source: 'discover_content', excludedUsers: userFollowings.length, steps: [] };
+    const errors: string[] = [];
+
+    try {
+      console.log('🔍 Robust discover content query starting...');
+      debugInfo.steps.push('Starting discover content query');
+      
+      let query = supabase
+        .from('posts')
+        .select(`
+          id, content, created_at, user_id, media_url, media_type,
+          privacy_level, template_id, is_auto_generated, engagement_score
+        `)
+        .eq('privacy_level', 'public')
+        .order('engagement_score', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      // Exclude posts from users we're already following
+      if (userFollowings.length > 0) {
+        query = query.not('user_id', 'in', `(${userFollowings.join(',')})`);
+        debugInfo.excludedFollowingUsers = userFollowings.length;
+      }
+
+      const { data, error } = await query.range(offset, offset + 10 - 1);
+
+      if (error) {
+        const errorMsg = `Discover content query failed: ${error.message}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+        debugInfo.queryError = error.message;
+        return { posts: [], errors, debugInfo };
+      }
+
+      debugInfo.rawPostCount = data?.length || 0;
+      debugInfo.steps.push(`Found ${debugInfo.rawPostCount} discover posts`);
+      
+      const posts = this.formatPosts(data || []);
+      debugInfo.formattedPostCount = posts.length;
+      debugInfo.steps.push(`Formatted ${debugInfo.formattedPostCount} posts`);
+
+      console.log('✅ Discover content query complete:', {
+        excludedUsers: debugInfo.excludedUsers,
+        rawPosts: debugInfo.rawPostCount,
+        formattedPosts: debugInfo.formattedPostCount,
+        errors: errors.length
+      });
+
+      return { posts, errors, debugInfo };
+
+    } catch (error) {
+      const errorMsg = `Unexpected discover query error: ${error.message}`;
       console.error('💥', errorMsg);
       errors.push(errorMsg);
       debugInfo.unexpectedError = error.message;
