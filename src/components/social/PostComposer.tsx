@@ -27,8 +27,7 @@ export const PostComposer = ({ onSuccess, className = "", matchData, sessionData
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   
   // Get user's following count for privacy recommendations
-  const { data: followsData } = useUserFollows(user?.id);
-  const followingCount = followsData?.length || 0;
+  const { followingCount } = useUserFollows();
 
   const uploadMedia = async (file: File): Promise<{ url: string; type: string } | null> => {
     try {
@@ -266,6 +265,7 @@ export const PostComposer = ({ onSuccess, className = "", matchData, sessionData
               followingCount={followingCount}
               showPreview={true}
               content={content}
+              disabled={isSubmitting}
               userProfile={{
                 full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
                 username: user.user_metadata?.username,
