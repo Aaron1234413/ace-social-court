@@ -14,6 +14,8 @@ interface CascadeResult {
   errorDetails?: string[];
   ambassadorPercentage: number;
   debugData?: any;
+  metrics?: any[];
+  hasErrors?: boolean;
 }
 
 export class FeedQueryCascade {
@@ -178,7 +180,9 @@ export class FeedQueryCascade {
             followingCount: followingUserIds.length,
             postsByUser: this.analyzePostsByUser(allPosts)
           }
-        }
+        },
+        metrics: [],
+        hasErrors: false
       };
 
     } catch (error) {
@@ -267,7 +271,9 @@ export class FeedQueryCascade {
             totalPosts: formattedPosts.length,
             followedUsers: this.analyzeFollowedUsers(formattedPosts, followingUserIds)
           }
-        }
+        },
+        metrics: [],
+        hasErrors: false
       };
 
     } catch (error) {
@@ -375,7 +381,9 @@ export class FeedQueryCascade {
             followingCount: followingUserIds.length,
             postsByUser: this.analyzePostsByUser(allPosts)
           }
-        }
+        },
+        metrics: [],
+        hasErrors: false
       };
 
     } catch (error) {
@@ -459,7 +467,9 @@ export class FeedQueryCascade {
             followingCount: followingUserIds.length,
             postsByUser: this.analyzePostsByUser(formattedPosts)
           }
-        }
+        },
+        metrics: [],
+        hasErrors: false
       };
 
     } catch (error) {
@@ -488,7 +498,9 @@ export class FeedQueryCascade {
       ambassadorPercentage: 0,
       debugData: {
         errorMessage: errorMessage
-      }
+      },
+      metrics: [],
+      hasErrors: true
     };
   }
 
