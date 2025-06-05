@@ -112,13 +112,16 @@ export class FeedQueryCascade {
         rangeEnd: offset + (pageSize * 3) - 1
       });
 
-      // Get all posts with a simpler query approach
+      // Fixed query - use simple profiles() syntax since FK exists
       const { data: allPostsData, error: postsError } = await supabase
         .from('posts')
         .select(`
           *,
-          profiles!posts_user_id_fkey (
-            id, full_name, user_type, avatar_url
+          profiles(
+            id, 
+            full_name, 
+            user_type, 
+            avatar_url
           )
         `)
         .eq('privacy_level', 'public')
@@ -243,13 +246,16 @@ export class FeedQueryCascade {
         followingUserIds
       });
 
-      // Get posts from followed users with some ambassador content mixed in
+      // Fixed query syntax
       const { data: followedPosts, error } = await supabase
         .from('posts')
         .select(`
           *,
-          profiles!posts_user_id_fkey (
-            id, full_name, user_type, avatar_url
+          profiles(
+            id, 
+            full_name, 
+            user_type, 
+            avatar_url
           )
         `)
         .eq('privacy_level', 'public')
@@ -390,13 +396,16 @@ export class FeedQueryCascade {
         excludingFollowedUsers: followingUserIds.length > 0
       });
 
-      // Get public posts excluding followed users
+      // Fixed query syntax
       let query = supabase
         .from('posts')
         .select(`
           *,
-          profiles!posts_user_id_fkey (
-            id, full_name, user_type, avatar_url
+          profiles(
+            id, 
+            full_name, 
+            user_type, 
+            avatar_url
           )
         `)
         .eq('privacy_level', 'public')
@@ -518,12 +527,16 @@ export class FeedQueryCascade {
         rangeEnd: offset + pageSize - 1
       });
 
+      // Fixed query syntax
       const { data: ambassadorPosts, error } = await supabase
         .from('posts')
         .select(`
           *,
-          profiles!posts_user_id_fkey (
-            id, full_name, user_type, avatar_url
+          profiles(
+            id, 
+            full_name, 
+            user_type, 
+            avatar_url
           )
         `)
         .or('is_ambassador_content.eq.true,profiles.user_type.eq.ambassador')
@@ -615,6 +628,7 @@ export class FeedQueryCascade {
     return posts.map(post => ({
       ...post,
       created_at: new Date(post.created_at).toISOString(),
+      author: post.profiles || null
     }));
   }
 
