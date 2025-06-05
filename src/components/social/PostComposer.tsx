@@ -238,7 +238,6 @@ export const PostComposer = ({ onSuccess, className = "", matchData, sessionData
               <PrivacySelector
                 value={privacyLevel}
                 onValueChange={setPrivacyLevel}
-                disabled={isSubmitting}
               />
             </div>
 
