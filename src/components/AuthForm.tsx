@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -52,14 +53,17 @@ const AuthForm = () => {
     setIsLoading(true);
     
     try {
+      console.log('Attempting login with email:', email);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('Login error:', error);
         toast.error(error.message);
       } else {
+        console.log('Login successful');
         toast.success('Logged in successfully');
       }
     } catch (error) {
@@ -84,7 +88,10 @@ const AuthForm = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      console.log('Attempting signup with email:', email);
+      console.log('Password length:', password.length);
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -92,14 +99,32 @@ const AuthForm = () => {
         }
       });
 
+      console.log('Signup response:', { data, error });
+
       if (error) {
-        toast.error(error.message);
+        console.error('Signup error details:', error);
+        
+        // Handle specific error cases
+        if (error.message.includes('User already registered')) {
+          toast.error('An account with this email already exists. Please try logging in instead.');
+        } else if (error.message.includes('Password should be at least')) {
+          toast.error('Password must be at least 6 characters long.');
+        } else if (error.message.includes('Invalid email')) {
+          toast.error('Please enter a valid email address.');
+        } else {
+          toast.error(`Signup failed: ${error.message}`);
+        }
       } else {
-        toast.success('Account created! Check your email for verification.');
+        console.log('Signup successful, user data:', data.user);
+        if (data.user && !data.user.email_confirmed_at) {
+          toast.success('Account created! Please check your email for verification.');
+        } else {
+          toast.success('Account created successfully!');
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
-      toast.error('Failed to create account. Please try again.');
+      toast.error(`Failed to create account: ${error.message || 'Please try again.'}`);
     } finally {
       setIsLoading(false);
     }
@@ -176,7 +201,11 @@ const AuthForm = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  minLength={6}
                 />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Password must be at least 6 characters long
               </div>
             </CardContent>
             <CardFooter>
