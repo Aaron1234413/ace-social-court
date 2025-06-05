@@ -12,12 +12,14 @@ import { Post } from '@/types/post';
 interface PostComposerProps {
   onSuccess?: (post: Post) => void;
   className?: string;
+  matchData?: any;
+  sessionData?: any;
 }
 
-export const PostComposer = ({ onSuccess, className = "" }: PostComposerProps) => {
+export const PostComposer = ({ onSuccess, className = "", matchData, sessionData }: PostComposerProps) => {
   const { user } = useAuth();
   const [content, setContent] = useState('');
-  const [privacyLevel, setPrivacyLevel] = useState<'private' | 'friends' | 'public' | 'coaches'>('public'); // Changed default to public
+  const [privacyLevel, setPrivacyLevel] = useState<'private' | 'friends' | 'public' | 'coaches'>('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -147,7 +149,7 @@ export const PostComposer = ({ onSuccess, className = "" }: PostComposerProps) =
       
       // Reset form
       setContent('');
-      setPrivacyLevel('public'); // Reset to public default
+      setPrivacyLevel('public');
       setMediaFile(null);
       setMediaPreview(null);
       
@@ -235,7 +237,7 @@ export const PostComposer = ({ onSuccess, className = "" }: PostComposerProps) =
               
               <PrivacySelector
                 value={privacyLevel}
-                onChange={setPrivacyLevel}
+                onValueChange={setPrivacyLevel}
                 disabled={isSubmitting}
               />
             </div>
