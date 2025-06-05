@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccessToast, showErrorToast } from '@/components/ui/use-toast';
-import { PrivacySelector } from './PrivacySelector';
+import { PrivacySelector, PrivacyLevel } from './PrivacySelector';
 import { Loader2, Image, X } from 'lucide-react';
 import { Post } from '@/types/post';
 
@@ -19,7 +19,7 @@ interface PostComposerProps {
 export const PostComposer = ({ onSuccess, className = "", matchData, sessionData }: PostComposerProps) => {
   const { user } = useAuth();
   const [content, setContent] = useState('');
-  const [privacyLevel, setPrivacyLevel] = useState<'private' | 'friends' | 'public' | 'coaches'>('public');
+  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>('public');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
