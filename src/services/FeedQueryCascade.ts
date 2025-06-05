@@ -112,7 +112,7 @@ export class FeedQueryCascade {
         rangeEnd: offset + (pageSize * 3) - 1
       });
 
-      // Fixed query - use simple profiles() syntax since FK exists
+      // Enhanced query with better debugging
       const { data: allPostsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -128,11 +128,17 @@ export class FeedQueryCascade {
         .order('created_at', { ascending: false })
         .range(offset, offset + (pageSize * 3) - 1);
 
-      console.log('📊 [DEBUG] Supabase query result for ALL', {
+      console.log('📊 [DEBUG] Raw Supabase query result for ALL', {
         success: !postsError,
         error: postsError,
         dataLength: allPostsData?.length || 0,
-        rawData: allPostsData?.slice(0, 2) // Show first 2 posts for debugging
+        firstPostSample: allPostsData?.[0] ? {
+          id: allPostsData[0].id,
+          user_id: allPostsData[0].user_id,
+          content: allPostsData[0].content?.substring(0, 50),
+          profiles: allPostsData[0].profiles,
+          hasProfiles: !!allPostsData[0].profiles
+        } : null
       });
 
       if (postsError) {
@@ -141,10 +147,15 @@ export class FeedQueryCascade {
       }
 
       const formattedPosts = this.formatPosts(allPostsData || []);
-      console.log('🔄 [DEBUG] Formatted posts', {
+      console.log('🔄 [DEBUG] Formatted posts result', {
         originalCount: allPostsData?.length || 0,
         formattedCount: formattedPosts.length,
-        sampleFormatted: formattedPosts.slice(0, 2)
+        firstFormattedPost: formattedPosts[0] ? {
+          id: formattedPosts[0].id,
+          user_id: formattedPosts[0].user_id,
+          author: formattedPosts[0].author,
+          hasAuthor: !!formattedPosts[0].author
+        } : null
       });
 
       const queryTime = performance.now() - startTime;
@@ -166,7 +177,11 @@ export class FeedQueryCascade {
       console.log('✨ [DEBUG] Smart mixing result for ALL', {
         inputPosts: formattedPosts.length,
         outputPosts: smartMix.length,
-        sampleOutput: smartMix.slice(0, 2)
+        firstMixedPost: smartMix[0] ? {
+          id: smartMix[0].id,
+          author: smartMix[0].author,
+          hasAuthor: !!smartMix[0].author
+        } : null
       });
 
       const ambassadorCount = smartMix.filter(post =>
@@ -625,11 +640,40 @@ export class FeedQueryCascade {
   }
 
   private static formatPosts(posts: any[]): Post[] {
-    return posts.map(post => ({
-      ...post,
-      created_at: new Date(post.created_at).toISOString(),
-      author: post.profiles || null
-    }));
+    console.log('📝 [DEBUG] Formatting posts', {
+      inputCount: posts.length,
+      firstPost: posts[0] ? {
+        id: posts[0].id,
+        user_id: posts[0].user_id,
+        profiles: posts[0].profiles,
+        hasProfiles: !!posts[0].profiles
+      } : null
+    });
+
+    const formatted = posts.map(post => {
+      const formattedPost = {
+        ...post,
+        created_at: new Date(post.created_at).toISOString(),
+        author: post.profiles || null
+      };
+      
+      console.log('📝 [DEBUG] Individual post formatting', {
+        postId: post.id,
+        originalProfiles: post.profiles,
+        finalAuthor: formattedPost.author,
+        hasAuthor: !!formattedPost.author
+      });
+      
+      return formattedPost;
+    });
+
+    console.log('📝 [DEBUG] Formatting complete', {
+      outputCount: formatted.length,
+      postsWithAuthors: formatted.filter(p => p.author).length,
+      postsWithoutAuthors: formatted.filter(p => !p.author).length
+    });
+
+    return formatted;
   }
 
   private static createErrorResult(level: string, errorMessage: string, startTime: number): CascadeResult {
