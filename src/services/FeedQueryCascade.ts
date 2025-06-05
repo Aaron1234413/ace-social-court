@@ -32,22 +32,55 @@ export class FeedQueryCascade {
     existingPosts: Post[] = [],
     filter: FeedFilter = 'all'
   ): Promise<CascadeResult> {
-    console.log('🚀 Executing Query Cascade', {
+    console.log('🚀 [DEBUG] Executing Query Cascade START', {
       userId,
       followingCount: followingUserIds.length,
+      followingUserIds,
       page,
       existingPosts: existingPosts.length,
-      filter
+      filter,
+      timestamp: new Date().toISOString()
     });
 
-    switch (filter) {
-      case 'following':
-        return this.executeFollowingQuery(userId, followingUserIds, page, existingPosts);
-      case 'discover':
-        return this.executeDiscoverQuery(userId, followingUserIds, page, existingPosts);
-      case 'all':
-      default:
-        return this.executeAllQuery(userId, followingUserIds, page, existingPosts);
+    try {
+      let result: CascadeResult;
+
+      switch (filter) {
+        case 'following':
+          console.log('🎯 [DEBUG] Executing FOLLOWING filter');
+          result = await this.executeFollowingQuery(userId, followingUserIds, page, existingPosts);
+          break;
+        case 'discover':
+          console.log('🎯 [DEBUG] Executing DISCOVER filter');
+          result = await this.executeDiscoverQuery(userId, followingUserIds, page, existingPosts);
+          break;
+        case 'all':
+        default:
+          console.log('🎯 [DEBUG] Executing ALL filter');
+          result = await this.executeAllQuery(userId, followingUserIds, page, existingPosts);
+          break;
+      }
+
+      console.log('✅ [DEBUG] Query Cascade COMPLETE', {
+        filter,
+        finalPostCount: result.posts.length,
+        level: result.level,
+        source: result.source,
+        hasErrors: result.hasErrors,
+        errorCount: result.errorCount,
+        queryTime: result.queryTime
+      });
+
+      return result;
+    } catch (error) {
+      console.error('💥 [DEBUG] Query Cascade FAILED', {
+        error: error.message,
+        stack: error.stack,
+        filter,
+        userId,
+        followingCount: followingUserIds.length
+      });
+      throw error;
     }
   }
 
@@ -60,9 +93,10 @@ export class FeedQueryCascade {
     page: number = 0,
     existingPosts: Post[] = []
   ): Promise<CascadeResult> {
-    console.log('🌎 Executing ALL query', {
+    console.log('🌎 [DEBUG] ALL Query START', {
       userId,
       followingCount: followingUserIds.length,
+      followingUserIds,
       page
     });
 
@@ -71,6 +105,13 @@ export class FeedQueryCascade {
     const offset = page * pageSize;
 
     try {
+      console.log('📡 [DEBUG] Executing Supabase query for ALL posts', {
+        pageSize,
+        offset,
+        rangeStart: offset,
+        rangeEnd: offset + (pageSize * 3) - 1
+      });
+
       // Get all posts with a simpler query approach
       const { data: allPostsData, error: postsError } = await supabase
         .from('posts')
@@ -82,17 +123,35 @@ export class FeedQueryCascade {
         `)
         .eq('privacy_level', 'public')
         .order('created_at', { ascending: false })
-        .range(offset, offset + (pageSize * 3) - 1); // Get more posts to ensure good mix
+        .range(offset, offset + (pageSize * 3) - 1);
+
+      console.log('📊 [DEBUG] Supabase query result for ALL', {
+        success: !postsError,
+        error: postsError,
+        dataLength: allPostsData?.length || 0,
+        rawData: allPostsData?.slice(0, 2) // Show first 2 posts for debugging
+      });
 
       if (postsError) {
-        console.error('❌ Posts query error:', postsError);
+        console.error('❌ [DEBUG] Posts query error:', postsError);
         return this.createErrorResult('all', postsError.message, startTime);
       }
 
       const formattedPosts = this.formatPosts(allPostsData || []);
-      console.log('📊 Raw posts retrieved:', formattedPosts.length);
+      console.log('🔄 [DEBUG] Formatted posts', {
+        originalCount: allPostsData?.length || 0,
+        formattedCount: formattedPosts.length,
+        sampleFormatted: formattedPosts.slice(0, 2)
+      });
 
       const queryTime = performance.now() - startTime;
+
+      console.log('🎯 [DEBUG] Calling smart mixing for ALL', {
+        postsToMix: formattedPosts.length,
+        followingCount: followingUserIds.length,
+        userFollowings: followingUserIds,
+        currentUserId: userId
+      });
 
       // Apply smart mixing
       const smartMix = createSmartFeedMix(formattedPosts, {
@@ -101,11 +160,17 @@ export class FeedQueryCascade {
         currentUserId: userId
       });
 
+      console.log('✨ [DEBUG] Smart mixing result for ALL', {
+        inputPosts: formattedPosts.length,
+        outputPosts: smartMix.length,
+        sampleOutput: smartMix.slice(0, 2)
+      });
+
       const ambassadorCount = smartMix.filter(post =>
         post.author?.user_type === 'ambassador' || post.is_ambassador_content
       ).length;
 
-      console.log('✅ ALL query complete:', {
+      console.log('✅ [DEBUG] ALL query COMPLETE', {
         rawPosts: formattedPosts.length,
         finalPosts: smartMix.length,
         ambassadorCount,
@@ -134,7 +199,12 @@ export class FeedQueryCascade {
       };
 
     } catch (error) {
-      console.error('💥 ALL query failed:', error);
+      console.error('💥 [DEBUG] ALL query FAILED', {
+        error: error.message,
+        stack: error.stack,
+        userId,
+        followingCount: followingUserIds.length
+      });
       return this.createErrorResult('all', error.message, startTime);
     }
   }
@@ -148,9 +218,10 @@ export class FeedQueryCascade {
     page: number = 0,
     existingPosts: Post[] = []
   ): Promise<CascadeResult> {
-    console.log('👥 ENHANCED Following query - LENIENT ambassador mixing', {
+    console.log('👥 [DEBUG] FOLLOWING Query START', {
       userId,
       followingCount: followingUserIds.length,
+      followingUserIds,
       page
     });
 
@@ -160,9 +231,17 @@ export class FeedQueryCascade {
 
     try {
       if (followingUserIds.length === 0) {
-        console.log('⚠️ No followed users, falling back to ambassador content');
+        console.log('⚠️ [DEBUG] No followed users, falling back to ambassador content');
         return await this.executeAmbassadorQuery(userId, [], page, existingPosts);
       }
+
+      console.log('📡 [DEBUG] Executing Supabase query for FOLLOWING posts', {
+        pageSize,
+        offset,
+        rangeStart: offset,
+        rangeEnd: offset + pageSize - 1,
+        followingUserIds
+      });
 
       // Get posts from followed users with some ambassador content mixed in
       const { data: followedPosts, error } = await supabase
@@ -177,21 +256,55 @@ export class FeedQueryCascade {
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
 
+      console.log('📊 [DEBUG] Supabase query result for FOLLOWING', {
+        success: !error,
+        error: error,
+        dataLength: followedPosts?.length || 0,
+        rawData: followedPosts?.slice(0, 2)
+      });
+
       if (error) {
-        console.error('❌ Following query error:', error);
+        console.error('❌ [DEBUG] Following query error:', error);
         return this.createErrorResult('following', error.message, startTime);
       }
 
       const allPosts = this.formatPosts(followedPosts || []);
+      console.log('🔄 [DEBUG] Formatted following posts', {
+        originalCount: followedPosts?.length || 0,
+        formattedCount: allPosts.length
+      });
       
       // Filter for followed users but keep some ambassador content
-      const filteredPosts = allPosts.filter(post => 
-        followingUserIds.includes(post.user_id) || 
-        post.author?.user_type === 'ambassador' || 
-        post.is_ambassador_content
-      );
+      const filteredPosts = allPosts.filter(post => {
+        const isFromFollowed = followingUserIds.includes(post.user_id);
+        const isAmbassador = post.author?.user_type === 'ambassador' || post.is_ambassador_content;
+        const shouldInclude = isFromFollowed || isAmbassador;
+        
+        console.log('🔍 [DEBUG] Post filtering decision', {
+          postId: post.id,
+          userId: post.user_id,
+          isFromFollowed,
+          isAmbassador,
+          shouldInclude,
+          authorType: post.author?.user_type
+        });
+        
+        return shouldInclude;
+      });
+
+      console.log('🎯 [DEBUG] Post filtering complete for FOLLOWING', {
+        totalPosts: allPosts.length,
+        filteredPosts: filteredPosts.length,
+        followedUserPosts: filteredPosts.filter(p => followingUserIds.includes(p.user_id)).length,
+        ambassadorPosts: filteredPosts.filter(p => p.author?.user_type === 'ambassador' || p.is_ambassador_content).length
+      });
 
       const queryTime = performance.now() - startTime;
+
+      console.log('🎯 [DEBUG] Calling smart mixing for FOLLOWING', {
+        postsToMix: filteredPosts.length,
+        followingCount: followingUserIds.length
+      });
 
       // Enhanced smart mixing with more followed user content
       const smartMix = createSmartFeedMix(filteredPosts, {
@@ -200,11 +313,16 @@ export class FeedQueryCascade {
         currentUserId: userId
       });
 
+      console.log('✨ [DEBUG] Smart mixing result for FOLLOWING', {
+        inputPosts: filteredPosts.length,
+        outputPosts: smartMix.length
+      });
+
       const ambassadorCount = smartMix.filter(post => 
         post.author?.user_type === 'ambassador' || post.is_ambassador_content
       ).length;
 
-      console.log('✅ LENIENT Following query complete:', {
+      console.log('✅ [DEBUG] FOLLOWING query COMPLETE', {
         rawPosts: allPosts.length,
         filteredPosts: filteredPosts.length,
         finalPosts: smartMix.length,
@@ -233,7 +351,12 @@ export class FeedQueryCascade {
       };
 
     } catch (error) {
-      console.error('💥 Following query failed:', error);
+      console.error('💥 [DEBUG] Following query FAILED', {
+        error: error.message,
+        stack: error.stack,
+        userId,
+        followingCount: followingUserIds.length
+      });
       return this.createErrorResult('following', error.message, startTime);
     }
   }
@@ -247,9 +370,10 @@ export class FeedQueryCascade {
     page: number = 0,
     existingPosts: Post[] = []
   ): Promise<CascadeResult> {
-    console.log('🧭 Executing DISCOVER query', {
+    console.log('🧭 [DEBUG] DISCOVER Query START', {
       userId,
       followingCount: followingUserIds.length,
+      followingUserIds,
       page
     });
 
@@ -258,6 +382,14 @@ export class FeedQueryCascade {
     const offset = page * pageSize;
 
     try {
+      console.log('📡 [DEBUG] Executing Supabase query for DISCOVER posts', {
+        pageSize,
+        offset,
+        rangeStart: offset,
+        rangeEnd: offset + pageSize - 1,
+        excludingFollowedUsers: followingUserIds.length > 0
+      });
+
       // Get public posts excluding followed users
       let query = supabase
         .from('posts')
@@ -278,13 +410,30 @@ export class FeedQueryCascade {
 
       const { data: publicPosts, error: publicError } = await query;
 
+      console.log('📊 [DEBUG] Supabase query result for DISCOVER', {
+        success: !publicError,
+        error: publicError,
+        dataLength: publicPosts?.length || 0,
+        rawData: publicPosts?.slice(0, 2)
+      });
+
       if (publicError) {
-        console.error('❌ Discover query error:', publicError);
+        console.error('❌ [DEBUG] Discover query error:', publicError);
         return this.createErrorResult('discover', publicError.message, startTime);
       }
 
       const formattedPosts = this.formatPosts(publicPosts || []);
+      console.log('🔄 [DEBUG] Formatted discover posts', {
+        originalCount: publicPosts?.length || 0,
+        formattedCount: formattedPosts.length
+      });
+
       const queryTime = performance.now() - startTime;
+
+      console.log('🎯 [DEBUG] Calling smart mixing for DISCOVER', {
+        postsToMix: formattedPosts.length,
+        followingCount: followingUserIds.length
+      });
 
       // Apply smart mixing
       const smartMix = createSmartFeedMix(formattedPosts, {
@@ -293,11 +442,16 @@ export class FeedQueryCascade {
         currentUserId: userId
       });
 
+      console.log('✨ [DEBUG] Smart mixing result for DISCOVER', {
+        inputPosts: formattedPosts.length,
+        outputPosts: smartMix.length
+      });
+
       const ambassadorCount = smartMix.filter(post =>
         post.author?.user_type === 'ambassador' || post.is_ambassador_content
       ).length;
 
-      console.log('✅ DISCOVER query complete:', {
+      console.log('✅ [DEBUG] DISCOVER query COMPLETE', {
         rawPosts: formattedPosts.length,
         finalPosts: smartMix.length,
         ambassadorCount,
@@ -326,7 +480,12 @@ export class FeedQueryCascade {
       };
 
     } catch (error) {
-      console.error('💥 DISCOVER query failed:', error);
+      console.error('💥 [DEBUG] DISCOVER query FAILED', {
+        error: error.message,
+        stack: error.stack,
+        userId,
+        followingCount: followingUserIds.length
+      });
       return this.createErrorResult('discover', error.message, startTime);
     }
   }
@@ -340,9 +499,10 @@ export class FeedQueryCascade {
     page: number = 0,
     existingPosts: Post[] = []
   ): Promise<CascadeResult> {
-    console.log('👑 Executing AMBASSADOR query (fallback)', {
+    console.log('👑 [DEBUG] AMBASSADOR Query START (fallback)', {
       userId,
       followingCount: followingUserIds.length,
+      followingUserIds,
       page
     });
 
@@ -351,6 +511,13 @@ export class FeedQueryCascade {
     const offset = page * pageSize;
 
     try {
+      console.log('📡 [DEBUG] Executing Supabase query for AMBASSADOR posts', {
+        pageSize,
+        offset,
+        rangeStart: offset,
+        rangeEnd: offset + pageSize - 1
+      });
+
       const { data: ambassadorPosts, error } = await supabase
         .from('posts')
         .select(`
@@ -364,13 +531,30 @@ export class FeedQueryCascade {
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
 
+      console.log('📊 [DEBUG] Supabase query result for AMBASSADOR', {
+        success: !error,
+        error: error,
+        dataLength: ambassadorPosts?.length || 0,
+        rawData: ambassadorPosts?.slice(0, 2)
+      });
+
       if (error) {
-        console.error('❌ Ambassador query error:', error);
+        console.error('❌ [DEBUG] Ambassador query error:', error);
         return this.createErrorResult('ambassador', error.message, startTime);
       }
 
       const formattedPosts = this.formatPosts(ambassadorPosts || []);
+      console.log('🔄 [DEBUG] Formatted ambassador posts', {
+        originalCount: ambassadorPosts?.length || 0,
+        formattedCount: formattedPosts.length
+      });
+
       const queryTime = performance.now() - startTime;
+
+      console.log('🎯 [DEBUG] Calling smart mixing for AMBASSADOR', {
+        postsToMix: formattedPosts.length,
+        followingCount: followingUserIds.length
+      });
 
       // Apply smart mixing
       const smartMix = createSmartFeedMix(formattedPosts, {
@@ -379,11 +563,16 @@ export class FeedQueryCascade {
         currentUserId: userId
       });
 
+      console.log('✨ [DEBUG] Smart mixing result for AMBASSADOR', {
+        inputPosts: formattedPosts.length,
+        outputPosts: smartMix.length
+      });
+
       const ambassadorCount = smartMix.filter(post =>
         post.author?.user_type === 'ambassador' || post.is_ambassador_content
       ).length;
 
-      console.log('✅ AMBASSADOR query complete:', {
+      console.log('✅ [DEBUG] AMBASSADOR query COMPLETE', {
         rawPosts: formattedPosts.length,
         finalPosts: smartMix.length,
         ambassadorCount,
@@ -412,7 +601,12 @@ export class FeedQueryCascade {
       };
 
     } catch (error) {
-      console.error('💥 AMBASSADOR query failed:', error);
+      console.error('💥 [DEBUG] AMBASSADOR query FAILED', {
+        error: error.message,
+        stack: error.stack,
+        userId,
+        followingCount: followingUserIds.length
+      });
       return this.createErrorResult('ambassador', error.message, startTime);
     }
   }

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Post } from '@/types/post';
 import { FeedQueryCascade, FeedFilter } from '@/services/FeedQueryCascade';
@@ -26,7 +27,10 @@ interface UseFeedCascadeOptions {
 }
 
 export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
-  console.log('🎣 useFeedCascade hook initializing with filter:', options.filter);
+  console.log('🎣 [DEBUG] useFeedCascade hook initializing', {
+    filter: options.filter,
+    timestamp: new Date().toISOString()
+  });
   
   const { user } = useAuth();
   const { followingCount, following } = useUserFollows();
@@ -46,28 +50,46 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
     currentFilter: options.filter || 'all'
   });
 
-  console.log('📊 useFeedCascade state:', {
+  console.log('📊 [DEBUG] useFeedCascade current state', {
     postsCount: state.posts.length,
     optimisticCount: optimisticPosts.length,
     isLoading: state.isLoading,
     hasUser: !!user,
-    currentFilter: state.currentFilter
+    currentFilter: state.currentFilter,
+    followingCount,
+    hasFollowing: following.length > 0
   });
 
   // Extract user IDs from following relationships
   const followingUserIds = following.map(follow => follow.following_id);
 
+  console.log('👥 [DEBUG] Following data processed', {
+    followingCount,
+    followingUserIds,
+    followingLength: followingUserIds.length
+  });
+
   // Combine optimistic posts with regular posts
   const allPosts = [...optimisticPosts, ...state.posts];
 
   const loadPosts = useCallback(async (page: number = 0, existingPosts: Post[] = [], filter: FeedFilter = 'all') => {
+    console.log('🔄 [DEBUG] loadPosts function called', {
+      page,
+      existingCount: existingPosts.length,
+      filter,
+      hasUser: !!user,
+      userId: user?.id,
+      followingUserIds,
+      followingCount: followingUserIds.length
+    });
+
     if (!user) {
-      console.log('❌ No user found - cannot load posts');
+      console.log('❌ [DEBUG] No user found - cannot load posts');
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
-    console.log('🔄 STARTING ENHANCED FEED LOAD WITH FILTERING', { 
+    console.log('🔄 [DEBUG] STARTING ENHANCED FEED LOAD WITH FILTERING', { 
       page, 
       existingCount: existingPosts.length,
       followingCount: followingUserIds.length,
@@ -79,9 +101,11 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
     try {
       // Always show loading for page 0
       if (page === 0) {
+        console.log('🔄 [DEBUG] Setting loading state to true for page 0');
         setState(prev => ({ ...prev, isLoading: true, currentFilter: filter }));
       }
 
+      console.log('📡 [DEBUG] Calling FeedQueryCascade.executeQueryCascade');
       const result = await FeedQueryCascade.executeQueryCascade(
         user.id,
         followingUserIds,
@@ -90,36 +114,50 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
         filter
       );
 
-      console.log('📊 ENHANCED CASCADE RESULT WITH FILTERING:', {
+      console.log('📊 [DEBUG] ENHANCED CASCADE RESULT WITH FILTERING', {
         postCount: result.posts.length,
         metrics: result.metrics,
         debugData: result.debugData,
         ambassadorPercentage: Math.round(result.ambassadorPercentage * 100) + '%',
         hasErrors: result.hasErrors,
         errorCount: result.errorDetails?.length || 0,
-        filter
+        filter,
+        resultPosts: result.posts.map(p => ({ id: p.id, user_id: p.user_id, content: p.content?.substring(0, 50) }))
       });
 
       // Log any errors found
       if (result.hasErrors && result.errorDetails) {
-        console.warn('⚠️ FEED ERRORS DETECTED:', result.errorDetails);
+        console.warn('⚠️ [DEBUG] FEED ERRORS DETECTED:', result.errorDetails);
       }
 
       // Fetch author profiles for new posts with enhanced error handling
       const newPosts = result.posts.slice(existingPosts.length);
+      console.log('👤 [DEBUG] Processing author profiles', {
+        newPostsCount: newPosts.length,
+        needsProfiles: newPosts.filter(p => !p.author).length
+      });
+
       if (newPosts.length > 0) {
-        console.log('👤 Fetching author profiles for', newPosts.length, 'new posts');
+        console.log('👤 [DEBUG] Fetching author profiles for', newPosts.length, 'new posts');
         
         try {
           const userIds = [...new Set(newPosts.map(post => post.user_id))];
+          console.log('👤 [DEBUG] Unique user IDs to fetch profiles for:', userIds);
           
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
             .select('id, full_name, user_type, avatar_url')
             .in('id', userIds);
 
+          console.log('👤 [DEBUG] Profile fetch result', {
+            success: !profilesError,
+            error: profilesError,
+            profilesFound: profilesData?.length || 0,
+            requestedUserIds: userIds.length
+          });
+
           if (profilesError) {
-            console.error('❌ Failed to fetch profiles:', profilesError);
+            console.error('❌ [DEBUG] Failed to fetch profiles:', profilesError);
           } else if (profilesData) {
             const profileMap = new Map();
             profilesData.forEach(profile => {
@@ -137,19 +175,19 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
               }
             });
 
-            console.log('✅ Author profiles loaded:', {
+            console.log('✅ [DEBUG] Author profiles loaded and mapped', {
               profilesFound: profilesData.length,
               userIds: userIds.length,
               postsUpdated: result.posts.filter(p => p.author).length
             });
           }
         } catch (profileError) {
-          console.error('❌ Profile fetching failed:', profileError);
+          console.error('❌ [DEBUG] Profile fetching failed:', profileError);
           // Continue without profiles rather than failing completely
         }
 
         // Get engagement counts with timeout protection
-        console.log('📈 Loading engagement counts for new posts...');
+        console.log('📈 [DEBUG] Loading engagement counts for new posts...');
         const engagementStart = performance.now();
         
         const engagementPromises = newPosts.map(async (post) => {
@@ -162,7 +200,7 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
             post.likes_count = likesData || 0;
             post.comments_count = commentsData || 0;
           } catch (error) {
-            console.warn('Failed to get engagement counts for post:', post.id, error);
+            console.warn('⚠️ [DEBUG] Failed to get engagement counts for post:', post.id, error);
             post.likes_count = 0;
             post.comments_count = 0;
           }
@@ -172,7 +210,10 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
         try {
           await Promise.all(engagementPromises);
           const engagementTime = performance.now() - engagementStart;
-          console.log('✅ Engagement counts loaded in', Math.round(engagementTime) + 'ms');
+          console.log('✅ [DEBUG] Engagement counts loaded', {
+            time: Math.round(engagementTime) + 'ms',
+            postsProcessed: newPosts.length
+          });
 
           // Record analytics
           const analyticsService = FeedAnalyticsService.getInstance();
@@ -181,11 +222,12 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
             loadTime: engagementTime
           });
         } catch (engagementError) {
-          console.error('❌ Engagement loading failed:', engagementError);
+          console.error('❌ [DEBUG] Engagement loading failed:', engagementError);
           // Continue without engagement counts
         }
       }
 
+      console.log('🔄 [DEBUG] Setting final state');
       setState(prev => ({
         ...prev,
         posts: result.posts,
@@ -199,15 +241,20 @@ export const useFeedCascade = (options: UseFeedCascadeOptions = {}) => {
         isLoading: false // Always turn off loading when done
       }));
 
-      console.log('✅ FEED LOAD COMPLETE WITH FILTER:', {
+      console.log('✅ [DEBUG] FEED LOAD COMPLETE WITH FILTER', {
         finalPostCount: result.posts.length,
         loadingTurnedOff: true,
         hasErrors: result.hasErrors,
-        filter
+        filter,
+        finalState: {
+          postsLength: result.posts.length,
+          isLoading: false,
+          hasMore: result.posts.length >= 15 && page < 8
+        }
       });
 
     } catch (error) {
-      console.error('💥 CRITICAL FEED LOAD FAILURE:', {
+      console.error('💥 [DEBUG] CRITICAL FEED LOAD FAILURE', {
         error: error.message,
         stack: error.stack,
         context: { page, existingCount: existingPosts.length, followingCount: followingUserIds.length, filter }

@@ -17,15 +17,17 @@ export function createSmartFeedMix(
 ): Post[] {
   const { followingCount, userFollowings, currentUserId } = options;
   
-  console.log('🎯 Creating smart feed mix', {
+  console.log('🎯 [DEBUG] Smart feed mix START', {
     totalPosts: allPosts.length,
     followingCount,
-    userFollowings: userFollowings.length
+    userFollowingsLength: userFollowings.length,
+    currentUserId,
+    samplePosts: allPosts.slice(0, 2)
   });
 
   // Early return if no posts
   if (!allPosts || allPosts.length === 0) {
-    console.log('⚠️ No posts provided to mix');
+    console.log('⚠️ [DEBUG] No posts provided to mix - returning empty array');
     return [];
   }
 
@@ -34,7 +36,7 @@ export function createSmartFeedMix(
     arr.findIndex(p => p.id === post.id) === index
   );
 
-  console.log('📊 Post deduplication:', {
+  console.log('📊 [DEBUG] Post deduplication complete', {
     original: allPosts.length,
     unique: uniquePosts.length,
     duplicatesRemoved: allPosts.length - uniquePosts.length
@@ -56,61 +58,135 @@ export function createSmartFeedMix(
     !(post.author?.user_type === 'ambassador' || post.is_ambassador_content)
   );
 
-  console.log('📊 Post categories:', {
+  console.log('📊 [DEBUG] Post categorization complete', {
     userPosts: userPosts.length,
     followedPosts: followedPosts.length,
     ambassadorPosts: ambassadorPosts.length,
-    publicPosts: publicPosts.length
+    publicPosts: publicPosts.length,
+    totalCategorized: userPosts.length + followedPosts.length + ambassadorPosts.length + publicPosts.length
   });
+
+  // If we have no posts after categorization, return the original posts
+  if (userPosts.length + followedPosts.length + ambassadorPosts.length + publicPosts.length === 0) {
+    console.log('⚠️ [DEBUG] No posts after categorization, returning original posts');
+    return uniquePosts;
+  }
 
   // Increased content strategy - target 50 posts maximum
   const minPosts = 15;
   const maxPosts = 50;
   const targetTotal = Math.max(minPosts, Math.min(maxPosts, uniquePosts.length));
   
+  console.log('🎯 [DEBUG] Target calculation', {
+    minPosts,
+    maxPosts,
+    uniquePostsLength: uniquePosts.length,
+    targetTotal
+  });
+
   // Ensure we have ambassador content (minimum 20% of feed)
   const minAmbassadorPosts = Math.max(2, Math.floor(targetTotal * 0.2));
   const actualAmbassadorPosts = Math.min(minAmbassadorPosts, ambassadorPosts.length);
   
+  console.log('👑 [DEBUG] Ambassador allocation', {
+    minAmbassadorPosts,
+    availableAmbassadorPosts: ambassadorPosts.length,
+    actualAmbassadorPosts
+  });
+
   // Build guaranteed feed
   const feedPosts: Post[] = [];
   
   // 1. Add ambassador content first (guaranteed)
   if (actualAmbassadorPosts > 0) {
-    feedPosts.push(...ambassadorPosts.slice(0, actualAmbassadorPosts));
+    const selectedAmbassadors = ambassadorPosts.slice(0, actualAmbassadorPosts);
+    feedPosts.push(...selectedAmbassadors);
+    console.log('👑 [DEBUG] Added ambassador posts', {
+      count: selectedAmbassadors.length,
+      postIds: selectedAmbassadors.map(p => p.id)
+    });
   }
   
   // 2. Add user's own posts (limited)
   const userPostLimit = Math.min(3, userPosts.length);
-  feedPosts.push(...userPosts.slice(0, userPostLimit));
+  if (userPostLimit > 0) {
+    const selectedUserPosts = userPosts.slice(0, userPostLimit);
+    feedPosts.push(...selectedUserPosts);
+    console.log('👤 [DEBUG] Added user posts', {
+      count: selectedUserPosts.length,
+      postIds: selectedUserPosts.map(p => p.id)
+    });
+  }
   
   // 3. Fill remaining with followed users
   const remainingSlots = targetTotal - feedPosts.length;
+  console.log('👥 [DEBUG] Filling with followed users', {
+    remainingSlots,
+    availableFollowedPosts: followedPosts.length
+  });
+
   if (remainingSlots > 0 && followedPosts.length > 0) {
     const followedAllocation = Math.min(remainingSlots, followedPosts.length);
-    feedPosts.push(...followedPosts.slice(0, followedAllocation));
+    const selectedFollowedPosts = followedPosts.slice(0, followedAllocation);
+    feedPosts.push(...selectedFollowedPosts);
+    console.log('👥 [DEBUG] Added followed user posts', {
+      count: selectedFollowedPosts.length,
+      postIds: selectedFollowedPosts.map(p => p.id)
+    });
   }
   
   // 4. Fill any remaining with public content
   const stillRemaining = targetTotal - feedPosts.length;
+  console.log('🌍 [DEBUG] Filling with public posts', {
+    stillRemaining,
+    availablePublicPosts: publicPosts.length
+  });
+
   if (stillRemaining > 0 && publicPosts.length > 0) {
-    feedPosts.push(...publicPosts.slice(0, stillRemaining));
+    const selectedPublicPosts = publicPosts.slice(0, stillRemaining);
+    feedPosts.push(...selectedPublicPosts);
+    console.log('🌍 [DEBUG] Added public posts', {
+      count: selectedPublicPosts.length,
+      postIds: selectedPublicPosts.map(p => p.id)
+    });
   }
+
+  console.log('📋 [DEBUG] Feed building complete', {
+    totalFeedPosts: feedPosts.length,
+    breakdown: {
+      ambassador: feedPosts.filter(p => p.author?.user_type === 'ambassador' || p.is_ambassador_content).length,
+      followed: feedPosts.filter(p => userFollowings.includes(p.user_id) && p.user_id !== currentUserId).length,
+      user: feedPosts.filter(p => p.user_id === currentUserId).length,
+      public: feedPosts.filter(p => 
+        p.privacy_level === 'public' && 
+        p.user_id !== currentUserId && 
+        !userFollowings.includes(p.user_id) &&
+        !(p.author?.user_type === 'ambassador' || p.is_ambassador_content)
+      ).length
+    }
+  });
 
   // Apply fair distribution algorithm if we have enough posts
   let distributedFeed = feedPosts;
   if (feedPosts.length > 10) {
     try {
+      console.log('🔄 [DEBUG] Applying fair distribution algorithm');
       distributedFeed = FeedDistributionService.distributePostsFairly(
         feedPosts,
         userFollowings,
         targetTotal,
         currentUserId
       );
+      console.log('✅ [DEBUG] Fair distribution complete', {
+        originalCount: feedPosts.length,
+        distributedCount: distributedFeed.length
+      });
     } catch (error) {
-      console.warn('Distribution service failed, using original order:', error);
+      console.warn('⚠️ [DEBUG] Distribution service failed, using original order:', error);
       distributedFeed = feedPosts;
     }
+  } else {
+    console.log('ℹ️ [DEBUG] Skipping fair distribution (not enough posts)');
   }
 
   // Final validation
@@ -118,11 +194,12 @@ export function createSmartFeedMix(
     post.author?.user_type === 'ambassador' || post.is_ambassador_content
   ).length;
 
-  console.log('✅ Smart feed mix complete:', {
+  console.log('✅ [DEBUG] Smart feed mix COMPLETE', {
     finalCount: distributedFeed.length,
     ambassadorCount: finalAmbassadorCount,
     ambassadorPercentage: distributedFeed.length > 0 ? Math.round((finalAmbassadorCount / distributedFeed.length) * 100) + '%' : '0%',
-    guaranteed: finalAmbassadorCount >= 2 ? '✅' : '⚠️'
+    guaranteed: finalAmbassadorCount >= 2 ? '✅' : '⚠️',
+    finalPostIds: distributedFeed.map(p => p.id)
   });
   
   return distributedFeed;
