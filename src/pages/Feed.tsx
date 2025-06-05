@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { useFeedPerformance } from '@/hooks/useFeedPerformance';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { MessageSquare, Heart, Clock, Activity, Zap, Bug } from 'lucide-react';
+import { Users, Globe, Heart, Activity, Zap, Bug, Compass } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
@@ -23,7 +22,7 @@ import { useUserFollows } from '@/hooks/useUserFollows';
 import { FeedDebugPanel } from '@/components/feed/FeedDebugPanel';
 import { Post } from '@/types/post';
 
-type SortOption = 'recent' | 'popular' | 'commented';
+type FeedFilter = 'all' | 'following' | 'discover';
 
 const Feed = () => {
   console.log('🎬 Feed component rendering...');
@@ -39,7 +38,7 @@ const Feed = () => {
   });
 
   const { followingCount, following } = useUserFollows();
-  const [sortOption, setSortOption] = useState<SortOption>('recent');
+  const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
   const [showPerformanceMetrics, setShowPerformanceMetrics] = useState(false);
   const [showCacheStats, setShowCacheStats] = useState(false);
@@ -62,7 +61,8 @@ const Feed = () => {
   console.log('📊 Feed data:', { 
     postsCount: posts?.length || 0, 
     isLoading, 
-    hasMore 
+    hasMore,
+    currentFilter: feedFilter
   });
   
   const { 
@@ -121,9 +121,11 @@ const Feed = () => {
     }
   }, [isLoading, posts.length, recordLoadTime]);
 
-  const handleSortChange = (value: string) => {
+  const handleFilterChange = (value: string) => {
     if (value) {
-      setSortOption(value as SortOption);
+      setFeedFilter(value as FeedFilter);
+      console.log('🔄 Feed filter changed to:', value);
+      // TODO: This will trigger a refresh in Step 3 when we connect to the cascade system
     }
   };
 
@@ -266,6 +268,7 @@ const Feed = () => {
         </Card>
       )}
 
+      {/* Performance and cache debug panels - keep existing code */}
       {isDevelopment && showPerformanceMetrics && (
         <Card className="mb-6">
           <CardContent className="p-4">
@@ -343,18 +346,23 @@ const Feed = () => {
           <div className="mb-5 overflow-x-auto pb-1">
             <ToggleGroup 
               type="single" 
-              value={sortOption}
-              onValueChange={handleSortChange}
+              value={feedFilter}
+              onValueChange={handleFilterChange}
               className="justify-start whitespace-nowrap"
             >
-              <ToggleGroupItem value="recent" aria-label="Sort by recent">
-                <Clock className="h-4 w-4 mr-1" /> Recent
+              <ToggleGroupItem value="all" aria-label="Show all posts">
+                <Globe className="h-4 w-4 mr-1" /> All Posts
               </ToggleGroupItem>
-              <ToggleGroupItem value="popular" aria-label="Sort by likes">
-                <Heart className="h-4 w-4 mr-1" /> Popular
+              <ToggleGroupItem value="following" aria-label="Show posts from people you follow">
+                <Users className="h-4 w-4 mr-1" /> Following
+                {followingCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-4 text-xs">
+                    {followingCount}
+                  </Badge>
+                )}
               </ToggleGroupItem>
-              <ToggleGroupItem value="commented" aria-label="Sort by comments">
-                <MessageSquare className="h-4 w-4 mr-1" /> Discussed
+              <ToggleGroupItem value="discover" aria-label="Discover new content">
+                <Compass className="h-4 w-4 mr-1" /> Discover
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -377,14 +385,32 @@ const Feed = () => {
                 <div className="bg-gradient-to-b from-muted/50 to-muted/30 rounded-lg p-8 text-center border border-muted shadow-inner mb-6">
                   <div className="max-w-md mx-auto">
                     <div className="bg-muted/50 p-4 rounded-full inline-block mb-3">
-                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                      {feedFilter === 'following' ? (
+                        <Users className="h-8 w-8 text-muted-foreground" />
+                      ) : feedFilter === 'discover' ? (
+                        <Compass className="h-8 w-8 text-muted-foreground" />
+                      ) : (
+                        <Globe className="h-8 w-8 text-muted-foreground" />
+                      )}
                     </div>
-                    <h3 className="text-lg font-medium mb-2">Building your feed...</h3>
+                    <h3 className="text-lg font-medium mb-2">
+                      {feedFilter === 'following' 
+                        ? 'No posts from your network yet'
+                        : feedFilter === 'discover'
+                        ? 'No new content to discover'
+                        : 'Building your feed...'
+                      }
+                    </h3>
                     <p className="text-sm md:text-base text-muted-foreground mb-4">
-                      We're setting up inspiring content from our Rally Ambassadors while you build your network.
+                      {feedFilter === 'following' 
+                        ? 'Follow more people to see their posts here, or switch to "All Posts" to see content from Rally Ambassadors.'
+                        : feedFilter === 'discover'
+                        ? 'Check back later for new content, or try following some people to build your network.'
+                        : 'We\'re setting up inspiring content from our Rally Ambassadors while you build your network.'
+                      }
                     </p>
                     <Button onClick={() => window.location.href = '/search'} variant="outline">
-                      Find People to Follow
+                      {feedFilter === 'following' ? 'Find People to Follow' : 'Discover People'}
                     </Button>
                   </div>
                 </div>
