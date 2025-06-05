@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,6 +9,7 @@ import { showSuccessToast, showErrorToast } from '@/components/ui/use-toast';
 import { PrivacySelector, PrivacyLevel } from './PrivacySelector';
 import { Loader2, Image, X } from 'lucide-react';
 import { Post } from '@/types/post';
+import { useUserFollows } from '@/hooks/useUserFollows';
 
 interface PostComposerProps {
   onSuccess?: (post: Post) => void;
@@ -23,6 +25,10 @@ export const PostComposer = ({ onSuccess, className = "", matchData, sessionData
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  
+  // Get user's following count for privacy recommendations
+  const { data: followsData } = useUserFollows(user?.id);
+  const followingCount = followsData?.length || 0;
 
   const uploadMedia = async (file: File): Promise<{ url: string; type: string } | null> => {
     try {
@@ -209,7 +215,7 @@ export const PostComposer = ({ onSuccess, className = "", matchData, sessionData
             </div>
           )}
 
-          <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-start justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <label htmlFor="media-upload">
                 <Button
@@ -234,11 +240,6 @@ export const PostComposer = ({ onSuccess, className = "", matchData, sessionData
                 className="hidden"
                 disabled={isSubmitting}
               />
-              
-              <PrivacySelector
-                value={privacyLevel}
-                onValueChange={setPrivacyLevel}
-              />
             </div>
 
             <Button 
@@ -255,6 +256,22 @@ export const PostComposer = ({ onSuccess, className = "", matchData, sessionData
                 'Post'
               )}
             </Button>
+          </div>
+
+          {/* Enhanced Privacy Selector with full functionality */}
+          <div className="pt-2 border-t">
+            <PrivacySelector
+              value={privacyLevel}
+              onValueChange={setPrivacyLevel}
+              followingCount={followingCount}
+              showPreview={true}
+              content={content}
+              userProfile={{
+                full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+                username: user.user_metadata?.username,
+                avatar_url: user.user_metadata?.avatar_url
+              }}
+            />
           </div>
         </form>
       </CardContent>
