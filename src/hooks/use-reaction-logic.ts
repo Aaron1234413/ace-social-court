@@ -119,17 +119,27 @@ export function useReactionLogic(post: Post, userId?: string) {
       return;
     }
 
-    // Only validate UUIDs for database operations - don't block if invalid
+    // Validate user ID format
     if (!isValidUUID(userId)) {
       console.error('Invalid user ID format:', userId);
       toast.error("Invalid user session. Please log in again.");
       return;
     }
 
+    // For non-UUID post IDs, skip database operations entirely
     if (!isValidUUID(post.id)) {
-      console.error('Invalid post ID format:', post.id);
-      // For non-UUID post IDs, just skip database operations but don't block the UI
-      toast.error("Cannot react to this post");
+      console.log('Non-UUID post ID detected, skipping database operations');
+      toast.success("Reaction added! (Demo mode)");
+      
+      // Update UI optimistically for demo posts
+      const hasReacted = userReactions[reactionType];
+      if (hasReacted) {
+        setCounts(prev => ({ ...prev, [reactionType]: Math.max(0, prev[reactionType] - 1) }));
+        setUserReactions(prev => ({ ...prev, [reactionType]: false }));
+      } else {
+        setCounts(prev => ({ ...prev, [reactionType]: prev[reactionType] + 1 }));
+        setUserReactions(prev => ({ ...prev, [reactionType]: true }));
+      }
       return;
     }
 
