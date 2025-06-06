@@ -119,7 +119,7 @@ export function useReactionLogic(post: Post, userId?: string) {
       return;
     }
 
-    // Validate UUIDs for database operations
+    // Only validate UUIDs for database operations - don't block if invalid
     if (!isValidUUID(userId)) {
       console.error('Invalid user ID format:', userId);
       toast.error("Invalid user session. Please log in again.");
@@ -128,6 +128,7 @@ export function useReactionLogic(post: Post, userId?: string) {
 
     if (!isValidUUID(post.id)) {
       console.error('Invalid post ID format:', post.id);
+      // For non-UUID post IDs, just skip database operations but don't block the UI
       toast.error("Cannot react to this post");
       return;
     }
