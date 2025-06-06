@@ -87,14 +87,10 @@ export function useUserFollows() {
     queryFn: async (): Promise<UserFollowData[]> => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
+      // Get followers with profile data using a proper join
+      const { data: followers, error } = await supabase
         .from('followers')
-        .select(`
-          *,
-          follower:profiles!followers_follower_id_fkey(
-            id, full_name, username, avatar_url, is_ai_user, ai_personality_type
-          )
-        `)
+        .select('id, follower_id, following_id, created_at')
         .eq('following_id', user.id);
 
       if (error) {
@@ -102,7 +98,22 @@ export function useUserFollows() {
         throw error;
       }
 
-      return data || [];
+      if (!followers || followers.length === 0) return [];
+
+      // Get follower profile data separately
+      const followerIds = followers.map(f => f.follower_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, is_ai_user, ai_personality_type')
+        .in('id', followerIds);
+
+      // Combine the data
+      const result = followers.map(follow => ({
+        ...follow,
+        follower: profiles?.find(p => p.id === follow.follower_id) || null
+      }));
+
+      return result;
     },
     enabled: !!user?.id,
   });
@@ -112,14 +123,10 @@ export function useUserFollows() {
     queryFn: async (): Promise<UserFollowData[]> => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
+      // Get following with profile data using a proper join
+      const { data: following, error } = await supabase
         .from('followers')
-        .select(`
-          *,
-          following:profiles!followers_following_id_fkey(
-            id, full_name, username, avatar_url, is_ai_user, ai_personality_type
-          )
-        `)
+        .select('id, follower_id, following_id, created_at')
         .eq('follower_id', user.id);
 
       if (error) {
@@ -127,7 +134,22 @@ export function useUserFollows() {
         throw error;
       }
 
-      return data || [];
+      if (!following || following.length === 0) return [];
+
+      // Get following profile data separately
+      const followingIds = following.map(f => f.following_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, is_ai_user, ai_personality_type')
+        .in('id', followingIds);
+
+      // Combine the data
+      const result = following.map(follow => ({
+        ...follow,
+        following: profiles?.find(p => p.id === follow.following_id) || null
+      }));
+
+      return result;
     },
     enabled: !!user?.id,
   });
