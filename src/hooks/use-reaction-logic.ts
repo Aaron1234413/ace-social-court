@@ -89,24 +89,39 @@ export function useReactionLogic(post: Post, userId?: string) {
       return;
     }
 
-    console.log('Submitting reaction:', { reactionType, postId: post.id, userId, comment });
+    console.log('=== REACTION SUBMISSION DEBUG ===');
+    console.log('Post ID:', post.id);
+    console.log('User ID:', userId);
+    console.log('Reaction Type:', reactionType);
+    console.log('Comment:', comment);
+    console.log('Current user reactions:', userReactions);
     
     setIsLoading(true);
     try {
       const hasReacted = userReactions[reactionType];
+      console.log('Has already reacted:', hasReacted);
 
       if (hasReacted) {
-        console.log('Removing reaction...');
+        console.log('=== REMOVING REACTION ===');
         // Remove reaction
-        const { error } = await supabase
+        const { data: deleteData, error } = await supabase
           .from('post_reactions')
           .delete()
           .eq('post_id', post.id)
           .eq('user_id', userId)
-          .eq('reaction_type', reactionType);
+          .eq('reaction_type', reactionType)
+          .select();
+
+        console.log('Delete operation result:', { data: deleteData, error });
 
         if (error) {
-          console.error('Error removing reaction:', error);
+          console.error('Delete error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          toast.error(`Failed to remove reaction: ${error.message}`);
           throw error;
         }
 
@@ -114,35 +129,66 @@ export function useReactionLogic(post: Post, userId?: string) {
         setCounts(prev => ({ ...prev, [reactionType]: Math.max(0, prev[reactionType] - 1) }));
         setUserReactions(prev => ({ ...prev, [reactionType]: false }));
       } else {
-        console.log('Adding reaction...');
-        // Add reaction - build the data object step by step
-        const reactionData: any = {
+        console.log('=== ADDING REACTION ===');
+        
+        // Validate required data
+        if (!post.id || !userId || !reactionType) {
+          const missingFields = [];
+          if (!post.id) missingFields.push('post_id');
+          if (!userId) missingFields.push('user_id');
+          if (!reactionType) missingFields.push('reaction_type');
+          
+          console.error('Missing required fields:', missingFields);
+          toast.error(`Missing required data: ${missingFields.join(', ')}`);
+          return;
+        }
+
+        // Build the reaction data object
+        const reactionData = {
           post_id: post.id,
           user_id: userId,
-          reaction_type: reactionType
+          reaction_type: reactionType,
+          has_comment: reactionType === 'tip' && comment ? true : false,
+          ...(reactionType === 'tip' && comment && { comment_content: comment })
         };
 
-        // Add comment fields only for tip reactions with comments
-        if (reactionType === 'tip' && comment) {
-          reactionData.comment_content = comment;
-          reactionData.has_comment = true;
-        } else {
-          reactionData.has_comment = false;
-        }
+        console.log('=== INSERTING REACTION DATA ===');
+        console.log('Reaction data to insert:', JSON.stringify(reactionData, null, 2));
 
-        console.log('Inserting reaction with data:', reactionData);
-
-        const { error } = await supabase
+        // First, let's test if we can access the table at all
+        const { data: testData, error: testError } = await supabase
           .from('post_reactions')
-          .insert(reactionData);
+          .select('id')
+          .limit(1);
 
-        if (error) {
-          console.error('Error adding reaction:', error);
-          toast.error(`Failed to add reaction: ${error.message}`);
-          throw error;
+        console.log('Table access test:', { data: testData, error: testError });
+
+        if (testError) {
+          console.error('Cannot access post_reactions table:', testError);
+          toast.error(`Database access error: ${testError.message}`);
+          throw testError;
         }
 
-        console.log('Reaction added successfully');
+        // Now try the actual insert
+        const { data: insertData, error: insertError } = await supabase
+          .from('post_reactions')
+          .insert(reactionData)
+          .select();
+
+        console.log('Insert operation result:', { data: insertData, error: insertError });
+
+        if (insertError) {
+          console.error('Insert error details:', {
+            message: insertError.message,
+            details: insertError.details,
+            hint: insertError.hint,
+            code: insertError.code
+          });
+          toast.error(`Failed to add reaction: ${insertError.message}`);
+          throw insertError;
+        }
+
+        console.log('Reaction added successfully:', insertData);
         setCounts(prev => ({ ...prev, [reactionType]: prev[reactionType] + 1 }));
         setUserReactions(prev => ({ ...prev, [reactionType]: true }));
 
@@ -174,8 +220,8 @@ export function useReactionLogic(post: Post, userId?: string) {
         }
       }
     } catch (error) {
-      console.error('Error handling reaction:', error);
-      toast.error("Failed to update reaction. Please try again.");
+      console.error('=== REACTION SUBMISSION FAILED ===');
+      console.error('Final error:', error);
       
       // Track error as cancellation
       if (userId) {
