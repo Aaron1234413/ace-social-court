@@ -14,36 +14,35 @@ export function useUserFollows() {
     queryFn: async (): Promise<UserFollowData[]> => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
+      // First get the followers data
+      const { data: followersData, error: followersError } = await supabase
         .from('followers')
-        .select(`
-          *,
-          profiles!followers_follower_id_fkey (
-            id,
-            full_name,
-            username,
-            avatar_url,
-            is_ai_user,
-            ai_personality_type
-          )
-        `)
+        .select('*')
         .eq('following_id', user.id);
 
-      if (error) {
-        console.error('Error fetching followers:', error);
-        throw error;
+      if (followersError) {
+        console.error('Error fetching followers:', followersError);
+        throw followersError;
       }
 
-      return (data || []).map(item => ({
-        ...item,
-        follower: item.profiles ? {
-          id: item.profiles.id,
-          full_name: item.profiles.full_name,
-          username: item.profiles.username,
-          avatar_url: item.profiles.avatar_url,
-          is_ai_user: item.profiles.is_ai_user,
-          ai_personality_type: item.profiles.ai_personality_type
-        } : undefined
+      if (!followersData || followersData.length === 0) return [];
+
+      // Get profile data for all followers
+      const followerIds = followersData.map(f => f.follower_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, is_ai_user, ai_personality_type')
+        .in('id', followerIds);
+
+      if (profilesError) {
+        console.error('Error fetching follower profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Combine the data
+      return followersData.map(follower => ({
+        ...follower,
+        follower: profilesData?.find(profile => profile.id === follower.follower_id) || undefined
       }));
     },
     enabled: !!user?.id,
@@ -54,36 +53,35 @@ export function useUserFollows() {
     queryFn: async (): Promise<UserFollowData[]> => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
+      // First get the following data
+      const { data: followingData, error: followingError } = await supabase
         .from('followers')
-        .select(`
-          *,
-          profiles!followers_following_id_fkey (
-            id,
-            full_name,
-            username,
-            avatar_url,
-            is_ai_user,
-            ai_personality_type
-          )
-        `)
+        .select('*')
         .eq('follower_id', user.id);
 
-      if (error) {
-        console.error('Error fetching following:', error);
-        throw error;
+      if (followingError) {
+        console.error('Error fetching following:', followingError);
+        throw followingError;
       }
 
-      return (data || []).map(item => ({
-        ...item,
-        following: item.profiles ? {
-          id: item.profiles.id,
-          full_name: item.profiles.full_name,
-          username: item.profiles.username,
-          avatar_url: item.profiles.avatar_url,
-          is_ai_user: item.profiles.is_ai_user,
-          ai_personality_type: item.profiles.ai_personality_type
-        } : undefined
+      if (!followingData || followingData.length === 0) return [];
+
+      // Get profile data for all users being followed
+      const followingIds = followingData.map(f => f.following_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, is_ai_user, ai_personality_type')
+        .in('id', followingIds);
+
+      if (profilesError) {
+        console.error('Error fetching following profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Combine the data
+      return followingData.map(following => ({
+        ...following,
+        following: profilesData?.find(profile => profile.id === following.following_id) || undefined
       }));
     },
     enabled: !!user?.id,
