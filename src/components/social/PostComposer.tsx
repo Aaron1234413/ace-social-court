@@ -63,7 +63,7 @@ const privacyLevelColors = {
 
 const postSchema = z.object({
   content: z.string().min(3, { message: "Post content must be at least 3 characters." }),
-  privacy_level: z.enum(['public', 'friends', 'coaches', 'public_highlights', 'private']).default('public').optional(),
+  privacy_level: z.enum(['public', 'private', 'public_highlights']).default('public').optional(),
   template_id: z.string().optional(),
 });
 
@@ -173,9 +173,8 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       
       // Handle privacy level for prompt generation - only use valid types for prompt system
       const currentPrivacyLevel = form.watch('privacy_level');
-      const validPrivacyLevel: "public" | "friends" | "coaches" | "public_highlights" = 
-        currentPrivacyLevel === 'private' ? 'public' : 
-        (currentPrivacyLevel as "public" | "friends" | "coaches" | "public_highlights");
+      const validPrivacyLevel: "public" | "public_highlights" | "private" = 
+        currentPrivacyLevel as "public" | "public_highlights" | "private";
       
       if (profile.user_type === 'coach') {
         const prompt = coachSystem.generateCoachPrompt(mockPost, context, profile.full_name);
@@ -294,8 +293,10 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
 
       if (error) throw error;
 
-      const createdPost: Post = {
+      // Transform the response to match our simplified privacy types
+      const transformedPost: Post = {
         ...data,
+        privacy_level: data.privacy_level === 'friends' || data.privacy_level === 'coaches' ? 'private' : data.privacy_level,
         author: data.profiles ? {
           full_name: data.profiles.full_name,
           user_type: data.profiles.user_type,
@@ -305,7 +306,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         comments_count: 0
       };
 
-      console.log('✅ Post created successfully:', createdPost);
+      console.log('✅ Post created successfully:', transformedPost);
       showSuccessToast("Post created!", "Your post has been shared successfully.");
       
       form.reset();
@@ -313,7 +314,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       setMediaFile(null);
       setShowComposer(false);
       
-      onSuccess?.(createdPost);
+      onSuccess?.(transformedPost);
 
     } catch (error) {
       console.error('❌ Error creating post:', error);
@@ -329,12 +330,8 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         return `Share with the community${followingCount < 3 ? ' (recommended for new users)' : ''}`;
       case 'public':
         return 'Everyone can see this post';
-      case 'friends':
-        return 'Only people you follow can see this';
-      case 'coaches':
-        return 'Only your coaches can see this';
       case 'private':
-        return 'Only you can see this';
+        return 'Only people you follow can see this';
       default:
         return 'Select privacy level';
     }
@@ -346,10 +343,6 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         return <Star className="h-4 w-4" />;
       case 'public':
         return <Globe className="h-4 w-4" />;
-      case 'friends':
-        return <Users className="h-4 w-4" />;
-      case 'coaches':
-        return <Users className="h-4 w-4" />;
       case 'private':
         return <Users className="h-4 w-4" />;
       default:
@@ -397,6 +390,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
 
   return (
     <Card className={`border border-gray-200 shadow-lg bg-white ${className}`}>
+      
       <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -461,6 +455,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
         <CardContent className="pt-6 space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              
               {/* Quick Share Buttons - only show for match posts */}
               {matchData && sharingPreferences?.showQuickShareButtons !== false && (
                 <QuickShareButtons
@@ -738,26 +733,12 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                               <span>🌍 Public</span>
                             </div>
                           </SelectItem>
-                          <SelectItem value="friends">
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-green-500" />
-                              <span>👥 Friends Only</span>
-                            </div>
-                          </SelectItem>
                           <SelectItem value="private">
                             <div className="flex items-center gap-2">
                               <Users className="h-4 w-4 text-gray-500" />
                               <span>🔒 Private</span>
                             </div>
                           </SelectItem>
-                          {profile?.user_type === 'player' && (
-                            <SelectItem value="coaches">
-                              <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4 text-purple-500" />
-                                <span>🎾 Coaches Only</span>
-                              </div>
-                            </SelectItem>
-                          )}
                         </SelectContent>
                       </Select>
                       <FormDescription className="text-sm text-gray-600">

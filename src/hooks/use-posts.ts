@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
@@ -12,6 +11,21 @@ interface UsePostsOptions {
   sortBy?: 'recent' | 'popular' | 'commented';
   respectPrivacy?: boolean;
 }
+
+// Helper function to transform legacy privacy levels to new simplified ones
+const transformPrivacyLevel = (level: string): 'private' | 'public' | 'public_highlights' => {
+  switch (level) {
+    case 'public':
+      return 'public';
+    case 'public_highlights':
+      return 'public_highlights';
+    case 'friends':
+    case 'coaches':
+    case 'private':
+    default:
+      return 'private';
+  }
+};
 
 export const usePosts = (options: UsePostsOptions = { 
   personalize: true, 
@@ -132,7 +146,7 @@ export const usePosts = (options: UsePostsOptions = {
             user_id: post.user_id,
             media_url: post.media_url,
             media_type: post.media_type,
-            privacy_level: post.privacy_level,
+            privacy_level: transformPrivacyLevel(post.privacy_level), // Transform legacy privacy levels
             template_id: post.template_id,
             is_auto_generated: post.is_auto_generated,
             engagement_score: post.engagement_score,
@@ -150,7 +164,7 @@ export const usePosts = (options: UsePostsOptions = {
             user_id: post.user_id,
             media_url: post.media_url,
             media_type: post.media_type,
-            privacy_level: post.privacy_level,
+            privacy_level: transformPrivacyLevel(post.privacy_level), // Transform legacy privacy levels
             template_id: post.template_id,
             is_auto_generated: post.is_auto_generated,
             engagement_score: post.engagement_score,
@@ -163,6 +177,7 @@ export const usePosts = (options: UsePostsOptions = {
 
       console.log('Posts formatted with engagement data:', formattedPosts.length);
 
+      
       // Sort by popularity or comments if needed
       let sortedPosts = [...formattedPosts];
       

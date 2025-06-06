@@ -8,8 +8,8 @@ export class ReactionPermissionService {
     reason?: string;
     isRestricted: boolean;
   } {
-    // Ambassador posts and public_highlights are always accessible
-    if (post.is_ambassador_content || post.privacy_level === 'public') {
+    // Ambassador posts and public content are always accessible
+    if (post.is_ambassador_content || post.privacy_level === 'public' || post.privacy_level === 'public_highlights') {
       return { canReact: true, isRestricted: false };
     }
 
@@ -34,16 +34,6 @@ export class ReactionPermissionService {
       return { 
         canReact: false, 
         reason: `Follow ${post.author?.full_name || 'this player'} first to react to their private posts`,
-        isRestricted: true
-      };
-    }
-
-    // Friends-only posts
-    if (post.privacy_level === 'friends') {
-      // TODO: Check friendship status
-      return { 
-        canReact: false, 
-        reason: `Follow ${post.author?.full_name || 'this player'} first to react to their posts`,
         isRestricted: true
       };
     }

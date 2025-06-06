@@ -1,4 +1,3 @@
-
 import { Post } from '@/types/post';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizePostsForUser, PrivacyContext } from '@/utils/privacySanitization';
@@ -25,6 +24,21 @@ interface CacheEntry {
   timestamp: number;
   user_context: string; // Hash of user's privacy context
 }
+
+// Helper function to transform legacy privacy levels to new simplified ones
+const transformPrivacyLevel = (level: string): 'private' | 'public' | 'public_highlights' => {
+  switch (level) {
+    case 'public':
+      return 'public';
+    case 'public_highlights':
+      return 'public_highlights';
+    case 'friends':
+    case 'coaches':
+    case 'private':
+    default:
+      return 'private';
+  }
+};
 
 export class PreviewService {
   private static instance: PreviewService;
@@ -81,7 +95,7 @@ export class PreviewService {
         likes_count: Math.floor(Math.random() * 10) + 1,
         comments_count: Math.floor(Math.random() * 5) + 1
       },
-      privacy_level: post.privacy_level || 'private',
+      privacy_level: transformPrivacyLevel(post.privacy_level || 'private'),
       created_at: post.created_at || new Date().toISOString(),
       is_fallback: true,
       fallback_reason: reason
@@ -89,13 +103,15 @@ export class PreviewService {
   }
 
   private getFallbackContent(privacyLevel?: string, reason?: string): string {
-    switch (privacyLevel) {
+    const transformedLevel = transformPrivacyLevel(privacyLevel || 'private');
+    
+    switch (transformedLevel) {
       case 'private':
-        return "This post is private. Only the author can see the full content.";
-      case 'friends':
-        return "This post is shared with friends only. Connect with this player to see more!";
-      case 'coaches':
-        return "This post is visible to coaches only. Upgrade your account to see coach content.";
+        return "This post is private. Only people the author follows can see the full content.";
+      case 'public':
+        return "This post is public but content is not available right now.";
+      case 'public_highlights':
+        return "This is featured content but not available right now.";
       default:
         return `Content is not available. ${reason || 'Please try again later.'}`;
     }
@@ -168,7 +184,7 @@ export class PreviewService {
         content: post.content,
         created_at: post.created_at,
         user_id: post.user_id,
-        privacy_level: post.privacy_level,
+        privacy_level: transformPrivacyLevel(post.privacy_level), // Transform legacy privacy levels
         media_url: post.media_url,
         media_type: post.media_type,
         author: authorData || null,
@@ -198,7 +214,7 @@ export class PreviewService {
             likes_count: visiblePost.likes_count || 0,
             comments_count: visiblePost.comments_count || 0
           },
-          privacy_level: visiblePost.privacy_level || 'private',
+          privacy_level: visiblePost.privacy_level,
           created_at: visiblePost.created_at,
           is_fallback: false
         };
