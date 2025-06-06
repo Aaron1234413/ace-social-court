@@ -85,7 +85,7 @@ export class SimpleFeedService {
         totalPosts: []
       });
 
-      // Fetch author profiles for all posts
+      // Fetch author profiles for all posts (including AI users)
       await this.enrichWithAuthorProfiles(combinedPosts);
 
       // Fetch engagement counts
@@ -125,12 +125,12 @@ export class SimpleFeedService {
   }
 
   private async fetchAmbassadorPosts(count: number, offset: number): Promise<Post[]> {
-    console.log('👑 Fetching ambassador posts:', { count, offset });
+    console.log('👑 Fetching ambassador posts (including AI users):', { count, offset });
 
     const { data, error } = await supabase
       .from('posts')
       .select('*')
-      .eq('is_ambassador_content', true)
+      .or('is_ambassador_content.eq.true,user_id.in.(select id from profiles where is_ai_user = true)')
       .eq('privacy_level', 'public')
       .order('created_at', { ascending: false })
       .range(offset, offset + count - 1);
@@ -259,7 +259,7 @@ export class SimpleFeedService {
     try {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, full_name, user_type, avatar_url')
+        .select('id, full_name, user_type, avatar_url, is_ai_user, ai_personality_type')
         .in('id', userIds);
 
       if (error) {
@@ -272,7 +272,9 @@ export class SimpleFeedService {
         profileMap.set(profile.id, {
           full_name: profile.full_name,
           user_type: profile.user_type,
-          avatar_url: profile.avatar_url
+          avatar_url: profile.avatar_url,
+          is_ai_user: profile.is_ai_user || false,
+          ai_personality_type: profile.ai_personality_type
         });
       });
 
@@ -280,7 +282,7 @@ export class SimpleFeedService {
         post.author = profileMap.get(post.user_id) || null;
       });
 
-      console.log('✅ Author profiles enriched');
+      console.log('✅ Author profiles enriched (including AI users)');
     } catch (error) {
       console.error('❌ Failed to enrich author profiles:', error);
     }

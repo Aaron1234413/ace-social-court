@@ -2,23 +2,26 @@
 import { AmbassadorService } from './AmbassadorService';
 import { AmbassadorContentManager } from './AmbassadorContentManager';
 import { ConversationalContentEngine } from './ConversationalContentEngine';
+import { EnhancedAmbassadorProfileService } from './EnhancedAmbassadorProfileService';
 
 export class ConversationalAmbassadorService extends AmbassadorService {
   private contentManager: AmbassadorContentManager;
   private contentEngine: ConversationalContentEngine;
+  private enhancedProfileService: EnhancedAmbassadorProfileService;
 
   constructor() {
     super();
     this.contentManager = AmbassadorContentManager.getInstance();
     this.contentEngine = ConversationalContentEngine.getInstance();
+    this.enhancedProfileService = EnhancedAmbassadorProfileService.getInstance();
   }
 
   async initializeConversationalAmbassadors(): Promise<boolean> {
     try {
-      console.log('🎭 Initializing Conversational Ambassadors...');
+      console.log('🎭 Initializing Enhanced Conversational Ambassadors...');
       
-      // First, create Ambassador profiles using the base service
-      const profilesCreated = await this.createAmbassadorProfiles();
+      // Create enhanced AI profiles with complete data
+      const profilesCreated = await this.enhancedProfileService.createEnhancedAIProfiles();
       
       if (profilesCreated) {
         // Seed initial conversational content
@@ -27,13 +30,13 @@ export class ConversationalAmbassadorService extends AmbassadorService {
         // Start the encouraging reply system
         await this.contentManager.scheduleEncouragingReplies();
         
-        console.log('✅ Conversational Ambassadors initialized successfully');
+        console.log('✅ Enhanced Conversational Ambassadors initialized successfully');
         return true;
       }
       
       return false;
     } catch (error) {
-      console.error('❌ Error initializing Conversational Ambassadors:', error);
+      console.error('❌ Error initializing Enhanced Conversational Ambassadors:', error);
       return false;
     }
   }
@@ -55,13 +58,16 @@ export class ConversationalAmbassadorService extends AmbassadorService {
     avgReactions: number;
     recentActivity: number;
     personalities: number;
+    aiUsers: number;
   }> {
     const baseStats = await this.contentManager.getAmbassadorEngagementStats();
     const personalities = this.contentEngine.getPersonalities();
+    const aiUsers = await this.enhancedProfileService.getAllAIUsers();
     
     return {
       ...baseStats,
-      personalities: personalities.length
+      personalities: personalities.length,
+      aiUsers: aiUsers.length
     };
   }
 
@@ -71,5 +77,17 @@ export class ConversationalAmbassadorService extends AmbassadorService {
 
   getContentManager(): AmbassadorContentManager {
     return this.contentManager;
+  }
+
+  getEnhancedProfileService(): EnhancedAmbassadorProfileService {
+    return this.enhancedProfileService;
+  }
+
+  async getAIUserById(userId: string) {
+    return await this.enhancedProfileService.getAIUserProfile(userId);
+  }
+
+  async getAllAIUsers() {
+    return await this.enhancedProfileService.getAllAIUsers();
   }
 }

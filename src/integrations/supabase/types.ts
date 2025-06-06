@@ -92,35 +92,132 @@ export type Database = {
           },
         ]
       }
-      ambassador_profiles: {
+      ai_user_achievements: {
         Row: {
+          achievement_type: string | null
           created_at: string | null
+          date_achieved: string | null
+          description: string | null
           id: string
-          is_active: boolean | null
-          posting_schedule: Json | null
-          profile_id: string
-          skill_level: string
-          specialization: string[] | null
+          is_featured: boolean | null
+          profile_id: string | null
+          title: string
+        }
+        Insert: {
+          achievement_type?: string | null
+          created_at?: string | null
+          date_achieved?: string | null
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          profile_id?: string | null
+          title: string
+        }
+        Update: {
+          achievement_type?: string | null
+          created_at?: string | null
+          date_achieved?: string | null
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          profile_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_achievements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_user_stats: {
+        Row: {
+          id: string
+          profile_id: string | null
+          stat_period: string | null
+          stat_type: string
+          stat_value: number
           updated_at: string | null
         }
         Insert: {
-          created_at?: string | null
           id?: string
-          is_active?: boolean | null
-          posting_schedule?: Json | null
-          profile_id: string
-          skill_level: string
-          specialization?: string[] | null
+          profile_id?: string | null
+          stat_period?: string | null
+          stat_type: string
+          stat_value: number
           updated_at?: string | null
         }
         Update: {
+          id?: string
+          profile_id?: string | null
+          stat_period?: string | null
+          stat_type?: string
+          stat_value?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_user_stats_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ambassador_profiles: {
+        Row: {
+          achievements_data: Json | null
+          bio_details: Json | null
+          coaching_specialties: string[] | null
+          conversation_style: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          personality_traits: Json | null
+          posting_schedule: Json | null
+          profile_id: string
+          response_patterns: Json | null
+          skill_level: string
+          specialization: string[] | null
+          stats: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          achievements_data?: Json | null
+          bio_details?: Json | null
+          coaching_specialties?: string[] | null
+          conversation_style?: Json | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          personality_traits?: Json | null
+          posting_schedule?: Json | null
+          profile_id: string
+          response_patterns?: Json | null
+          skill_level: string
+          specialization?: string[] | null
+          stats?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          achievements_data?: Json | null
+          bio_details?: Json | null
+          coaching_specialties?: string[] | null
+          conversation_style?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          personality_traits?: Json | null
           posting_schedule?: Json | null
           profile_id?: string
+          response_patterns?: Json | null
           skill_level?: string
           specialization?: string[] | null
+          stats?: Json | null
           updated_at?: string | null
         }
         Relationships: [
@@ -725,6 +822,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_personality_type: string | null
+          ai_response_active: boolean | null
           assigned_coach_id: string | null
           avatar_url: string | null
           bio: string | null
@@ -736,6 +835,7 @@ export type Database = {
             | null
           full_name: string | null
           id: string
+          is_ai_user: boolean | null
           latitude: number | null
           location_name: string | null
           location_privacy: Json | null
@@ -749,6 +849,8 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          ai_personality_type?: string | null
+          ai_response_active?: boolean | null
           assigned_coach_id?: string | null
           avatar_url?: string | null
           bio?: string | null
@@ -760,6 +862,7 @@ export type Database = {
             | null
           full_name?: string | null
           id: string
+          is_ai_user?: boolean | null
           latitude?: number | null
           location_name?: string | null
           location_privacy?: Json | null
@@ -773,6 +876,8 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          ai_personality_type?: string | null
+          ai_response_active?: boolean | null
           assigned_coach_id?: string | null
           avatar_url?: string | null
           bio?: string | null
@@ -784,6 +889,7 @@ export type Database = {
             | null
           full_name?: string | null
           id?: string
+          is_ai_user?: boolean | null
           latitude?: number | null
           location_name?: string | null
           location_privacy?: Json | null
