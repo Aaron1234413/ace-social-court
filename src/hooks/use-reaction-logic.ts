@@ -31,8 +31,8 @@ export function useReactionLogic(post: Post, userId?: string) {
   const [userReactions, setUserReactions] = useState<UserReactions>({ heart: false, fire: false, tip: false, trophy: false });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Only disable reactions for explicitly marked fallback content or invalid UUIDs
-  const isFallbackContent = post.is_fallback_content === true || !isValidUUID(post.id);
+  // Only treat as fallback content if explicitly marked as such
+  const isFallbackContent = post.is_fallback_content === true;
 
   // Fetch reaction counts and user reactions
   useEffect(() => {
@@ -110,7 +110,7 @@ export function useReactionLogic(post: Post, userId?: string) {
       return;
     }
 
-    // Check if this is fallback content
+    // Check if this is explicitly marked fallback content
     if (isFallbackContent) {
       console.log('Blocking reaction - fallback content detected');
       toast.error("Cannot react to sample content", {
@@ -119,7 +119,7 @@ export function useReactionLogic(post: Post, userId?: string) {
       return;
     }
 
-    // Validate UUIDs
+    // Validate UUIDs for database operations
     if (!isValidUUID(userId)) {
       console.error('Invalid user ID format:', userId);
       toast.error("Invalid user session. Please log in again.");

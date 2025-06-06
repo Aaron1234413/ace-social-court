@@ -28,6 +28,7 @@ export function ReactionBar({ post, className = '' }: ReactionBarProps) {
   } = useReactionHandlers(post, user?.id, submitReaction);
 
   const getReactionTooltip = (type: string) => {
+    // Check if this is explicitly marked fallback content
     if (isFallbackContent) {
       return "Reactions are only available for real user posts";
     }
