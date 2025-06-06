@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import { useFeedCascade } from '@/hooks/useFeedCascade';
 import { useFeedPerformance } from '@/hooks/useFeedPerformance';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { MessageSquare, Heart, Clock, Activity, Zap, Bug, PlusCircle, TrendingUp, Users, Crown } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
@@ -22,8 +20,6 @@ import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { FeedDebugPanel } from '@/components/feed/FeedDebugPanel';
 import { Post } from '@/types/post';
-
-type SortOption = 'recent' | 'popular' | 'commented';
 
 const Feed = () => {
   console.log('🎬 Feed component rendering...');
@@ -39,7 +35,6 @@ const Feed = () => {
   });
 
   const { followingCount, following } = useUserFollows();
-  const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
   const [showPerformanceMetrics, setShowPerformanceMetrics] = useState(false);
   const [showCacheStats, setShowCacheStats] = useState(false);
@@ -140,12 +135,6 @@ const Feed = () => {
       recordLoadTime();
     }
   }, [isLoading, posts.length, recordLoadTime]);
-
-  const handleSortChange = (value: string) => {
-    if (value) {
-      setSortOption(value as SortOption);
-    }
-  };
 
   const handlePostUpdated = () => {
     console.log("Feed: Post updated, refreshing posts");
@@ -267,50 +256,16 @@ const Feed = () => {
           </div>
         )}
 
-        {/* Enhanced Sorting Options */}
+        {/* Show post count and following info */}
         {user && (
-          <div className="flex items-center justify-between">
-            <ToggleGroup 
-              type="single" 
-              value={sortOption}
-              onValueChange={handleSortChange}
-              className="bg-muted rounded-lg p-1 transition-all duration-200"
-            >
-              <ToggleGroupItem 
-                value="recent" 
-                aria-label="Sort by recent"
-                className="data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all duration-200"
-              >
-                <Clock className="h-4 w-4 mr-2" /> 
-                Recent
-              </ToggleGroupItem>
-              <ToggleGroupItem 
-                value="popular" 
-                aria-label="Sort by likes"
-                className="data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all duration-200"
-              >
-                <Heart className="h-4 w-4 mr-2" /> 
-                Popular
-              </ToggleGroupItem>
-              <ToggleGroupItem 
-                value="commented" 
-                aria-label="Sort by comments"
-                className="data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all duration-200"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" /> 
-                Discussed
-              </ToggleGroupItem>
-            </ToggleGroup>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{posts.length} posts</span>
-              {followingCount > 0 && (
-                <>
-                  <span>•</span>
-                  <span>Following {followingCount}</span>
-                </>
-              )}
-            </div>
+          <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+            <span>{posts.length} posts</span>
+            {followingCount > 0 && (
+              <>
+                <span>•</span>
+                <span>Following {followingCount}</span>
+              </>
+            )}
           </div>
         )}
       </div>
