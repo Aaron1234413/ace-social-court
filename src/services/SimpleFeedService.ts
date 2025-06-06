@@ -17,6 +17,21 @@ interface FeedMetrics {
   loadTime: number;
 }
 
+// Helper function to transform database privacy levels to our simplified type
+const normalizePrivacyLevel = (dbPrivacyLevel: string): 'private' | 'public' | 'public_highlights' => {
+  switch (dbPrivacyLevel) {
+    case 'public':
+      return 'public';
+    case 'public_highlights':
+      return 'public_highlights';
+    case 'private':
+    case 'friends':
+    case 'coaches':
+    default:
+      return 'private';
+  }
+};
+
 export class SimpleFeedService {
   private static instance: SimpleFeedService;
 
@@ -114,14 +129,7 @@ export class SimpleFeedService {
 
     const { data, error } = await supabase
       .from('posts')
-      .select(`
-        *,
-        profiles!posts_user_id_fkey (
-          full_name,
-          user_type,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('is_ambassador_content', true)
       .eq('privacy_level', 'public')
       .order('created_at', { ascending: false })
@@ -134,12 +142,9 @@ export class SimpleFeedService {
 
     const posts = (data || []).map(post => ({
       ...post,
-      author: post.profiles ? {
-        full_name: post.profiles.full_name,
-        user_type: post.profiles.user_type,
-        avatar_url: post.profiles.avatar_url
-      } : null
-    }));
+      privacy_level: normalizePrivacyLevel(post.privacy_level),
+      author: null // Will be enriched later
+    })) as Post[];
 
     console.log('✅ Ambassador posts fetched:', posts.length);
     return posts;
@@ -163,16 +168,9 @@ export class SimpleFeedService {
 
     const { data, error } = await supabase
       .from('posts')
-      .select(`
-        *,
-        profiles!posts_user_id_fkey (
-          full_name,
-          user_type,
-          avatar_url
-        )
-      `)
+      .select('*')
       .in('user_id', followingUserIds)
-      .in('privacy_level', ['public', 'private'])
+      .in('privacy_level', ['public', 'private', 'friends', 'coaches'])
       .order('created_at', { ascending: false })
       .range(offset, offset + count - 1);
 
@@ -183,12 +181,9 @@ export class SimpleFeedService {
 
     const posts = (data || []).map(post => ({
       ...post,
-      author: post.profiles ? {
-        full_name: post.profiles.full_name,
-        user_type: post.profiles.user_type,
-        avatar_url: post.profiles.avatar_url
-      } : null
-    }));
+      privacy_level: normalizePrivacyLevel(post.privacy_level),
+      author: null // Will be enriched later
+    })) as Post[];
 
     console.log('✅ Followed user posts fetched:', posts.length);
     return posts;
@@ -207,14 +202,7 @@ export class SimpleFeedService {
 
     const { data, error } = await supabase
       .from('posts')
-      .select(`
-        *,
-        profiles!posts_user_id_fkey (
-          full_name,
-          user_type,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('privacy_level', 'public')
       .eq('is_ambassador_content', false)
       .not('user_id', 'in', `(${excludeUserIds.join(',')})`)
@@ -229,12 +217,9 @@ export class SimpleFeedService {
 
     const posts = (data || []).map(post => ({
       ...post,
-      author: post.profiles ? {
-        full_name: post.profiles.full_name,
-        user_type: post.profiles.user_type,
-        avatar_url: post.profiles.avatar_url
-      } : null
-    }));
+      privacy_level: normalizePrivacyLevel(post.privacy_level),
+      author: null // Will be enriched later
+    })) as Post[];
 
     console.log('✅ Public posts fetched:', posts.length);
     return posts;
@@ -244,9 +229,6 @@ export class SimpleFeedService {
     console.log('🔀 Mixing posts for natural distribution');
 
     const { ambassadorPosts, followedUserPosts, publicPosts } = composition;
-    const allPosts = [...ambassadorPosts, ...followedUserPosts, ...publicPosts];
-
-    // Sort by created_at for chronological order, but maintain content type distribution
     const mixed: Post[] = [];
     const sources = [
       { posts: ambassadorPosts, type: 'ambassador' },
@@ -295,9 +277,7 @@ export class SimpleFeedService {
       });
 
       posts.forEach(post => {
-        if (!post.author) {
-          post.author = profileMap.get(post.user_id) || null;
-        }
+        post.author = profileMap.get(post.user_id) || null;
       });
 
       console.log('✅ Author profiles enriched');
