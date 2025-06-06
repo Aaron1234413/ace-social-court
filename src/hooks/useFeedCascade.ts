@@ -1,9 +1,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Post } from '@/types/post';
+import { FeedQueryCascade } from '@/services/FeedQueryCascade';
 import { useAuth } from '@/components/AuthProvider';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { supabase } from '@/integrations/supabase/client';
+import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
 import { useOptimisticPosts } from './useOptimisticPosts';
 
 interface FeedCascadeState {
@@ -12,6 +14,9 @@ interface FeedCascadeState {
   isLoadingMore: boolean;
   hasMore: boolean;
   page: number;
+  metrics: any[];
+  ambassadorPercentage: number;
+  debugData?: any;
   hasErrors?: boolean;
   errorDetails?: string[];
 }
@@ -29,6 +34,9 @@ export const useFeedCascade = () => {
     isLoadingMore: false,
     hasMore: true,
     page: 0,
+    metrics: [],
+    ambassadorPercentage: 0,
+    debugData: null,
     hasErrors: false,
     errorDetails: []
   });
@@ -53,7 +61,7 @@ export const useFeedCascade = () => {
       return;
     }
 
-    console.log('🔄 LOADING SIMPLIFIED FEED', { 
+    console.log('🔄 STARTING ENHANCED FEED LOAD WITH DEBUGGING', { 
       page, 
       existingCount: existingPosts.length,
       followingCount: followingUserIds.length,
@@ -65,94 +73,31 @@ export const useFeedCascade = () => {
       // Always show loading for page 0
       if (page === 0) {
         setState(prev => ({ ...prev, isLoading: true }));
-      } else {
-        setState(prev => ({ ...prev, isLoadingMore: true }));
       }
 
-      const POSTS_PER_PAGE = 12;
-      const offset = page * POSTS_PER_PAGE;
-      
-      // Step 1: Get posts from followed users + user's own posts
-      let followedPosts: Post[] = [];
-      const queryUserIds = [user.id, ...followingUserIds];
-      
-      if (queryUserIds.length > 0) {
-        console.log('👥 Fetching posts from followed users and own posts...');
-        
-        const { data: followedData, error: followedError } = await supabase
-          .from('posts')
-          .select(`
-            id, content, created_at, user_id, media_url, media_type,
-            privacy_level, template_id, is_auto_generated, engagement_score,
-            is_ambassador_content
-          `)
-          .in('user_id', queryUserIds)
-          .order('created_at', { ascending: false })
-          .range(offset, offset + POSTS_PER_PAGE - 1);
-
-        if (followedError) {
-          console.error('❌ Error fetching followed posts:', followedError);
-          throw followedError;
-        }
-
-        followedPosts = followedData || [];
-        console.log('✅ Followed posts loaded:', followedPosts.length);
-      }
-
-      // Step 2: Fill remaining slots with high-quality public posts (only if needed)
-      let publicPosts: Post[] = [];
-      const remainingSlots = POSTS_PER_PAGE - followedPosts.length;
-      
-      if (remainingSlots > 0) {
-        console.log('🌐 Filling remaining slots with public posts...');
-        
-        // Get user IDs we already have posts from to avoid duplicates
-        const existingUserIds = [...new Set([...existingPosts.map(p => p.user_id), ...followedPosts.map(p => p.user_id)])];
-        
-        let publicQuery = supabase
-          .from('posts')
-          .select(`
-            id, content, created_at, user_id, media_url, media_type,
-            privacy_level, template_id, is_auto_generated, engagement_score,
-            is_ambassador_content
-          `)
-          .eq('privacy_level', 'public')
-          .order('engagement_score', { ascending: false })
-          .order('created_at', { ascending: false })
-          .limit(remainingSlots);
-
-        // Exclude posts from users we already have posts from (if any)
-        if (existingUserIds.length > 0) {
-          publicQuery = publicQuery.not('user_id', 'in', `(${existingUserIds.join(',')})`);
-        }
-
-        const { data: publicData, error: publicError } = await publicQuery;
-
-        if (publicError) {
-          console.warn('⚠️ Error fetching public posts (non-critical):', publicError);
-        } else {
-          publicPosts = publicData || [];
-          console.log('✅ Public posts loaded:', publicPosts.length);
-        }
-      }
-
-      // Step 3: Combine and deduplicate posts
-      const allNewPosts = [...followedPosts, ...publicPosts];
-      const combinedPosts = [...existingPosts, ...allNewPosts];
-      
-      // Remove duplicates by ID
-      const uniquePosts = combinedPosts.filter((post, index, array) => 
-        array.findIndex(p => p.id === post.id) === index
+      const result = await FeedQueryCascade.executeQueryCascade(
+        user.id,
+        followingUserIds,
+        page,
+        existingPosts
       );
 
-      console.log('🔧 Posts after deduplication:', {
-        before: combinedPosts.length,
-        after: uniquePosts.length,
-        removed: combinedPosts.length - uniquePosts.length
+      console.log('📊 ENHANCED CASCADE RESULT WITH FULL DEBUGGING:', {
+        postCount: result.posts.length,
+        metrics: result.metrics,
+        debugData: result.debugData,
+        ambassadorPercentage: Math.round(result.ambassadorPercentage * 100) + '%',
+        hasErrors: result.hasErrors,
+        errorCount: result.errorDetails?.length || 0
       });
 
-      // Step 4: Fetch author profiles for new posts
-      const newPosts = allNewPosts;
+      // Log any errors found
+      if (result.hasErrors && result.errorDetails) {
+        console.warn('⚠️ FEED ERRORS DETECTED:', result.errorDetails);
+      }
+
+      // Fetch author profiles for new posts with enhanced error handling
+      const newPosts = result.posts.slice(existingPosts.length);
       if (newPosts.length > 0) {
         console.log('👤 Fetching author profiles for', newPosts.length, 'new posts');
         
@@ -177,7 +122,7 @@ export const useFeedCascade = () => {
             });
 
             // Update posts with author data
-            uniquePosts.forEach(post => {
+            result.posts.forEach(post => {
               if (!post.author) {
                 post.author = profileMap.get(post.user_id) || null;
               }
@@ -186,7 +131,7 @@ export const useFeedCascade = () => {
             console.log('✅ Author profiles loaded:', {
               profilesFound: profilesData.length,
               userIds: userIds.length,
-              postsUpdated: uniquePosts.filter(p => p.author).length
+              postsUpdated: result.posts.filter(p => p.author).length
             });
           }
         } catch (profileError) {
@@ -194,7 +139,7 @@ export const useFeedCascade = () => {
           // Continue without profiles rather than failing completely
         }
 
-        // Step 5: Get engagement counts
+        // Get engagement counts with timeout protection
         console.log('📈 Loading engagement counts for new posts...');
         const engagementStart = performance.now();
         
@@ -214,10 +159,18 @@ export const useFeedCascade = () => {
           }
         });
 
+        // Wait for all engagement counts with timeout
         try {
           await Promise.all(engagementPromises);
           const engagementTime = performance.now() - engagementStart;
           console.log('✅ Engagement counts loaded in', Math.round(engagementTime) + 'ms');
+
+          // Record analytics
+          const analyticsService = FeedAnalyticsService.getInstance();
+          analyticsService.recordPerformanceMetric('engagement_loading', {
+            postCount: newPosts.length,
+            loadTime: engagementTime
+          });
         } catch (engagementError) {
           console.error('❌ Engagement loading failed:', engagementError);
           // Continue without engagement counts
@@ -226,19 +179,20 @@ export const useFeedCascade = () => {
 
       setState(prev => ({
         ...prev,
-        posts: uniquePosts,
-        hasMore: allNewPosts.length >= POSTS_PER_PAGE && page < 5, // Limit to 5 pages max
-        isLoading: false,
-        isLoadingMore: false,
-        hasErrors: false,
-        errorDetails: []
+        posts: result.posts,
+        hasMore: result.posts.length >= 8 && page < 5, // Limit to 5 pages max
+        metrics: result.metrics,
+        ambassadorPercentage: result.ambassadorPercentage,
+        debugData: result.debugData,
+        hasErrors: result.hasErrors,
+        errorDetails: result.errorDetails,
+        isLoading: false // Always turn off loading when done
       }));
 
-      console.log('✅ SIMPLIFIED FEED LOAD COMPLETE:', {
-        finalPostCount: uniquePosts.length,
-        followedPosts: followedPosts.length,
-        publicPosts: publicPosts.length,
-        page
+      console.log('✅ FEED LOAD COMPLETE:', {
+        finalPostCount: result.posts.length,
+        loadingTurnedOff: true,
+        hasErrors: result.hasErrors
       });
 
     } catch (error) {
@@ -248,10 +202,10 @@ export const useFeedCascade = () => {
         context: { page, existingCount: existingPosts.length, followingCount: followingUserIds.length }
       });
       
+      // Always turn off loading even on error
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
-        isLoadingMore: false,
         hasErrors: true,
         errorDetails: [error.message]
       }));
@@ -261,17 +215,20 @@ export const useFeedCascade = () => {
   const loadMore = useCallback(async () => {
     if (state.isLoadingMore || !state.hasMore) return;
 
+    setState(prev => ({ ...prev, isLoadingMore: true }));
+    
     const nextPage = state.page + 1;
     await loadPosts(nextPage, state.posts);
     
     setState(prev => ({ 
       ...prev, 
-      page: nextPage
+      page: nextPage,
+      isLoadingMore: false 
     }));
   }, [state.isLoadingMore, state.hasMore, state.page, state.posts, loadPosts]);
 
   const refresh = useCallback(async () => {
-    console.log('🔄 REFRESHING SIMPLIFIED FEED');
+    console.log('🔄 REFRESHING FEED - RESET TO LOADING STATE');
     // Clear optimistic posts on refresh
     clearAllOptimistic();
     setState(prev => ({ 
@@ -293,10 +250,10 @@ export const useFeedCascade = () => {
     addOptimisticPost(post);
   }, [addOptimisticPost]);
 
-  // Initial load
+  // Initial load with enhanced logging
   useEffect(() => {
     if (user) {
-      console.log('🎬 INITIAL SIMPLIFIED FEED LOAD TRIGGERED', {
+      console.log('🎬 INITIAL FEED LOAD TRIGGERED', {
         userId: user.id,
         followingCount: followingUserIds.length
       });
@@ -318,6 +275,9 @@ export const useFeedCascade = () => {
     isLoading: state.isLoading,
     isLoadingMore: state.isLoadingMore,
     hasMore: state.hasMore,
+    metrics: state.metrics,
+    ambassadorPercentage: state.ambassadorPercentage,
+    debugData: state.debugData,
     hasErrors: state.hasErrors,
     errorDetails: state.errorDetails,
     loadMore,
