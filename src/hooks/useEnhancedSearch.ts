@@ -14,6 +14,7 @@ export interface EnhancedSearchUser {
   bio?: string | null;
   skill_level?: string | null;
   location?: string | null;
+  location_name?: string | null;
   is_ai_user?: boolean;
   ai_personality_type?: string | null;
   follower_count?: number;
@@ -109,6 +110,12 @@ export function useEnhancedSearch() {
         if (error) throw error;
         
         let enhancedResults = data as EnhancedSearchUser[] || [];
+
+        // Map location_name to location for backward compatibility
+        enhancedResults = enhancedResults.map(user => ({
+          ...user,
+          location: user.location_name
+        }));
 
         // Get follower/following counts for popularity sorting
         if (filters.sortBy === 'popularity') {
@@ -210,7 +217,11 @@ export function useEnhancedSearch() {
       if (error) throw error;
       
       if (data && data.length > 0) {
-        const newResults = data as EnhancedSearchUser[];
+        const newResults = data.map(user => ({
+          ...user,
+          location: user.location_name
+        })) as EnhancedSearchUser[];
+        
         setAllResults(prev => {
           const newIds = new Set(newResults.map(item => item.id));
           const filteredPrev = prev.filter(item => !newIds.has(item.id));

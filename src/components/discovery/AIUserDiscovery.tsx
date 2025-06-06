@@ -15,9 +15,23 @@ interface AIUserDiscoveryProps {
   showHeader?: boolean;
 }
 
+interface AIUserProfile {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  is_ai_user: boolean;
+  ai_personality_type: string | null;
+  skill_level: string | null;
+  bio: string | null;
+  location_name: string | null;
+  achievements?: any[];
+  stats?: any;
+}
+
 export function AIUserDiscovery({ maxUsers = 6, showHeader = true }: AIUserDiscoveryProps) {
   const { user } = useAuth();
-  const [aiUsers, setAiUsers] = useState<any[]>([]);
+  const [aiUsers, setAiUsers] = useState<AIUserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const aiSocialService = AIUserSocialService.getInstance();
@@ -37,13 +51,18 @@ export function AIUserDiscovery({ maxUsers = 6, showHeader = true }: AIUserDisco
       
       // Get detailed profiles for each AI user
       const detailedUsers = await Promise.all(
-        users.slice(0, maxUsers).map(async (user) => {
-          const profile = await enhancedProfileService.getAIUserProfile(user.id);
-          return {
-            ...user,
-            ...profile,
-            location: user.location_name
-          };
+        users.slice(0, maxUsers).map(async (aiUser) => {
+          try {
+            const profile = await enhancedProfileService.getAIUserProfile(aiUser.id);
+            return {
+              ...aiUser,
+              ...profile,
+              location: aiUser.location_name
+            };
+          } catch (error) {
+            console.error('Error getting detailed profile for AI user:', aiUser.id, error);
+            return aiUser;
+          }
         })
       );
 

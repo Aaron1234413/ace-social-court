@@ -2,8 +2,30 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { UserFollow } from '@/types/post';
 import { toast } from 'sonner';
+
+interface UserFollowData {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+  follower?: {
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    is_ai_user?: boolean;
+    ai_personality_type?: string | null;
+  } | null;
+  following?: {
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    is_ai_user?: boolean;
+    ai_personality_type?: string | null;
+  } | null;
+}
 
 interface AIUserSocialService {
   handleAutomaticFollowBack: (followerId: string, aiUserId: string) => Promise<boolean>;
@@ -62,7 +84,7 @@ export function useUserFollows() {
 
   const followersQuery = useQuery({
     queryKey: ['user-followers', user?.id],
-    queryFn: async (): Promise<UserFollow[]> => {
+    queryFn: async (): Promise<UserFollowData[]> => {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
@@ -87,7 +109,7 @@ export function useUserFollows() {
 
   const followingQuery = useQuery({
     queryKey: ['user-following', user?.id],
-    queryFn: async (): Promise<UserFollow[]> => {
+    queryFn: async (): Promise<UserFollowData[]> => {
       if (!user?.id) return [];
 
       const { data, error } = await supabase

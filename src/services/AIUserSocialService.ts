@@ -10,6 +10,7 @@ interface AIUserProfile {
   ai_personality_type: string | null;
   skill_level: string | null;
   bio: string | null;
+  location_name: string | null;
 }
 
 export class AIUserSocialService {
@@ -160,8 +161,7 @@ export class AIUserSocialService {
       const { data: activeUsers } = await supabase
         .from('posts')
         .select('user_id')
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-        .neq('is_ai_user', true);
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
       if (!activeUsers) return;
 
