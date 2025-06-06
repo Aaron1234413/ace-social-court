@@ -11,18 +11,15 @@ export interface SearchUser {
   avatar_url: string | null;
   user_type?: string;
   bio?: string | null;
-  skill_level?: string | null;
+  skill_level?: string | null; // Changed from number to string to match DB schema
   location?: string | null;
-  is_ai_user?: boolean;
-  ai_personality_type?: string | null;
 }
 
 export interface SearchFilters {
   userType?: string[];
-  skillLevel?: string;
+  skillLevel?: string; // Changed from number to string to match DB schema
   sortBy?: 'relevance' | 'distance' | 'rating' | 'newest';
   nearby?: boolean;
-  includeAIUsers?: boolean;
 }
 
 const PAGE_SIZE = 12;
@@ -32,8 +29,7 @@ export function useSearch() {
   const [filters, setFilters] = useState<SearchFilters>({
     userType: [],
     sortBy: 'relevance',
-    nearby: false,
-    includeAIUsers: true, // Include AI users by default
+    nearby: false
   });
   
   const [allResults, setAllResults] = useState<SearchUser[]>([]);
@@ -41,6 +37,7 @@ export function useSearch() {
   
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
   
+  // Query to get all users initially and search results when a term is entered
   const { 
     data: results, 
     isLoading, 
@@ -52,7 +49,7 @@ export function useSearch() {
       try {
         let query = supabase
           .from('profiles')
-          .select('id, full_name, username, avatar_url, user_type, bio, skill_level, location_name, is_ai_user, ai_personality_type');
+          .select('id, full_name, username, avatar_url, user_type, bio, skill_level, location_name');
           
         // Apply filters
         if (filters.userType && filters.userType.length > 0) {
@@ -62,18 +59,13 @@ export function useSearch() {
         if (filters.skillLevel) {
           query = query.eq('skill_level', filters.skillLevel);
         }
-
-        // Filter AI users based on preference
-        if (!filters.includeAIUsers) {
-          query = query.eq('is_ai_user', false);
-        }
         
         // If there's a search term, apply the search filters
         if (debouncedSearchTerm && debouncedSearchTerm.length >= 2) {
           query = query.or(`username.ilike.%${debouncedSearchTerm}%,full_name.ilike.%${debouncedSearchTerm}%`);
         }
         
-        // Sort results - prioritize AI users for discovery
+        // Sort results
         switch (filters.sortBy) {
           case 'newest':
             query = query.order('created_at', { ascending: false });
@@ -82,13 +74,11 @@ export function useSearch() {
             query = query.order('skill_level', { ascending: false });
             break;
           default:
-            // Default relevance sorting - AI users first if included
-            if (filters.includeAIUsers) {
-              query = query.order('is_ai_user', { ascending: false });
-            }
+            // Default relevance sorting
             break;
         }
         
+        // Limit the results
         query = query.limit(PAGE_SIZE);
           
         const { data, error } = await query;
@@ -97,10 +87,7 @@ export function useSearch() {
           throw error;
         }
         
-        return (data || []).map(user => ({
-          ...user,
-          location: user.location_name
-        })) as SearchUser[];
+        return data as SearchUser[] || [];
       } catch (err) {
         console.error('Error searching users:', err);
         throw err;
@@ -108,19 +95,21 @@ export function useSearch() {
     },
   });
   
+  // Update all results when initial results change
   useEffect(() => {
     if (results) {
       setAllResults(results);
     }
   }, [results]);
   
+  // Load more function for infinite scrolling
   const loadMore = async (page: number): Promise<SearchUser[] | null> => {
     setIsLoadingMore(true);
     
     try {
       let query = supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, user_type, bio, skill_level, location_name, is_ai_user, ai_personality_type');
+        .select('id, full_name, username, avatar_url, user_type, bio, skill_level, location_name');
         
       // Apply same filters as initial query
       if (filters.userType && filters.userType.length > 0) {
@@ -130,15 +119,13 @@ export function useSearch() {
       if (filters.skillLevel) {
         query = query.eq('skill_level', filters.skillLevel);
       }
-
-      if (!filters.includeAIUsers) {
-        query = query.eq('is_ai_user', false);
-      }
       
+      // If there's a search term, apply the search filters
       if (debouncedSearchTerm && debouncedSearchTerm.length >= 2) {
         query = query.or(`username.ilike.%${debouncedSearchTerm}%,full_name.ilike.%${debouncedSearchTerm}%`);
       }
       
+      // Sort results
       switch (filters.sortBy) {
         case 'newest':
           query = query.order('created_at', { ascending: false });
@@ -146,13 +133,9 @@ export function useSearch() {
         case 'rating':
           query = query.order('skill_level', { ascending: false });
           break;
-        default:
-          if (filters.includeAIUsers) {
-            query = query.order('is_ai_user', { ascending: false });
-          }
-          break;
       }
         
+      // Paginate the results
       query = query.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
         
       const { data, error } = await query;
@@ -161,13 +144,11 @@ export function useSearch() {
         throw error;
       }
       
+      // Append new results to existing ones
       if (data && data.length > 0) {
-        const newResults = data.map(user => ({
-          ...user,
-          location: user.location_name
-        })) as SearchUser[];
-        
+        const newResults = data as SearchUser[];
         setAllResults(prev => {
+          // Filter out duplicates
           const newIds = new Set(newResults.map(item => item.id));
           const filteredPrev = prev.filter(item => !newIds.has(item.id));
           return [...filteredPrev, ...newResults];
@@ -184,6 +165,7 @@ export function useSearch() {
     }
   };
   
+  // Reset results when search term or filters change
   useEffect(() => {
     refetch();
   }, [debouncedSearchTerm, filters, refetch]);
