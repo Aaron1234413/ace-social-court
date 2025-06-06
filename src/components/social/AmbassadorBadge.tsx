@@ -103,13 +103,17 @@ interface AmbassadorHeaderProps {
   variant?: 'full' | 'compact';
   priority?: boolean;
   className?: string;
+  showFreshContent?: boolean;
+  showFeaturedContent?: boolean;
 }
 
 export function AmbassadorHeader({ 
   authorName, 
   variant = 'full', 
   priority = false,
-  className 
+  className,
+  showFreshContent = false,
+  showFeaturedContent = false
 }: AmbassadorHeaderProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -119,13 +123,28 @@ export function AmbassadorHeader({
           variant={variant === 'compact' ? 'compact' : 'full'} 
           priority={priority}
         />
+        
+        {/* Rotation indicators next to Ambassador badge */}
+        {showFreshContent && (
+          <Badge 
+            variant="secondary" 
+            className="bg-gradient-to-r from-purple-100 to-amber-100 text-purple-800 border-purple-200/60 text-xs px-2 py-1 animate-pulse-subtle"
+          >
+            <Sparkles className="h-3 w-3 mr-1 animate-bounce-subtle" />
+            Fresh Content
+          </Badge>
+        )}
+        
+        {showFeaturedContent && (
+          <Badge 
+            variant="secondary" 
+            className="bg-gradient-to-r from-amber-100 to-purple-100 text-amber-800 border-amber-200/60 text-xs px-2 py-1"
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            Featured Content
+          </Badge>
+        )}
       </div>
-      {priority && (
-        <div className="flex items-center gap-1 text-xs text-amber-600">
-          <Sparkles className="h-3 w-3" />
-          Featured Content
-        </div>
-      )}
     </div>
   );
 }

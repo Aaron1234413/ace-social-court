@@ -15,6 +15,8 @@ interface BubbleHeaderProps {
   contentType: ContentType;
   onPostUpdated?: () => void;
   onSuggestionSelect?: (suggestion: string) => void;
+  isFreshAmbassadorContent?: boolean;
+  isPriorityAmbassador?: boolean;
 }
 
 export function BubbleHeader({ 
@@ -22,12 +24,21 @@ export function BubbleHeader({
   currentUserId, 
   contentType,
   onPostUpdated,
-  onSuggestionSelect 
+  onSuggestionSelect,
+  isFreshAmbassadorContent = false,
+  isPriorityAmbassador = false
 }: BubbleHeaderProps) {
   const isAmbassador = contentType === 'ambassador';
-  const isPriorityAmbassador = isAmbassador && post.ambassador_priority;
   const authorName = post.author?.full_name || 'Unknown User';
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true });
+
+  // Rotation logic: Show either "Fresh Content" OR "Featured Content", not both
+  // Use post ID to create a consistent rotation pattern
+  const showFreshContentIndicator = isFreshAmbassadorContent && isPriorityAmbassador ? 
+    parseInt(post.id.slice(-1), 16) % 2 === 0 : // Even hash = fresh content
+    isFreshAmbassadorContent; // If not priority, always show fresh if applicable
+
+  const showFeaturedContentIndicator = isPriorityAmbassador && !showFreshContentIndicator;
 
   return (
     <div className="flex items-center justify-between p-4 pb-0">
@@ -47,6 +58,8 @@ export function BubbleHeader({
               authorName={authorName}
               variant="compact"
               priority={isPriorityAmbassador}
+              showFreshContent={showFreshContentIndicator}
+              showFeaturedContent={showFeaturedContentIndicator}
             />
           ) : (
             <div className="flex items-center gap-2">
@@ -60,7 +73,6 @@ export function BubbleHeader({
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>{timeAgo}</span>
-            {/* Removed the Auto-generated badge for all posts */}
           </div>
         </div>
       </div>
