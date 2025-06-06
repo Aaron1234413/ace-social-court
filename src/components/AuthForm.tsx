@@ -96,12 +96,14 @@ const AuthForm = () => {
     setIsLoading(true);
     
     try {
-      console.log('🔄 Calling Supabase signUp...');
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      console.log('🔄 Calling Supabase signUp with redirect URL:', redirectUrl);
+      
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`
+          emailRedirectTo: redirectUrl
         }
       });
 
