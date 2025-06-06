@@ -17,6 +17,11 @@ export function PrivacyIndicator({
 }: PrivacyIndicatorProps) {
   const privacyInfo = getPrivacyLevelInfo(privacyLevel);
 
+  // Don't show indicator for public posts to reduce visual clutter
+  if (privacyLevel === 'public') {
+    return null;
+  }
+
   return (
     <TooltipProvider>
       <Tooltip>

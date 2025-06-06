@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lock, Users, Globe, GraduationCap, Star, AlertCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Lock, Globe, Star, AlertCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PrivacyPreview } from './PrivacyPreview';
 
-export type PrivacyLevel = 'private' | 'friends' | 'public' | 'coaches' | 'public_highlights';
+export type PrivacyLevel = 'private' | 'public' | 'public_highlights';
 
 interface PrivacySelectorProps {
   value: PrivacyLevel;
@@ -27,18 +27,10 @@ const privacyOptions = [
   {
     value: 'private' as const,
     label: 'Private',
-    description: 'Only you can see this post',
-    example: 'Perfect for personal notes and reflections',
+    description: 'Only people you follow can see this',
+    example: 'Share with your tennis network only',
     icon: Lock,
-    tooltip: 'Your post will be completely private. Use this for personal training notes or when you want to keep things to yourself.',
-  },
-  {
-    value: 'friends' as const,
-    label: 'Friends',
-    description: 'People you follow can see this',
-    example: 'Share progress with your tennis network',
-    icon: Users,
-    tooltip: 'Only players you follow can see this post. Great for sharing with your tennis community and getting feedback from people you know.',
+    tooltip: 'Only players you follow can see this post. Perfect for sharing progress and getting feedback from your trusted tennis community.',
   },
   {
     value: 'public' as const,
@@ -55,14 +47,6 @@ const privacyOptions = [
     example: 'Get featured and build your network',
     icon: Star,
     tooltip: 'Your post may be featured in community highlights, giving you maximum visibility and helping you connect with other players.',
-  },
-  {
-    value: 'coaches' as const,
-    label: 'Coaches Only',
-    description: 'Only coaches can see this',
-    example: 'Get professional feedback and guidance',
-    icon: GraduationCap,
-    tooltip: 'Only verified coaches can see this post. Use this when you want professional feedback on your technique or training.',
   },
 ];
 
@@ -82,7 +66,7 @@ export function PrivacySelector({
   
   // Auto-adjust privacy level if user doesn't meet requirements
   React.useEffect(() => {
-    if ((value === 'public' || value === 'friends') && !canPostPublic && followingCount > 0) {
+    if ((value === 'public' || value === 'public_highlights') && !canPostPublic && followingCount > 0) {
       onValueChange('private');
     }
   }, [value, canPostPublic, onValueChange, followingCount]);
@@ -110,7 +94,7 @@ export function PrivacySelector({
           <Alert className="border-amber-200 bg-amber-50">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-700">
-              Follow at least {MINIMUM_FOLLOWS_FOR_PUBLIC} users to unlock public and friends posting. 
+              Follow at least {MINIMUM_FOLLOWS_FOR_PUBLIC} users to unlock public posting. 
               This helps ensure you're building meaningful connections.
             </AlertDescription>
           </Alert>
@@ -123,7 +107,7 @@ export function PrivacySelector({
           <SelectContent>
             {privacyOptions.map((option) => {
               const Icon = option.icon;
-              const isDisabled = !canPostPublic && followingCount > 0 && (option.value === 'public' || option.value === 'friends');
+              const isDisabled = !canPostPublic && followingCount > 0 && (option.value === 'public' || option.value === 'public_highlights');
               const isRecommendedForNewUsers = followingCount === 0 && option.value === 'public_highlights';
               const isRecommendedForLimitedFollows = !canPostPublic && followingCount > 0 && option.value === 'private';
               
@@ -185,7 +169,7 @@ export function PrivacySelector({
         
         {canPostPublic && value === 'private' && (
           <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
-            🎉 You can now post publicly! Consider sharing with friends or the entire community.
+            🎉 You can now post publicly! Consider sharing with the entire community.
           </div>
         )}
         

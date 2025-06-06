@@ -25,8 +25,6 @@ export function PrivacyPreview({
   const getPreviewMessage = () => {
     switch (privacyLevel) {
       case 'private':
-        return "Only you can see this post";
-      case 'friends':
         if (followingCount === 0) {
           return "No one can see this yet - follow some players first!";
         }
@@ -35,14 +33,12 @@ export function PrivacyPreview({
         return "Visible to all Rally players";
       case 'public_highlights':
         return "Featured in community highlights - great for connecting!";
-      case 'coaches':
-        return "Only coaches can see this";
       default:
         return "Preview not available";
     }
   };
 
-  const shouldShowStats = privacyLevel === 'private' || (privacyLevel === 'friends' && followingCount === 0);
+  const shouldShowStats = privacyLevel === 'private' && followingCount === 0;
   const showGracefulDegradation = shouldShowStats && content;
 
   return (
@@ -134,9 +130,9 @@ export function PrivacyPreview({
         </div>
       )}
       
-      {privacyLevel === 'friends' && followingCount < 3 && (
+      {privacyLevel === 'private' && followingCount < 3 && followingCount > 0 && (
         <div className="text-xs bg-amber-50 text-amber-700 p-2 rounded">
-          🤝 Follow more players to share with friends, or try public highlights to connect with the community!
+          🤝 Follow more players to share with a larger network, or try public highlights to connect with the community!
         </div>
       )}
     </div>

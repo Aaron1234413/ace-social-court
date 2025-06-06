@@ -9,7 +9,7 @@ export interface PrivacyContext {
 }
 
 /**
- * Sanitizes posts based on privacy levels and user relationships with smart fallbacks
+ * Sanitizes posts based on simplified privacy levels and user relationships
  */
 export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Post[] {
   console.log('Privacy sanitization started', { 
@@ -23,7 +23,7 @@ export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Po
 
   if (!context.currentUserId) {
     // For unauthenticated users, only show public posts
-    const publicPosts = posts.filter(post => post.privacy_level === 'public');
+    const publicPosts = posts.filter(post => post.privacy_level === 'public' || post.privacy_level === 'public_highlights');
     console.log('Unauthenticated user - showing public posts only:', publicPosts.length);
     return publicPosts;
   }
@@ -38,7 +38,11 @@ export function sanitizePostsForUser(posts: Post[], context: PrivacyContext): Po
   } catch (error) {
     console.error('Error in privacy sanitization, falling back to public posts:', error);
     // Fallback to public posts if privacy filtering fails
-    return posts.filter(post => post.privacy_level === 'public' || post.user_id === context.currentUserId);
+    return posts.filter(post => 
+      post.privacy_level === 'public' || 
+      post.privacy_level === 'public_highlights' || 
+      post.user_id === context.currentUserId
+    );
   }
 }
 
@@ -56,35 +60,24 @@ export function getContentMixingRatio(followingCount: number): { followedRatio: 
 }
 
 /**
- * Determines if a user can view a specific post based on privacy rules
+ * Determines if a user can view a specific post based on simplified privacy rules
+ * Core rule: Following = Visible (if you follow someone, you can see their posts regardless of privacy level)
  */
 export function canUserViewPost(post: Post, context: PrivacyContext): boolean {
-  const { currentUserId, userFollowings = [], isCoach = false } = context;
+  const { currentUserId, userFollowings = [] } = context;
 
   // User can always see their own posts
   if (post.user_id === currentUserId) {
     return true;
   }
 
-  switch (post.privacy_level) {
-    case 'public':
-      return true;
-
-    case 'private':
-      return false; // Only the author can see private posts
-
-    case 'friends':
-      // User must be following the post author
-      return userFollowings.includes(post.user_id);
-
-    case 'coaches':
-      // Only coaches can see coach-only posts
-      return isCoach;
-
-    default:
-      console.warn('Unknown privacy level:', post.privacy_level);
-      return false;
+  // Following = Visible: If you follow the author, you can see their posts
+  if (userFollowings.includes(post.user_id)) {
+    return true;
   }
+
+  // For non-followed users, only show public content
+  return post.privacy_level === 'public' || post.privacy_level === 'public_highlights';
 }
 
 /**
@@ -97,21 +90,15 @@ export function sanitizePostContent(post: Post, context: PrivacyContext): Post {
 }
 
 /**
- * Gets privacy level display information
+ * Gets privacy level display information for simplified system
  */
 export function getPrivacyLevelInfo(level: string) {
   const privacyInfo = {
     private: {
       label: 'Private',
-      description: 'Only you can see this',
+      description: 'Only people you follow can see this',
       icon: '🔒',
       color: 'text-gray-600'
-    },
-    friends: {
-      label: 'Friends',
-      description: 'People you follow can see this',
-      icon: '👥',
-      color: 'text-blue-600'
     },
     public: {
       label: 'Public',
@@ -119,11 +106,24 @@ export function getPrivacyLevelInfo(level: string) {
       icon: '🌍',
       color: 'text-green-600'
     },
+    public_highlights: {
+      label: 'Public Highlights',
+      description: 'Featured content - anyone can see this',
+      icon: '⭐',
+      color: 'text-blue-600'
+    },
+    // Legacy support for existing posts - will be treated as private
+    friends: {
+      label: 'Private',
+      description: 'Only people you follow can see this',
+      icon: '🔒',
+      color: 'text-gray-600'
+    },
     coaches: {
-      label: 'Coaches Only',
-      description: 'Only coaches can see this',
-      icon: '🎾',
-      color: 'text-purple-600'
+      label: 'Private',
+      description: 'Only people you follow can see this',
+      icon: '🔒',
+      color: 'text-gray-600'
     }
   };
 
