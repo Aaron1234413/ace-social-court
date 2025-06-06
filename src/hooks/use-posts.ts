@@ -8,7 +8,7 @@ import { createSmartFeedMix, ensureMinimumContent } from '@/utils/smartFeedMixin
 
 interface UsePostsOptions {
   personalize?: boolean;
-  sortBy?: 'recent' | 'popular' | 'commented';
+  sortBy?: 'recent' | 'popular';
   respectPrivacy?: boolean;
 }
 
@@ -108,7 +108,7 @@ export const usePosts = (options: UsePostsOptions = {
         engagement_score,
         updated_at`);
         
-      // Sort based on option
+      // Sort based on option - removed 'commented' sort option
       if (options.sortBy === 'recent') {
         selectQuery = selectQuery.order('created_at', { ascending: false });
       }
@@ -178,13 +178,11 @@ export const usePosts = (options: UsePostsOptions = {
       console.log('Posts formatted with engagement data:', formattedPosts.length);
 
       
-      // Sort by popularity or comments if needed
+      // Sort by popularity if needed - removed comments sort option
       let sortedPosts = [...formattedPosts];
       
       if (options.sortBy === 'popular') {
         sortedPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
-      } else if (options.sortBy === 'commented') {
-        sortedPosts.sort((a, b) => (b.comments_count || 0) - (a.comments_count || 0));
       }
 
       // Fetch author profiles
