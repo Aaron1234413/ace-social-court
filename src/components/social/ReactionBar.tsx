@@ -17,7 +17,7 @@ interface ReactionBarProps {
 
 export function ReactionBar({ post, className = '' }: ReactionBarProps) {
   const { user } = useAuth();
-  const { counts, userReactions, isLoading, submitReaction } = useReactionLogic(post, user?.id);
+  const { counts, userReactions, isLoading, submitReaction, isFallbackContent } = useReactionLogic(post, user?.id);
   const {
     permission,
     showTipModal,
@@ -28,6 +28,9 @@ export function ReactionBar({ post, className = '' }: ReactionBarProps) {
   } = useReactionHandlers(post, user?.id, submitReaction);
 
   const getReactionTooltip = (type: string) => {
+    if (isFallbackContent) {
+      return "Reactions are only available for real user posts";
+    }
     return ReactionPermissionService.getReactionTooltip(
       post, 
       type, 
@@ -57,40 +60,40 @@ export function ReactionBar({ post, className = '' }: ReactionBarProps) {
           icon={<Heart className="h-4 w-4" />}
           count={counts.heart}
           isActive={userReactions.heart}
-          canReact={permission.canReact}
+          canReact={permission.canReact && !isFallbackContent}
           tooltip={getReactionTooltip('heart')}
           onClick={() => handleReaction('heart')}
-          disabled={isLoading}
+          disabled={isLoading || isFallbackContent}
         />
         
         <ReactionButton
           icon={<Flame className="h-4 w-4" />}
           count={counts.fire}
           isActive={userReactions.fire}
-          canReact={permission.canReact}
+          canReact={permission.canReact && !isFallbackContent}
           tooltip={getReactionTooltip('fire')}
           onClick={() => handleReaction('fire')}
-          disabled={isLoading}
+          disabled={isLoading || isFallbackContent}
         />
         
         <ReactionButton
           icon={<Lightbulb className="h-4 w-4" />}
           count={counts.tip}
           isActive={userReactions.tip}
-          canReact={permission.canReact}
+          canReact={permission.canReact && !isFallbackContent}
           tooltip={getReactionTooltip('tip')}
           onClick={() => handleReaction('tip')}
-          disabled={isLoading}
+          disabled={isLoading || isFallbackContent}
         />
         
         <ReactionButton
           icon={<Trophy className="h-4 w-4" />}
           count={counts.trophy}
           isActive={userReactions.trophy}
-          canReact={permission.canReact}
+          canReact={permission.canReact && !isFallbackContent}
           tooltip={getReactionTooltip('trophy')}
           onClick={() => handleReaction('trophy')}
-          disabled={isLoading}
+          disabled={isLoading || isFallbackContent}
         />
       </div>
 

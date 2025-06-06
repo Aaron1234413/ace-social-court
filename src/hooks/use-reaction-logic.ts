@@ -20,17 +20,30 @@ interface UserReactions {
   trophy: boolean;
 }
 
+// Helper function to check if a string is a valid UUID
+const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 export function useReactionLogic(post: Post, userId?: string) {
   const [counts, setCounts] = useState<ReactionCounts>({ heart: 0, fire: 0, tip: 0, trophy: 0 });
   const [userReactions, setUserReactions] = useState<UserReactions>({ heart: false, fire: false, tip: false, trophy: false });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check if this is fallback content that can't be reacted to
+  const isFallbackContent = post.is_fallback_content || !isValidUUID(post.id) || !isValidUUID(post.user_id);
+
   // Fetch reaction counts and user reactions
   useEffect(() => {
-    fetchReactionData();
-  }, [post.id, userId]);
+    if (!isFallbackContent) {
+      fetchReactionData();
+    }
+  }, [post.id, userId, isFallbackContent]);
 
   const fetchReactionData = async () => {
+    if (isFallbackContent) return;
+
     try {
       console.log('Fetching reaction data for post:', post.id);
       
@@ -42,7 +55,7 @@ export function useReactionLogic(post: Post, userId?: string) {
 
       if (error) {
         console.error('Error fetching reactions:', error);
-        throw error;
+        return; // Don't throw error for fallback content
       }
 
       console.log('Reactions fetched:', reactions);
@@ -56,7 +69,7 @@ export function useReactionLogic(post: Post, userId?: string) {
       setCounts(newCounts);
 
       // Get user's reactions if logged in
-      if (userId) {
+      if (userId && isValidUUID(userId)) {
         const { data: userReactionData, error: userError } = await supabase
           .from('post_reactions')
           .select('reaction_type')
@@ -65,7 +78,7 @@ export function useReactionLogic(post: Post, userId?: string) {
 
         if (userError) {
           console.error('Error fetching user reactions:', userError);
-          throw userError;
+          return; // Don't throw error for fallback content
         }
 
         console.log('User reactions fetched:', userReactionData);
@@ -84,8 +97,30 @@ export function useReactionLogic(post: Post, userId?: string) {
   };
 
   const submitReaction = async (reactionType: keyof ReactionCounts, comment?: string) => {
+    // Check if user is logged in
     if (!userId) {
       toast.error("Please log in to react to posts");
+      return;
+    }
+
+    // Check if this is fallback content
+    if (isFallbackContent) {
+      toast.error("Cannot react to sample content", {
+        description: "Reactions are only available for real user posts"
+      });
+      return;
+    }
+
+    // Validate UUIDs
+    if (!isValidUUID(userId)) {
+      console.error('Invalid user ID format:', userId);
+      toast.error("Invalid user session. Please log in again.");
+      return;
+    }
+
+    if (!isValidUUID(post.id)) {
+      console.error('Invalid post ID format:', post.id);
+      toast.error("Cannot react to this post");
       return;
     }
 
@@ -131,18 +166,6 @@ export function useReactionLogic(post: Post, userId?: string) {
       } else {
         console.log('=== ADDING REACTION ===');
         
-        // Validate required data
-        if (!post.id || !userId || !reactionType) {
-          const missingFields = [];
-          if (!post.id) missingFields.push('post_id');
-          if (!userId) missingFields.push('user_id');
-          if (!reactionType) missingFields.push('reaction_type');
-          
-          console.error('Missing required fields:', missingFields);
-          toast.error(`Missing required data: ${missingFields.join(', ')}`);
-          return;
-        }
-
         // Build the reaction data object
         const reactionData = {
           post_id: post.id,
@@ -155,21 +178,7 @@ export function useReactionLogic(post: Post, userId?: string) {
         console.log('=== INSERTING REACTION DATA ===');
         console.log('Reaction data to insert:', JSON.stringify(reactionData, null, 2));
 
-        // First, let's test if we can access the table at all
-        const { data: testData, error: testError } = await supabase
-          .from('post_reactions')
-          .select('id')
-          .limit(1);
-
-        console.log('Table access test:', { data: testData, error: testError });
-
-        if (testError) {
-          console.error('Cannot access post_reactions table:', testError);
-          toast.error(`Database access error: ${testError.message}`);
-          throw testError;
-        }
-
-        // Now try the actual insert
+        // Insert the reaction
         const { data: insertData, error: insertError } = await supabase
           .from('post_reactions')
           .insert(reactionData)
@@ -192,19 +201,21 @@ export function useReactionLogic(post: Post, userId?: string) {
         setCounts(prev => ({ ...prev, [reactionType]: prev[reactionType] + 1 }));
         setUserReactions(prev => ({ ...prev, [reactionType]: true }));
 
-        // Track successful completion
+        // Track successful completion for real posts only
         try {
-          await ReactionAnalytics.trackReactionEvent({
-            user_id: userId,
-            post_id: post.id,
-            reaction_type: reactionType,
-            action: 'completed',
-            is_ambassador_content: post.is_ambassador_content || false
-          });
+          if (isValidUUID(userId) && isValidUUID(post.id)) {
+            await ReactionAnalytics.trackReactionEvent({
+              user_id: userId,
+              post_id: post.id,
+              reaction_type: reactionType,
+              action: 'completed',
+              is_ambassador_content: post.is_ambassador_content || false
+            });
 
-          // Track tip comment quality if applicable
-          if (reactionType === 'tip' && comment) {
-            await EngagementMetrics.trackReactionComment(userId, post.id, comment.length);
+            // Track tip comment quality if applicable
+            if (reactionType === 'tip' && comment) {
+              await EngagementMetrics.trackReactionComment(userId, post.id, comment.length);
+            }
           }
         } catch (analyticsError) {
           console.warn('Analytics tracking failed:', analyticsError);
@@ -223,8 +234,8 @@ export function useReactionLogic(post: Post, userId?: string) {
       console.error('=== REACTION SUBMISSION FAILED ===');
       console.error('Final error:', error);
       
-      // Track error as cancellation
-      if (userId) {
+      // Track error as cancellation for real posts only
+      if (userId && isValidUUID(userId) && isValidUUID(post.id)) {
         try {
           await ReactionAnalytics.trackReactionEvent({
             user_id: userId,
@@ -247,6 +258,7 @@ export function useReactionLogic(post: Post, userId?: string) {
     userReactions,
     isLoading,
     submitReaction,
-    fetchReactionData
+    fetchReactionData,
+    isFallbackContent
   };
 }
