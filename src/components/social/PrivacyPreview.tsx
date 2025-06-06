@@ -31,8 +31,6 @@ export function PrivacyPreview({
         return `Visible to ${followingCount} people you follow`;
       case 'public':
         return "Visible to all Rally players";
-      case 'public_highlights':
-        return "Featured in community highlights - great for connecting!";
       default:
         return "Preview not available";
     }
@@ -99,7 +97,7 @@ export function PrivacyPreview({
                     {userProfile?.full_name || userProfile?.username || 'You'}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {privacyLevel === 'public_highlights' ? 'Featured Post' : 'Just now'}
+                    {privacyLevel === 'public' ? 'Public Post' : 'Just now'}
                   </div>
                 </div>
               </div>
@@ -132,7 +130,7 @@ export function PrivacyPreview({
       
       {privacyLevel === 'private' && followingCount < 3 && followingCount > 0 && (
         <div className="text-xs bg-amber-50 text-amber-700 p-2 rounded">
-          🤝 Follow more players to share with a larger network, or try public highlights to connect with the community!
+          🤝 Follow more players to share with a larger network, or try public to connect with the community!
         </div>
       )}
     </div>

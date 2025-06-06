@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ const transformPrivacyLevel = (level: string): PrivacyLevel => {
     case 'public':
       return 'public';
     case 'public_highlights':
-      return 'public_highlights';
     case 'friends':
     case 'coaches':
     case 'private':
