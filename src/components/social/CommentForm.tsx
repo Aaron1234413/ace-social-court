@@ -1,92 +1,63 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, X } from 'lucide-react';
-import { useAuth } from '@/components/AuthProvider';
-import MentionInput from './MentionInput';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface CommentFormProps {
   postId: string;
-  onCommentSubmit: (content: string) => void;
+  onCommentSubmit: (content: string) => Promise<void>;
   isSubmitting: boolean;
   initialValue?: string;
-  onCancel?: () => void;
+  placeholder?: string;
 }
 
-const CommentForm: React.FC<CommentFormProps> = ({ 
-  postId, 
-  onCommentSubmit, 
+const CommentForm: React.FC<CommentFormProps> = ({
+  postId,
+  onCommentSubmit,
   isSubmitting,
   initialValue = '',
-  onCancel
+  placeholder = "Add a comment..."
 }) => {
-  const { user } = useAuth();
-  const [commentText, setCommentText] = useState(initialValue);
+  const [comment, setComment] = useState(initialValue);
 
-  // Update comment text when initialValue changes
   useEffect(() => {
-    setCommentText(initialValue);
+    setComment(initialValue);
   }, [initialValue]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (commentText.trim() && !isSubmitting) {
-      onCommentSubmit(commentText.trim());
-      setCommentText('');
+    if (comment.trim() && !isSubmitting) {
+      await onCommentSubmit(comment);
+      setComment('');
     }
   };
 
-  const handleCancel = () => {
-    setCommentText('');
-    if (onCancel) {
-      onCancel();
-    }
-  };
-
-  if (!user) {
-    return (
-      <div className="text-center p-3 text-muted-foreground bg-accent/50 rounded-md">
-        Sign in to add a comment
-      </div>
-    );
-  }
+  const commentFieldId = `comment-${postId}`;
 
   return (
-    <form onSubmit={handleSubmit} className="relative">
-      <MentionInput
-        value={commentText}
-        onChange={setCommentText}
-        onSubmit={() => {
-          if (commentText.trim() && !isSubmitting) {
-            onCommentSubmit(commentText.trim());
-            setCommentText('');
-          }
-        }}
-        placeholder="Add a comment..."
-        autoFocus={!!initialValue}
-        minRows={1}
-        maxRows={4}
-      />
-      <div className="absolute right-2 bottom-2 flex gap-1">
-        {initialValue && (
-          <Button 
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-        <Button 
-          type="submit" 
-          size="icon" 
-          className="h-8 w-8"
-          disabled={!commentText.trim() || isSubmitting}
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="space-y-2">
+        <Label htmlFor={commentFieldId} className="sr-only">
+          Add a comment
+        </Label>
+        <Textarea
+          id={commentFieldId}
+          name={`comment-${postId}`}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder={placeholder}
+          className="min-h-[80px] resize-none"
+          disabled={isSubmitting}
+        />
+      </div>
+      <div className="flex justify-end">
+        <Button
+          type="submit"
+          size="sm"
+          disabled={!comment.trim() || isSubmitting}
         >
-          <Send className="h-4 w-4" />
+          {isSubmitting ? 'Posting...' : 'Post Comment'}
         </Button>
       </div>
     </form>
