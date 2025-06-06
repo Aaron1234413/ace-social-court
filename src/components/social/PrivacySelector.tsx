@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Lock, Globe, Star, AlertCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Lock, Globe, AlertCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PrivacyPreview } from './PrivacyPreview';
 
-export type PrivacyLevel = 'private' | 'public' | 'public_highlights';
+export type PrivacyLevel = 'private' | 'public';
 
 interface PrivacySelectorProps {
   value: PrivacyLevel;
@@ -25,28 +25,20 @@ interface PrivacySelectorProps {
 
 const privacyOptions = [
   {
+    value: 'public' as const,
+    label: 'Public',
+    description: 'Anyone can see this post',
+    example: 'Connect with the entire Rally community',
+    icon: Globe,
+    tooltip: 'All Rally players can discover your post. Perfect for sharing tips, celebrating achievements, or connecting with new players.',
+  },
+  {
     value: 'private' as const,
     label: 'Private',
     description: 'Only people you follow can see this',
     example: 'Share with your tennis network only',
     icon: Lock,
     tooltip: 'Only players you follow can see this post. Perfect for sharing progress and getting feedback from your trusted tennis community.',
-  },
-  {
-    value: 'public' as const,
-    label: 'Public',
-    description: 'Anyone can see this post',
-    example: 'Inspire the entire Rally community',
-    icon: Globe,
-    tooltip: 'All Rally players can discover your post. Perfect for sharing tips, celebrating achievements, or connecting with new players.',
-  },
-  {
-    value: 'public_highlights' as const,
-    label: 'Public Highlights',
-    description: 'Featured in community highlights',
-    example: 'Get featured and build your network',
-    icon: Star,
-    tooltip: 'Your post may be featured in community highlights, giving you maximum visibility and helping you connect with other players.',
   },
 ];
 
@@ -60,22 +52,18 @@ export function PrivacySelector({
 }: PrivacySelectorProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
-  // Enforce minimum follow requirement for public posting
-  const MINIMUM_FOLLOWS_FOR_PUBLIC = 3;
-  const canPostPublic = followingCount >= MINIMUM_FOLLOWS_FOR_PUBLIC;
-  
-  // Auto-adjust privacy level if user doesn't meet requirements
+  // Default to public for new users to encourage community engagement
   React.useEffect(() => {
-    if ((value === 'public' || value === 'public_highlights') && !canPostPublic && followingCount > 0) {
-      onValueChange('private');
+    if (!value) {
+      onValueChange('public');
     }
-  }, [value, canPostPublic, onValueChange, followingCount]);
+  }, [value, onValueChange]);
 
   return (
     <TooltipProvider>
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Privacy Level</label>
+          <label className="text-sm font-medium">Who can see this post?</label>
           {showPreview && (
             <Button
               variant="ghost"
@@ -90,12 +78,12 @@ export function PrivacySelector({
           )}
         </div>
         
-        {!canPostPublic && followingCount > 0 && (
-          <Alert className="border-amber-200 bg-amber-50">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-700">
-              Follow at least {MINIMUM_FOLLOWS_FOR_PUBLIC} users to unlock public posting. 
-              This helps ensure you're building meaningful connections.
+        {/* Encouraging message for new users */}
+        {followingCount === 0 && value === 'public' && (
+          <Alert className="border-blue-200 bg-blue-50">
+            <Globe className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-700">
+              🌟 Perfect for new users! Public posts help you connect and discover the Rally community.
             </AlertDescription>
           </Alert>
         )}
@@ -107,41 +95,31 @@ export function PrivacySelector({
           <SelectContent>
             {privacyOptions.map((option) => {
               const Icon = option.icon;
-              const isDisabled = !canPostPublic && followingCount > 0 && (option.value === 'public' || option.value === 'public_highlights');
-              const isRecommendedForNewUsers = followingCount === 0 && option.value === 'public_highlights';
-              const isRecommendedForLimitedFollows = !canPostPublic && followingCount > 0 && option.value === 'private';
+              const isRecommendedForNew = followingCount <= 2 && option.value === 'public';
+              const isRecommendedForEstablished = followingCount > 10 && option.value === 'private';
               
               return (
                 <Tooltip key={option.value}>
                   <TooltipTrigger asChild>
-                    <SelectItem 
-                      value={option.value}
-                      disabled={isDisabled}
-                    >
+                    <SelectItem value={option.value}>
                       <div className="flex items-center space-x-2 w-full">
-                        <Icon className={`h-4 w-4 ${isDisabled ? 'text-muted-foreground' : ''}`} />
+                        <Icon className="h-4 w-4" />
                         <div className="flex flex-col flex-1">
-                          <span className={`flex items-center gap-1 ${isDisabled ? 'text-muted-foreground' : ''}`}>
+                          <span className="flex items-center gap-1">
                             {option.label}
-                            {isRecommendedForNewUsers && (
+                            {isRecommendedForNew && (
                               <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">
                                 Recommended
                               </span>
                             )}
-                            {isRecommendedForLimitedFollows && (
-                              <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">
-                                Recommended
-                              </span>
-                            )}
-                            {isDisabled && (
-                              <span className="text-xs bg-gray-100 text-gray-500 px-1 rounded">
-                                Locked
+                            {isRecommendedForEstablished && (
+                              <span className="text-xs bg-green-100 text-green-700 px-1 rounded">
+                                Good Choice
                               </span>
                             )}
                           </span>
-                          <span className={`text-xs ${isDisabled ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
+                          <span className="text-xs text-muted-foreground">
                             {option.description}
-                            {isDisabled && ` (Need ${MINIMUM_FOLLOWS_FOR_PUBLIC - followingCount} more follows)`}
                           </span>
                           <span className="text-xs text-blue-600 font-medium">
                             {option.example}
@@ -161,15 +139,21 @@ export function PrivacySelector({
         </Select>
         
         {/* Educational messaging */}
-        {followingCount === 0 && value === 'public_highlights' && (
-          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-            🌟 Perfect for new users! Your posts will be featured to help you connect with the community.
+        {followingCount > 0 && followingCount <= 5 && value === 'private' && (
+          <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+            💡 You have a small network. Consider going public to discover more players and grow your connections!
           </div>
         )}
         
-        {canPostPublic && value === 'private' && (
+        {followingCount > 10 && value === 'public' && (
           <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
-            🎉 You can now post publicly! Consider sharing with the entire community.
+            🎉 Great! You're sharing with the entire community. Your post will help inspire other players.
+          </div>
+        )}
+        
+        {followingCount > 10 && value === 'private' && (
+          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+            👥 Sharing privately with your network of {followingCount} players you follow.
           </div>
         )}
         
