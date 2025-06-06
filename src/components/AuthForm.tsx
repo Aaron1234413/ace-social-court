@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -40,9 +41,12 @@ const AuthForm = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔐 Login attempt started', { email });
+    
     const validation = validateForm();
     
     if (!validation.valid) {
+      console.log('❌ Login validation failed:', validation.errors);
       Object.values(validation.errors || {}).forEach((error) => {
         toast.error(error);
       });
@@ -52,18 +56,23 @@ const AuthForm = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      console.log('🔄 Calling Supabase signInWithPassword...');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
+      console.log('📥 Supabase login response:', { data, error });
+
       if (error) {
-        toast.error(error.message);
+        console.log('❌ Login error from Supabase:', error);
+        toast.error(error.message || 'Login failed');
       } else {
+        console.log('✅ Login successful:', data);
         toast.success('Logged in successfully');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('🔥 Unexpected login error:', error);
       toast.error('Failed to login. Please try again.');
     } finally {
       setIsLoading(false);
@@ -72,9 +81,12 @@ const AuthForm = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 Signup attempt started', { email });
+    
     const validation = validateForm();
     
     if (!validation.valid) {
+      console.log('❌ Signup validation failed:', validation.errors);
       Object.values(validation.errors || {}).forEach((error) => {
         toast.error(error);
       });
@@ -84,21 +96,30 @@ const AuthForm = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      console.log('🔄 Calling Supabase signUp...');
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
-          emailRedirectTo: window.location.origin + '/auth',
+          emailRedirectTo: `${window.location.origin}/dashboard`
         }
       });
 
+      console.log('📥 Supabase signup response:', { data, error });
+
       if (error) {
-        toast.error(error.message);
+        console.log('❌ Signup error from Supabase:', error);
+        toast.error(error.message || 'Signup failed');
       } else {
-        toast.success('Account created! Check your email for verification.');
+        console.log('✅ Signup successful:', data);
+        if (data.user && !data.session) {
+          toast.success('Account created! Please check your email to verify your account.');
+        } else {
+          toast.success('Account created successfully!');
+        }
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('🔥 Unexpected signup error:', error);
       toast.error('Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
@@ -131,6 +152,7 @@ const AuthForm = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -142,6 +164,7 @@ const AuthForm = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </CardContent>
@@ -165,6 +188,7 @@ const AuthForm = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -176,6 +200,7 @@ const AuthForm = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </CardContent>

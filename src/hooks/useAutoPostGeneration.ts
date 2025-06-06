@@ -12,13 +12,13 @@ export function useAutoPostGeneration() {
 
   const generateSuggestions = useCallback(async (sessionData: SessionFormValues) => {
     if (!user) {
-      console.log('No user found, skipping post generation');
+      console.log('useAutoPostGeneration: No user found, skipping post generation');
       return [];
     }
 
     try {
       setIsGenerating(true);
-      console.log('🚀 Generating post suggestions for session...');
+      console.log('🚀 useAutoPostGeneration: Generating post suggestions for session...');
       
       const autoPostService = AutoPostService.getInstance();
       const newSuggestions = await autoPostService.generatePostSuggestions(sessionData, user.id);
@@ -26,14 +26,14 @@ export function useAutoPostGeneration() {
       setSuggestions(newSuggestions);
       
       if (newSuggestions.length > 0) {
-        console.log(`✅ Generated ${newSuggestions.length} post suggestion(s)`);
+        console.log(`✅ useAutoPostGeneration: Generated ${newSuggestions.length} post suggestion(s)`);
       } else {
-        console.log('ℹ️ No post suggestions generated');
+        console.log('ℹ️ useAutoPostGeneration: No post suggestions generated');
       }
       
       return newSuggestions;
     } catch (error) {
-      console.error('❌ Error generating post suggestions:', error);
+      console.error('❌ useAutoPostGeneration: Error generating post suggestions:', error);
       toast.error('Failed to generate post suggestions');
       return [];
     } finally {

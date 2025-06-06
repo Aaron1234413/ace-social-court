@@ -47,19 +47,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(false);
   const [isProfileChecked, setIsProfileChecked] = useState<boolean>(false);
-  const [authChecked, setAuthChecked] = useState<boolean>(false);
+
   const PROFILE_COMPLETE_KEY = 'user_profile_complete';
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(`Error signing out: ${error.message}`);
-    } else {
-      setProfile(null);
-      setIsProfileComplete(false);
-      setIsProfileChecked(false);
-      localStorage.removeItem(PROFILE_COMPLETE_KEY);
-      toast.success("Signed out successfully");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Sign out error:', error);
+        toast.error(`Error signing out: ${error.message}`);
+      } else {
+        setProfile(null);
+        setIsProfileComplete(false);
+        setIsProfileChecked(false);
+        localStorage.removeItem(PROFILE_COMPLETE_KEY);
+        toast.success("Signed out successfully");
+      }
+    } catch (error) {
+      console.error('Unexpected sign out error:', error);
+      toast.error('Failed to sign out');
     }
   };
 
@@ -113,21 +119,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (profileIsComplete) {
         localStorage.setItem(PROFILE_COMPLETE_KEY, 'true');
-        console.log('AuthProvider: Profile is complete, saved to localStorage');
       }
       
       const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
       setIsProfileComplete(profileIsComplete || storedProfileComplete);
       setIsProfileChecked(true);
       
-      console.log('AuthProvider: Profile loaded:', profileData);
-      console.log('AuthProvider: Profile complete status:', profileIsComplete || storedProfileComplete, 
-                  '(current:', profileIsComplete, ', stored:', storedProfileComplete, ')');
-      
     } catch (err) {
       console.error('AuthProvider: Failed to fetch profile:', err);
-      setIsProfileChecked(true);
-    } finally {
       setIsProfileChecked(true);
     }
   };
@@ -135,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("AuthProvider: Initializing");
     
-    // Set up auth state listener first
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("AuthProvider: Auth state changed:", event, session ? "session exists" : "no session");
@@ -146,39 +145,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (event === 'SIGNED_IN' && session) {
           toast.success("Signed in successfully!");
           
-          // Check if we have stored profile completion status
+          // Check stored profile completion status
           const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
           if (storedProfileComplete) {
-            console.log('AuthProvider: Found stored profile completion status: complete');
             setIsProfileComplete(true);
           }
           
-          // Still refresh profile to get latest data
+          // Refresh profile data
           setTimeout(() => {
             refreshProfile();
-          }, 0);
+          }, 100);
           
-          // ⚠️ IMPORTANT DEBUGGING: Log if this is redirecting anywhere
-          console.log('AuthProvider: SIGNED_IN event - CHECKING FOR ANY CODE THAT MIGHT REDIRECT');
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           setIsProfileComplete(false);
           setIsProfileChecked(false);
           localStorage.removeItem(PROFILE_COMPLETE_KEY);
-          toast.info("Signed out successfully");
           
-          // ⚠️ IMPORTANT DEBUGGING: Log if this is redirecting anywhere  
-          console.log('AuthProvider: SIGNED_OUT event - CHECKING FOR ANY CODE THAT MIGHT REDIRECT');
         } else if (event === 'USER_UPDATED') {
-          toast.info("User profile updated");
-          // Defer profile fetching to avoid Supabase deadlock
+          // Refresh profile on user update
           setTimeout(() => {
             refreshProfile();
-          }, 0);
-          
-          // ⚠️ IMPORTANT DEBUGGING: Log if this is redirecting anywhere
-          console.log('AuthProvider: USER_UPDATED event - CHECKING FOR ANY CODE THAT MIGHT REDIRECT');
+          }, 100);
         }
+        
+        setIsLoading(false);
       }
     );
 
@@ -189,24 +180,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Check if we have stored profile completion status
         const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
         if (storedProfileComplete) {
-          console.log('AuthProvider: Found stored profile completion status: complete');
           setIsProfileComplete(true);
         }
         
-        // Defer profile fetching to avoid Supabase deadlock
         setTimeout(() => {
           refreshProfile();
-        }, 0);
+        }, 100);
       } else {
-        // No session, mark as not loading and profile checked
         setIsProfileChecked(true);
       }
       
-      // Mark auth as checked regardless of session
-      setAuthChecked(true);
       setIsLoading(false);
     });
 

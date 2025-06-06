@@ -15,22 +15,19 @@ const Auth = () => {
   const fromPath = query.get('from');
   
   useEffect(() => {
-    console.log('Auth: User detected, redirecting to dashboard');
-    console.log('Auth: Current location path:', location.pathname);
-    console.log('Auth: fromPath parameter detected:', fromPath);
-    
-    // If user is already authenticated, redirect them to dashboard instead of feed
+    // If user is already authenticated, redirect them
     if (user && !isLoading) {
+      console.log('Auth: User detected, redirecting...');
+      
       if (fromPath) {
         console.log('Auth: Redirecting to:', fromPath);
-        navigate(fromPath);
+        navigate(fromPath, { replace: true });
       } else {
         console.log('Auth: No specific redirect path, going to dashboard');
-        console.log('Auth: About to navigate to /dashboard');
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       }
     }
-  }, [user, isLoading, navigate, fromPath, location.pathname]);
+  }, [user, isLoading, navigate, fromPath]);
   
   if (isLoading) {
     return (
@@ -40,9 +37,18 @@ const Auth = () => {
     );
   }
   
+  // Don't render auth form if user is already logged in
+  if (user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loading text="Redirecting..." />
+      </div>
+    );
+  }
+  
   return (
     <div className="flex items-center justify-center h-screen bg-background">
-      <div className="container flex flex-col items-center justify-center">
+      <div className="container flex flex-col items-center justify-center px-4">
         <AuthForm />
       </div>
     </div>
