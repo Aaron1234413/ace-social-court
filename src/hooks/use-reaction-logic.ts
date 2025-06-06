@@ -115,17 +115,19 @@ export function useReactionLogic(post: Post, userId?: string) {
         setUserReactions(prev => ({ ...prev, [reactionType]: false }));
       } else {
         console.log('Adding reaction...');
-        // Add reaction
-        const reactionData = {
+        // Add reaction - build the data object step by step
+        const reactionData: any = {
           post_id: post.id,
           user_id: userId,
           reaction_type: reactionType
         };
 
-        // Add optional fields only if they have values
-        if (comment) {
-          (reactionData as any).comment_content = comment;
-          (reactionData as any).has_comment = true;
+        // Add comment fields only for tip reactions with comments
+        if (reactionType === 'tip' && comment) {
+          reactionData.comment_content = comment;
+          reactionData.has_comment = true;
+        } else {
+          reactionData.has_comment = false;
         }
 
         console.log('Inserting reaction with data:', reactionData);
@@ -136,6 +138,7 @@ export function useReactionLogic(post: Post, userId?: string) {
 
         if (error) {
           console.error('Error adding reaction:', error);
+          toast.error(`Failed to add reaction: ${error.message}`);
           throw error;
         }
 
@@ -166,6 +169,8 @@ export function useReactionLogic(post: Post, userId?: string) {
           toast.success("Thanks for your tip! 💡", {
             description: "Your coaching insight helps the community grow."
           });
+        } else {
+          toast.success("Reaction added!");
         }
       }
     } catch (error) {

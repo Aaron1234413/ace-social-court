@@ -652,21 +652,27 @@ export type Database = {
       }
       post_reactions: {
         Row: {
+          comment_content: string | null
           created_at: string
+          has_comment: boolean | null
           id: string
           post_id: string
           reaction_type: string
           user_id: string
         }
         Insert: {
+          comment_content?: string | null
           created_at?: string
+          has_comment?: boolean | null
           id?: string
           post_id: string
           reaction_type: string
           user_id: string
         }
         Update: {
+          comment_content?: string | null
           created_at?: string
+          has_comment?: boolean | null
           id?: string
           post_id?: string
           reaction_type?: string
