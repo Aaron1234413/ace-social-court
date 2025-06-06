@@ -10,7 +10,7 @@ interface UserPostGroup {
 }
 
 export class FeedDistributionService {
-  private static readonly MAX_POSTS_PER_USER = 7; // Increased from 3 to 7
+  private static readonly MAX_POSTS_PER_USER = 3; // Prevent any user from dominating
   private static readonly MIN_POSTS_PER_FOLLOWED_USER = 1; // Ensure representation
 
   /**

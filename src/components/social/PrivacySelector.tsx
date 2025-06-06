@@ -16,7 +16,6 @@ interface PrivacySelectorProps {
   followingCount?: number;
   showPreview?: boolean;
   content?: string;
-  disabled?: boolean;
   userProfile?: {
     full_name?: string;
     username?: string;
@@ -73,7 +72,6 @@ export function PrivacySelector({
   followingCount = 0,
   showPreview = true,
   content,
-  disabled = false,
   userProfile
 }: PrivacySelectorProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -100,7 +98,6 @@ export function PrivacySelector({
               size="sm"
               onClick={() => setIsPreviewOpen(!isPreviewOpen)}
               className="text-xs"
-              disabled={disabled}
             >
               <Info className="h-3 w-3 mr-1" />
               Preview
@@ -119,14 +116,14 @@ export function PrivacySelector({
           </Alert>
         )}
         
-        <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+        <Select value={value} onValueChange={onValueChange}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select privacy level" />
           </SelectTrigger>
           <SelectContent>
             {privacyOptions.map((option) => {
               const Icon = option.icon;
-              const isDisabled = disabled || (!canPostPublic && followingCount > 0 && (option.value === 'public' || option.value === 'friends'));
+              const isDisabled = !canPostPublic && followingCount > 0 && (option.value === 'public' || option.value === 'friends');
               const isRecommendedForNewUsers = followingCount === 0 && option.value === 'public_highlights';
               const isRecommendedForLimitedFollows = !canPostPublic && followingCount > 0 && option.value === 'private';
               
@@ -152,7 +149,7 @@ export function PrivacySelector({
                                 Recommended
                               </span>
                             )}
-                            {isDisabled && !disabled && (
+                            {isDisabled && (
                               <span className="text-xs bg-gray-100 text-gray-500 px-1 rounded">
                                 Locked
                               </span>
@@ -160,7 +157,7 @@ export function PrivacySelector({
                           </span>
                           <span className={`text-xs ${isDisabled ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                             {option.description}
-                            {isDisabled && !disabled && ` (Need ${MINIMUM_FOLLOWS_FOR_PUBLIC - followingCount} more follows)`}
+                            {isDisabled && ` (Need ${MINIMUM_FOLLOWS_FOR_PUBLIC - followingCount} more follows)`}
                           </span>
                           <span className="text-xs text-blue-600 font-medium">
                             {option.example}
