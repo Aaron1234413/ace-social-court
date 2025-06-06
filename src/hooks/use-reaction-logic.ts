@@ -32,13 +32,20 @@ export function useReactionLogic(post: Post, userId?: string) {
 
   const fetchReactionData = async () => {
     try {
+      console.log('Fetching reaction data for post:', post.id);
+      
       // Get reaction counts
       const { data: reactions, error } = await supabase
         .from('post_reactions')
         .select('reaction_type')
         .eq('post_id', post.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching reactions:', error);
+        throw error;
+      }
+
+      console.log('Reactions fetched:', reactions);
 
       const newCounts = { heart: 0, fire: 0, tip: 0, trophy: 0 };
       reactions?.forEach(reaction => {
@@ -56,7 +63,12 @@ export function useReactionLogic(post: Post, userId?: string) {
           .eq('post_id', post.id)
           .eq('user_id', userId);
 
-        if (userError) throw userError;
+        if (userError) {
+          console.error('Error fetching user reactions:', userError);
+          throw userError;
+        }
+
+        console.log('User reactions fetched:', userReactionData);
 
         const newUserReactions = { heart: false, fire: false, tip: false, trophy: false };
         userReactionData?.forEach(reaction => {
@@ -72,13 +84,19 @@ export function useReactionLogic(post: Post, userId?: string) {
   };
 
   const submitReaction = async (reactionType: keyof ReactionCounts, comment?: string) => {
-    if (!userId) return;
+    if (!userId) {
+      toast.error("Please log in to react to posts");
+      return;
+    }
 
+    console.log('Submitting reaction:', { reactionType, postId: post.id, userId, comment });
+    
     setIsLoading(true);
     try {
       const hasReacted = userReactions[reactionType];
 
       if (hasReacted) {
+        console.log('Removing reaction...');
         // Remove reaction
         const { error } = await supabase
           .from('post_reactions')
@@ -87,39 +105,61 @@ export function useReactionLogic(post: Post, userId?: string) {
           .eq('user_id', userId)
           .eq('reaction_type', reactionType);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error removing reaction:', error);
+          throw error;
+        }
 
+        console.log('Reaction removed successfully');
         setCounts(prev => ({ ...prev, [reactionType]: Math.max(0, prev[reactionType] - 1) }));
         setUserReactions(prev => ({ ...prev, [reactionType]: false }));
       } else {
+        console.log('Adding reaction...');
         // Add reaction
+        const reactionData = {
+          post_id: post.id,
+          user_id: userId,
+          reaction_type: reactionType
+        };
+
+        // Add optional fields only if they have values
+        if (comment) {
+          (reactionData as any).comment_content = comment;
+          (reactionData as any).has_comment = true;
+        }
+
+        console.log('Inserting reaction with data:', reactionData);
+
         const { error } = await supabase
           .from('post_reactions')
-          .insert({
-            post_id: post.id,
-            user_id: userId,
-            reaction_type: reactionType,
-            has_comment: !!comment,
-            comment_content: comment
-          });
+          .insert(reactionData);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error adding reaction:', error);
+          throw error;
+        }
 
+        console.log('Reaction added successfully');
         setCounts(prev => ({ ...prev, [reactionType]: prev[reactionType] + 1 }));
         setUserReactions(prev => ({ ...prev, [reactionType]: true }));
 
         // Track successful completion
-        await ReactionAnalytics.trackReactionEvent({
-          user_id: userId,
-          post_id: post.id,
-          reaction_type: reactionType,
-          action: 'completed',
-          is_ambassador_content: post.is_ambassador_content || false
-        });
+        try {
+          await ReactionAnalytics.trackReactionEvent({
+            user_id: userId,
+            post_id: post.id,
+            reaction_type: reactionType,
+            action: 'completed',
+            is_ambassador_content: post.is_ambassador_content || false
+          });
 
-        // Track tip comment quality if applicable
-        if (reactionType === 'tip' && comment) {
-          await EngagementMetrics.trackReactionComment(userId, post.id, comment.length);
+          // Track tip comment quality if applicable
+          if (reactionType === 'tip' && comment) {
+            await EngagementMetrics.trackReactionComment(userId, post.id, comment.length);
+          }
+        } catch (analyticsError) {
+          console.warn('Analytics tracking failed:', analyticsError);
+          // Don't fail the reaction for analytics errors
         }
 
         if (reactionType === 'tip') {
@@ -134,13 +174,17 @@ export function useReactionLogic(post: Post, userId?: string) {
       
       // Track error as cancellation
       if (userId) {
-        await ReactionAnalytics.trackReactionEvent({
-          user_id: userId,
-          post_id: post.id,
-          reaction_type: reactionType,
-          action: 'cancelled',
-          is_ambassador_content: post.is_ambassador_content || false
-        });
+        try {
+          await ReactionAnalytics.trackReactionEvent({
+            user_id: userId,
+            post_id: post.id,
+            reaction_type: reactionType,
+            action: 'cancelled',
+            is_ambassador_content: post.is_ambassador_content || false
+          });
+        } catch (analyticsError) {
+          console.warn('Analytics error tracking failed:', analyticsError);
+        }
       }
     } finally {
       setIsLoading(false);
