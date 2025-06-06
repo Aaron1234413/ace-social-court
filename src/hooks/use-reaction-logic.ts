@@ -31,8 +31,8 @@ export function useReactionLogic(post: Post, userId?: string) {
   const [userReactions, setUserReactions] = useState<UserReactions>({ heart: false, fire: false, tip: false, trophy: false });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if this is fallback content that can't be reacted to
-  const isFallbackContent = post.is_fallback_content || !isValidUUID(post.id) || !isValidUUID(post.user_id);
+  // Only disable reactions for explicitly marked fallback content or invalid UUIDs
+  const isFallbackContent = post.is_fallback_content === true || !isValidUUID(post.id);
 
   // Fetch reaction counts and user reactions
   useEffect(() => {
@@ -55,7 +55,7 @@ export function useReactionLogic(post: Post, userId?: string) {
 
       if (error) {
         console.error('Error fetching reactions:', error);
-        return; // Don't throw error for fallback content
+        return;
       }
 
       console.log('Reactions fetched:', reactions);
@@ -78,7 +78,7 @@ export function useReactionLogic(post: Post, userId?: string) {
 
         if (userError) {
           console.error('Error fetching user reactions:', userError);
-          return; // Don't throw error for fallback content
+          return;
         }
 
         console.log('User reactions fetched:', userReactionData);
@@ -97,6 +97,13 @@ export function useReactionLogic(post: Post, userId?: string) {
   };
 
   const submitReaction = async (reactionType: keyof ReactionCounts, comment?: string) => {
+    console.log('=== REACTION SUBMISSION START ===');
+    console.log('Reaction type:', reactionType);
+    console.log('Post ID:', post.id);
+    console.log('User ID:', userId);
+    console.log('Is fallback content:', isFallbackContent);
+    console.log('Post is_fallback_content flag:', post.is_fallback_content);
+
     // Check if user is logged in
     if (!userId) {
       toast.error("Please log in to react to posts");
@@ -105,6 +112,7 @@ export function useReactionLogic(post: Post, userId?: string) {
 
     // Check if this is fallback content
     if (isFallbackContent) {
+      console.log('Blocking reaction - fallback content detected');
       toast.error("Cannot react to sample content", {
         description: "Reactions are only available for real user posts"
       });
@@ -124,12 +132,7 @@ export function useReactionLogic(post: Post, userId?: string) {
       return;
     }
 
-    console.log('=== REACTION SUBMISSION DEBUG ===');
-    console.log('Post ID:', post.id);
-    console.log('User ID:', userId);
-    console.log('Reaction Type:', reactionType);
-    console.log('Comment:', comment);
-    console.log('Current user reactions:', userReactions);
+    console.log('All validations passed, proceeding with reaction');
     
     setIsLoading(true);
     try {
@@ -150,12 +153,7 @@ export function useReactionLogic(post: Post, userId?: string) {
         console.log('Delete operation result:', { data: deleteData, error });
 
         if (error) {
-          console.error('Delete error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
+          console.error('Delete error details:', error);
           toast.error(`Failed to remove reaction: ${error.message}`);
           throw error;
         }
@@ -175,7 +173,6 @@ export function useReactionLogic(post: Post, userId?: string) {
           ...(reactionType === 'tip' && comment && { comment_content: comment })
         };
 
-        console.log('=== INSERTING REACTION DATA ===');
         console.log('Reaction data to insert:', JSON.stringify(reactionData, null, 2));
 
         // Insert the reaction
@@ -187,12 +184,7 @@ export function useReactionLogic(post: Post, userId?: string) {
         console.log('Insert operation result:', { data: insertData, error: insertError });
 
         if (insertError) {
-          console.error('Insert error details:', {
-            message: insertError.message,
-            details: insertError.details,
-            hint: insertError.hint,
-            code: insertError.code
-          });
+          console.error('Insert error details:', insertError);
           toast.error(`Failed to add reaction: ${insertError.message}`);
           throw insertError;
         }

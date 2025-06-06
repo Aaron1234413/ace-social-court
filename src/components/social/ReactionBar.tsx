@@ -39,6 +39,9 @@ export function ReactionBar({ post, className = '' }: ReactionBarProps) {
     );
   };
 
+  // For fallback content, show disabled buttons with appropriate styling
+  const canReact = permission.canReact && !isFallbackContent;
+
   // Show fallback message for completely private posts
   if (!permission.canReact && permission.isRestricted && !post.is_ambassador_content && post.privacy_level === 'private') {
     return (
@@ -60,40 +63,40 @@ export function ReactionBar({ post, className = '' }: ReactionBarProps) {
           icon={<Heart className="h-4 w-4" />}
           count={counts.heart}
           isActive={userReactions.heart}
-          canReact={permission.canReact && !isFallbackContent}
+          canReact={canReact}
           tooltip={getReactionTooltip('heart')}
           onClick={() => handleReaction('heart')}
-          disabled={isLoading || isFallbackContent}
+          disabled={isLoading}
         />
         
         <ReactionButton
           icon={<Flame className="h-4 w-4" />}
           count={counts.fire}
           isActive={userReactions.fire}
-          canReact={permission.canReact && !isFallbackContent}
+          canReact={canReact}
           tooltip={getReactionTooltip('fire')}
           onClick={() => handleReaction('fire')}
-          disabled={isLoading || isFallbackContent}
+          disabled={isLoading}
         />
         
         <ReactionButton
           icon={<Lightbulb className="h-4 w-4" />}
           count={counts.tip}
           isActive={userReactions.tip}
-          canReact={permission.canReact && !isFallbackContent}
+          canReact={canReact}
           tooltip={getReactionTooltip('tip')}
           onClick={() => handleReaction('tip')}
-          disabled={isLoading || isFallbackContent}
+          disabled={isLoading}
         />
         
         <ReactionButton
           icon={<Trophy className="h-4 w-4" />}
           count={counts.trophy}
           isActive={userReactions.trophy}
-          canReact={permission.canReact && !isFallbackContent}
+          canReact={canReact}
           tooltip={getReactionTooltip('trophy')}
           onClick={() => handleReaction('trophy')}
-          disabled={isLoading || isFallbackContent}
+          disabled={isLoading}
         />
       </div>
 
