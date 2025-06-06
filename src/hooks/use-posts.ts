@@ -8,7 +8,6 @@ import { createSmartFeedMix, ensureMinimumContent } from '@/utils/smartFeedMixin
 
 interface UsePostsOptions {
   personalize?: boolean;
-  sortBy?: 'recent' | 'popular';
   respectPrivacy?: boolean;
 }
 
@@ -29,7 +28,6 @@ const transformPrivacyLevel = (level: string): 'private' | 'public' | 'public_hi
 
 export const usePosts = (options: UsePostsOptions = { 
   personalize: true, 
-  sortBy: 'recent', 
   respectPrivacy: true 
 }) => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -92,7 +90,7 @@ export const usePosts = (options: UsePostsOptions = {
       const { data: { user } } = await supabase.auth.getUser();
       console.log('Current user:', user?.id);
       
-      // Fetch all posts first
+      // Fetch all posts ordered by created_at (most recent first)
       let query = supabase.from('posts');
       
       let selectQuery = query.select(`
@@ -106,12 +104,8 @@ export const usePosts = (options: UsePostsOptions = {
         template_id,
         is_auto_generated,
         engagement_score,
-        updated_at`);
-        
-      // Sort based on option - removed 'commented' sort option
-      if (options.sortBy === 'recent') {
-        selectQuery = selectQuery.order('created_at', { ascending: false });
-      }
+        updated_at`)
+        .order('created_at', { ascending: false });
 
       const { data: postsData, error: postsError } = await selectQuery;
 
@@ -177,17 +171,10 @@ export const usePosts = (options: UsePostsOptions = {
 
       console.log('Posts formatted with engagement data:', formattedPosts.length);
 
-      
-      // Sort by popularity if needed - removed comments sort option
-      let sortedPosts = [...formattedPosts];
-      
-      if (options.sortBy === 'popular') {
-        sortedPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
-      }
-
       // Fetch author profiles
-      if (sortedPosts.length > 0) {
-        const userIds = [...new Set(sortedPosts.map(post => post.user_id))];
+      let finalPosts = formattedPosts;
+      if (finalPosts.length > 0) {
+        const userIds = [...new Set(finalPosts.map(post => post.user_id))];
         console.log('Fetching profiles for users:', userIds.length);
         
         const { data: profilesData, error: profilesError } = await supabase
@@ -205,7 +192,7 @@ export const usePosts = (options: UsePostsOptions = {
             });
           });
           
-          sortedPosts.forEach(post => {
+          finalPosts.forEach(post => {
             post.author = profileMap.get(post.user_id) || null;
           });
         } else {
@@ -213,10 +200,9 @@ export const usePosts = (options: UsePostsOptions = {
         }
       }
       
-      console.log('Posts with author data prepared:', sortedPosts.length);
+      console.log('Posts with author data prepared:', finalPosts.length);
       
       // Apply smart processing if user is logged in
-      let finalPosts = sortedPosts;
       
       if (user) {
         try {
@@ -248,9 +234,9 @@ export const usePosts = (options: UsePostsOptions = {
               isCoach: profile?.user_type === 'coach'
             };
             
-            const privacyFilteredPosts = sanitizePostsForUser(sortedPosts, privacyContext);
+            const privacyFilteredPosts = sanitizePostsForUser(finalPosts, privacyContext);
             console.log('Privacy filtering applied', {
-              before: sortedPosts.length,
+              before: finalPosts.length,
               after: privacyFilteredPosts.length
             });
             
@@ -262,7 +248,7 @@ export const usePosts = (options: UsePostsOptions = {
             });
             
             // Ensure minimum content with fallback
-            finalPosts = ensureMinimumContent(finalPosts, sortedPosts, user.id);
+            finalPosts = ensureMinimumContent(finalPosts, finalPosts, user.id);
           }
           
           // Apply personalization if enabled
@@ -279,13 +265,13 @@ export const usePosts = (options: UsePostsOptions = {
         } catch (error) {
           console.error('Error in smart processing, using fallback:', error);
           // Fallback: show public posts only
-          finalPosts = sortedPosts.filter(post => 
+          finalPosts = finalPosts.filter(post => 
             post.privacy_level === 'public' || post.user_id === user.id
           );
         }
       } else {
         // For unauthenticated users, show only public posts
-        finalPosts = sortedPosts.filter(post => post.privacy_level === 'public');
+        finalPosts = finalPosts.filter(post => post.privacy_level === 'public');
         console.log('Unauthenticated user - showing public posts only:', finalPosts.length);
       }
       
@@ -300,7 +286,7 @@ export const usePosts = (options: UsePostsOptions = {
     } finally {
       setIsLoading(false);
     }
-  }, [options.personalize, options.sortBy, options.respectPrivacy, userFollowings.length, userProfile?.user_type]);
+  }, [options.personalize, options.respectPrivacy, userFollowings.length, userProfile?.user_type]);
 
   useEffect(() => {
     fetchPosts();
