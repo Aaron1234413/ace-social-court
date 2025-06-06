@@ -38,6 +38,22 @@ export interface UserFollow {
   follower_id: string;
   following_id: string;
   created_at: string;
+  follower?: {
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    is_ai_user?: boolean;
+    ai_personality_type?: string | null;
+  };
+  following?: {
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    is_ai_user?: boolean;
+    ai_personality_type?: string | null;
+  };
 }
 
 export interface AmbassadorProfile {

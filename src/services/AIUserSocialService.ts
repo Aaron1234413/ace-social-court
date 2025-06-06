@@ -1,10 +1,19 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { EnhancedAmbassadorProfileService } from './EnhancedAmbassadorProfileService';
+
+interface AIUserProfile {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  is_ai_user: boolean;
+  ai_personality_type: string | null;
+  skill_level: string | null;
+  bio: string | null;
+}
 
 export class AIUserSocialService {
   private static instance: AIUserSocialService;
-  private enhancedProfileService: EnhancedAmbassadorProfileService;
 
   static getInstance(): AIUserSocialService {
     if (!this.instance) {
@@ -13,21 +22,23 @@ export class AIUserSocialService {
     return this.instance;
   }
 
-  constructor() {
-    this.enhancedProfileService = EnhancedAmbassadorProfileService.getInstance();
-  }
-
   /**
    * Enable AI users to automatically follow back new users
    */
   async handleAutomaticFollowBack(newFollowerId: string, aiUserId: string): Promise<boolean> {
     try {
-      // Check if AI user should follow back (based on personality)
-      const aiProfile = await this.enhancedProfileService.getAIUserProfile(aiUserId);
+      // Get AI user profile
+      const { data: aiProfile } = await supabase
+        .from('profiles')
+        .select('ai_personality_type, full_name')
+        .eq('id', aiUserId)
+        .eq('is_ai_user', true)
+        .single();
+
       if (!aiProfile) return false;
 
       // Different personalities have different follow-back rates
-      const followBackChance = this.getFollowBackChance(aiProfile.ai_personality_type);
+      const followBackChance = this.getFollowBackChance(aiProfile.ai_personality_type || '');
       
       if (Math.random() < followBackChance) {
         // Add a small delay to make it feel more natural
@@ -59,7 +70,13 @@ export class AIUserSocialService {
   async createAutomatedEngagement(postId: string, authorId: string): Promise<void> {
     try {
       // Get all active AI users
-      const aiUsers = await this.enhancedProfileService.getAllAIUsers();
+      const { data: aiUsers } = await supabase
+        .from('profiles')
+        .select('id, ai_personality_type')
+        .eq('is_ai_user', true)
+        .eq('ai_response_active', true);
+
+      if (!aiUsers) return;
       
       for (const aiUser of aiUsers) {
         // Check if AI user follows the post author
@@ -70,14 +87,14 @@ export class AIUserSocialService {
           });
 
         if (isFollowing) {
-          const engagementChance = this.getEngagementChance(aiUser.ai_personality_type);
+          const engagementChance = this.getEngagementChance(aiUser.ai_personality_type || '');
           
           if (Math.random() < engagementChance) {
             // Add realistic delay
             const delay = Math.random() * 1800000 + 300000; // 5 minutes to 30 minutes
             
             setTimeout(async () => {
-              await this.performEngagementAction(aiUser.id, postId, aiUser.ai_personality_type);
+              await this.performEngagementAction(aiUser.id, postId, aiUser.ai_personality_type || '');
             }, delay);
           }
         }
@@ -90,9 +107,9 @@ export class AIUserSocialService {
   /**
    * Get AI users for search and discovery
    */
-  async getDiscoverableAIUsers(excludeUserIds: string[] = []): Promise<any[]> {
+  async getDiscoverableAIUsers(excludeUserIds: string[] = []): Promise<AIUserProfile[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('profiles')
         .select(`
           id,
@@ -108,8 +125,13 @@ export class AIUserSocialService {
         `)
         .eq('is_ai_user', true)
         .eq('ai_response_active', true)
-        .not('id', 'in', `(${excludeUserIds.join(',')})`)
         .order('full_name');
+
+      if (excludeUserIds.length > 0) {
+        query = query.not('id', 'in', `(${excludeUserIds.join(',')})`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data || [];
@@ -126,7 +148,13 @@ export class AIUserSocialService {
     try {
       console.log('🤖 Setting up AI user following patterns...');
       
-      const aiUsers = await this.enhancedProfileService.getAllAIUsers();
+      const { data: aiUsers } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_ai_user', true)
+        .eq('ai_response_active', true);
+
+      if (!aiUsers) return;
       
       // Get highly active users (users with recent posts)
       const { data: activeUsers } = await supabase
@@ -137,10 +165,10 @@ export class AIUserSocialService {
 
       if (!activeUsers) return;
 
-      const userCounts = activeUsers.reduce((acc, post) => {
-        acc[post.user_id] = (acc[post.user_id] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const userCounts: Record<string, number> = {};
+      activeUsers.forEach(post => {
+        userCounts[post.user_id] = (userCounts[post.user_id] || 0) + 1;
+      });
 
       const topActiveUsers = Object.entries(userCounts)
         .sort(([,a], [,b]) => b - a)
@@ -179,7 +207,7 @@ export class AIUserSocialService {
   }
 
   private getFollowBackChance(personalityType: string): number {
-    const followBackRates = {
+    const followBackRates: Record<string, number> = {
       encouraging_coach: 0.8,
       strategic_player: 0.6,
       fitness_focused: 0.9,
@@ -191,7 +219,7 @@ export class AIUserSocialService {
   }
 
   private getEngagementChance(personalityType: string): number {
-    const engagementRates = {
+    const engagementRates: Record<string, number> = {
       encouraging_coach: 0.4,
       strategic_player: 0.3,
       fitness_focused: 0.5,
@@ -239,7 +267,7 @@ export class AIUserSocialService {
   }
 
   private getPreferredEngagementActions(personalityType: string): string[] {
-    const actionPreferences = {
+    const actionPreferences: Record<string, string[]> = {
       encouraging_coach: ['like', 'reaction', 'like'],
       strategic_player: ['like', 'reaction'],
       fitness_focused: ['reaction', 'like', 'reaction'],

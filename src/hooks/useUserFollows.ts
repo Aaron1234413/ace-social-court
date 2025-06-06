@@ -4,12 +4,61 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { UserFollow } from '@/types/post';
 import { toast } from 'sonner';
-import { AIUserSocialService } from '@/services/AIUserSocialService';
+
+interface AIUserSocialService {
+  handleAutomaticFollowBack: (followerId: string, aiUserId: string) => Promise<boolean>;
+}
+
+// Simple implementation to avoid circular dependencies
+const createAIService = (): AIUserSocialService => ({
+  handleAutomaticFollowBack: async (followerId: string, aiUserId: string): Promise<boolean> => {
+    try {
+      const { data: aiProfile } = await supabase
+        .from('profiles')
+        .select('ai_personality_type')
+        .eq('id', aiUserId)
+        .eq('is_ai_user', true)
+        .single();
+
+      if (!aiProfile) return false;
+
+      // Different personalities have different follow-back rates
+      const followBackRates: Record<string, number> = {
+        encouraging_coach: 0.8,
+        strategic_player: 0.6,
+        fitness_focused: 0.9,
+        veteran_mentor: 0.7,
+        technique_specialist: 0.5,
+        recreational_enthusiast: 0.95
+      };
+
+      const followBackChance = followBackRates[aiProfile.ai_personality_type] || 0.7;
+      
+      if (Math.random() < followBackChance) {
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 2000));
+
+        const { error } = await supabase
+          .from('followers')
+          .insert({
+            follower_id: aiUserId,
+            following_id: followerId
+          });
+
+        return !error;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error in automatic follow back:', error);
+      return false;
+    }
+  }
+});
 
 export function useUserFollows() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const aiSocialService = AIUserSocialService.getInstance();
+  const aiService = createAIService();
 
   const followersQuery = useQuery({
     queryKey: ['user-followers', user?.id],
@@ -90,7 +139,7 @@ export function useUserFollows() {
       if (targetProfile?.is_ai_user && user?.id) {
         // Trigger AI follow back with delay
         setTimeout(() => {
-          aiSocialService.handleAutomaticFollowBack(user.id, targetUserId);
+          aiService.handleAutomaticFollowBack(user.id, targetUserId);
         }, Math.random() * 15000 + 5000); // 5-20 seconds delay
       }
       
