@@ -18,7 +18,7 @@ export function useUserFollows() {
         .from('followers')
         .select(`
           *,
-          follower:follower_id (
+          profiles!followers_follower_id_fkey (
             id,
             full_name,
             username,
@@ -34,7 +34,17 @@ export function useUserFollows() {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        follower: item.profiles ? {
+          id: item.profiles.id,
+          full_name: item.profiles.full_name,
+          username: item.profiles.username,
+          avatar_url: item.profiles.avatar_url,
+          is_ai_user: item.profiles.is_ai_user,
+          ai_personality_type: item.profiles.ai_personality_type
+        } : undefined
+      }));
     },
     enabled: !!user?.id,
   });
@@ -48,7 +58,7 @@ export function useUserFollows() {
         .from('followers')
         .select(`
           *,
-          following:following_id (
+          profiles!followers_following_id_fkey (
             id,
             full_name,
             username,
@@ -64,7 +74,17 @@ export function useUserFollows() {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        following: item.profiles ? {
+          id: item.profiles.id,
+          full_name: item.profiles.full_name,
+          username: item.profiles.username,
+          avatar_url: item.profiles.avatar_url,
+          is_ai_user: item.profiles.is_ai_user,
+          ai_personality_type: item.profiles.ai_personality_type
+        } : undefined
+      }));
     },
     enabled: !!user?.id,
   });
