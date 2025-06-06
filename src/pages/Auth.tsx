@@ -1,9 +1,12 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
-import AuthForm from '@/components/AuthForm';
+import Login from '@/components/auth/Login';
+import SignUp from '@/components/auth/SignUp';
 import { Loading } from '@/components/ui/loading';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
@@ -13,6 +16,17 @@ const Auth = () => {
   // Extract redirect path from query parameter if it exists
   const query = new URLSearchParams(location.search);
   const fromPath = query.get('from');
+  
+  // State to track which tab is active
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+
+  useEffect(() => {
+    // Set initial tab from URL if provided
+    const tabParam = query.get('tab');
+    if (tabParam === 'signup') {
+      setActiveTab('signup');
+    }
+  }, [query]);
   
   useEffect(() => {
     // If user is already authenticated, redirect them
@@ -28,6 +42,16 @@ const Auth = () => {
       }
     }
   }, [user, isLoading, navigate, fromPath]);
+  
+  const handleSuccess = () => {
+    // This will be called if login/signup is successful but no auto-redirect happens
+    console.log('Auth: Authentication successful, checking for redirect needs');
+    if (fromPath) {
+      navigate(fromPath, { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
+    }
+  };
   
   if (isLoading) {
     return (
@@ -47,9 +71,36 @@ const Auth = () => {
   }
   
   return (
-    <div className="flex items-center justify-center h-screen bg-background">
-      <div className="container flex flex-col items-center justify-center px-4">
-        <AuthForm />
+    <div className="flex items-center justify-center min-h-screen bg-background py-8">
+      <div className="container flex flex-col items-center justify-center px-4 max-w-md w-full">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <CardTitle>Welcome to RallyPointX</CardTitle>
+            <CardDescription>
+              Sign in to your account or create a new one
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs 
+              value={activeTab} 
+              onValueChange={(value) => setActiveTab(value as 'login' | 'signup')}
+              className="w-full"
+            >
+              <TabsList className="grid grid-cols-2 w-full mb-6">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login">
+                <Login onSuccess={handleSuccess} />
+              </TabsContent>
+              
+              <TabsContent value="signup">
+                <SignUp onSuccess={handleSuccess} />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

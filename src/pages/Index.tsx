@@ -54,15 +54,23 @@ const Index = () => {
               and join a community passionate about tennis.
             </p>
             
-            {/* Single, more prominent CTA */}
-            <div className="flex justify-center pt-4">
+            {/* More prominent CTA */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
               <Button 
                 size="lg" 
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/auth?tab=signup")}
                 className="text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all group bg-gradient-to-r from-tennis-green to-tennis-darkGreen hover:from-tennis-darkGreen hover:to-tennis-green"
               >
-                Get Started 
+                Sign Up Now 
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => navigate("/auth?tab=login")}
+                className="text-lg px-8 py-6 shadow-sm hover:shadow-md transition-all"
+              >
+                Sign In
               </Button>
             </div>
           </div>

@@ -132,9 +132,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log("AuthProvider: Initializing");
+    console.log("AuthProvider: Initializing with enhanced debugging");
     
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("AuthProvider: Auth state changed:", event, session ? "session exists" : "no session");
@@ -143,6 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (event === 'SIGNED_IN' && session) {
+          console.log("AuthProvider: User signed in:", session.user.email);
           toast.success("Signed in successfully!");
           
           // Check stored profile completion status
@@ -157,12 +158,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 100);
           
         } else if (event === 'SIGNED_OUT') {
+          console.log("AuthProvider: User signed out");
           setProfile(null);
           setIsProfileComplete(false);
           setIsProfileChecked(false);
           localStorage.removeItem(PROFILE_COMPLETE_KEY);
           
         } else if (event === 'USER_UPDATED') {
+          console.log("AuthProvider: User updated");
           // Refresh profile on user update
           setTimeout(() => {
             refreshProfile();
@@ -173,13 +176,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("AuthProvider: Initial session check:", session ? "session exists" : "no session");
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log("AuthProvider: Found existing session for user:", session.user.email);
         const storedProfileComplete = localStorage.getItem(PROFILE_COMPLETE_KEY) === 'true';
         if (storedProfileComplete) {
           setIsProfileComplete(true);
@@ -189,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           refreshProfile();
         }, 100);
       } else {
+        console.log("AuthProvider: No existing session found");
         setIsProfileChecked(true);
       }
       
