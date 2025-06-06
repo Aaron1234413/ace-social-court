@@ -41,6 +41,7 @@ export interface AIUserProfile {
     description: string;
     date_achieved: string;
     achievement_type: string;
+    is_featured: boolean;
   }>;
 }
 
@@ -204,7 +205,7 @@ export class EnhancedAmbassadorProfileService {
       const personalities = this.getAIPersonalities();
 
       for (const personality of personalities) {
-        // Create main profile
+        // Create main profile with correct field names
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .insert({
