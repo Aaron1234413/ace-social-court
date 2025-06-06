@@ -4,10 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { UserFollow } from '@/types/post';
 import { toast } from 'sonner';
+import { AIUserSocialService } from '@/services/AIUserSocialService';
 
 export function useUserFollows() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const aiSocialService = AIUserSocialService.getInstance();
 
   const followersQuery = useQuery({
     queryKey: ['user-followers', user?.id],
@@ -15,8 +17,13 @@ export function useUserFollows() {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('user_follows')
-        .select('*')
+        .from('followers')
+        .select(`
+          *,
+          follower:profiles!followers_follower_id_fkey(
+            id, full_name, username, avatar_url, is_ai_user, ai_personality_type
+          )
+        `)
         .eq('following_id', user.id);
 
       if (error) {
@@ -35,8 +42,13 @@ export function useUserFollows() {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('user_follows')
-        .select('*')
+        .from('followers')
+        .select(`
+          *,
+          following:profiles!followers_following_id_fkey(
+            id, full_name, username, avatar_url, is_ai_user, ai_personality_type
+          )
+        `)
         .eq('follower_id', user.id);
 
       if (error) {
@@ -54,17 +66,34 @@ export function useUserFollows() {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .insert({
           follower_id: user.id,
           following_id: targetUserId,
         });
 
       if (error) throw error;
+      
+      return targetUserId;
     },
-    onSuccess: () => {
+    onSuccess: async (targetUserId) => {
       queryClient.invalidateQueries({ queryKey: ['user-following'] });
       queryClient.invalidateQueries({ queryKey: ['user-followers'] });
+      
+      // Check if the followed user is an AI user and trigger follow back
+      const { data: targetProfile } = await supabase
+        .from('profiles')
+        .select('is_ai_user')
+        .eq('id', targetUserId)
+        .single();
+
+      if (targetProfile?.is_ai_user && user?.id) {
+        // Trigger AI follow back with delay
+        setTimeout(() => {
+          aiSocialService.handleAutomaticFollowBack(user.id, targetUserId);
+        }, Math.random() * 15000 + 5000); // 5-20 seconds delay
+      }
+      
       toast.success('Successfully followed user');
     },
     onError: (error) => {
@@ -78,7 +107,7 @@ export function useUserFollows() {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .delete()
         .eq('follower_id', user.id)
         .eq('following_id', targetUserId);
@@ -96,11 +125,25 @@ export function useUserFollows() {
     },
   });
 
+  // Get AI users in following list
+  const aiUsersFollowing = followingQuery.data?.filter(follow => 
+    follow.following?.is_ai_user
+  ) || [];
+
+  // Get real users in following list
+  const realUsersFollowing = followingQuery.data?.filter(follow => 
+    !follow.following?.is_ai_user
+  ) || [];
+
   return {
     followers: followersQuery.data || [],
     following: followingQuery.data || [],
+    aiUsersFollowing,
+    realUsersFollowing,
     followersCount: followersQuery.data?.length || 0,
     followingCount: followingQuery.data?.length || 0,
+    aiFollowingCount: aiUsersFollowing.length,
+    realFollowingCount: realUsersFollowing.length,
     isLoadingFollowers: followersQuery.isLoading,
     isLoadingFollowing: followingQuery.isLoading,
     followUser: followUser.mutate,
@@ -119,11 +162,10 @@ export function useIsFollowing(targetUserId: string) {
       if (!user?.id || !targetUserId) return false;
 
       const { data, error } = await supabase
-        .from('user_follows')
-        .select('id')
-        .eq('follower_id', user.id)
-        .eq('following_id', targetUserId)
-        .maybeSingle();
+        .rpc('is_following', {
+          follower_id: user.id,
+          following_id: targetUserId
+        });
 
       if (error) {
         console.error('Error checking follow status:', error);
