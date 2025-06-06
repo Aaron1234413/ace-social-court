@@ -10,7 +10,7 @@ import { useFeedPerformance } from '@/hooks/useFeedPerformance';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { MessageSquare, Heart, Clock, Activity, Zap, Bug } from 'lucide-react';
+import { MessageSquare, Heart, Clock, Activity, Zap, Bug, PlusCircle, TrendingUp, Users, Crown } from 'lucide-react';
 import { initializeStorage } from '@/integrations/supabase/storage';
 import { Loading } from '@/components/ui/loading';
 import { useLocation } from 'react-router-dom';
@@ -45,6 +45,7 @@ const Feed = () => {
   const [showCacheStats, setShowCacheStats] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [showComposer, setShowComposer] = useState(false);
   
   const { 
     posts, 
@@ -72,6 +73,25 @@ const Feed = () => {
 
   // Only show debug tools in development mode
   const isDevelopment = import.meta.env.DEV;
+
+  // Calculate feed composition stats
+  const feedStats = React.useMemo(() => {
+    if (!posts.length) return null;
+    
+    const ambassadorCount = posts.filter(p => p.is_ambassador_content || p.author?.user_type === 'ambassador').length;
+    const followedCount = posts.filter(p => {
+      const followingIds = following.map(f => f.following_id);
+      return followingIds.includes(p.user_id) && !p.is_ambassador_content;
+    }).length;
+    const publicCount = posts.length - ambassadorCount - followedCount;
+    
+    return {
+      ambassador: Math.round((ambassadorCount / posts.length) * 100),
+      followed: Math.round((followedCount / posts.length) * 100),
+      public: Math.round((publicCount / posts.length) * 100),
+      total: posts.length
+    };
+  }, [posts, following]);
 
   useEffect(() => {
     console.log('Feed component mounted', {
@@ -135,6 +155,7 @@ const Feed = () => {
   const handlePostCreated = (newPost: Post) => {
     console.log("Feed: New post created, adding optimistically:", newPost.id);
     addNewPost(newPost);
+    setShowComposer(false);
   };
 
   const previewService = PreviewService.getInstance();
@@ -155,43 +176,141 @@ const Feed = () => {
 
   return (
     <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
-      <div className="flex items-center justify-between mb-4 md:mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold">Social Feed</h1>
-        
-        {/* Only show debug buttons in development mode */}
-        {user && isDevelopment && (
-          <div className="flex items-center space-x-2">
+      {/* Enhanced Header Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Your Feed</h1>
+            <p className="text-muted-foreground text-sm">
+              Stay connected with your tennis community
+            </p>
+          </div>
+          
+          {/* Quick Actions */}
+          <div className="flex items-center gap-3">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPerformanceMetrics(!showPerformanceMetrics)}
+              onClick={() => setShowComposer(!showComposer)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 hover:shadow-xl"
             >
-              <Activity className="h-4 w-4" />
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Post
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowCacheStats(!showCacheStats)}
-              className="text-xs"
+            
+            {/* Only show debug buttons in development mode */}
+            {user && isDevelopment && (
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPerformanceMetrics(!showPerformanceMetrics)}
+                >
+                  <Activity className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCacheStats(!showCacheStats)}
+                  className="text-xs"
+                >
+                  Cache
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDebugInfo(!showDebugInfo)}
+                  className="text-xs"
+                >
+                  <Bug className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDebugPanel(!showDebugPanel)}
+                  className="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100"
+                >
+                  Debug Panel
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Feed Quality Indicator */}
+        {user && feedStats && (
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Feed Quality</h3>
+                  <p className="text-sm text-gray-600">Personalized content mix</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium">{feedStats.ambassador}% Ambassador</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium">{feedStats.followed}% Following</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium">{feedStats.public}% Discover</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Sorting Options */}
+        {user && (
+          <div className="flex items-center justify-between">
+            <ToggleGroup 
+              type="single" 
+              value={sortOption}
+              onValueChange={handleSortChange}
+              className="bg-muted rounded-lg p-1 transition-all duration-200"
             >
-              Cache
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDebugInfo(!showDebugInfo)}
-              className="text-xs"
-            >
-              <Bug className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDebugPanel(!showDebugPanel)}
-              className="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100"
-            >
-              Debug Panel
-            </Button>
+              <ToggleGroupItem 
+                value="recent" 
+                aria-label="Sort by recent"
+                className="data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all duration-200"
+              >
+                <Clock className="h-4 w-4 mr-2" /> 
+                Recent
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="popular" 
+                aria-label="Sort by likes"
+                className="data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all duration-200"
+              >
+                <Heart className="h-4 w-4 mr-2" /> 
+                Popular
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="commented" 
+                aria-label="Sort by comments"
+                className="data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all duration-200"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" /> 
+                Discussed
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{posts.length} posts</span>
+              {followingCount > 0 && (
+                <>
+                  <span>•</span>
+                  <span>Following {followingCount}</span>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -340,34 +459,18 @@ const Feed = () => {
       
       {user ? (
         <>
-          <div className="mb-5 overflow-x-auto pb-1">
-            <ToggleGroup 
-              type="single" 
-              value={sortOption}
-              onValueChange={handleSortChange}
-              className="justify-start whitespace-nowrap"
-            >
-              <ToggleGroupItem value="recent" aria-label="Sort by recent">
-                <Clock className="h-4 w-4 mr-1" /> Recent
-              </ToggleGroupItem>
-              <ToggleGroupItem value="popular" aria-label="Sort by likes">
-                <Heart className="h-4 w-4 mr-1" /> Popular
-              </ToggleGroupItem>
-              <ToggleGroupItem value="commented" aria-label="Sort by comments">
-                <MessageSquare className="h-4 w-4 mr-1" /> Discussed
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-          
-          <div className="mb-6">
-            <PostComposer onSuccess={(post) => {
-              if (post) {
-                handlePostCreated(post);
-                // Still refresh after a delay to ensure consistency
-                setTimeout(() => refresh(), 2000);
-              }
-            }} />
-          </div>
+          {/* Post Composer - Show/Hide based on state */}
+          {showComposer && (
+            <div className="mb-6 animate-fade-in">
+              <PostComposer onSuccess={(post) => {
+                if (post) {
+                  handlePostCreated(post);
+                  // Still refresh after a delay to ensure consistency
+                  setTimeout(() => refresh(), 2000);
+                }
+              }} />
+            </div>
+          )}
           
           {isLoading ? (
             <Loading variant="skeleton" count={3} text="Loading posts..." />
