@@ -1,6 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
-import { AIUserSocialService } from './AIUserSocialService';
 
 interface FeedComposition {
   ambassadorPosts: Post[];
@@ -13,7 +13,6 @@ interface FeedMetrics {
   ambassadorPercentage: number;
   followedUserPercentage: number;
   publicPercentage: number;
-  aiUserPercentage: number;
   totalPosts: number;
   loadTime: number;
 }
@@ -35,7 +34,6 @@ const normalizePrivacyLevel = (dbPrivacyLevel: string): 'private' | 'public' | '
 
 export class SimpleFeedService {
   private static instance: SimpleFeedService;
-  private aiSocialService: AIUserSocialService;
 
   static getInstance(): SimpleFeedService {
     if (!this.instance) {
@@ -44,17 +42,13 @@ export class SimpleFeedService {
     return this.instance;
   }
 
-  constructor() {
-    this.aiSocialService = AIUserSocialService.getInstance();
-  }
-
   async generateFeed(
     userId: string,
     followingUserIds: string[],
     page: number = 0,
     pageSize: number = 8
   ): Promise<{ posts: Post[]; metrics: FeedMetrics; hasMore: boolean }> {
-    console.log('🎯 Enhanced SimpleFeedService: Generating feed with AI users', {
+    console.log('🎯 SimpleFeedService: Generating feed', {
       userId,
       followingCount: followingUserIds.length,
       page,
@@ -64,35 +58,31 @@ export class SimpleFeedService {
     const startTime = performance.now();
     const offset = page * pageSize;
 
-    // Adjust target counts to include AI users naturally
-    const targetAmbassadorCount = Math.ceil(pageSize * 0.25); // 25% (reduced to make room for AI)
+    // Calculate target counts based on percentages
+    const targetAmbassadorCount = Math.ceil(pageSize * 0.35); // 35%
     const targetFollowedCount = Math.ceil(pageSize * 0.50); // 50%
-    const targetAIUserCount = Math.ceil(pageSize * 0.15); // 15% AI users
-    const targetPublicCount = pageSize - targetAmbassadorCount - targetFollowedCount - targetAIUserCount; // 10%
+    const targetPublicCount = pageSize - targetAmbassadorCount - targetFollowedCount; // 15%
 
-    console.log('📊 Enhanced target distribution:', {
+    console.log('📊 Target distribution:', {
       ambassador: targetAmbassadorCount,
       followed: targetFollowedCount,
-      aiUser: targetAIUserCount,
       public: targetPublicCount
     });
 
     try {
-      // Fetch all post types in parallel including AI user posts
-      const [ambassadorPosts, followedUserPosts, aiUserPosts, publicPosts] = await Promise.all([
+      // Fetch all post types in parallel
+      const [ambassadorPosts, followedUserPosts, publicPosts] = await Promise.all([
         this.fetchAmbassadorPosts(targetAmbassadorCount, offset),
         this.fetchFollowedUserPosts(followingUserIds, targetFollowedCount, offset),
-        this.fetchAIUserPosts(userId, followingUserIds, targetAIUserCount, offset),
         this.fetchPublicPosts(userId, followingUserIds, targetPublicCount, offset)
       ]);
 
       // Combine and shuffle posts naturally
-      const combinedPosts = this.mixPostsWithAI({
+      const combinedPosts = this.mixPosts({
         ambassadorPosts,
         followedUserPosts,
         publicPosts,
-        totalPosts: [],
-        aiUserPosts
+        totalPosts: []
       });
 
       // Fetch author profiles for all posts (including AI users)
@@ -101,9 +91,6 @@ export class SimpleFeedService {
       // Fetch engagement counts
       await this.enrichWithEngagement(combinedPosts);
 
-      // Trigger automated engagement for new posts
-      this.triggerAutomatedEngagement(combinedPosts, userId);
-
       const endTime = performance.now();
       const loadTime = endTime - startTime;
 
@@ -111,16 +98,14 @@ export class SimpleFeedService {
         ambassadorPercentage: ambassadorPosts.length / combinedPosts.length,
         followedUserPercentage: followedUserPosts.length / combinedPosts.length,
         publicPercentage: publicPosts.length / combinedPosts.length,
-        aiUserPercentage: aiUserPosts.length / combinedPosts.length,
         totalPosts: combinedPosts.length,
         loadTime
       };
 
-      console.log('✅ Enhanced SimpleFeedService: Feed generated with AI integration', {
+      console.log('✅ SimpleFeedService: Feed generated', {
         actualCounts: {
           ambassador: ambassadorPosts.length,
           followed: followedUserPosts.length,
-          aiUser: aiUserPosts.length,
           public: publicPosts.length,
           total: combinedPosts.length
         },
@@ -134,7 +119,7 @@ export class SimpleFeedService {
       };
 
     } catch (error) {
-      console.error('❌ Enhanced SimpleFeedService: Error generating feed:', error);
+      console.error('❌ SimpleFeedService: Error generating feed:', error);
       throw error;
     }
   }
@@ -240,65 +225,6 @@ export class SimpleFeedService {
     return posts;
   }
 
-  private async fetchAIUserPosts(
-    userId: string,
-    followingUserIds: string[],
-    count: number,
-    offset: number
-  ): Promise<Post[]> {
-    console.log('🤖 Fetching AI user posts:', { count, offset });
-
-    // Get AI users that the current user follows or popular AI users
-    const { data: aiUsers } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('is_ai_user', true)
-      .eq('ai_response_active', true);
-
-    if (!aiUsers || aiUsers.length === 0) {
-      console.log('ℹ️ No active AI users found');
-      return [];
-    }
-
-    const aiUserIds = aiUsers.map(u => u.id);
-    
-    // Prioritize AI users that the current user follows
-    const followedAIUsers = aiUserIds.filter(id => followingUserIds.includes(id));
-    const unfollowedAIUsers = aiUserIds.filter(id => !followingUserIds.includes(id));
-    
-    // Mix followed and unfollowed AI users (70% followed, 30% discovery)
-    const selectedAIUsers = [
-      ...followedAIUsers.slice(0, Math.ceil(count * 0.7)),
-      ...unfollowedAIUsers.slice(0, Math.ceil(count * 0.3))
-    ].slice(0, Math.max(1, Math.ceil(count / 2))); // Ensure we don't query too many users
-
-    if (selectedAIUsers.length === 0) {
-      return [];
-    }
-
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .in('user_id', selectedAIUsers)
-      .in('privacy_level', ['public'])
-      .order('created_at', { ascending: false })
-      .range(offset, offset + count - 1);
-
-    if (error) {
-      console.error('❌ Error fetching AI user posts:', error);
-      return [];
-    }
-
-    const posts = (data || []).map(post => ({
-      ...post,
-      privacy_level: normalizePrivacyLevel(post.privacy_level),
-      author: null // Will be enriched later
-    })) as Post[];
-
-    console.log('✅ AI user posts fetched:', posts.length);
-    return posts;
-  }
-
   private mixPosts(composition: FeedComposition): Post[] {
     console.log('🔀 Mixing posts for natural distribution');
 
@@ -322,38 +248,6 @@ export class SimpleFeedService {
     }
 
     console.log('✅ Posts mixed:', mixed.length);
-    return mixed;
-  }
-
-  private mixPostsWithAI(composition: FeedComposition & { aiUserPosts: Post[] }): Post[] {
-    console.log('🔀 Mixing posts with AI user content for natural distribution');
-
-    const { ambassadorPosts, followedUserPosts, aiUserPosts, publicPosts } = composition;
-    const mixed: Post[] = [];
-    const sources = [
-      { posts: followedUserPosts, type: 'followed', priority: 1 },
-      { posts: aiUserPosts, type: 'ai_user', priority: 2 },
-      { posts: ambassadorPosts, type: 'ambassador', priority: 3 },
-      { posts: publicPosts, type: 'public', priority: 4 }
-    ];
-
-    // Interleave posts from different sources with priority
-    let maxLength = Math.max(
-      ambassadorPosts.length, 
-      followedUserPosts.length, 
-      aiUserPosts.length,
-      publicPosts.length
-    );
-    
-    for (let i = 0; i < maxLength; i++) {
-      sources.forEach(source => {
-        if (i < source.posts.length) {
-          mixed.push(source.posts[i]);
-        }
-      });
-    }
-
-    console.log('✅ Posts mixed with AI content:', mixed.length);
     return mixed;
   }
 
@@ -416,18 +310,6 @@ export class SimpleFeedService {
       console.log('✅ Engagement data enriched');
     } catch (error) {
       console.error('❌ Failed to enrich engagement data:', error);
-    }
-  }
-
-  private async triggerAutomatedEngagement(posts: Post[], currentUserId: string): Promise<void> {
-    // Trigger automated engagement for recent posts from followed users
-    const recentPosts = posts.filter(post => {
-      const postAge = Date.now() - new Date(post.created_at).getTime();
-      return postAge < 60 * 60 * 1000 && post.user_id !== currentUserId; // Posts less than 1 hour old
-    });
-
-    for (const post of recentPosts.slice(0, 3)) { // Limit to 3 posts to avoid spam
-      this.aiSocialService.createAutomatedEngagement(post.id, post.user_id);
     }
   }
 }
