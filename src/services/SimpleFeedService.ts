@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/post';
 
@@ -131,7 +130,7 @@ export class SimpleFeedService {
       .from('posts')
       .select('*')
       .or('is_ambassador_content.eq.true,user_id.in.(select id from profiles where is_ai_user = true)')
-      .eq('privacy_level', 'public')
+      .in('privacy_level', ['public', 'public_highlights'])
       .order('created_at', { ascending: false })
       .range(offset, offset + count - 1);
 
