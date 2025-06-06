@@ -12,6 +12,7 @@ export interface Post {
   engagement_score?: number;
   is_ambassador_content?: boolean;
   is_fallback_content?: boolean;
+  ambassador_priority?: boolean;
   author?: {
     full_name: string | null;
     user_type: string | null;

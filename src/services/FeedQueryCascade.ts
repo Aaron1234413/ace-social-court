@@ -78,7 +78,7 @@ export class FeedQueryCascade {
       debugData.steps.push('Starting priority ambassador query - 35% guaranteed');
       
       const ambassadorStart = performance.now();
-      const ambassadorResult = await this.queryAmbassadorContentPriority(offset);
+      const ambassadorResult = await this.queryAmbassadorContentPriority();
       totalQueries++;
       
       const ambassadorMetric = {
