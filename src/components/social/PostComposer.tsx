@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -43,6 +44,21 @@ import { EnhancedPostSuggestion } from '@/services/EnhancedAutoPostService';
 import { QuickShareButtons } from './QuickShareButtons';
 import { UserSharingPreferences } from './UserSharingPreferences';
 import { ContentCustomizationPanel } from './ContentCustomizationPanel';
+
+// Helper function to transform legacy privacy levels to new simplified ones
+const transformPrivacyLevel = (level: string): 'private' | 'public' | 'public_highlights' => {
+  switch (level) {
+    case 'public':
+      return 'public';
+    case 'public_highlights':
+      return 'public_highlights';
+    case 'friends':
+    case 'coaches':
+    case 'private':
+    default:
+      return 'private';
+  }
+};
 
 // Define privacy level icons and colors for match suggestions
 const privacyLevelIcons = {
@@ -112,13 +128,13 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       // Get smart defaults for match sharing
       const smartDefaults = MatchContentTemplateService.getSmartDefaults(matchData);
       setMatchPrivacyLevel(smartDefaults.privacyLevel);
-      form.setValue('privacy_level', smartDefaults.postPrivacy);
+      form.setValue('privacy_level', transformPrivacyLevel(smartDefaults.postPrivacy));
       
       // Generate initial content if none exists
       if (!form.watch('content')) {
         const template = MatchContentTemplateService.generateContent(matchData, smartDefaults.privacyLevel);
         form.setValue('content', template.content);
-        form.setValue('privacy_level', template.privacyLevel);
+        form.setValue('privacy_level', transformPrivacyLevel(template.privacyLevel));
       }
     }
   }, [matchData, form]);
@@ -130,7 +146,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
     if (matchData) {
       const template = MatchContentTemplateService.generateContent(matchData, newLevel);
       form.setValue('content', template.content);
-      form.setValue('privacy_level', template.privacyLevel);
+      form.setValue('privacy_level', transformPrivacyLevel(template.privacyLevel));
     }
   };
 
@@ -174,7 +190,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       // Handle privacy level for prompt generation - only use valid types for prompt system
       const currentPrivacyLevel = form.watch('privacy_level');
       const validPrivacyLevel: "public" | "public_highlights" | "private" = 
-        currentPrivacyLevel as "public" | "public_highlights" | "private";
+        transformPrivacyLevel(currentPrivacyLevel || 'public');
       
       if (profile.user_type === 'coach') {
         const prompt = coachSystem.generateCoachPrompt(mockPost, context, profile.full_name);
@@ -206,7 +222,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
 
   const handleAiSuggestionSelect = (suggestion: PostSuggestion) => {
     form.setValue('content', suggestion.content);
-    form.setValue('privacy_level', suggestion.privacyLevel);
+    form.setValue('privacy_level', transformPrivacyLevel(suggestion.privacyLevel));
     if (suggestion.template?.id) {
       form.setValue('template_id', suggestion.template.id);
     }
@@ -214,7 +230,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
 
   const handleQuickShare = async (content: string, privacyLevel: string, templateType: string) => {
     form.setValue('content', content);
-    form.setValue('privacy_level', privacyLevel as any);
+    form.setValue('privacy_level', transformPrivacyLevel(privacyLevel));
     
     // Auto-submit if user preferences allow it
     if (sharingPreferences?.autoShare) {
@@ -225,7 +241,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
   const handleCustomizationSave = () => {
     if (selectedSuggestion) {
       form.setValue('content', selectedSuggestion.content);
-      form.setValue('privacy_level', selectedSuggestion.privacyLevel);
+      form.setValue('privacy_level', transformPrivacyLevel(selectedSuggestion.privacyLevel));
       setShowCustomization(false);
       setSelectedSuggestion(null);
     }
@@ -296,7 +312,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
       // Transform the response to match our simplified privacy types
       const transformedPost: Post = {
         ...data,
-        privacy_level: data.privacy_level === 'friends' || data.privacy_level === 'coaches' ? 'private' : data.privacy_level,
+        privacy_level: transformPrivacyLevel(data.privacy_level),
         author: data.profiles ? {
           full_name: data.profiles.full_name,
           user_type: data.profiles.user_type,
@@ -380,7 +396,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
 
   const handleEnhancedSuggestionSelect = (suggestion: EnhancedPostSuggestion) => {
     form.setValue('content', suggestion.content);
-    form.setValue('privacy_level', suggestion.privacyLevel);
+    form.setValue('privacy_level', transformPrivacyLevel(suggestion.privacyLevel));
     
     // If it's a match suggestion, also update the match privacy level
     if (matchData && suggestion.context === 'match') {
@@ -562,7 +578,7 @@ export function PostComposer({ onSuccess, className, sessionData, matchData }: P
                                       {suggestion.matchPrivacyLevel.charAt(0).toUpperCase() + suggestion.matchPrivacyLevel.slice(1)} Level
                                     </Badge>
                                     <span className="text-xs text-gray-500">
-                                      → {suggestion.privacyLevel}
+                                      → {transformPrivacyLevel(suggestion.privacyLevel)}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">

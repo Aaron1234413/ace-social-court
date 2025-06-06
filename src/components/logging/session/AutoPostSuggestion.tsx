@@ -11,6 +11,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Sparkles, ThumbsUp, ThumbsDown, Edit3, Send } from 'lucide-react';
 
+// Helper function to transform legacy privacy levels to new simplified ones
+const transformPrivacyLevel = (level: string): PrivacyLevel => {
+  switch (level) {
+    case 'public':
+      return 'public';
+    case 'public_highlights':
+      return 'public_highlights';
+    case 'friends':
+    case 'coaches':
+    case 'private':
+    default:
+      return 'private';
+  }
+};
+
 interface AutoPostSuggestionProps {
   suggestion: PostSuggestion;
   onAccept?: () => void;
@@ -27,7 +42,7 @@ export function AutoPostSuggestion({
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(suggestion.content);
-  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>(suggestion.privacyLevel);
+  const [privacyLevel, setPrivacyLevel] = useState<PrivacyLevel>(transformPrivacyLevel(suggestion.privacyLevel));
   const [isPosting, setIsPosting] = useState(false);
 
   const handleAccept = async () => {
