@@ -57,13 +57,13 @@ export class SimpleFeedService {
     const startTime = performance.now();
     const offset = page * pageSize;
 
-    // Calculate target counts with guaranteed ambassador slots
-    const guaranteedAmbassadorCount = Math.max(2, Math.ceil(pageSize * 0.35)); // At least 2 ambassador posts
+    // Calculate target counts based on percentages
+    const targetAmbassadorCount = Math.ceil(pageSize * 0.35); // 35%
     const targetFollowedCount = Math.ceil(pageSize * 0.50); // 50%
-    const targetPublicCount = pageSize - guaranteedAmbassadorCount - targetFollowedCount;
+    const targetPublicCount = pageSize - targetAmbassadorCount - targetFollowedCount; // 15%
 
-    console.log('📊 Target distribution (with guaranteed ambassador slots):', {
-      ambassador: guaranteedAmbassadorCount,
+    console.log('📊 Target distribution:', {
+      ambassador: targetAmbassadorCount,
       followed: targetFollowedCount,
       public: targetPublicCount
     });
@@ -71,13 +71,13 @@ export class SimpleFeedService {
     try {
       // Fetch all post types in parallel
       const [ambassadorPosts, followedUserPosts, publicPosts] = await Promise.all([
-        this.fetchAmbassadorPosts(guaranteedAmbassadorCount, offset),
+        this.fetchAmbassadorPosts(targetAmbassadorCount, offset),
         this.fetchFollowedUserPosts(followingUserIds, targetFollowedCount, offset),
         this.fetchPublicPosts(userId, followingUserIds, targetPublicCount, offset)
       ]);
 
-      // Enhanced mixing that preserves ambassador post positions
-      const combinedPosts = this.mixPostsWithAmbassadorPriority({
+      // Combine and shuffle posts naturally
+      const combinedPosts = this.mixPosts({
         ambassadorPosts,
         followedUserPosts,
         publicPosts,
@@ -101,7 +101,7 @@ export class SimpleFeedService {
         loadTime
       };
 
-      console.log('✅ SimpleFeedService: Feed generated with ambassador priority', {
+      console.log('✅ SimpleFeedService: Feed generated', {
         actualCounts: {
           ambassador: ambassadorPosts.length,
           followed: followedUserPosts.length,
@@ -224,48 +224,29 @@ export class SimpleFeedService {
     return posts;
   }
 
-  private mixPostsWithAmbassadorPriority(composition: FeedComposition): Post[] {
-    console.log('🔀 Mixing posts with ambassador priority preservation');
+  private mixPosts(composition: FeedComposition): Post[] {
+    console.log('🔀 Mixing posts for natural distribution');
 
     const { ambassadorPosts, followedUserPosts, publicPosts } = composition;
     const mixed: Post[] = [];
+    const sources = [
+      { posts: ambassadorPosts, type: 'ambassador' },
+      { posts: followedUserPosts, type: 'followed' },
+      { posts: publicPosts, type: 'public' }
+    ];
+
+    // Interleave posts from different sources
+    let maxLength = Math.max(ambassadorPosts.length, followedUserPosts.length, publicPosts.length);
     
-    // Mark ambassador posts with priority to prevent displacement
-    ambassadorPosts.forEach(post => {
-      post.ambassador_priority = true;
-    });
-
-    // Strategy: Interleave posts but ensure ambassador posts get prime positions
-    const allOtherPosts = [...followedUserPosts, ...publicPosts];
-    let ambassadorIndex = 0;
-    let otherIndex = 0;
-
-    // Place posts in a pattern that ensures ambassador visibility
-    while (ambassadorIndex < ambassadorPosts.length || otherIndex < allOtherPosts.length) {
-      // Every 3rd position gets an ambassador post if available
-      if (mixed.length % 3 === 0 && ambassadorIndex < ambassadorPosts.length) {
-        mixed.push(ambassadorPosts[ambassadorIndex]);
-        ambassadorIndex++;
-      }
-      // Fill other positions with followed/public posts
-      else if (otherIndex < allOtherPosts.length) {
-        mixed.push(allOtherPosts[otherIndex]);
-        otherIndex++;
-      }
-      // If no other posts left, add remaining ambassador posts
-      else if (ambassadorIndex < ambassadorPosts.length) {
-        mixed.push(ambassadorPosts[ambassadorIndex]);
-        ambassadorIndex++;
-      }
+    for (let i = 0; i < maxLength; i++) {
+      sources.forEach(source => {
+        if (i < source.posts.length) {
+          mixed.push(source.posts[i]);
+        }
+      });
     }
 
-    console.log('✅ Posts mixed with ambassador priority:', {
-      total: mixed.length,
-      ambassadorPositions: mixed.map((post, index) => 
-        post.ambassador_priority ? index : null
-      ).filter(pos => pos !== null)
-    });
-    
+    console.log('✅ Posts mixed:', mixed.length);
     return mixed;
   }
 
