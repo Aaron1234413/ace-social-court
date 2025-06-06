@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Search, QrCode, Upload, Users } from 'lucide-react';
+import { Search, QrCode, Upload, Users, Bot } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,6 +20,8 @@ interface SuggestedUser {
   user_type: string;
   skill_level: string | null;
   bio: string | null;
+  is_ai_user?: boolean;
+  ai_personality_type?: string | null;
 }
 
 interface FriendDiscoveryProps {
@@ -33,6 +34,7 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [ambassadors, setAmbassadors] = useState<SuggestedUser[]>([]);
+  const [aiUsers, setAiUsers] = useState<SuggestedUser[]>([]);
   const [searchResults, setSearchResults] = useState<SuggestedUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showContactImport, setShowContactImport] = useState(false);
@@ -41,14 +43,16 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
   useEffect(() => {
     fetchSuggestedUsers();
     fetchAmbassadors();
+    fetchAIUsers();
   }, []);
 
   const fetchSuggestedUsers = async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, user_type, skill_level, bio')
+        .select('id, full_name, username, avatar_url, user_type, skill_level, bio, is_ai_user, ai_personality_type')
         .neq('id', user?.id)
+        .eq('is_ai_user', false)
         .limit(10);
 
       if (error) throw error;
@@ -67,7 +71,7 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
         .select(`
           profile_id,
           profiles!inner (
-            id, full_name, username, avatar_url, user_type, skill_level, bio
+            id, full_name, username, avatar_url, user_type, skill_level, bio, is_ai_user, ai_personality_type
           )
         `)
         .eq('is_active', true);
@@ -81,12 +85,29 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
         avatar_url: item.profiles.avatar_url,
         user_type: item.profiles.user_type,
         skill_level: item.profiles.skill_level,
-        bio: item.profiles.bio
+        bio: item.profiles.bio,
+        is_ai_user: item.profiles.is_ai_user,
+        ai_personality_type: item.profiles.ai_personality_type
       })) || [];
       
       setAmbassadors(ambassadorProfiles);
     } catch (error) {
       console.error('Error fetching ambassadors:', error);
+    }
+  };
+
+  const fetchAIUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, user_type, skill_level, bio, is_ai_user, ai_personality_type')
+        .eq('is_ai_user', true)
+        .limit(5);
+
+      if (error) throw error;
+      setAiUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching AI users:', error);
     }
   };
 
@@ -99,7 +120,7 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, user_type, skill_level, bio')
+        .select('id, full_name, username, avatar_url, user_type, skill_level, bio, is_ai_user, ai_personality_type')
         .or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
         .neq('id', user?.id)
         .limit(20);
@@ -136,6 +157,12 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
                 Ambassador
               </Badge>
             )}
+            {suggestedUser.is_ai_user && (
+              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <Bot className="h-3 w-3" />
+                AI Player
+              </Badge>
+            )}
           </div>
           {suggestedUser.username && (
             <p className="text-sm text-muted-foreground">@{suggestedUser.username}</p>
@@ -150,6 +177,11 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
             {suggestedUser.skill_level && (
               <Badge variant="outline" className="text-xs">
                 {suggestedUser.skill_level}
+              </Badge>
+            )}
+            {suggestedUser.ai_personality_type && (
+              <Badge variant="outline" className="text-xs">
+                {suggestedUser.ai_personality_type}
               </Badge>
             )}
           </div>
@@ -184,7 +216,6 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Button
           variant="outline"
@@ -225,6 +256,24 @@ export function FriendDiscovery({ onFollowCountChange, currentFollowCount }: Fri
           <div className="space-y-2">
             {searchResults.map((user) => (
               <UserCard key={user.id} user={user} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* AI Users Section */}
+      {aiUsers.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            AI Tennis Players
+          </h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Connect with AI players for consistent engagement and tennis tips
+          </p>
+          <div className="space-y-2">
+            {aiUsers.map((aiUser) => (
+              <UserCard key={aiUser.id} user={aiUser} />
             ))}
           </div>
         </div>

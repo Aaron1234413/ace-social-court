@@ -17,6 +17,8 @@ export interface Post {
     full_name: string | null;
     user_type: string | null;
     avatar_url?: string | null;
+    is_ai_user?: boolean;
+    ai_personality_type?: string | null;
   } | null;
   likes_count?: number;
   comments_count?: number;
@@ -40,6 +42,25 @@ export interface UserFollow {
   created_at: string;
 }
 
+export interface UserFollowData extends UserFollow {
+  follower?: {
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    is_ai_user?: boolean;
+    ai_personality_type?: string | null;
+  };
+  following?: {
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    is_ai_user?: boolean;
+    ai_personality_type?: string | null;
+  };
+}
+
 export interface AmbassadorProfile {
   id: string;
   profile_id: string;
@@ -49,4 +70,17 @@ export interface AmbassadorProfile {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface AIUserProfile {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  user_type: string;
+  skill_level: string | null;
+  bio: string | null;
+  is_ai_user: boolean;
+  ai_personality_type: string | null;
+  location_name?: string | null;
 }

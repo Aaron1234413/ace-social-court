@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
-import { UserFollow } from '@/types/post';
+import { UserFollowData } from '@/types/post';
 import { toast } from 'sonner';
 
 export function useUserFollows() {
@@ -11,12 +11,22 @@ export function useUserFollows() {
 
   const followersQuery = useQuery({
     queryKey: ['user-followers', user?.id],
-    queryFn: async (): Promise<UserFollow[]> => {
+    queryFn: async (): Promise<UserFollowData[]> => {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('user_follows')
-        .select('*')
+        .from('followers')
+        .select(`
+          *,
+          follower:follower_id (
+            id,
+            full_name,
+            username,
+            avatar_url,
+            is_ai_user,
+            ai_personality_type
+          )
+        `)
         .eq('following_id', user.id);
 
       if (error) {
@@ -31,12 +41,22 @@ export function useUserFollows() {
 
   const followingQuery = useQuery({
     queryKey: ['user-following', user?.id],
-    queryFn: async (): Promise<UserFollow[]> => {
+    queryFn: async (): Promise<UserFollowData[]> => {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('user_follows')
-        .select('*')
+        .from('followers')
+        .select(`
+          *,
+          following:following_id (
+            id,
+            full_name,
+            username,
+            avatar_url,
+            is_ai_user,
+            ai_personality_type
+          )
+        `)
         .eq('follower_id', user.id);
 
       if (error) {
@@ -54,13 +74,32 @@ export function useUserFollows() {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .insert({
           follower_id: user.id,
           following_id: targetUserId,
         });
 
       if (error) throw error;
+
+      // Check if target is AI user and trigger automated response
+      const { data: targetProfile } = await supabase
+        .from('profiles')
+        .select('is_ai_user, ai_personality_type')
+        .eq('id', targetUserId)
+        .single();
+
+      if (targetProfile?.is_ai_user) {
+        // Trigger AI follow back after a short delay
+        setTimeout(async () => {
+          await supabase
+            .from('followers')
+            .insert({
+              follower_id: targetUserId,
+              following_id: user.id,
+            });
+        }, Math.random() * 5000 + 2000); // 2-7 seconds delay
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-following'] });
@@ -78,7 +117,7 @@ export function useUserFollows() {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .delete()
         .eq('follower_id', user.id)
         .eq('following_id', targetUserId);
@@ -119,11 +158,10 @@ export function useIsFollowing(targetUserId: string) {
       if (!user?.id || !targetUserId) return false;
 
       const { data, error } = await supabase
-        .from('user_follows')
-        .select('id')
-        .eq('follower_id', user.id)
-        .eq('following_id', targetUserId)
-        .maybeSingle();
+        .rpc('is_following', {
+          follower_id: user.id,
+          following_id: targetUserId
+        });
 
       if (error) {
         console.error('Error checking follow status:', error);
