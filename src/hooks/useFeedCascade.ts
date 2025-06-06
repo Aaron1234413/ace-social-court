@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Post } from '@/types/post';
 import { FeedQueryCascade } from '@/services/FeedQueryCascade';
@@ -7,6 +6,7 @@ import { useUserFollows } from '@/hooks/useUserFollows';
 import { supabase } from '@/integrations/supabase/client';
 import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
 import { useOptimisticPosts } from './useOptimisticPosts';
+import { SimpleFeedService } from '@/services/SimpleFeedService';
 
 interface FeedCascadeState {
   posts: Post[];
@@ -51,7 +51,7 @@ export const useFeedCascade = () => {
   // Extract user IDs from following relationships
   const followingUserIds = following.map(follow => follow.following_id);
 
-  // Combine optimistic posts with regular posts
+  // Combine optimistic posts with regular posts, preserving ambassador priority
   const allPosts = [...optimisticPosts, ...state.posts];
 
   const loadPosts = useCallback(async (page: number = 0, existingPosts: Post[] = []) => {
@@ -61,7 +61,7 @@ export const useFeedCascade = () => {
       return;
     }
 
-    console.log('🔄 STARTING ENHANCED FEED LOAD WITH DEBUGGING', { 
+    console.log('🔄 ENHANCED FEED LOAD WITH AMBASSADOR PRIORITY', { 
       page, 
       existingCount: existingPosts.length,
       followingCount: followingUserIds.length,
@@ -75,134 +75,40 @@ export const useFeedCascade = () => {
         setState(prev => ({ ...prev, isLoading: true }));
       }
 
-      const result = await FeedQueryCascade.executeQueryCascade(
+      // Use SimpleFeedService for better ambassador post handling
+      const simpleFeedService = SimpleFeedService.getInstance();
+      const result = await simpleFeedService.generateFeed(
         user.id,
         followingUserIds,
         page,
-        existingPosts
+        8 // pageSize
       );
 
-      console.log('📊 ENHANCED CASCADE RESULT WITH FULL DEBUGGING:', {
+      console.log('📊 SIMPLIFIED FEED RESULT WITH AMBASSADOR PRIORITY:', {
         postCount: result.posts.length,
-        metrics: result.metrics,
-        debugData: result.debugData,
-        ambassadorPercentage: Math.round(result.ambassadorPercentage * 100) + '%',
-        hasErrors: result.hasErrors,
-        errorCount: result.errorDetails?.length || 0
+        ambassadorCount: result.posts.filter(p => 
+          p.is_ambassador_content || p.ambassador_priority
+        ).length,
+        metrics: result.metrics
       });
-
-      // Log any errors found
-      if (result.hasErrors && result.errorDetails) {
-        console.warn('⚠️ FEED ERRORS DETECTED:', result.errorDetails);
-      }
-
-      // Fetch author profiles for new posts with enhanced error handling
-      const newPosts = result.posts.slice(existingPosts.length);
-      if (newPosts.length > 0) {
-        console.log('👤 Fetching author profiles for', newPosts.length, 'new posts');
-        
-        try {
-          const userIds = [...new Set(newPosts.map(post => post.user_id))];
-          
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, full_name, user_type, avatar_url')
-            .in('id', userIds);
-
-          if (profilesError) {
-            console.error('❌ Failed to fetch profiles:', profilesError);
-          } else if (profilesData) {
-            const profileMap = new Map();
-            profilesData.forEach(profile => {
-              profileMap.set(profile.id, {
-                full_name: profile.full_name,
-                user_type: profile.user_type,
-                avatar_url: profile.avatar_url
-              });
-            });
-
-            // Update posts with author data
-            result.posts.forEach(post => {
-              if (!post.author) {
-                post.author = profileMap.get(post.user_id) || null;
-              }
-            });
-
-            console.log('✅ Author profiles loaded:', {
-              profilesFound: profilesData.length,
-              userIds: userIds.length,
-              postsUpdated: result.posts.filter(p => p.author).length
-            });
-          }
-        } catch (profileError) {
-          console.error('❌ Profile fetching failed:', profileError);
-          // Continue without profiles rather than failing completely
-        }
-
-        // Get engagement counts with timeout protection
-        console.log('📈 Loading engagement counts for new posts...');
-        const engagementStart = performance.now();
-        
-        const engagementPromises = newPosts.map(async (post) => {
-          try {
-            const [{ data: likesData }, { data: commentsData }] = await Promise.all([
-              supabase.rpc('get_likes_count', { post_id: post.id }),
-              supabase.rpc('get_comments_count', { post_id: post.id })
-            ]);
-            
-            post.likes_count = likesData || 0;
-            post.comments_count = commentsData || 0;
-          } catch (error) {
-            console.warn('Failed to get engagement counts for post:', post.id, error);
-            post.likes_count = 0;
-            post.comments_count = 0;
-          }
-        });
-
-        // Wait for all engagement counts with timeout
-        try {
-          await Promise.all(engagementPromises);
-          const engagementTime = performance.now() - engagementStart;
-          console.log('✅ Engagement counts loaded in', Math.round(engagementTime) + 'ms');
-
-          // Record analytics
-          const analyticsService = FeedAnalyticsService.getInstance();
-          analyticsService.recordPerformanceMetric('engagement_loading', {
-            postCount: newPosts.length,
-            loadTime: engagementTime
-          });
-        } catch (engagementError) {
-          console.error('❌ Engagement loading failed:', engagementError);
-          // Continue without engagement counts
-        }
-      }
 
       setState(prev => ({
         ...prev,
-        posts: result.posts,
-        hasMore: result.posts.length >= 8 && page < 5, // Limit to 5 pages max
-        metrics: result.metrics,
-        ambassadorPercentage: result.ambassadorPercentage,
-        debugData: result.debugData,
-        hasErrors: result.hasErrors,
-        errorDetails: result.errorDetails,
-        isLoading: false // Always turn off loading when done
+        posts: page === 0 ? result.posts : [...existingPosts, ...result.posts],
+        hasMore: result.hasMore,
+        metrics: [result.metrics],
+        ambassadorPercentage: result.metrics.ambassadorPercentage,
+        debugData: { simplifiedFeed: true },
+        hasErrors: false,
+        errorDetails: [],
+        isLoading: false
       }));
 
-      console.log('✅ FEED LOAD COMPLETE:', {
-        finalPostCount: result.posts.length,
-        loadingTurnedOff: true,
-        hasErrors: result.hasErrors
-      });
+      console.log('✅ FEED LOAD COMPLETE WITH AMBASSADOR PRIORITY');
 
     } catch (error) {
-      console.error('💥 CRITICAL FEED LOAD FAILURE:', {
-        error: error.message,
-        stack: error.stack,
-        context: { page, existingCount: existingPosts.length, followingCount: followingUserIds.length }
-      });
+      console.error('💥 CRITICAL FEED LOAD FAILURE:', error);
       
-      // Always turn off loading even on error
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
