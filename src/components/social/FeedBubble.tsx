@@ -8,7 +8,7 @@ import { BubbleContent } from './bubble/BubbleContent';
 import { BubbleFooter } from './bubble/BubbleFooter';
 import { AmbassadorBorder } from './AmbassadorBadge';
 import { cn } from '@/lib/utils';
-import { Clock } from 'lucide-react';
+import { Clock, Sparkles } from 'lucide-react';
 
 export type ContentType = 'user' | 'ambassador' | 'fallback';
 
@@ -42,11 +42,21 @@ export function FeedBubble({
   const isOptimistic = 'isOptimistic' in post && post.isOptimistic;
   const isAmbassador = contentType === 'ambassador';
   const isPriorityAmbassador = isAmbassador && post.ambassador_priority;
+  
+  // Check if ambassador content is fresh (less than 6 hours old)
+  const isFreshAmbassadorContent = isAmbassador && (() => {
+    const postAge = Date.now() - new Date(post.created_at).getTime();
+    return postAge < 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+  })();
 
   const cardContent = (
     <Card 
       className={cn(
-        "overflow-visible hover:shadow-md transition-all duration-300 w-full border-muted/70 animate-slide-up relative",
+        "overflow-visible hover:shadow-md transition-all duration-300 w-full border-muted/70 relative",
+        // Smooth fade-in animation for all posts
+        "animate-fade-in",
+        // Enhanced animation for fresh ambassador content
+        isFreshAmbassadorContent && "animate-[fade-in_0.5s_ease-out,scale-in_0.3s_ease-out]",
         contentType === 'fallback' && "border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-card",
         isOptimistic && "border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-card",
         // Remove old ambassador styling since we're using AmbassadorBorder
@@ -58,6 +68,19 @@ export function FeedBubble({
         isolation: 'isolate'
       }}
     >
+      {/* Fresh Ambassador Content Indicator */}
+      {isFreshAmbassadorContent && (
+        <div className="absolute -top-2 right-4 z-10">
+          <Badge 
+            variant="secondary" 
+            className="bg-gradient-to-r from-purple-100 to-amber-100 text-purple-800 border-purple-200/60 text-xs px-2 py-1 animate-pulse-subtle"
+          >
+            <Sparkles className="h-3 w-3 mr-1 animate-bounce-subtle" />
+            Fresh Content
+          </Badge>
+        </div>
+      )}
+
       {/* Optimistic post indicator */}
       {isOptimistic && (
         <div className="absolute -top-2 left-4 z-10">
@@ -93,7 +116,11 @@ export function FeedBubble({
     return (
       <AmbassadorBorder 
         priority={isPriorityAmbassador}
-        className={className}
+        className={cn(
+          className,
+          // Enhanced hover effect for fresh ambassador content
+          isFreshAmbassadorContent && "hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+        )}
       >
         {cardContent}
       </AmbassadorBorder>
