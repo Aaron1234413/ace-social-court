@@ -205,10 +205,14 @@ export class EnhancedAmbassadorProfileService {
       const personalities = this.getAIPersonalities();
 
       for (const personality of personalities) {
-        // Create main profile with correct field names
+        // Generate a UUID for the AI user
+        const aiUserId = crypto.randomUUID();
+        
+        // Create main profile with generated UUID
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .insert({
+            id: aiUserId,
             full_name: personality.name,
             username: personality.name.toLowerCase().replace(/\s+/g, '_'),
             bio: personality.bio,
