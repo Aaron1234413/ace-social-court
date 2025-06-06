@@ -60,7 +60,8 @@ export function BubbleHeader({
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>{timeAgo}</span>
-            {post.is_auto_generated && (
+            {/* Removed the Auto-generated badge for ambassador posts */}
+            {post.is_auto_generated && !isAmbassador && (
               <Badge variant="secondary" className="text-xs">
                 Auto-generated
               </Badge>
