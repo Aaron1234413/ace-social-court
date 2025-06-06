@@ -49,6 +49,14 @@ export function FeedBubble({
     return postAge < 6 * 60 * 60 * 1000; // 6 hours in milliseconds
   })();
 
+  // Rotation logic: Show either "Fresh Content" OR "Featured Content", not both
+  // Use post ID to create a consistent rotation pattern
+  const showFreshContentIndicator = isFreshAmbassadorContent && isPriorityAmbassador ? 
+    parseInt(post.id.slice(-1), 16) % 2 === 0 : // Even hash = fresh content
+    isFreshAmbassadorContent; // If not priority, always show fresh if applicable
+
+  const showFeaturedContentIndicator = isPriorityAmbassador && !showFreshContentIndicator;
+
   const cardContent = (
     <Card 
       className={cn(
@@ -68,8 +76,8 @@ export function FeedBubble({
         isolation: 'isolate'
       }}
     >
-      {/* Fresh Ambassador Content Indicator */}
-      {isFreshAmbassadorContent && (
+      {/* Fresh Ambassador Content Indicator - Only show if rotation selects it */}
+      {showFreshContentIndicator && (
         <div className="absolute -top-2 right-4 z-10">
           <Badge 
             variant="secondary" 
@@ -77,6 +85,19 @@ export function FeedBubble({
           >
             <Sparkles className="h-3 w-3 mr-1 animate-bounce-subtle" />
             Fresh Content
+          </Badge>
+        </div>
+      )}
+
+      {/* Featured Content Indicator - Only show if rotation selects it */}
+      {showFeaturedContentIndicator && (
+        <div className="absolute -top-2 right-4 z-10">
+          <Badge 
+            variant="secondary" 
+            className="bg-gradient-to-r from-amber-100 to-purple-100 text-amber-800 border-amber-200/60 text-xs px-2 py-1"
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            Featured Content
           </Badge>
         </div>
       )}
