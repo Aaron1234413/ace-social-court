@@ -126,23 +126,6 @@ export function useReactionLogic(post: Post, userId?: string) {
       return;
     }
 
-    // For non-UUID post IDs, skip database operations entirely
-    if (!isValidUUID(post.id)) {
-      console.log('Non-UUID post ID detected, skipping database operations');
-      toast.success("Reaction added! (Demo mode)");
-      
-      // Update UI optimistically for demo posts
-      const hasReacted = userReactions[reactionType];
-      if (hasReacted) {
-        setCounts(prev => ({ ...prev, [reactionType]: Math.max(0, prev[reactionType] - 1) }));
-        setUserReactions(prev => ({ ...prev, [reactionType]: false }));
-      } else {
-        setCounts(prev => ({ ...prev, [reactionType]: prev[reactionType] + 1 }));
-        setUserReactions(prev => ({ ...prev, [reactionType]: true }));
-      }
-      return;
-    }
-
     console.log('All validations passed, proceeding with reaction');
     
     setIsLoading(true);
