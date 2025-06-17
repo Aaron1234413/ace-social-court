@@ -31,7 +31,7 @@ describe('usePosts', () => {
       error: null,
     });
 
-    const { result } = renderHook(() => usePosts('user-123'), {
+    const { result } = renderHook(() => usePosts({}), {
       wrapper: createWrapper(),
     });
 
@@ -39,8 +39,7 @@ describe('usePosts', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.data).toEqual(mockPostsData);
-    expect(result.current.error).toBeNull();
+    expect(result.current.posts).toEqual(mockPostsData);
   });
 
   it('handles fetch error', async () => {
@@ -49,7 +48,7 @@ describe('usePosts', () => {
       error: { message: 'Database error' },
     });
 
-    const { result } = renderHook(() => usePosts('user-123'), {
+    const { result } = renderHook(() => usePosts({}), {
       wrapper: createWrapper(),
     });
 
@@ -57,8 +56,7 @@ describe('usePosts', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.data).toBeUndefined();
-    expect(result.current.error).toBeTruthy();
+    expect(result.current.posts).toEqual([]);
   });
 
   it('returns empty array when no posts found', async () => {
@@ -67,7 +65,7 @@ describe('usePosts', () => {
       error: null,
     });
 
-    const { result } = renderHook(() => usePosts('user-123'), {
+    const { result } = renderHook(() => usePosts({}), {
       wrapper: createWrapper(),
     });
 
@@ -75,6 +73,6 @@ describe('usePosts', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.data).toEqual([]);
+    expect(result.current.posts).toEqual([]);
   });
 });

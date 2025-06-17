@@ -2,6 +2,7 @@
 export const mockPosts = {
   standard: () => ({
     id: 'post-123',
+    user_id: 'player-123',
     content: 'Great training session today! Worked on my backhand.',
     author_id: 'player-123',
     created_at: new Date().toISOString(),
@@ -21,6 +22,7 @@ export const mockPosts = {
   
   ambassadorContent: () => ({
     id: 'post-456',
+    user_id: 'ambassador-789',
     content: 'Pro tip: Focus on your footwork for better court coverage.',
     author_id: 'ambassador-789',
     created_at: new Date().toISOString(),
@@ -40,6 +42,7 @@ export const mockPosts = {
   
   privatePost: () => ({
     id: 'post-789',
+    user_id: 'coach-456',
     content: 'Private training notes.',
     author_id: 'coach-456',
     created_at: new Date().toISOString(),

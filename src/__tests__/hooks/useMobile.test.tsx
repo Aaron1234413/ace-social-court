@@ -1,6 +1,6 @@
 
 import { renderHook, act } from '@testing-library/react';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Mock window.matchMedia
 const mockMatchMedia = (matches: boolean) => {
@@ -19,11 +19,11 @@ const mockMatchMedia = (matches: boolean) => {
   });
 };
 
-describe('useMobile', () => {
+describe('useIsMobile', () => {
   it('returns true for mobile viewport', () => {
     mockMatchMedia(true);
 
-    const { result } = renderHook(() => useMobile());
+    const { result } = renderHook(() => useIsMobile());
 
     expect(result.current).toBe(true);
   });
@@ -31,7 +31,7 @@ describe('useMobile', () => {
   it('returns false for desktop viewport', () => {
     mockMatchMedia(false);
 
-    const { result } = renderHook(() => useMobile());
+    const { result } = renderHook(() => useIsMobile());
 
     expect(result.current).toBe(false);
   });
@@ -57,7 +57,7 @@ describe('useMobile', () => {
       })),
     });
 
-    const { result } = renderHook(() => useMobile());
+    const { result } = renderHook(() => useIsMobile());
 
     expect(result.current).toBe(false);
 

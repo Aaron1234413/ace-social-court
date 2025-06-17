@@ -1,85 +1,89 @@
+
 import { renderHook, act } from '@testing-library/react';
 import { useOptimisticPosts } from '@/hooks/useOptimisticPosts';
 import { mockPosts } from '../mocks/data/posts';
 
 describe('useOptimisticPosts', () => {
-  const initialPosts = [mockPosts.standard(), mockPosts.ambassadorContent()];
+  it('initializes with empty optimistic posts', () => {
+    const { result } = renderHook(() => useOptimisticPosts());
 
-  it('initializes with provided posts', () => {
-    const { result } = renderHook(() => useOptimisticPosts(initialPosts));
-
-    expect(result.current.posts).toEqual(initialPosts);
+    expect(result.current.optimisticPosts).toEqual([]);
   });
 
   it('adds optimistic post', () => {
-    const { result } = renderHook(() => useOptimisticPosts(initialPosts));
+    const { result } = renderHook(() => useOptimisticPosts());
 
-    const newPost = {
-      id: 'optimistic-123',
-      content: 'New optimistic post',
-      author_id: 'user-123',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      privacy_level: 'public' as const,
-      is_ambassador_content: false,
-      is_fallback_content: false,
-      media_urls: [],
-      author: {
-        id: 'user-123',
-        username: 'testuser',
-        full_name: 'Test User',
-        avatar_url: null,
-        user_type: 'player' as const,
-      },
-    };
+    const newPost = mockPosts.standard();
 
     act(() => {
       result.current.addOptimisticPost(newPost);
     });
 
-    expect(result.current.posts).toHaveLength(initialPosts.length + 1);
-    expect(result.current.posts[0]).toEqual(newPost);
+    expect(result.current.optimisticPosts).toHaveLength(1);
+    expect(result.current.optimisticPosts[0]).toMatchObject({
+      ...newPost,
+      isOptimistic: true
+    });
   });
 
   it('removes optimistic post', () => {
-    const { result } = renderHook(() => useOptimisticPosts(initialPosts));
+    const { result } = renderHook(() => useOptimisticPosts());
 
-    const postToRemove = initialPosts[0];
+    const newPost = mockPosts.standard();
 
     act(() => {
-      result.current.removeOptimisticPost(postToRemove.id);
+      result.current.addOptimisticPost(newPost);
     });
 
-    expect(result.current.posts).toHaveLength(initialPosts.length - 1);
-    expect(result.current.posts.find(p => p.id === postToRemove.id)).toBeUndefined();
+    expect(result.current.optimisticPosts).toHaveLength(1);
+
+    act(() => {
+      result.current.removeOptimisticPost(newPost.id);
+    });
+
+    expect(result.current.optimisticPosts).toHaveLength(0);
   });
 
-  it('updates optimistic post', () => {
-    const { result } = renderHook(() => useOptimisticPosts(initialPosts));
+  it('clears all optimistic posts', () => {
+    const { result } = renderHook(() => useOptimisticPosts());
 
-    const postToUpdate = initialPosts[0];
-    const updatedContent = 'Updated content';
+    const post1 = mockPosts.standard();
+    const post2 = mockPosts.ambassadorContent();
 
     act(() => {
-      result.current.updateOptimisticPost(postToUpdate.id, {
-        content: updatedContent,
-      });
+      result.current.addOptimisticPost(post1);
+      result.current.addOptimisticPost(post2);
     });
 
-    const updatedPost = result.current.posts.find(p => p.id === postToUpdate.id);
-    expect(updatedPost?.content).toBe(updatedContent);
+    expect(result.current.optimisticPosts).toHaveLength(2);
+
+    act(() => {
+      result.current.clearAllOptimistic();
+    });
+
+    expect(result.current.optimisticPosts).toHaveLength(0);
   });
 
-  it('handles post not found during update', () => {
-    const { result } = renderHook(() => useOptimisticPosts(initialPosts));
+  it('automatically removes posts after timeout', () => {
+    jest.useFakeTimers();
+    
+    const { result } = renderHook(() => useOptimisticPosts());
+
+    const newPost = mockPosts.standard();
 
     act(() => {
-      result.current.updateOptimisticPost('non-existent-id', {
-        content: 'Updated content',
-      });
+      result.current.addOptimisticPost(newPost);
     });
 
-    // Should not throw error and posts should remain unchanged
-    expect(result.current.posts).toEqual(initialPosts);
+    expect(result.current.optimisticPosts).toHaveLength(1);
+
+    // Fast forward time by 30 seconds
+    act(() => {
+      jest.advanceTimersByTime(30000);
+    });
+
+    expect(result.current.optimisticPosts).toHaveLength(0);
+
+    jest.useRealTimers();
   });
 });

@@ -56,8 +56,7 @@ describe('useMessages', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.data).toEqual(mockMessages);
-    expect(result.current.error).toBeNull();
+    expect(result.current.messages).toEqual(mockMessages);
   });
 
   it('handles empty conversation', async () => {
@@ -74,7 +73,7 @@ describe('useMessages', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.data).toEqual([]);
+    expect(result.current.messages).toEqual([]);
   });
 
   it('handles fetch error', async () => {

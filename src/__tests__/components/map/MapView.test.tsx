@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { renderWithProviders } from '../../utils/test-utils';
 import MapView from '@/components/map/MapView';
 import { mockUsers } from '../../mocks/data/users';
@@ -115,7 +116,13 @@ describe('MapView', () => {
         name: 'Central Park Courts',
         latitude: 40.7829,
         longitude: -73.9654,
-        is_public: true
+        is_public: true,
+        description: 'Public tennis courts',
+        address: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        zip_code: '10001',
+        phone: '555-0123'
       }
     ];
 
@@ -134,7 +141,13 @@ describe('MapView', () => {
         name: 'Central Park Courts',
         latitude: 40.7829,
         longitude: -73.9654,
-        is_public: true
+        is_public: true,
+        description: 'Public tennis courts',
+        address: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        zip_code: '10001',
+        phone: '555-0123'
       }
     ];
 
