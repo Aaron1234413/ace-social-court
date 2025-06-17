@@ -4,7 +4,8 @@ import { ReactionBar } from '@/components/social/ReactionBar';
 import { mockPosts } from '../../mocks/data/posts';
 import { mockUsers } from '../../mocks/data/users';
 import { mockSupabase } from '../../mocks/supabase';
-import { fireEvent, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 describe('ReactionBar', () => {
   const mockPost = mockPosts.standard();
@@ -44,6 +45,7 @@ describe('ReactionBar', () => {
   });
 
   it('handles heart reaction correctly', async () => {
+    const user = userEvent.setup();
     mockSupabase.from().insert().select().mockResolvedValue({
       data: [{ id: '1', reaction_type: 'heart' }],
       error: null
@@ -56,7 +58,7 @@ describe('ReactionBar', () => {
 
     const heartButton = getByTitle(/heart/i);
     
-    fireEvent.click(heartButton);
+    await user.click(heartButton);
 
     await waitFor(() => {
       expect(mockSupabase.from().insert).toHaveBeenCalledWith({
@@ -69,13 +71,14 @@ describe('ReactionBar', () => {
   });
 
   it('shows tip modal for tip reactions', async () => {
+    const user = userEvent.setup();
     const { getByTitle, getByText } = renderWithProviders(
       <ReactionBar post={mockPost} />,
       { user: mockUser }
     );
 
     const tipButton = getByTitle(/tip/i);
-    fireEvent.click(tipButton);
+    await user.click(tipButton);
 
     await waitFor(() => {
       expect(getByText(/add your coaching tip/i)).toBeInTheDocument();
@@ -106,7 +109,7 @@ describe('ReactionBar', () => {
   it('shows private post message for private content', () => {
     const privatePost = { 
       ...mockPost, 
-      privacy_level: 'private',
+      privacy_level: 'private' as const,
       author_id: 'different-user-id'
     };
 
@@ -119,6 +122,7 @@ describe('ReactionBar', () => {
   });
 
   it('handles reaction removal', async () => {
+    const user = userEvent.setup();
     // Mock user already has a heart reaction
     mockSupabase.from().select().eq().mockResolvedValueOnce({
       data: [{ reaction_type: 'heart' }], // reaction counts
@@ -144,7 +148,7 @@ describe('ReactionBar', () => {
     });
 
     const heartButton = getByTitle(/heart/i);
-    fireEvent.click(heartButton);
+    await user.click(heartButton);
 
     await waitFor(() => {
       expect(mockSupabase.from().delete).toHaveBeenCalled();

@@ -1,7 +1,7 @@
 
 import { renderWithProviders } from '../../utils/test-utils';
 import MessageButton from '@/components/messages/MessageButton';
-import { fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useNavigate } from 'react-router-dom';
 
 // Mock react-router-dom
@@ -49,13 +49,14 @@ describe('MessageButton', () => {
     expect(icon).not.toBeInTheDocument();
   });
 
-  it('navigates to messages page on click', () => {
+  it('navigates to messages page on click', async () => {
+    const user = userEvent.setup();
     const { getByRole } = renderWithProviders(
       <MessageButton userId="user-123" />
     );
 
     const button = getByRole('button');
-    fireEvent.click(button);
+    await user.click(button);
 
     expect(mockNavigateFn).toHaveBeenCalledWith('/messages/user-123', {
       state: {
@@ -67,7 +68,8 @@ describe('MessageButton', () => {
     });
   });
 
-  it('passes initial message and autoSend props', () => {
+  it('passes initial message and autoSend props', async () => {
+    const user = userEvent.setup();
     const { getByRole } = renderWithProviders(
       <MessageButton 
         userId="user-123" 
@@ -77,7 +79,7 @@ describe('MessageButton', () => {
     );
 
     const button = getByRole('button');
-    fireEvent.click(button);
+    await user.click(button);
 
     expect(mockNavigateFn).toHaveBeenCalledWith('/messages/user-123', {
       state: {
@@ -98,14 +100,15 @@ describe('MessageButton', () => {
     expect(button).toHaveClass('custom-class');
   });
 
-  it('shows tooltip when showTooltip is true', () => {
+  it('shows tooltip when showTooltip is true', async () => {
+    const user = userEvent.setup();
     const { getByRole } = renderWithProviders(
       <MessageButton userId="user-123" showTooltip={true} />
     );
 
     // Tooltip content should be accessible
     const button = getByRole('button');
-    fireEvent.mouseEnter(button);
+    await user.hover(button);
     
     // Note: Testing tooltip visibility requires more complex setup
     // This tests that the component renders without errors

@@ -122,7 +122,9 @@ describe('MapView', () => {
         city: 'New York',
         state: 'NY',
         zip_code: '10001',
-        phone: '555-0123'
+        phone: '555-0123',
+        country: 'USA',
+        surface_type: 'hard'
       }
     ];
 
@@ -147,7 +149,9 @@ describe('MapView', () => {
         city: 'New York',
         state: 'NY',
         zip_code: '10001',
-        phone: '555-0123'
+        phone: '555-0123',
+        country: 'USA',
+        surface_type: 'hard'
       }
     ];
 

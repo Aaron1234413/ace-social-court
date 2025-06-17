@@ -1,7 +1,7 @@
 
 import { renderWithProviders } from '../../../utils/test-utils';
 import SessionNavigationControls from '@/components/logging/session/SessionNavigationControls';
-import { fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 describe('SessionNavigationControls', () => {
   const mockOnTabChange = jest.fn();
@@ -60,7 +60,8 @@ describe('SessionNavigationControls', () => {
     expect(nextButton).toBeDisabled();
   });
 
-  it('navigates to previous tab when previous button is clicked', () => {
+  it('navigates to previous tab when previous button is clicked', async () => {
+    const user = userEvent.setup();
     const { getByText } = renderWithProviders(
       <SessionNavigationControls
         currentTab="mental"
@@ -69,12 +70,13 @@ describe('SessionNavigationControls', () => {
     );
 
     const previousButton = getByText('Previous');
-    fireEvent.click(previousButton);
+    await user.click(previousButton);
 
     expect(mockOnTabChange).toHaveBeenCalledWith('physical');
   });
 
-  it('navigates to next tab when next button is clicked', () => {
+  it('navigates to next tab when next button is clicked', async () => {
+    const user = userEvent.setup();
     const { getByText } = renderWithProviders(
       <SessionNavigationControls
         currentTab="physical"
@@ -83,34 +85,35 @@ describe('SessionNavigationControls', () => {
     );
 
     const nextButton = getByText('Next');
-    fireEvent.click(nextButton);
+    await user.click(nextButton);
 
     expect(mockOnTabChange).toHaveBeenCalledWith('mental');
   });
 
-  it('follows correct tab order', () => {
+  it('follows correct tab order', async () => {
+    const user = userEvent.setup();
     const expectedOrder = ['basics', 'coaches', 'physical', 'mental', 'technical', 'summary'];
     
     // Test moving forward through all tabs
-    expectedOrder.forEach((currentTab, index) => {
-      if (index < expectedOrder.length - 1) {
-        const { getByText } = renderWithProviders(
-          <SessionNavigationControls
-            currentTab={currentTab}
-            onTabChange={mockOnTabChange}
-          />
-        );
+    for (let i = 0; i < expectedOrder.length - 1; i++) {
+      const currentTab = expectedOrder[i];
+      const { getByText } = renderWithProviders(
+        <SessionNavigationControls
+          currentTab={currentTab}
+          onTabChange={mockOnTabChange}
+        />
+      );
 
-        const nextButton = getByText('Next');
-        fireEvent.click(nextButton);
+      const nextButton = getByText('Next');
+      await user.click(nextButton);
 
-        expect(mockOnTabChange).toHaveBeenCalledWith(expectedOrder[index + 1]);
-        mockOnTabChange.mockClear();
-      }
-    });
+      expect(mockOnTabChange).toHaveBeenCalledWith(expectedOrder[i + 1]);
+      mockOnTabChange.mockClear();
+    }
   });
 
-  it('handles edge cases for tab navigation', () => {
+  it('handles edge cases for tab navigation', async () => {
+    const user = userEvent.setup();
     // Test that clicking previous on first tab doesn't call onTabChange
     const { getByText } = renderWithProviders(
       <SessionNavigationControls
@@ -121,7 +124,7 @@ describe('SessionNavigationControls', () => {
 
     const previousButton = getByText('Previous');
     expect(previousButton).toBeDisabled();
-    fireEvent.click(previousButton);
+    await user.click(previousButton);
 
     expect(mockOnTabChange).not.toHaveBeenCalled();
   });

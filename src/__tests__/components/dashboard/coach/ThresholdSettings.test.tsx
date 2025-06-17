@@ -1,7 +1,8 @@
 
 import { renderWithProviders } from '../../../utils/test-utils';
 import { ThresholdSettings } from '@/components/dashboard/coach/ThresholdSettings';
-import { fireEvent, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { AlertThresholds } from '@/services/AlertEngine';
 
 describe('ThresholdSettings', () => {
@@ -30,6 +31,7 @@ describe('ThresholdSettings', () => {
   });
 
   it('opens settings dialog when clicked', async () => {
+    const user = userEvent.setup();
     const { getByRole } = renderWithProviders(
       <ThresholdSettings 
         currentThresholds={defaultThresholds}
@@ -38,7 +40,7 @@ describe('ThresholdSettings', () => {
     );
 
     const settingsButton = getByRole('button');
-    fireEvent.click(settingsButton);
+    await user.click(settingsButton);
 
     await waitFor(() => {
       expect(getByRole('dialog')).toBeInTheDocument();
@@ -46,6 +48,7 @@ describe('ThresholdSettings', () => {
   });
 
   it('displays auto-scaled threshold information', async () => {
+    const user = userEvent.setup();
     const { getByRole, getByText } = renderWithProviders(
       <ThresholdSettings 
         currentThresholds={defaultThresholds}
@@ -53,7 +56,7 @@ describe('ThresholdSettings', () => {
       />
     );
 
-    fireEvent.click(getByRole('button'));
+    await user.click(getByRole('button'));
 
     await waitFor(() => {
       expect(getByText('8 students')).toBeInTheDocument();
@@ -63,6 +66,7 @@ describe('ThresholdSettings', () => {
   });
 
   it('enables custom threshold mode', async () => {
+    const user = userEvent.setup();
     const { getByRole, getByLabelText } = renderWithProviders(
       <ThresholdSettings 
         currentThresholds={defaultThresholds}
@@ -70,11 +74,11 @@ describe('ThresholdSettings', () => {
       />
     );
 
-    fireEvent.click(getByRole('button'));
+    await user.click(getByRole('button'));
 
     await waitFor(() => {
       const customToggle = getByLabelText(/custom thresholds/i);
-      fireEvent.click(customToggle);
+      return user.click(customToggle);
     });
 
     await waitFor(() => {
@@ -83,6 +87,7 @@ describe('ThresholdSettings', () => {
   });
 
   it('adjusts custom thresholds with sliders', async () => {
+    const user = userEvent.setup();
     const { getByRole, getByLabelText, getByText } = renderWithProviders(
       <ThresholdSettings 
         currentThresholds={defaultThresholds}
@@ -90,22 +95,24 @@ describe('ThresholdSettings', () => {
       />
     );
 
-    fireEvent.click(getByRole('button'));
+    await user.click(getByRole('button'));
 
     await waitFor(() => {
       const customToggle = getByLabelText(/custom thresholds/i);
-      fireEvent.click(customToggle);
+      return user.click(customToggle);
     });
 
-    await waitFor(() => {
+    await waitFor(async () => {
       const slider = getByLabelText(/missed sessions alert/i).nextElementSibling;
-      fireEvent.change(slider, { target: { value: '5' } });
+      await user.clear(slider as Element);
+      await user.type(slider as Element, '5');
     });
 
     expect(getByText(/5 sessions/)).toBeInTheDocument();
   });
 
   it('saves custom thresholds when confirmed', async () => {
+    const user = userEvent.setup();
     const { getByRole, getByLabelText, getByText } = renderWithProviders(
       <ThresholdSettings 
         currentThresholds={defaultThresholds}
@@ -113,16 +120,16 @@ describe('ThresholdSettings', () => {
       />
     );
 
-    fireEvent.click(getByRole('button'));
+    await user.click(getByRole('button'));
 
     await waitFor(() => {
       const customToggle = getByLabelText(/custom thresholds/i);
-      fireEvent.click(customToggle);
+      return user.click(customToggle);
     });
 
-    await waitFor(() => {
+    await waitFor(async () => {
       const saveButton = getByText(/save settings/i);
-      fireEvent.click(saveButton);
+      await user.click(saveButton);
     });
 
     expect(mockOnUpdateThresholds).toHaveBeenCalledWith({
@@ -133,6 +140,7 @@ describe('ThresholdSettings', () => {
   });
 
   it('cancels changes without saving', async () => {
+    const user = userEvent.setup();
     const { getByRole, getByText } = renderWithProviders(
       <ThresholdSettings 
         currentThresholds={defaultThresholds}
@@ -140,17 +148,18 @@ describe('ThresholdSettings', () => {
       />
     );
 
-    fireEvent.click(getByRole('button'));
+    await user.click(getByRole('button'));
 
-    await waitFor(() => {
+    await waitFor(async () => {
       const cancelButton = getByText(/cancel/i);
-      fireEvent.click(cancelButton);
+      await user.click(cancelButton);
     });
 
     expect(mockOnUpdateThresholds).not.toHaveBeenCalled();
   });
 
   it('shows recommended thresholds for different roster sizes', async () => {
+    const user = userEvent.setup();
     const smallRosterThresholds = { ...defaultThresholds, rosterSize: 3 };
     
     const { getByRole, getByText } = renderWithProviders(
@@ -160,7 +169,7 @@ describe('ThresholdSettings', () => {
       />
     );
 
-    fireEvent.click(getByRole('button'));
+    await user.click(getByRole('button'));
 
     await waitFor(() => {
       expect(getByText(/small groups.*alert after 1 missed session/i)).toBeInTheDocument();
