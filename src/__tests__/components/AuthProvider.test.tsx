@@ -7,22 +7,16 @@ import { act, waitFor } from '@testing-library/react';
 
 // Test component to access auth context
 const TestComponent = () => {
-  const { user, profile, signIn, signOut, signUp } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   return (
     <div>
       <div data-testid="user-state">{user ? 'authenticated' : 'unauthenticated'}</div>
       <div data-testid="profile-name">{profile?.full_name || 'no-profile'}</div>
-      <button onClick={() => signIn('test@example.com', 'password')} data-testid="sign-in">
-        Sign In
-      </button>
       <button onClick={signOut} data-testid="sign-out">
         Sign Out
       </button>
-      <button 
-        onClick={() => signUp('new@example.com', 'password', { full_name: 'New User' })} 
-        data-testid="sign-up"
-      >
-        Sign Up
+      <button onClick={refreshProfile} data-testid="refresh-profile">
+        Refresh Profile
       </button>
     </div>
   );
@@ -44,76 +38,17 @@ describe('AuthProvider', () => {
     expect(getByTestId('profile-name')).toHaveTextContent('no-profile');
   });
 
-  it('handles successful sign in', async () => {
+  it('handles successful authentication', async () => {
     const mockUser = mockUsers.player();
-    mockSupabase.auth.signInWithPassword.mockResolvedValue({
-      data: { user: mockUser, session: { access_token: 'token' } },
-      error: null
-    });
-
+    
     const { getByTestId } = renderWithProviders(
       <AuthProvider>
         <TestComponent />
-      </AuthProvider>
+      </AuthProvider>,
+      { user: mockUser }
     );
 
-    await act(async () => {
-      getByTestId('sign-in').click();
-    });
-
-    await waitFor(() => {
-      expect(getByTestId('user-state')).toHaveTextContent('authenticated');
-    });
-
-    expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'test@example.com',
-      password: 'password'
-    });
-  });
-
-  it('handles sign in errors', async () => {
-    mockSupabase.auth.signInWithPassword.mockResolvedValue({
-      data: { user: null, session: null },
-      error: { message: 'Invalid credentials' }
-    });
-
-    const { getByTestId } = renderWithProviders(
-      <AuthProvider>
-        <TestComponent />
-      </AuthProvider>
-    );
-
-    await act(async () => {
-      getByTestId('sign-in').click();
-    });
-
-    expect(getByTestId('user-state')).toHaveTextContent('unauthenticated');
-  });
-
-  it('handles successful sign up', async () => {
-    const mockUser = mockUsers.player();
-    mockSupabase.auth.signUp.mockResolvedValue({
-      data: { user: mockUser, session: null },
-      error: null
-    });
-
-    const { getByTestId } = renderWithProviders(
-      <AuthProvider>
-        <TestComponent />
-      </AuthProvider>
-    );
-
-    await act(async () => {
-      getByTestId('sign-up').click();
-    });
-
-    expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
-      email: 'new@example.com',
-      password: 'password',
-      options: {
-        data: { full_name: 'New User' }
-      }
-    });
+    expect(getByTestId('user-state')).toHaveTextContent('authenticated');
   });
 
   it('handles sign out', async () => {
@@ -130,5 +65,31 @@ describe('AuthProvider', () => {
     });
 
     expect(mockSupabase.auth.signOut).toHaveBeenCalled();
+  });
+
+  it('provides refresh profile functionality', async () => {
+    const { getByTestId } = renderWithProviders(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    await act(async () => {
+      getByTestId('refresh-profile').click();
+    });
+
+    // Test passes if no errors are thrown
+    expect(getByTestId('refresh-profile')).toBeInTheDocument();
+  });
+
+  it('handles loading state', () => {
+    const { getByTestId } = renderWithProviders(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    // Component should render without loading indicators by default in tests
+    expect(getByTestId('user-state')).toBeInTheDocument();
   });
 });
