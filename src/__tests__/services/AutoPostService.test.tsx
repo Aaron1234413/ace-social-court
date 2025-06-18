@@ -7,7 +7,7 @@ const mockTemplates = [
   {
     id: 'template-1',
     title: 'Workout Template',
-    category: 'workout',
+    category: 'workout' as const,
     content_template: 'Had a great training session today working on {focus_area}!',
     placeholders: ['focus_area'],
     is_active: true,
@@ -17,7 +17,7 @@ const mockTemplates = [
   {
     id: 'template-2',
     title: 'Progress Template',
-    category: 'progress',
+    category: 'progress' as const,
     content_template: 'Making progress on {technical_focus} - {achievement}!',
     placeholders: ['technical_focus', 'achievement'],
     is_active: true,
@@ -33,7 +33,7 @@ const mockSessionData: SessionFormValues = {
   next_steps: [{ description: 'work on consistency' }],
   session_note: 'Great session today',
   physical_data: { 
-    energyLevel: 8,
+    energyLevel: '8',
     courtCoverage: 9,
     endurance: 7,
     strengthFeeling: 8
@@ -177,7 +177,7 @@ describe('AutoPostService', () => {
     it('selects different templates with rotation', async () => {
       const multipleTemplates = [
         mockTemplates[0],
-        { ...mockTemplates[1], category: 'workout' },
+        { ...mockTemplates[1], category: 'workout' as const },
       ];
 
       const mockMultipleQueryBuilder = {
@@ -279,7 +279,7 @@ describe('AutoPostService', () => {
         single: jest.fn().mockReturnThis(),
         maybeSingle: jest.fn().mockReturnThis(),
         then: jest.fn().mockResolvedValue({
-          data: [{ ...mockTemplates[0], category: 'match' }],
+          data: [{ ...mockTemplates[0], category: 'match' as const }],
           error: null,
         }),
       };

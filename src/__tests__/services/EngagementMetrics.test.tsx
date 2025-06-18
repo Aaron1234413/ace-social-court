@@ -1,3 +1,4 @@
+
 import { EngagementMetrics } from '@/services/EngagementMetrics';
 import { mockSupabase } from '../mocks/supabase';
 
@@ -314,35 +315,57 @@ describe('EngagementMetrics', () => {
   describe('getBaselineData', () => {
     it('returns baseline data successfully', async () => {
       // Mock ambassador reactions query
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            gte: jest.fn().mockResolvedValue({
-              data: [
-                { reaction_type: 'heart' },
-                { reaction_type: 'fire' },
-                { reaction_type: 'fire' },
-              ],
-              error: null,
-            }),
-          }),
+      const mockQueryBuilder1 = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: [
+            { reaction_type: 'heart' },
+            { reaction_type: 'fire' },
+            { reaction_type: 'fire' },
+          ],
+          error: null,
         }),
-      });
+      };
 
       // Mock coach engagement query
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            gte: jest.fn().mockResolvedValue({
-              data: [
-                { metric_type: 'dashboard_usage' },
-                { metric_type: 'dashboard_usage' },
-              ],
-              error: null,
-            }),
-          }),
+      const mockQueryBuilder2 = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: [
+            { metric_type: 'dashboard_usage' },
+            { metric_type: 'dashboard_usage' },
+          ],
+          error: null,
         }),
-      });
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce(mockQueryBuilder1)
+        .mockReturnValueOnce(mockQueryBuilder2);
 
       const baseline = await EngagementMetrics.getBaselineData();
 
@@ -356,13 +379,24 @@ describe('EngagementMetrics', () => {
     });
 
     it('returns fallback data on error', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            gte: jest.fn().mockRejectedValue(new Error('Database error')),
-          }),
-        }),
-      });
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockRejectedValue(new Error('Database error')),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       const baseline = await EngagementMetrics.getBaselineData();
 
@@ -420,18 +454,27 @@ describe('EngagementMetrics', () => {
     });
 
     it('handles database errors', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            gte: jest.fn().mockReturnValue({
-              order: jest.fn().mockResolvedValue({
-                data: null,
-                error: { message: 'Database error' },
-              }),
-            }),
-          }),
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       const stats = await EngagementMetrics.getUserEngagementStats('user-1');
 

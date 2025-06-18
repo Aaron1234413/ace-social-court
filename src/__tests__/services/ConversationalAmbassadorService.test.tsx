@@ -48,6 +48,9 @@ jest.mock('@/services/EnhancedAmbassadorProfileService', () => ({
           updated_at: new Date().toISOString(),
           ai_personality_type: 'encouraging',
           is_ai_user: true,
+          location_name: 'Tennis Academy',
+          stats: { total_posts: 150, avg_engagement: 12.5 },
+          achievements: [{ title: 'Expert Coach', date: '2024-01-01' }],
         },
         { 
           id: 'ai-2', 
@@ -61,6 +64,9 @@ jest.mock('@/services/EnhancedAmbassadorProfileService', () => ({
           updated_at: new Date().toISOString(),
           ai_personality_type: 'analytical',
           is_ai_user: true,
+          location_name: 'Tennis Center',
+          stats: { total_posts: 120, avg_engagement: 10.8 },
+          achievements: [{ title: 'Mental Game Expert', date: '2024-01-01' }],
         },
       ]),
       getAIUserProfile: jest.fn(),
@@ -196,6 +202,9 @@ describe('ConversationalAmbassadorService', () => {
         updated_at: new Date().toISOString(),
         ai_personality_type: 'encouraging',
         is_ai_user: true,
+        location_name: 'Tennis Academy',
+        stats: { total_posts: 150, avg_engagement: 12.5 },
+        achievements: [{ title: 'Expert Coach', date: '2024-01-01' }],
       };
       mockProfileService.getAIUserProfile.mockResolvedValue(mockUser);
 
