@@ -29,17 +29,17 @@ const mockSessionData: SessionFormValues = {
   next_steps: [{ description: 'work on consistency' }],
   session_note: 'Great session today',
   physical_data: { 
-    energyLevel: 'high',
-    courtCoverage: 'excellent',
-    endurance: 'good',
-    strengthFeeling: 'strong'
+    energyLevel: 8,
+    courtCoverage: 9,
+    endurance: 7,
+    strengthFeeling: 8
   },
   mental_data: { 
     confidence: 8, 
     motivation: 9,
     emotionEmoji: 'happy',
-    anxiety: 'low',
-    focus: 'high'
+    anxiety: 3,
+    focus: 8
   },
   technical_data: { selectedStrokes: { forehand: true } },
   coach_ids: [],
