@@ -36,8 +36,32 @@ jest.mock('@/services/EnhancedAmbassadorProfileService', () => ({
     getInstance: jest.fn(() => ({
       createEnhancedAIProfiles: jest.fn(),
       getAllAIUsers: jest.fn(() => [
-        { id: 'ai-1', full_name: 'AI Coach 1' },
-        { id: 'ai-2', full_name: 'AI Coach 2' },
+        { 
+          id: 'ai-1', 
+          full_name: 'AI Coach 1',
+          username: 'ai_coach_1',
+          bio: 'AI Tennis Coach',
+          user_type: 'coach',
+          skill_level: 'professional',
+          specialization: ['technique'],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          ai_personality_type: 'encouraging',
+          is_ai_user: true,
+        },
+        { 
+          id: 'ai-2', 
+          full_name: 'AI Coach 2',
+          username: 'ai_coach_2',
+          bio: 'AI Tennis Coach',
+          user_type: 'coach',
+          skill_level: 'professional',
+          specialization: ['mental'],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          ai_personality_type: 'analytical',
+          is_ai_user: true,
+        },
       ]),
       getAIUserProfile: jest.fn(),
     })),
@@ -160,7 +184,19 @@ describe('ConversationalAmbassadorService', () => {
 
   describe('AI user management', () => {
     it('gets AI user by ID', async () => {
-      const mockUser = { id: 'ai-1', full_name: 'AI Coach 1' };
+      const mockUser = { 
+        id: 'ai-1', 
+        full_name: 'AI Coach 1',
+        username: 'ai_coach_1',
+        bio: 'AI Tennis Coach',
+        user_type: 'coach',
+        skill_level: 'professional',
+        specialization: ['technique'],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ai_personality_type: 'encouraging',
+        is_ai_user: true,
+      };
       mockProfileService.getAIUserProfile.mockResolvedValue(mockUser);
 
       const user = await service.getAIUserById('ai-1');

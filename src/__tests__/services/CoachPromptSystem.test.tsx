@@ -50,11 +50,15 @@ describe('CoachPromptSystem', () => {
       userType: 'coach' as const,
       isCoach: true,
       userFollowings: [],
+      relationship: 'following' as const,
+      postType: 'training' as const,
     };
     const playerContext = {
       userType: 'player' as const,
       isCoach: false,
       userFollowings: [],
+      relationship: 'none' as const,
+      postType: 'training' as const,
     };
 
     it('generates upgrade prompt for non-coaches', () => {

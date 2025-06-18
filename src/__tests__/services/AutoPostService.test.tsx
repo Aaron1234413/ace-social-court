@@ -11,6 +11,8 @@ const mockTemplates = [
     content_template: 'Had a great training session today working on {focus_area}!',
     placeholders: ['focus_area'],
     is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
     id: 'template-2',
@@ -19,6 +21,8 @@ const mockTemplates = [
     content_template: 'Making progress on {technical_focus} - {achievement}!',
     placeholders: ['technical_focus', 'achievement'],
     is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
 ];
 

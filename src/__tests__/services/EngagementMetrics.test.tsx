@@ -1,4 +1,3 @@
-
 import { EngagementMetrics } from '@/services/EngagementMetrics';
 import { mockSupabase } from '../mocks/supabase';
 
@@ -9,11 +8,26 @@ describe('EngagementMetrics', () => {
 
   describe('trackMetric', () => {
     it('tracks engagement metric successfully', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       await EngagementMetrics.trackMetric('user-1', 'post_reaction', {
         post_id: 'post-1',
@@ -21,7 +35,7 @@ describe('EngagementMetrics', () => {
       });
 
       expect(mockSupabase.from).toHaveBeenCalledWith('engagement_metrics');
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         user_id: 'user-1',
         metric_type: 'post_reaction',
         metric_data: {
@@ -32,27 +46,57 @@ describe('EngagementMetrics', () => {
     });
 
     it('handles database errors gracefully', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
           error: { message: 'Database error' },
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       // Should not throw
       await EngagementMetrics.trackMetric('user-1', 'post_reaction', {});
-      expect(mockSupabase.from().insert).toHaveBeenCalled();
+      expect(mockQueryBuilder.insert).toHaveBeenCalled();
     });
   });
 
   describe('trackPostReaction', () => {
     it('tracks post reaction with correct data', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      });
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({ error: null }),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       await EngagementMetrics.trackPostReaction('user-1', 'post-1', 'fire');
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         user_id: 'user-1',
         metric_type: 'post_reaction',
         metric_data: {
@@ -66,13 +110,28 @@ describe('EngagementMetrics', () => {
 
   describe('trackReactionComment', () => {
     it('tracks reaction comment with quality score', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      });
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({ error: null }),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       await EngagementMetrics.trackReactionComment('user-1', 'reaction-1', 150);
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         user_id: 'user-1',
         metric_type: 'reaction_comment',
         metric_data: {
@@ -85,9 +144,24 @@ describe('EngagementMetrics', () => {
     });
 
     it('calculates quality scores correctly', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      });
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({ error: null }),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       // Test different comment lengths
       await EngagementMetrics.trackReactionComment('user-1', 'reaction-1', 5); // Should be score 1
@@ -96,7 +170,7 @@ describe('EngagementMetrics', () => {
       await EngagementMetrics.trackReactionComment('user-1', 'reaction-4', 150); // Should be score 4
       await EngagementMetrics.trackReactionComment('user-1', 'reaction-5', 250); // Should be score 5
 
-      const calls = (mockSupabase.from().insert as jest.Mock).mock.calls;
+      const calls = (mockQueryBuilder.insert as jest.Mock).mock.calls;
       expect(calls[0][0].metric_data.quality_score).toBe(1);
       expect(calls[1][0].metric_data.quality_score).toBe(2);
       expect(calls[2][0].metric_data.quality_score).toBe(3);
@@ -107,13 +181,28 @@ describe('EngagementMetrics', () => {
 
   describe('trackPromptClick', () => {
     it('tracks prompt click actions', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      });
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({ error: null }),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       await EngagementMetrics.trackPromptClick('user-1', 'coaching_tip', 'clicked');
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         user_id: 'user-1',
         metric_type: 'prompt_click',
         metric_data: {
@@ -127,13 +216,28 @@ describe('EngagementMetrics', () => {
 
   describe('trackDashboardUsage', () => {
     it('tracks coach dashboard usage', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      });
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({ error: null }),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       await EngagementMetrics.trackDashboardUsage('coach-1', 'filters', 'applied');
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         user_id: 'coach-1',
         metric_type: 'dashboard_usage',
         metric_data: {
@@ -147,13 +251,28 @@ describe('EngagementMetrics', () => {
 
   describe('trackPrivacyIntent', () => {
     it('tracks privacy intent with conversion', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      });
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({ error: null }),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       await EngagementMetrics.trackPrivacyIntent('user-1', 'public', 'private');
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         user_id: 'user-1',
         metric_type: 'privacy_intent',
         metric_data: {
@@ -166,13 +285,28 @@ describe('EngagementMetrics', () => {
     });
 
     it('tracks conversion correctly when intent matches final action', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      });
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({ error: null }),
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       await EngagementMetrics.trackPrivacyIntent('user-1', 'public', 'public');
 
-      const callData = (mockSupabase.from().insert as jest.Mock).mock.calls[0][0];
+      const callData = (mockQueryBuilder.insert as jest.Mock).mock.calls[0][0];
       expect(callData.metric_data.conversion).toBe(true);
     });
   });
@@ -252,18 +386,27 @@ describe('EngagementMetrics', () => {
         { metric_type: 'privacy_intent' },
       ];
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            gte: jest.fn().mockReturnValue({
-              order: jest.fn().mockResolvedValue({
-                data: mockMetrics,
-                error: null,
-              }),
-            }),
-          }),
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: mockMetrics,
+          error: null,
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
 
       const stats = await EngagementMetrics.getUserEngagementStats('user-1', 7);
 
