@@ -65,16 +65,27 @@ describe('AutoPostService', () => {
 
   describe('generatePostSuggestions', () => {
     beforeEach(() => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockResolvedValue({
-              data: mockTemplates,
-              error: null,
-            }),
-          }),
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: mockTemplates,
+          error: null,
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
     });
 
     it('generates post suggestions successfully', async () => {
@@ -101,16 +112,27 @@ describe('AutoPostService', () => {
     });
 
     it('returns empty array when no templates found', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockResolvedValue({
-              data: [],
-              error: null,
-            }),
-          }),
+      const mockEmptyQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockEmptyQueryBuilder);
 
       const suggestions = await autoPostService.generatePostSuggestions(
         mockSessionData,
@@ -121,13 +143,24 @@ describe('AutoPostService', () => {
     });
 
     it('handles database errors gracefully', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockRejectedValue(new Error('Database error')),
-          }),
-        }),
-      });
+      const mockErrorQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockRejectedValue(new Error('Database error')),
+      };
+
+      mockSupabase.from.mockReturnValue(mockErrorQueryBuilder);
 
       const suggestions = await autoPostService.generatePostSuggestions(
         mockSessionData,
@@ -143,16 +176,27 @@ describe('AutoPostService', () => {
         { ...mockTemplates[1], category: 'workout' },
       ];
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockResolvedValue({
-              data: multipleTemplates,
-              error: null,
-            }),
-          }),
+      const mockMultipleQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: multipleTemplates,
+          error: null,
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockMultipleQueryBuilder);
 
       // Generate suggestions multiple times to test rotation
       const suggestions1 = await autoPostService.generatePostSuggestions(
@@ -216,30 +260,56 @@ describe('AutoPostService', () => {
         focus_areas: ['match_preparation'],
       };
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            order: jest.fn().mockResolvedValue({
-              data: [{ ...mockTemplates[0], category: 'match' }],
-              error: null,
-            }),
-          }),
+      const mockMatchQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: [{ ...mockTemplates[0], category: 'match' }],
+          error: null,
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockMatchQueryBuilder);
 
       await autoPostService.generatePostSuggestions(matchPrepData, 'user-1');
 
-      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith('category', 'match');
+      expect(mockMatchQueryBuilder.eq).toHaveBeenCalledWith('category', 'match');
     });
   });
 
   describe('saveGeneratedPost', () => {
     it('saves post successfully', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({
+      const mockInsertQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockInsertQueryBuilder);
 
       const suggestion = {
         id: 'suggestion-1',
@@ -253,7 +323,7 @@ describe('AutoPostService', () => {
       const result = await autoPostService.saveGeneratedPost(suggestion, 'user-1');
 
       expect(result).toBe(true);
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockInsertQueryBuilder.insert).toHaveBeenCalledWith({
         user_id: 'user-1',
         content: 'Generated content',
         privacy_level: 'public',
@@ -264,11 +334,26 @@ describe('AutoPostService', () => {
     });
 
     it('handles save errors gracefully', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({
+      const mockErrorInsertQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
           error: { message: 'Database error' },
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockErrorInsertQueryBuilder);
 
       const suggestion = {
         id: 'suggestion-1',

@@ -66,40 +66,53 @@ describe('AlertEngine', () => {
 
   describe('generateAlerts', () => {
     beforeEach(() => {
-      // Mock students query
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: mockStudents,
-            error: null,
-          }),
+      // Mock students query with complete query builder
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: mockStudents,
+          error: null,
         }),
-      });
+      };
+      
+      mockSupabase.from.mockReturnValue(mockQueryBuilder);
     });
 
     it('generates alerts for students successfully', async () => {
-      // Mock sessions queries
-      mockSupabase.from
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
-              data: mockStudents,
-              error: null,
-            }),
-          }),
-        })
-        .mockReturnValue({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              gte: jest.fn().mockReturnValue({
-                order: jest.fn().mockResolvedValue({
-                  data: [],
-                  error: null,
-                }),
-              }),
-            }),
-          }),
-        });
+      // Mock sessions queries with complete query builder
+      const mockSessionsQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValue(mockSessionsQueryBuilder);
 
       const result = await AlertEngine.generateAlerts('coach-1');
 
@@ -110,14 +123,27 @@ describe('AlertEngine', () => {
     });
 
     it('handles database errors gracefully', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'Database error' },
-          }),
+      const mockErrorQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValue(mockErrorQueryBuilder);
 
       await expect(AlertEngine.generateAlerts('coach-1')).rejects.toThrow();
     });
@@ -128,27 +154,49 @@ describe('AlertEngine', () => {
         created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(), // 8 days ago
       };
 
+      const mockNewStudentQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: [newStudent],
+          error: null,
+        }),
+      };
+
+      const mockSessionsQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis(),
+        then: jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+        }),
+      };
+
       mockSupabase.from
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
-              data: [newStudent],
-              error: null,
-            }),
-          }),
-        })
-        .mockReturnValue({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              gte: jest.fn().mockReturnValue({
-                order: jest.fn().mockResolvedValue({
-                  data: [],
-                  error: null,
-                }),
-              }),
-            }),
-          }),
-        });
+        .mockReturnValueOnce(mockNewStudentQueryBuilder)
+        .mockReturnValue(mockSessionsQueryBuilder);
 
       const result = await AlertEngine.generateAlerts('coach-1');
 
