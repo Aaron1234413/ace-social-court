@@ -18,10 +18,13 @@ export const mockSupabase = {
     eq: jest.fn().mockReturnThis(),
     neq: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     single: jest.fn().mockReturnThis(),
     maybeSingle: jest.fn().mockReturnThis(),
+    then: jest.fn().mockReturnThis(),
   })),
   channel: jest.fn(() => ({
     on: jest.fn().mockReturnThis(),

@@ -28,8 +28,19 @@ const mockSessionData: SessionFormValues = {
   drills: [{ name: 'forehand practice', rating: 8 }],
   next_steps: [{ description: 'work on consistency' }],
   session_note: 'Great session today',
-  physical_data: { energyLevel: 'high' },
-  mental_data: { confidence: 8, motivation: 9 },
+  physical_data: { 
+    energyLevel: 'high',
+    courtCoverage: 'excellent',
+    endurance: 'good',
+    strengthFeeling: 'strong'
+  },
+  mental_data: { 
+    confidence: 8, 
+    motivation: 9,
+    emotionEmoji: 'happy',
+    anxiety: 'low',
+    focus: 'high'
+  },
   technical_data: { selectedStrokes: { forehand: true } },
   coach_ids: [],
   notify_coaches: false,
