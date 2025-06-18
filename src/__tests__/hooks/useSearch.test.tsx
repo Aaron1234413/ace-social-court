@@ -1,5 +1,6 @@
 
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
+import { waitFor } from '@testing-library/dom';
 import { useSearch } from '@/hooks/useSearch';
 import { mockSupabase } from '../mocks/supabase';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

@@ -1,11 +1,10 @@
-
 import { renderWithProviders } from '../../utils/test-utils';
 import { ReactionBar } from '@/components/social/ReactionBar';
 import { mockPosts } from '../../mocks/data/posts';
 import { mockUsers } from '../../mocks/data/users';
 import { mockSupabase } from '../../mocks/supabase';
-import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { waitFor } from '@testing-library/dom';
 
 describe('ReactionBar', () => {
   const mockPost = mockPosts.standard();

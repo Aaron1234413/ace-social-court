@@ -1,5 +1,6 @@
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
+import { waitFor } from '@testing-library/dom';
 import { usePosts } from '@/hooks/use-posts';
 import { mockSupabase } from '../mocks/supabase';
 import { mockPosts } from '../mocks/data/posts';

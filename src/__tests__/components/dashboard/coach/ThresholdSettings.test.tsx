@@ -1,8 +1,8 @@
 
 import { renderWithProviders } from '../../../utils/test-utils';
 import { ThresholdSettings } from '@/components/dashboard/coach/ThresholdSettings';
-import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { waitFor } from '@testing-library/dom';
 import { AlertThresholds } from '@/services/AlertEngine';
 
 describe('ThresholdSettings', () => {

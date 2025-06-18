@@ -1,9 +1,9 @@
-
 import { renderWithProviders } from '../utils/test-utils';
 import { AuthProvider, useAuth } from '@/components/AuthProvider';
 import { mockSupabase } from '../mocks/supabase';
 import { mockUsers } from '../mocks/data/users';
-import { act, waitFor } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import { waitFor } from '@testing-library/dom';
 
 // Test component to access auth context
 const TestComponent = () => {

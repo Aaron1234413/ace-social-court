@@ -1,9 +1,8 @@
-
 import { renderWithProviders } from '../../utils/test-utils';
 import NotificationsList from '@/components/notifications/NotificationsList';
 import { mockSupabase } from '../../mocks/supabase';
 import { mockUsers } from '../../mocks/data/users';
-import { waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/dom';
 
 describe('NotificationsList', () => {
   const mockUser = mockUsers.player();
