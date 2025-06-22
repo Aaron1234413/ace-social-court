@@ -21,8 +21,8 @@ interface FeedCascadeState {
   errorDetails?: string[];
 }
 
-export const useFeedCascade = () => {
-  console.log('🎣 useFeedCascade hook initializing...');
+export const useFeedCascade = (p0: string[]) => {
+  // console.log('🎣 useFeedCascade hook initializing...');
   
   const { user } = useAuth();
   const { followingCount, following } = useUserFollows();
@@ -41,6 +41,7 @@ export const useFeedCascade = () => {
     errorDetails: []
   });
 
+
   console.log('📊 useFeedCascade state:', {
     postsCount: state.posts.length,
     optimisticCount: optimisticPosts.length,
@@ -56,18 +57,11 @@ export const useFeedCascade = () => {
 
   const loadPosts = useCallback(async (page: number = 0, existingPosts: Post[] = []) => {
     if (!user) {
-      console.log('❌ No user found - cannot load posts');
+      // console.log('❌ No user found - cannot load posts');
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
-    console.log('🔄 STARTING ENHANCED FEED LOAD WITH DEBUGGING', { 
-      page, 
-      existingCount: existingPosts.length,
-      followingCount: followingUserIds.length,
-      userId: user.id,
-      timestamp: new Date().toISOString()
-    });
 
     try {
       // Always show loading for page 0
@@ -82,15 +76,6 @@ export const useFeedCascade = () => {
         existingPosts
       );
 
-      console.log('📊 ENHANCED CASCADE RESULT WITH FULL DEBUGGING:', {
-        postCount: result.posts.length,
-        metrics: result.metrics,
-        debugData: result.debugData,
-        ambassadorPercentage: Math.round(result.ambassadorPercentage * 100) + '%',
-        hasErrors: result.hasErrors,
-        errorCount: result.errorDetails?.length || 0
-      });
-
       // Log any errors found
       if (result.hasErrors && result.errorDetails) {
         console.warn('⚠️ FEED ERRORS DETECTED:', result.errorDetails);
@@ -99,7 +84,7 @@ export const useFeedCascade = () => {
       // Fetch author profiles for new posts with enhanced error handling
       const newPosts = result.posts.slice(existingPosts.length);
       if (newPosts.length > 0) {
-        console.log('👤 Fetching author profiles for', newPosts.length, 'new posts');
+        // console.log('👤 Fetching author profiles for', newPosts.length, 'new posts');
         
         try {
           const userIds = [...new Set(newPosts.map(post => post.user_id))];
@@ -128,11 +113,11 @@ export const useFeedCascade = () => {
               }
             });
 
-            console.log('✅ Author profiles loaded:', {
-              profilesFound: profilesData.length,
-              userIds: userIds.length,
-              postsUpdated: result.posts.filter(p => p.author).length
-            });
+            // console.log('✅ Author profiles loaded:', {
+            //   profilesFound: profilesData.length,
+            //   userIds: userIds.length,
+            //   postsUpdated: result.posts.filter(p => p.author).length
+            // });
           }
         } catch (profileError) {
           console.error('❌ Profile fetching failed:', profileError);
@@ -140,7 +125,7 @@ export const useFeedCascade = () => {
         }
 
         // Get engagement counts with timeout protection
-        console.log('📈 Loading engagement counts for new posts...');
+        // console.log('📈 Loading engagement counts for new posts...');
         const engagementStart = performance.now();
         
         const engagementPromises = newPosts.map(async (post) => {
@@ -153,7 +138,7 @@ export const useFeedCascade = () => {
             post.likes_count = likesData || 0;
             post.comments_count = commentsData || 0;
           } catch (error) {
-            console.warn('Failed to get engagement counts for post:', post.id, error);
+            // console.warn('Failed to get engagement counts for post:', post.id, error);
             post.likes_count = 0;
             post.comments_count = 0;
           }
@@ -163,7 +148,7 @@ export const useFeedCascade = () => {
         try {
           await Promise.all(engagementPromises);
           const engagementTime = performance.now() - engagementStart;
-          console.log('✅ Engagement counts loaded in', Math.round(engagementTime) + 'ms');
+          // console.log('✅ Engagement counts loaded in', Math.round(engagementTime) + 'ms');
 
           // Record analytics
           const analyticsService = FeedAnalyticsService.getInstance();
@@ -177,23 +162,28 @@ export const useFeedCascade = () => {
         }
       }
 
-      setState(prev => ({
-        ...prev,
-        posts: result.posts,
-        hasMore: result.posts.length >= 8 && page < 5, // Limit to 5 pages max
-        metrics: result.metrics,
-        ambassadorPercentage: result.ambassadorPercentage,
-        debugData: result.debugData,
-        hasErrors: result.hasErrors,
-        errorDetails: result.errorDetails,
-        isLoading: false // Always turn off loading when done
-      }));
+      setState(prev => {
+        const shouldUpdate =
+          newPosts.length > 0 ||
+          result.ambassadorPercentage !== prev.ambassadorPercentage ||
+          result.hasErrors !== prev.hasErrors ||
+          !_.isEqual(result.metrics, prev.metrics);
 
-      console.log('✅ FEED LOAD COMPLETE:', {
-        finalPostCount: result.posts.length,
-        loadingTurnedOff: true,
-        hasErrors: result.hasErrors
+        if (!shouldUpdate) return prev;
+
+        return {
+          ...prev,
+          posts: [...prev.posts, ...newPosts],
+          metrics: result.metrics,
+          ambassadorPercentage: result.ambassadorPercentage,
+          debugData: result.debugData,
+          hasErrors: result.hasErrors,
+          errorDetails: result.errorDetails,
+          isLoading: false
+        };
       });
+
+
 
     } catch (error) {
       console.error('💥 CRITICAL FEED LOAD FAILURE:', {
@@ -228,7 +218,7 @@ export const useFeedCascade = () => {
   }, [state.isLoadingMore, state.hasMore, state.page, state.posts, loadPosts]);
 
   const refresh = useCallback(async () => {
-    console.log('🔄 REFRESHING FEED - RESET TO LOADING STATE');
+    // console.log('🔄 REFRESHING FEED - RESET TO LOADING STATE');
     // Clear optimistic posts on refresh
     clearAllOptimistic();
     setState(prev => ({ 
@@ -246,29 +236,31 @@ export const useFeedCascade = () => {
 
   // Function to add a new post optimistically
   const addNewPost = useCallback((post: Post) => {
-    console.log('✨ Adding optimistic post to feed:', post.id);
+    // console.log('✨ Adding optimistic post to feed:', post.id);
     addOptimisticPost(post);
   }, [addOptimisticPost]);
 
-  // Initial load with enhanced logging
   useEffect(() => {
-    if (user) {
-      console.log('🎬 INITIAL FEED LOAD TRIGGERED', {
-        userId: user.id,
-        followingCount: followingUserIds.length
-      });
-      refresh();
-    } else {
-      console.log('⏳ Waiting for user authentication...');
-      setState(prev => ({ ...prev, isLoading: false }));
-    }
-  }, [user, followingCount]); // Reload when follow count changes
+    const hasFollowing = followingUserIds.length > 0;
 
-  console.log('📤 useFeedCascade returning:', {
-    postsCount: allPosts.length,
+    if (user && hasFollowing) {
+      refresh();
+    }
+  }, [user?.id, followingUserIds.join(',')]);
+
+  useEffect(() => {
+    console.log('📌 following updated:', following.map(f => f.following_id));
+  }, [following]);
+
+
+  useEffect(() => {
+  console.log("📡 useFeedCascade state updated", {
     isLoading: state.isLoading,
-    hasErrors: state.hasErrors
+    postCount: state.posts.length,
+    hasMore: state.hasMore
   });
+}, [state]);
+
 
   return {
     posts: allPosts,

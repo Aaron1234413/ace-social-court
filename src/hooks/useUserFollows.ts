@@ -15,7 +15,7 @@ export function useUserFollows() {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .select('*')
         .eq('following_id', user.id);
 
@@ -35,7 +35,7 @@ export function useUserFollows() {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .select('*')
         .eq('follower_id', user.id);
 
@@ -54,7 +54,7 @@ export function useUserFollows() {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .insert({
           follower_id: user.id,
           following_id: targetUserId,
@@ -78,7 +78,7 @@ export function useUserFollows() {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .delete()
         .eq('follower_id', user.id)
         .eq('following_id', targetUserId);
@@ -119,7 +119,7 @@ export function useIsFollowing(targetUserId: string) {
       if (!user?.id || !targetUserId) return false;
 
       const { data, error } = await supabase
-        .from('user_follows')
+        .from('followers')
         .select('id')
         .eq('follower_id', user.id)
         .eq('following_id', targetUserId)

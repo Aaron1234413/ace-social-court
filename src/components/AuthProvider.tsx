@@ -208,15 +208,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider 
-      value={{ 
-        user, 
-        session, 
-        profile,
-        isLoading: isLoading || (!!user && !isProfileChecked), 
-        isProfileComplete,
-        signOut,
-        refreshProfile
-      }}
+      value={React.useMemo(
+        () => ({
+          user,
+          session,
+          profile,
+          isLoading: isLoading || (!!user && !isProfileChecked),
+          isProfileComplete,
+          signOut,
+          refreshProfile
+        }),
+        [user, session, profile, isLoading, isProfileChecked, signOut, refreshProfile]
+      )}
     >
       {children}
     </AuthContext.Provider>

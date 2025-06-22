@@ -80,7 +80,7 @@ const privacyLevelColors = {
 const postSchema = z.object({
   content: z.string().min(3, { message: "Post content must be at least 3 characters." }),
   privacy_level: z.enum(['public', 'private', 'public_highlights']).default('public').optional(),
-  template_id: z.string().optional(),
+  template_id: z.string().nullable().optional(),
 });
 
 interface PostComposerProps {
