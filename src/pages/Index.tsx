@@ -43,7 +43,7 @@ const Index = () => {
             <div className="space-y-4">
               <p className="text-primary font-semibold tracking-wide uppercase animate-fade-in">Welcome to rallypointx</p>
               <h1 className="text-5xl md:text-7xl font-bold">
-                <span className="block">Badminton.</span>
+                <span className="block">Tennis.</span>
                 <span className="block bg-gradient-to-r from-tennis-green via-tennis-blue to-tennis-accent bg-clip-text text-transparent">Together.</span>
               </h1>
             </div>
