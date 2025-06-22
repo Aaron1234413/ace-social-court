@@ -36,286 +36,133 @@ export class FeedQueryCascade {
   private static readonly POSTS_PER_PAGE = 12;
   private static readonly QUERY_TIMEOUT = 5000;
 
-  static async executeQueryCascade(
-    userId: string,
-    userFollowings: string[],
-    page: number = 0,
-    existingPosts: Post[] = []
-  ): Promise<CascadeResult> {
-    console.log('🚀 STARTING AMBASSADOR-PRIORITY FEED QUERY CASCADE', { 
-      userId, 
-      followingCount: userFollowings.length,
-      page,
-      existingPostCount: existingPosts.length,
-      guaranteedAmbassadorPercentage: this.AMBASSADOR_GUARANTEED_PERCENTAGE * 100 + '%'
-    });
+ static async executeQueryCascade(
+  userId: string,
+  followingUserIds: string[],
+  page: number,
+  existingPosts: Post[]
+): Promise<{
+  posts: Post[];
+  metrics: any[];
+  ambassadorPercentage: number;
+  debugData?: any;
+  hasErrors: boolean;
+  errorDetails?: string[];
+}> {
+  const PAGE_SIZE = 30;
+  const followedUserIdsWithSelf = [...followingUserIds, userId];
 
-    const startTime = performance.now();
-    const metrics: CascadeMetrics[] = [];
-    let allPosts: Post[] = [...existingPosts];
-    const offset = page * this.POSTS_PER_PAGE;
-    let totalCacheHits = 0;
-    let totalQueries = 0;
-    const debugData: any = { 
-      steps: [],
-      errors: [],
-      queries: [],
-      ambassadorPriority: true
-    };
-    const errorDetails: string[] = [];
 
-    // Ambassador metrics tracking
-    let ambassadorMetrics = {
-      totalAmbassadorPosts: 0,
-      newAmbassadorPosts: 0,
-      rotatedOutPosts: 0,
-      guaranteedPercentage: this.AMBASSADOR_GUARANTEED_PERCENTAGE
-    };
+  try {
+    const lastCreatedAt = existingPosts.length > 0
+      ? existingPosts[existingPosts.length - 1].created_at
+      : new Date().toISOString();
 
-    try {
-      // STEP 1: PRIORITY AMBASSADOR CONTENT (ALWAYS FIRST)
-      console.log('👑 STEP 1: Loading PRIORITY ambassador content (35% guaranteed)');
-      debugData.steps.push('Starting priority ambassador query - 35% guaranteed');
-      
-      const ambassadorStart = performance.now();
-      const ambassadorResult = await this.queryAmbassadorContentPriority();
-      totalQueries++;
-      
-      const ambassadorMetric = {
-        level: 'ambassador_priority' as const,
-        postCount: ambassadorResult.posts.length,
-        queryTime: performance.now() - ambassadorStart,
-        source: 'priority_ambassadors',
-        cacheHit: false,
-        errorCount: ambassadorResult.errors.length,
-        debugInfo: {
-          ...ambassadorResult.debugInfo,
-          guaranteedPercentage: this.AMBASSADOR_GUARANTEED_PERCENTAGE,
-          priorityLoading: true
-        }
-      };
-      
-      metrics.push(ambassadorMetric);
-      allPosts.push(...ambassadorResult.posts);
-      debugData.queries.push(ambassadorResult.debugInfo);
-      
-      // Update ambassador metrics
-      ambassadorMetrics.totalAmbassadorPosts = ambassadorResult.posts.length;
-      ambassadorMetrics.newAmbassadorPosts = ambassadorResult.debugInfo?.newPosts || 0;
-      ambassadorMetrics.rotatedOutPosts = ambassadorResult.debugInfo?.rotatedOut || 0;
-      
-      if (ambassadorResult.errors.length > 0) {
-        errorDetails.push(...ambassadorResult.errors);
-        debugData.errors.push(...ambassadorResult.errors);
-      }
+    // === 1. Fetch posts from followed users
+    const { data: userPosts, error: userError } = await supabase
+      .from('posts')
+      .select('*')
+      .in('user_id', followingUserIds)
+      .lt('created_at', lastCreatedAt)
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE);
 
-      console.log('👑 Priority ambassador content result:', {
-        posts: ambassadorResult.posts.length,
-        guaranteedPercentage: Math.round((ambassadorResult.posts.length / this.POSTS_PER_PAGE) * 100) + '%',
-        newPosts: ambassadorMetrics.newAmbassadorPosts,
-        rotatedOut: ambassadorMetrics.rotatedOutPosts,
-        errors: ambassadorResult.errors.length,
-        time: Math.round(ambassadorMetric.queryTime) + 'ms'
-      });
-
-      // STEP 2: FOLLOWED USERS CONTENT (Secondary Priority)
-      if (userFollowings.length > 0) {
-        console.log('👥 STEP 2: Fetching content from followed users (secondary priority)');
-        debugData.steps.push('Starting followed users query - secondary to ambassadors');
-        
-        const primaryStart = performance.now();
-        const primaryResult = await this.queryPersonalizedContentRobust(userId, userFollowings, offset);
-        totalQueries++;
-        
-        const primaryMetric = {
-          level: 'primary' as const,
-          postCount: primaryResult.posts.length,
-          queryTime: performance.now() - primaryStart,
-          source: 'followed_users_secondary',
-          cacheHit: false,
-          errorCount: primaryResult.errors.length,
-          debugInfo: primaryResult.debugInfo
-        };
-        
-        metrics.push(primaryMetric);
-        allPosts.push(...primaryResult.posts);
-        debugData.queries.push(primaryResult.debugInfo);
-        
-        if (primaryResult.errors.length > 0) {
-          errorDetails.push(...primaryResult.errors);
-          debugData.errors.push(...primaryResult.errors);
-        }
-
-        console.log('👥 Followed users content result:', {
-          posts: primaryResult.posts.length,
-          errors: primaryResult.errors.length,
-          time: Math.round(primaryMetric.queryTime) + 'ms'
-        });
-      } else {
-        console.log('⚠️ No followed users - skipping personalized content');
-        debugData.steps.push('Skipped followed users (none found)');
-      }
-
-      // STEP 3: HIGH-QUALITY PUBLIC CONTENT (Fill remaining slots)
-      const currentAmbassadorCount = allPosts.filter(post => 
-        post.author?.user_type === 'ambassador' || post.is_ambassador_content
-      ).length;
-      
-      const targetTotal = Math.max(this.MIN_POSTS, this.POSTS_PER_PAGE);
-      const guaranteedAmbassadorCount = Math.ceil(targetTotal * this.AMBASSADOR_GUARANTEED_PERCENTAGE);
-      
-      // Only add public content if we need more posts AND we have enough ambassadors
-      if (allPosts.length < targetTotal && currentAmbassadorCount >= guaranteedAmbassadorCount) {
-        console.log('🌐 STEP 3: Adding high-quality public content (after ambassador guarantee met)');
-        debugData.steps.push('Adding public content - ambassador quota satisfied');
-        
-        const fallbackStart = performance.now();
-        const publicResult = await this.queryPublicContentRobust(offset);
-        totalQueries++;
-        
-        const fallbackMetric = {
-          level: 'fallback1' as const,
-          postCount: publicResult.posts.length,
-          queryTime: performance.now() - fallbackStart,
-          source: 'public_content_fill',
-          cacheHit: false,
-          errorCount: publicResult.errors.length,
-          debugInfo: publicResult.debugInfo
-        };
-        
-        metrics.push(fallbackMetric);
-        allPosts.push(...publicResult.posts);
-        debugData.queries.push(publicResult.debugInfo);
-        
-        if (publicResult.errors.length > 0) {
-          errorDetails.push(...publicResult.errors);
-          debugData.errors.push(...publicResult.errors);
-        }
-
-        console.log('🌐 Public content result:', {
-          posts: publicResult.posts.length,
-          errors: publicResult.errors.length,
-          time: Math.round(fallbackMetric.queryTime) + 'ms'
-        });
-      } else if (currentAmbassadorCount < guaranteedAmbassadorCount) {
-        console.log('⚠️ Ambassador quota not met, skipping public content to prioritize ambassadors');
-        debugData.steps.push('Skipped public content - ambassador quota not satisfied');
-      }
-
-      // Remove duplicates but preserve ambassador priority order
-      const uniquePosts = this.removeDuplicatesPreserveOrder(allPosts);
-      console.log('🔧 Removed duplicates (preserving ambassador priority):', {
-        before: allPosts.length,
-        after: uniquePosts.length,
-        removed: allPosts.length - uniquePosts.length
-      });
-
-      // Smart mix content with ambassador priority
-      let finalPosts = uniquePosts;
-      if (uniquePosts.length > 0) {
-        try {
-          const mixedPosts = await this.smartMixContentWithAmbassadorPriority(uniquePosts, userFollowings, userId);
-          if (mixedPosts.length > 0) {
-            finalPosts = mixedPosts;
-            console.log('🎭 Smart mixing applied with ambassador priority');
-          } else {
-            console.warn('⚠️ Smart mixing returned empty - using original posts');
-            debugData.errors.push('Smart mixing returned empty array');
-          }
-        } catch (mixError) {
-          console.error('❌ Smart mixing failed:', mixError);
-          debugData.errors.push(`Smart mixing error: ${mixError.message}`);
-          errorDetails.push(`Smart mixing failed: ${mixError.message}`);
-        }
-      }
-
-      // ABSOLUTE LAST RESORT - Hardcoded content (maintains ambassador priority)
-      if (finalPosts.length === 0) {
-        console.log('🚨 ABSOLUTE EMERGENCY: Creating hardcoded fallback content (ambassador priority)');
-        debugData.steps.push('Using hardcoded fallback content with ambassador priority');
-        
-        finalPosts = this.createHardcodedFallbackContentWithAmbassadors();
-        
-        const hardcodedMetric = {
-          level: 'fallback2' as const,
-          postCount: finalPosts.length,
-          queryTime: 0,
-          source: 'hardcoded_ambassador_priority',
-          cacheHit: false,
-          errorCount: 0,
-          debugInfo: { source: 'hardcoded', reason: 'all_queries_failed', ambassadorPriority: true }
-        };
-        metrics.push(hardcodedMetric);
-      }
-
-      // Final analysis with ambassador priority focus
-      const finalAmbassadorCount = finalPosts.filter(post => 
-        post.author?.user_type === 'ambassador' || post.is_ambassador_content
-      ).length;
-      
-      const ambassadorPercentage = finalPosts.length > 0 
-        ? finalAmbassadorCount / finalPosts.length 
-        : 0;
-
-      // Update final ambassador metrics
-      ambassadorMetrics.totalAmbassadorPosts = finalAmbassadorCount;
-
-      const totalQueryTime = performance.now() - startTime;
-      const cacheHitRate = totalQueries > 0 ? totalCacheHits / totalQueries : 0;
-
-      console.log('✅ AMBASSADOR-PRIORITY FEED QUERY CASCADE COMPLETE:', {
-        totalPosts: finalPosts.length,
-        ambassadorCount: finalAmbassadorCount,
-        ambassadorPercentage: Math.round(ambassadorPercentage * 100) + '%',
-        guaranteedTarget: Math.round(this.AMBASSADOR_GUARANTEED_PERCENTAGE * 100) + '%',
-        ambassadorGuarantee: ambassadorPercentage >= this.AMBASSADOR_GUARANTEED_PERCENTAGE ? '✅ MET' : '⚠️ BELOW TARGET',
-        totalTime: Math.round(totalQueryTime) + 'ms',
-        cascadeLevels: metrics.length,
-        totalErrors: errorDetails.length
-      });
-
-      return {
-        posts: finalPosts,
-        metrics,
-        totalPosts: finalPosts.length,
-        ambassadorPercentage,
-        totalQueryTime,
-        cacheHitRate,
-        debugData,
-        hasErrors: errorDetails.length > 0,
-        errorDetails,
-        ambassadorMetrics
-      };
-
-    } catch (error) {
-      console.error('💥 CRITICAL AMBASSADOR-PRIORITY FEED CASCADE FAILURE:', error);
-      errorDetails.push(`Critical cascade failure: ${error.message}`);
-      
-      // EMERGENCY PROTOCOL - Always return ambassador-heavy content
-      const emergencyPosts = this.createHardcodedFallbackContentWithAmbassadors();
-      
-      return {
-        posts: emergencyPosts,
-        metrics: metrics.map(m => ({ ...m, errorCount: (m.errorCount || 0) + 1 })),
-        totalPosts: emergencyPosts.length,
-        ambassadorPercentage: 0.6, // Emergency content has 60% ambassadors
-        totalQueryTime: performance.now() - startTime,
-        cacheHitRate: 0,
-        debugData: { 
-          ...debugData, 
-          criticalError: error.message,
-          emergencyFallback: true,
-          ambassadorPriority: true
-        },
-        hasErrors: true,
-        errorDetails,
-        ambassadorMetrics: {
-          ...ambassadorMetrics,
-          totalAmbassadorPosts: Math.floor(emergencyPosts.length * 0.6)
-        }
-      };
+    if (userError) {
+      console.warn("❌ Error loading userPosts:", userError.message);
     }
+
+    // === 2. Fetch ambassador posts
+    const { data: ambassadorPosts, error: ambassadorError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('is_ambassador_content', true)
+      .lt('created_at', lastCreatedAt)
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE);
+
+    if (ambassadorError) {
+      console.warn("❌ Error loading ambassadorPosts:", ambassadorError.message);
+    }
+
+    // === 3. Fetch current user's own posts
+    const { data: selfPosts, error: selfError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('user_id', userId)
+      .lt('created_at', lastCreatedAt)
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE);
+
+    if (selfError) {
+      console.warn("❌ Error loading selfPosts:", selfError.message);
+    }
+
+    const taggedSelfPosts = (selfPosts || []).map(p => ({ ...p, source: 'self' }));
+    const taggedFollowedPosts = (userPosts || []).map(p => ({ ...p, source: 'followed' }));
+
+    // === 3. Tag source type
+    const taggedAmbassadorPosts = (ambassadorPosts || []).map(p => ({ ...p, source: 'ambassador' }));
+    const taggedUserPosts = [...taggedSelfPosts, ...taggedFollowedPosts];
+
+    // // === 4. Merge and sort
+    // const combined = [...taggedUserPosts, ...taggedAmbassadorPosts]
+    //   .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    //   .slice(0, PAGE_SIZE);
+
+    // === 4. Merge with controlled ratio (3 user : 1 ambassador)
+    const maxUserPosts = PAGE_SIZE;
+    const maxAmbassadorPosts = Math.floor(PAGE_SIZE / 3);
+
+    // Limit the number of posts taken from each
+    const limitedUserPosts = taggedUserPosts.slice(0, maxUserPosts);
+    const limitedAmbassadorPosts = taggedAmbassadorPosts.slice(0, maxAmbassadorPosts);
+
+    // Interleave posts: 3 user posts followed by 1 ambassador post
+    const combined: Post[] = [];
+    let ui = 0;
+    let ai = 0;
+
+    while (
+      combined.length < PAGE_SIZE &&
+      (ui < limitedUserPosts.length || ai < limitedAmbassadorPosts.length)
+    ) {
+      // Add up to 3 user posts
+      for (let i = 0; i < 3 && ui < limitedUserPosts.length && combined.length < PAGE_SIZE; i++) {
+        combined.push(limitedUserPosts[ui++]);
+      }
+
+      // Add 1 ambassador post
+      if (ai < limitedAmbassadorPosts.length && combined.length < PAGE_SIZE) {
+        combined.push(limitedAmbassadorPosts[ai++]);
+      }
+    }
+
+    // Optional: final sort by created_at if you still want recency order
+    combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    
+    return {
+      posts: combined,
+      metrics: [],
+      ambassadorPercentage: taggedAmbassadorPosts.length / (combined.length || 1),
+      debugData: {
+        userPostCount: taggedUserPosts.length,
+        ambassadorPostCount: taggedAmbassadorPosts.length,
+      },
+      hasErrors: false,
+      errorDetails: [],
+    };
+  } catch (error) {
+    return {
+      posts: [],
+      metrics: [],
+      ambassadorPercentage: 0,
+      hasErrors: true,
+      errorDetails: [error.message],
+      debugData: {},
+    };
   }
+}
 
   private static async queryAmbassadorContentPriority(): Promise<{ posts: Post[], errors: string[], debugInfo: any }> {
     const debugInfo: any = { 
@@ -396,14 +243,14 @@ export class FeedQueryCascade {
       debugInfo.formattedPostCount = posts.length;
       debugInfo.steps.push(`Formatted ${debugInfo.formattedPostCount} posts with priority indicators`);
 
-      console.log('✅ Priority ambassador content query complete:', {
-        ambassadors: debugInfo.totalAmbassadors,
-        rawPosts: debugInfo.rawPostCount,
-        rotatedPosts: debugInfo.rotatedPostCount,
-        formattedPosts: debugInfo.formattedPostCount,
-        newPosts: debugInfo.newPosts,
-        errors: errors.length
-      });
+      // console.log('✅ Priority ambassador content query complete:', {
+      //   ambassadors: debugInfo.totalAmbassadors,
+      //   rawPosts: debugInfo.rawPostCount,
+      //   rotatedPosts: debugInfo.rotatedPostCount,
+      //   formattedPosts: debugInfo.formattedPostCount,
+      //   newPosts: debugInfo.newPosts,
+      //   errors: errors.length
+      // });
 
       return { posts, errors, debugInfo };
 
@@ -490,12 +337,12 @@ export class FeedQueryCascade {
       debugInfo.formattedPostCount = posts.length;
       debugInfo.steps.push(`Formatted ${debugInfo.formattedPostCount} posts`);
 
-      console.log('✅ Personalized content query complete:', {
-        followingCount: debugInfo.followingCount,
-        rawPosts: debugInfo.rawPostCount,
-        formattedPosts: debugInfo.formattedPostCount,
-        errors: errors.length
-      });
+      // console.log('✅ Personalized content query complete:', {
+      //   followingCount: debugInfo.followingCount,
+      //   rawPosts: debugInfo.rawPostCount,
+      //   formattedPosts: debugInfo.formattedPostCount,
+      //   errors: errors.length
+      // });
 
       return { posts, errors, debugInfo };
 

@@ -20,19 +20,15 @@ import { FeedAnalyticsService } from '@/services/FeedAnalyticsService';
 import { useUserFollows } from '@/hooks/useUserFollows';
 import { FeedDebugPanel } from '@/components/feed/FeedDebugPanel';
 import { Post } from '@/types/post';
+import { Virtuoso } from 'react-virtuoso';
 
 const Feed = () => {
-  console.log('🎬 Feed component rendering...');
+  // console.log('🎬 Feed component rendering...');
+  
   
   const location = useLocation();
   const { user, profile, isProfileComplete } = useAuth();
-  
-  console.log('👤 Auth state:', { 
-    hasUser: !!user, 
-    hasProfile: !!profile, 
-    isProfileComplete,
-    userId: user?.id 
-  });
+
 
   const { followingCount, following } = useUserFollows();
   const [ambassadorSeeded, setAmbassadorSeeded] = useState(false);
@@ -42,6 +38,11 @@ const Feed = () => {
   const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   
+  const userIdArray = React.useMemo(() => [user.id], [user.id]);
+  const followingUserIds = React.useMemo(() => {
+    return following.map(f => f.following_id);
+  }, [following]);
+
   const { 
     posts, 
     isLoading, 
@@ -53,13 +54,7 @@ const Feed = () => {
     loadMore, 
     refresh,
     addNewPost
-  } = useFeedCascade();
-  
-  console.log('📊 Feed data:', { 
-    postsCount: posts?.length || 0, 
-    isLoading, 
-    hasMore 
-  });
+  } = useFeedCascade(userIdArray);
   
   const { 
     metrics: performanceMetrics, 
@@ -87,13 +82,15 @@ const Feed = () => {
       total: posts.length
     };
   }, [posts, following]);
+    useEffect(() => {
+      console.log('📌 following updated:', following.map(f => f.following_id));
+    }, [following]);
+    useEffect(() => {
+      console.log('🔂 Feed mounted or updated');
+    }, []);
 
   useEffect(() => {
-    console.log('Feed component mounted', {
-      pathname: location.pathname,
-      userId: user?.id,
-      hasProfile: !!profile
-    });
+
 
     return () => {
       console.log('Feed component unmounting', {
@@ -102,28 +99,28 @@ const Feed = () => {
     };
   }, [location.pathname, user, profile]);
 
+
   useEffect(() => {
-    const initializeAmbassadors = async () => {
-      if (!ambassadorSeeded) {
-        console.log('🌱 Initializing ambassador safety net...');
-        await AmbassadorSeedingService.checkAndSeedAmbassadors();
-        setAmbassadorSeeded(true);
-      }
-    };
-    
-    initializeAmbassadors();
-  }, [ambassadorSeeded]);
+  (async () => {
+    try {
+      await AmbassadorSeedingService.checkAndSeedAmbassadors();
+    } catch (e) {
+      console.warn("Ambassador seeding failed:", e);
+    }
+  })();
+}, []);
+
 
   useEffect(() => {
     const setupStorage = async () => {
       try {
         if (user) {
-          console.log('Feed: Initializing storage in background...');
+          // console.log('Feed: Initializing storage in background...');
           const result = await initializeStorage();
-          console.log('Feed: Storage initialization completed:', result);
+          // console.log('Feed: Storage initialization completed:', result);
         }
       } catch (err) {
-        console.warn('Storage initialization failed, but continuing:', err);
+        // console.warn('Storage initialization failed, but continuing:', err);
       }
     };
     
@@ -137,12 +134,12 @@ const Feed = () => {
   }, [isLoading, posts.length, recordLoadTime]);
 
   const handlePostUpdated = () => {
-    console.log("Feed: Post updated, refreshing posts");
+    // console.log("Feed: Post updated, refreshing posts");
     refresh();
   };
 
   const handlePostCreated = (newPost: Post) => {
-    console.log("Feed: New post created, adding optimistically:", newPost.id);
+    // console.log("Feed: New post created, adding optimistically:", newPost.id);
     addNewPost(newPost);
     setShowComposer(false);
   };
@@ -157,11 +154,12 @@ const Feed = () => {
 
   const feedAnalytics = React.useMemo(() => {
     if (posts.length === 0) return null;
-    const followingUserIds = following.map((follow: any) => follow.following_id);
+    // const followingUserIds = following.map((follow: any) => follow.following_id);
+    // const followingUserIds = React.useMemo(() => following.map(f => f.following_id), [following]);
     return analyticsService.analyzeFeedQuality(posts, followingUserIds);
   }, [posts, analyticsService, following]);
 
-  console.log('🖼️ About to render Feed UI');
+  // console.log('🖼️ About to render Feed UI');
 
   return (
     <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 md:py-8">
@@ -225,7 +223,7 @@ const Feed = () => {
         </div>
 
         {/* Feed Quality Indicator */}
-        {user && feedStats && (
+        {/* {user && feedStats && (
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -254,10 +252,10 @@ const Feed = () => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Show post count and following info */}
-        {user && (
+        {/* {user && (
           <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
             <span>{posts.length} posts</span>
             {followingCount > 0 && (
@@ -267,7 +265,7 @@ const Feed = () => {
               </>
             )}
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Enhanced Debug Panel - Only show in development */}
@@ -419,6 +417,7 @@ const Feed = () => {
             <div className="mb-6 animate-fade-in">
               <PostComposer onSuccess={(post) => {
                 if (post) {
+                  console.log('✅ PostComposer success callback:', post);
                   handlePostCreated(post);
                   // Still refresh after a delay to ensure consistency
                   setTimeout(() => refresh(), 2000);
@@ -451,7 +450,7 @@ const Feed = () => {
               {posts.length > 0 && (
                 <>
                   {/* Enhanced Feed Quality Indicator */}
-                  {feedAnalytics && (
+                  {/* {feedAnalytics && (
                     <Card className="mb-6 border-green-200 bg-green-50">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -468,9 +467,9 @@ const Feed = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  )}
+                  )} */}
 
-                  <VirtualizedList
+                  {/* <VirtualizedList
                     items={posts}
                     renderItem={(post, index) => (
                       <div className="mb-6">
@@ -486,14 +485,31 @@ const Feed = () => {
                         />
                       </div>
                     )}
-                    itemHeight={250}
-                    containerHeight={600}
-                    onLoadMore={loadMore}
+                    itemHeight={300}
+                    // containerHeight={600}
+                    onLoadMore={() => {console.log("👀 Feed: onLoadMore triggered");
+                                            loadMore}}
                     hasMore={hasMore}
                     isLoading={isLoadingMore}
                     threshold={3}
                     className="min-h-[600px]"
-                  />
+                  /> */}
+
+                    <div className="space-y-4">
+                      {posts.map((post) => (
+                        <FeedBubble
+                          key={post.id}
+                          post={post}
+                          currentUserId={user.id}
+                          contentType={
+                            post.author?.user_type === 'ambassador' || post.is_ambassador_content
+                              ? 'ambassador'
+                              : 'user'
+                          }
+                          onPostUpdated={handlePostUpdated}
+                        />
+                      ))}
+                    </div>
                 </>
               )}
             </>
@@ -501,6 +517,7 @@ const Feed = () => {
         </>
       ) : (
         <div className="bg-gray-100 rounded-lg p-6 md:p-8 text-center">
+          
           <p className="text-base md:text-lg mb-4">Please log in to view the social feed</p>
           <Button onClick={() => window.location.href = '/auth'}>Sign In</Button>
         </div>

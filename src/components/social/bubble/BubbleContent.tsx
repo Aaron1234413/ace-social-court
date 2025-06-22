@@ -19,24 +19,26 @@ export function BubbleContent({ post }: BubbleContentProps) {
       )}
 
       {post.media_url && (
-        <div className="rounded-lg overflow-hidden mt-2 border border-muted/50 w-full shadow-sm hover:shadow-md transition-shadow">
-          {post.media_type === 'image' ? (
-            <img 
-              src={post.media_url} 
-              alt="Post media" 
-              className="w-full object-contain max-h-80"
-              style={{ maxWidth: '100%' }}
-            />
-          ) : post.media_type === 'video' ? (
+      <div className="rounded-lg overflow-hidden mt-2 border border-muted/50 w-full shadow-sm hover:shadow-md transition-shadow">
+        {post.media_type === 'image' ? (
+          <img 
+            src={post.media_url} 
+            alt="Post media" 
+            className="w-full object-contain max-h-[500px]"
+            style={{ maxWidth: '100%' }}
+          />
+        ) : post.media_type === 'video' ? (
+          <div className="w-full aspect-video">
             <video 
               src={post.media_url} 
               controls 
-              className="w-full max-h-80"
-              style={{ maxWidth: '100%' }}
+              className="w-full h-full object-cover"
             />
-          ) : null}
-        </div>
-      )}
+          </div>
+        ) : null}
+      </div>
+    )}
+
     </CardContent>
   );
 }
